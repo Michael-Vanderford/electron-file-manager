@@ -1,1 +1,1 @@
-# efm
+# electron-file-manager
