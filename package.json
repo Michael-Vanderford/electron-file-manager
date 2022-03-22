@@ -1,0 +1,23 @@
+{
+  "name": "electron_file_manager",
+  "version": "0.0.1",
+  "author": "michael vanderford",
+  "description": "File Manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "bootstrap": "^5.0.1",
+    "chart.js": "^3.5.1",
+    "dragselect": "^2.2.2",
+    "jquery": "^3.6.0",
+    "mousetrap": "^1.6.5",
+    "node-sqlite": "^0.0.2-security",
+    "usb": "^2.1.2",
+    "webpack": "^5.66.0"
+  },
+  "devDependencies": {
+    "electron": "^15.3.1"
+  }
+}
