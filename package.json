@@ -3,6 +3,20 @@
   "version": "0.0.1",
   "author": "michael vanderford",
   "description": "File Manager",
+  "keywords": [
+    "open-source",
+    "app",
+    "file manager",
+    "file",
+    "explorer",
+    "browser",
+    "modern",
+    "cross-platform",
+    "vue",
+    "electron",
+    "node",
+    "js"
+  ],
   "main": "main.js",
   "scripts": {
     "start": "electron ."
