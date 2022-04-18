@@ -1,0 +1,65 @@
+
+:root {
+    --base-path: '../img'
+}
+
+
+.fm_file{
+    background-image:url(../img/application-document.svg);
+    width:32;
+    height:32;
+}
+
+.fm_folder{
+    background-image:url(../images/filemanager/folder.png);
+}
+
+.ft_pdf{
+    background-image:url(../../images/filemanager/page_white_acrobat.png);
+}
+
+.ft_cs{
+    background-image:url(../../images/filemanager/page_white_csharp.png);
+}
+
+.ft_xls{
+    background-image:url(../../images/filemanager/page_white_excel.png);
+}
+
+.ft_php{
+    background-image:url(../../images/filemanager/page_white_php.png);
+}
+.ft_dll{
+    background-image:url(../../images/filemanager/page_white_dll.png);
+}
+.ft_exe,.ft_msi{
+    background-image:url(../../images/filemanager/page_white_exe.png);
+}
+.ft_db,.ft_sql{
+    background-image:url(../../images/filemanager/page_white_db.png);
+}
+.ft_png,
+.ft_jpg,
+.ft_bmp,
+.ft_gif{
+    background-image:url(../../images/filemanager/page_white_picture.png);
+}
+
+.ft_txt,
+.ft_js,
+.ft_ini,
+.ft_bat,
+.ft_css{
+    background-image:url(../../images/filemanager/page_white_text.png);
+}
+
+.ft_htm,
+.ft_xml,
+.ft_html{
+    background-image:url(../../images/filemanager/page_white_code.png);
+}
+
+.ft_rar,
+.ft_zip{
+    background-image:url(../../images/filemanager/page_white_compressed.png);
+}
