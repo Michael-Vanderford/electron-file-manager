@@ -1,12 +1,9 @@
 const { app, BrowserWindow, Menu, screen, dialog, accelerator, WebContents, webContents, MenuItem, ipcRenderer} = require('electron')
 const path = require('path')
 const fs = require('fs')
-
 const { exec, execSync, spawn, execFileSync } = require("child_process");
-
 const ipcMain = require('electron').ipcMain
 const nativeTheme = require('electron').nativeTheme
-
 const usb = require('usb');
 
 const windows = new Set();
