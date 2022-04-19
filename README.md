@@ -6,9 +6,9 @@ File manager for Linux - Built with Electron
 Install
 
 clone directory
-cd electron-file-manager
-npm i --save
-npm start
+1. cd electron-file-manager
+2. npm i --save
+3. npm start
 
 
 ![Screenshot 1](/screenshots/screenshot1.png?raw=true "Screenshot 1")
