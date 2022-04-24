@@ -8,24 +8,26 @@ const usb = require('usb');
 
 const windows = new Set();
 
-const webusb = new usb.WebUSB({
-    allowAllDevices:true
-})
+copy_files_arr = []
 
-const showDevices = async () => {
-    const devices = await webusb.getDevices();
-    const text = devices.map(d => `${d.vendorId}\t${d.productId}\t${d.serialNumber || '<no serial>'}`);
-    text.unshift('VID\tPID\tSerial\n-------------------------------------');
+// const webusb = new usb.WebUSB({
+//     allowAllDevices:true
+// })
 
-    console.log('running showdevices ' + text)
+// const showDevices = async () => {
+//     const devices = await webusb.getDevices();
+//     const text = devices.map(d => `${d.vendorId}\t${d.productId}\t${d.serialNumber || '<no serial>'}`);
+//     text.unshift('VID\tPID\tSerial\n-------------------------------------');
 
-    windows.forEach(win => {
-        if (win) {
-            console.log(text)
-            win.webContents.send('devices', text.join('\n'));
-        }
-    });
-}
+//     console.log('running showdevices ' + text)
+
+    // windows.forEach(win => {
+    //     if (win) {
+    //         console.log(text)
+    //         win.webContents.send('devices', text.join('\n'));
+    //     }
+    // });
+
 
 
 // RETURN FORMATED FILE/FOLDER SIZE
@@ -40,6 +42,82 @@ function get_file_size(fileSizeInBytes) {
     return Math.max(fileSizeInBytes, 0.0).toFixed(1) + byteUnits[i];
 
 }
+
+// CONFIRM DIALOG
+
+function createConfirmDialog(data){
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
+
+    win_confirm = new BrowserWindow({
+        width: 550,
+        height: 400,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            // nativeWindowOpen: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    // LOAD INDEX FILE
+    win_confirm.loadFile('src/confirm.html')
+
+
+    win_confirm.once('ready-to-show', () => {
+
+        win_confirm.title = 'File Conflict'
+        win_confirm.removeMenu()
+        win_confirm.show()
+
+        // win_confirm.webContents.openDevTools()
+
+        win_confirm.send('confirming_overwrite', data)
+
+
+    })
+
+
+    ipcMain.on('overwrite_confirmed', (e, data) => {
+
+        // var window = windows.win_confirm
+
+
+        // SEND OVERWRITET CONFIRMED
+        mainwindow.send('overwrite', data)
+
+        console.log('data', windows)
+        win_confirm.close()
+
+    })
+
+}
+
+
+// ipcMain.on('overwrite_confirmed', (e, data) => {
+
+//     console.log('data',data)
+//     window.close()
+
+//     var window = BrowserWindow.getFocusedWindow();
+
+//     // SEND OVERWRITET CONFIRMED
+//     window.send('overwrite', data)
+
+
+
+// })
+
+
+
+
 
 // FILE PROPERTIES WINDOW
 function createPropertiesWindow(filename) {
@@ -121,18 +199,25 @@ function createPropertiesWindow(filename) {
     // CLOSE WINDOW
     ipcMain.on('close_properties_window', () => {
         var window = BrowserWindow.getFocusedWindow();
+        windows.delete(win)
         window.close()
     })
+
+    windows.add(win)
 }
 
 
 // GET FILE PROPERTIES
 ipcMain.on('get_file_properties', (e, filename) => {
-
     createPropertiesWindow(filename)
-
 })
 
+// GET CONFIRM DIALOG
+ipcMain.on('show_confirm_dialog', (e,data) => {
+
+    console.log('this is not running')
+    createConfirmDialog(data)
+})
 
 // GET DEVICES USING GIO COMMAND LINE UTILITY
 ipcMain.on('get_gio_devices', (e) => {
@@ -409,15 +494,14 @@ ipcMain.on('get_disk_space', (e, href) => {
     // }
 })
 
-
 // ADD FILES TO COPY ARRAY
-copy_files_arr = []
 ipcMain.on('add_copy_files', function( e, data ) {
 
     copy_files_arr = data
     console.log('copy files array ' + copy_files_arr.length)
 
 })
+
 
 // SEND COPY FILES ARRAY
 ipcMain.on('get_copy_files', (e, destination_folder) => {
@@ -428,8 +512,8 @@ ipcMain.on('get_copy_files', (e, destination_folder) => {
     copy_files_arr = []
 })
 
-
 // CREATE MAIN WINDOW
+let mainwindow
 function createWindow() {
 
     let displayToUse = 0
@@ -477,6 +561,7 @@ function createWindow() {
 
 
     const win = new BrowserWindow(options)
+    mainwindow = win
 
     // LOAD INDEX FILE
     win.loadFile('src/index.html')
@@ -511,7 +596,7 @@ function createWindow() {
     })
 
 
-    showDevices()
+    // showDevices()
 
     // win.webContents.on('get_devices', (e, devicelist, callback) => {
     //     console.log('device lengh list ' + devicelist.length)
@@ -605,8 +690,8 @@ function createChildWindow() {
 
 app.whenReady().then(() => {
 
-    webusb.addEventListener('connect', showDevices);
-    webusb.addEventListener('disconnect', showDevices);
+    // webusb.addEventListener('connect', showDevices);
+    // webusb.addEventListener('disconnect', showDevices);
 
     createWindow()
 
