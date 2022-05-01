@@ -256,6 +256,7 @@ $(function() {
         } else {
             localStorage.setItem('find_folders', '')
         }
+        
     })
 
 

@@ -1,5 +1,5 @@
 
-const { getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, BrowserWindow, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
+const {BrowserWindow, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
 const fs = require('fs');
 const stat = require('fs')
 const watch = require('fs')
@@ -11,6 +11,7 @@ const os = require('os');
 const { dirname, basename, normalize } = require('path');
 const Chart = require('chart.js');
 const mime = require('mime-types')
+
 
 // ARRAYS
 let chart_labels = []
@@ -126,8 +127,6 @@ ipcRenderer.on('start_path', (e, res) => {
         start_path = res
     }
 })
-
-
 
 
 
@@ -350,7 +349,6 @@ ipcRenderer.on('copy_files', (e, files) => {
                             notification(err)
                         }
 
-
                     // FILES
                     } else {
 
@@ -362,119 +360,34 @@ ipcRenderer.on('copy_files', (e, files) => {
 
                             let destination_stats = fs.statSync(destination)
 
-                            // CONFIRM OVERWRITE OPERATION
-                            // let msg =
-                            //         'overwrite file: ' +
-                            //         destination +
-                            //         '\n\n' +
-                            //         destination_stats.mtime + '\n' +
-                            //         get_file_size(destination_stats.size) + '\n' +
-                            //         '\n\n' +
-                            //         stats.mtime + '\n' +
-                            //         get_file_size(stats.size)
-
                             let data = {
                                 source: file.source,
                                 destination: destination
                             }
 
-                            console.log('runnin show confirm dialog')
+                            // ipcRenderer.sendSync('confirm_overwrite_dialog', data)
 
-                            ipcRenderer.send('show_confirm_dialog', data)
+                            ipcRenderer.send('confirm_overwrite', data)
 
-                            // ipcRenderer.send('confirm_overwrite', msg)
+                            // ipcRenderer.sendSync('show_confirm_dialog', data)
+                            // confirming_overwrite(data)
+                            // alert('fuck off')
+                            // ipcRenderer.on('overwrite', (e, data) => {
+                            //     alert(data)
+                            // })
+
+                            // alert(test)
+                            // console.log('test', test)
+                            // ipcRenderer.sendSync('confirm_overwrite', data)
+
+                            // alert(test)
+                            // show_confirm_dialog(data)
+
+                            console.log('awhawehawehawehwshesrhsethsrh')
 
                             ipcRenderer.on('overwrite_canceled', (e, res) => {
                                 hide_top_progress()
                             })
-
-                            // OVERWRITE FILE CONFIRMED
-                            // ipcRenderer.on('overwrite_confirmed', (e, res) => {
-
-                            //     notification('overwriting file ' + destination)
-                            //     console.log('overwrite ', file.source, destination)
-
-                            //     delete_file(destination).then(data => {
-
-                            //         // HANDLE PROGESS
-                            //         progress.classList.remove('hidden')
-                            //         progress.title = 'copying ' + source_filename
-                            //         progress.max = source_size
-
-                            //         let intervalid = setInterval(() => {
-
-                            //             let destination_stats = fs.statSync(destination)
-                            //             destination_size = destination_stats.size
-                            //             progress.value = destination_size
-
-                            //             // console.log('source size', source_size,'destination size', destination_size)
-                            //             if (destination_size >= source_size) {
-                            //                 clearInterval(intervalid)
-                            //                 hide_top_progress()
-                            //             }
-
-                            //         }, 100)
-
-                            //         // COPY FILE
-                            //         fs.copyFile(file.source, destination, (err) => {
-
-                            //             // RE BUILD FILENAME. ITS GETTING LOST IN THE LOOP.
-                            //             destination = path.join(destination_folder, path.basename(file.source))
-                            //             console.log('destination ' + destination)
-
-                            //             let file_grid = document.getElementById('file_grid')
-
-                            //             if (err) {
-                            //                 console.log(err)
-                            //             } else {
-
-                            //                 // REMOVE PREVIOUS CARD
-                            //                 let previous_card = document.querySelector('[data-href="' + destination + '"]')
-                            //                 let col = previous_card.closest('.column')
-                            //                 col.remove()
-
-                            //                 // ADD CARD
-                            //                 let options = {
-
-                            //                     id: 'file_grid_' + idx,
-                            //                     href: destination,
-                            //                     linktext: path.basename(destination),
-                            //                     grid: file_grid
-
-                            //                 }
-
-                            //                 try {
-
-                            //                     add_card(options).then(col => {
-
-                            //                         console.log(col)
-                            //                         file_grid.insertBefore(col, file_grid.firstChild)
-
-                            //                         // COUNT ITEMS IN MAIN VIEW
-                            //                         folder_count = get_folder_count()
-                            //                         file_count = get_file_count()
-                            //                         ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: folder_count, file_count: file_count })
-
-                            //                         // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
-                            //                         cardindex = 0
-
-                            //                     })
-
-                            //                 } catch (err) {
-                            //                     notification(err)
-                            //                 }
-
-                            //             }
-
-                            //             // UPDATE CARDS
-                            //             update_cards(file_grid)
-
-                            //         })
-
-                            //     })
-
-                            // })
-
 
                         // NEW FILE
                         } else {
@@ -563,9 +476,7 @@ ipcRenderer.on('copy_files', (e, files) => {
 
                             })
 
-
                         }
-
 
                     }
 
@@ -588,60 +499,67 @@ ipcRenderer.on('copy_files', (e, files) => {
 })
 
 
-ipcRenderer.on('confirming_overwrite', (e, data) => {
+// ipcRenderer.on('confirming_overwrite', (e, data) => {
+// function confirming_overwrite(data) {
 
-    let confirm_dialog = document.getElementById('confirm')
+//     // const childWindow = window.open('src/confirm.html')
+//     // childWindow.document.write('Hello')
 
-    let source_stats = fs.statSync(data.source)
-    let destination_stats = fs.statSync(data.destination)
+//     // let confirm_dialog = childWindow //document.getElementById('confirm')
 
-    let btn_cancel = add_button('btn_cancel', 'Cancel')
-    let btn_replace = add_button('btn_replace', 'Replace')
-    let btn_skip = add_button('btn_skip', 'Skip')
-    let icon = add_icon('info-circle')
-    let header = add_header('<br />Replace file:  ' + path.basename(data.source) + '<br /><br />')
+//     // let source_stats = fs.statSync(data.source)
+//     // let destination_stats = fs.statSync(data.destination)
 
-    let confirm_msg = add_div()
+//     // let btn_cancel = add_button('btn_cancel', 'Cancel')
+//     // let btn_replace = add_button('btn_replace', 'Replace')
+//     // let btn_skip = add_button('btn_skip', 'Skip')
+//     // let icon = add_icon('info-circle')
+//     // let header = add_header('<br />Replace file:  ' + path.basename(data.source) + '<br /><br />')
 
-    btn_replace.classList.add('primary')
+//     // let confirm_msg = add_div()
 
-    let destination_data = add_p(
-        add_header('Original with').outerHTML +
-        add_img(get_icon_path(data.source)).outerHTML +
-        'Size:' + get_file_size(destination_stats.size) + '<br />' + 'Last modified:' + destination_stats.mtime +
-        '<br />' +
-        '<br />'
-    )
-    let source_data = add_p(
-        add_header('Replace file').outerHTML +
-        add_img(get_icon_path(data.source)).outerHTML +
-        'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified:' + source_stats.mtime +
-        '<br />' +
-        '<br />'
-    )
+//     // btn_replace.classList.add('primary')
 
-
-    confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip)
-
-
-    btn_replace.addEventListener('click', (e) => {
-
-        // ovevrwrite_confirmed(data)
-        ipcRenderer.send('overwrite_confirmed', data)
-
-    })
+//     // let destination_data = add_p(
+//     //     add_header('Original with').outerHTML +
+//     //     add_img(get_icon_path(data.source)).outerHTML +
+//     //     'Size:' + get_file_size(destination_stats.size) + '<br />' + 'Last modified:' + destination_stats.mtime +
+//     //     '<br />' +
+//     //     '<br />'
+//     // )
+//     // let source_data = add_p(
+//     //     add_header('Replace file').outerHTML +
+//     //     add_img(get_icon_path(data.source)).outerHTML +
+//     //     'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified:' + source_stats.mtime +
+//     //     '<br />' +
+//     //     '<br />'
+//     // )
 
 
-})
+//     // confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip)
+
+
+//     // btn_replace.addEventListener('click', (e) => {
+
+//     //     // ovevrwrite_confirmed(data)
+//     //     ipcRenderer.send('overwrite_confirmed', data)
+
+//     // })
+// }
+
+
 
 ipcRenderer.on('overwrite', (e, data) => {
 
+    // console.log('testing')
+
     let progress = document.getElementById('progress')
 
-    console.log(data)
 
     let destination = data.destination
     let source = data.source
+
+    console.log('destination ', destination, 'source', source)
 
     let destination_stats = fs.statSync(destination)
     let source_stats = fs.statSync(source)
@@ -4136,7 +4054,7 @@ async function get_files(dir) {
                 ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
 
                 // GET DISK USAGE CHART
-                // get_disk_usage_chart()
+                get_disk_usage_chart()
 
             }
 

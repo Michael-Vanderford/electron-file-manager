@@ -4,6 +4,7 @@ const fs = require('fs')
 const { exec, execSync, spawn, execFileSync } = require("child_process");
 const ipcMain = require('electron').ipcMain
 const nativeTheme = require('electron').nativeTheme
+const nativeImage = require('electron')
 const usb = require('usb');
 
 const windows = new Set();
@@ -43,20 +44,41 @@ function get_file_size(fileSizeInBytes) {
 
 }
 
-// CONFIRM DIALOG
+// CREATE MAIN WINDOW
+let win
+function createWindow() {
 
-function createConfirmDialog(data){
-    let bounds = screen.getPrimaryDisplay().bounds;
-    let x = bounds.x + ((bounds.width - 400) / 2);
-    let y = bounds.y + ((bounds.height - 400) / 2);
+    let displayToUse = 0
+    let lastActive = 0
+    let displays = screen.getAllDisplays()
 
-    win_confirm = new BrowserWindow({
-        width: 550,
-        height: 400,
+    // Single Display
+    if (displays.length === 1) {
+        displayToUse = displays[0]
+    }
+
+    // Multi Display
+    else {
+        // if we have a last active window, use that display for the new window
+        if (!displayToUse && lastActive) {
+            displayToUse = screen.getDisplayMatching(lastActive.getBounds());
+        }
+
+        // fallback to primary display or first display
+        if (!displayToUse) {
+            displayToUse = screen.getPrimaryDisplay() || displays[3];
+        }
+    }
+
+    let options = {
+        minWidth:1024,
+        minHeight:600,
+        width: 1600,
+        height: 768,
         backgroundColor: '#2e2c29',
-        x: x,
-        y: y,
-        frame: true,
+        x:displayToUse.bounds.x + 50,
+        y:displayToUse.bounds.y + 50,
+        frame: false,
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -65,54 +87,151 @@ function createConfirmDialog(data){
             // nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
         },
-    })
+    }
+
+
+    win = new BrowserWindow(options)
+
+    win.webContents.openDevTools()
 
     // LOAD INDEX FILE
-    win_confirm.loadFile('src/confirm.html')
+    win.loadFile('src/index.html')
 
-
-    win_confirm.once('ready-to-show', () => {
-
-        win_confirm.title = 'File Conflict'
-        win_confirm.removeMenu()
-        win_confirm.show()
-
-        // win_confirm.webContents.openDevTools()
-
-        win_confirm.send('confirming_overwrite', data)
-
-
+    // RELOAD WINDOW
+    ipcMain.on('reload',function(e){
+        win.loadFile('src/index.html')
     })
 
 
-    ipcMain.on('overwrite_confirmed', (e, data) => {
-
-        // var window = windows.win_confirm
-
-
-        // SEND OVERWRITET CONFIRMED
-        mainwindow.send('overwrite', data)
-
-        console.log('data', windows)
-        win_confirm.close()
-
+    // MAXAMIZE WINDOW
+    ipcMain.on('maximize', () => {
+        win.maximize()
     })
+
+
+    // MINIMIZE WINDOW
+    ipcMain.on('minimize', () => {
+        win.minimize()
+    })
+
+    // CLOSE WINDOW
+    ipcMain.on('close', () => {
+        var window = BrowserWindow.getFocusedWindow();
+        window.close()
+    })
+
+    // GO BACK
+    ipcMain.on('go_back', function(e, msg) {
+        console.log('running go back from main ')
+        win.webContents.goBack()
+    })
+
+
+    // showDevices()
+
+    // win.webContents.on('get_devices', (e, devicelist, callback) => {
+    //     console.log('device lengh list ' + devicelist.length)
+    // })
 
 }
 
 
-// ipcMain.on('overwrite_confirmed', (e, data) => {
+// CONFIRM DIALOG
+// let confirm
+// function createConfirmDialog(data) {
 
+//     let bounds = screen.getPrimaryDisplay().bounds;
+//     let x = bounds.x + ((bounds.width - 400) / 2);
+//     let y = bounds.y + ((bounds.height - 400) / 2);
+
+//     confirm = new BrowserWindow({
+//         parent:win,
+//         modal:true,
+//         width: 550,
+//         height: 400,
+//         backgroundColor: '#2e2c29',
+//         x: x,
+//         y: y,
+//         frame: true,
+//         webPreferences: {
+//             nodeIntegration: false, // is default value after Electron v5
+//             contextIsolation: true, // protect against prototype pollution
+//             enableRemoteModule: false, // turn off remote
+//             nodeIntegrationInWorker: false,
+//             // nativeWindowOpen: false,
+//             preload: path.join(__dirname, 'preload.js'),
+//         },
+//     })
+
+//     // LOAD INDEX FILE
+//     confirm.loadFile('src/confirm.html')
+
+
+//     confirm.once('ready-to-show', () => {
+
+//         confirm.title = 'File Conflict'
+//         confirm.removeMenu()
+//         confirm.show()
+
+//         // win_confirm.webContents.openDevTools()
+//         confirm.send('confirming_overwrite', data)
+
+//     })
+
+//     // confirm.webContents.on('overwrite_confirmed', (e, data) => {
+//     //     e.sender.send('overwrite', data)
+//     // })
+
+//     // CLOSE
+//     // confirm.on('close',() => {
+//     //     console.log('closing confirm dialog')
+//     // })
+
+//     // OVERWRITE CONFIRM
+//     ipcMain.on('overwrite_confirmed', (e,data) => {
+//         // win.send('overwrite', data)
+//         // confirm.close()
+//         // e.returnValue = 1
+//         console.log('testing')
+//         return 1
+//     })
+
+//     // return new Promise((resolve,reject) => {
+//     //     ipcMain.once('overwrite_confirmed', (e, data) => {
+//     //         // SEND OVERWRITET CONFIRMED
+//     //         resolve(data)
+//     //     })
+//     // })
+
+// }
+
+
+// // GET CONFIRM DIALOG
+// ipcMain.on('show_confirm_dialog', (e, data) => {
+//     e.preventDefault()
+//     createConfirmDialog(data)
+
+//     // e.preventDefault()
+//     // createConfirmDialog(data).then(overwrite_data => {
+//     //     // confirm.close()
+//     //     win.send('overwrite', overwrite_data)
+//     //     // callback(overwrite_data)
+//     // }).catch(err => {
+//     //     console.log(err)
+//     // })
+
+// })
+
+
+
+
+
+// ipcMain.on('overwrite_confirmed', (e, data) => {
 //     console.log('data',data)
 //     window.close()
-
 //     var window = BrowserWindow.getFocusedWindow();
-
 //     // SEND OVERWRITET CONFIRMED
 //     window.send('overwrite', data)
-
-
-
 // })
 
 
@@ -212,12 +331,7 @@ ipcMain.on('get_file_properties', (e, filename) => {
     createPropertiesWindow(filename)
 })
 
-// GET CONFIRM DIALOG
-ipcMain.on('show_confirm_dialog', (e,data) => {
 
-    console.log('this is not running')
-    createConfirmDialog(data)
-})
 
 // GET DEVICES USING GIO COMMAND LINE UTILITY
 ipcMain.on('get_gio_devices', (e) => {
@@ -464,7 +578,6 @@ ipcMain.on('get_disk_space', (e, href) => {
                 })
 
 
-
                 cmd = 'cd "' + href.href + '"; du -s'
                 du = exec(cmd)
 
@@ -512,97 +625,7 @@ ipcMain.on('get_copy_files', (e, destination_folder) => {
     copy_files_arr = []
 })
 
-// CREATE MAIN WINDOW
-let mainwindow
-function createWindow() {
 
-    let displayToUse = 0
-    let lastActive = 0
-    let displays = screen.getAllDisplays()
-
-    // Single Display
-    if (displays.length === 1) {
-        displayToUse = displays[0]
-    }
-
-    // Multi Display
-    else {
-
-        // if we have a last active window, use that display for the new window
-        if (!displayToUse && lastActive) {
-            displayToUse = screen.getDisplayMatching(lastActive.getBounds());
-        }
-
-        // fallback to primary display or first display
-        if (!displayToUse) {
-            displayToUse = screen.getPrimaryDisplay() || displays[3];
-        }
-
-    }
-
-    let options = {
-        minWidth:1024,
-        minHeight:600,
-        width: 1600,
-        height: 768,
-        backgroundColor: '#2e2c29',
-        x:displayToUse.bounds.x + 50,
-        y:displayToUse.bounds.y + 50,
-        frame: false,
-        webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
-            contextIsolation: true, // protect against prototype pollution
-            enableRemoteModule: false, // turn off remote
-            nodeIntegrationInWorker: false,
-            // nativeWindowOpen: false,
-            preload: path.join(__dirname, 'preload.js'),
-        },
-    }
-
-
-    const win = new BrowserWindow(options)
-    mainwindow = win
-
-    // LOAD INDEX FILE
-    win.loadFile('src/index.html')
-
-    // RELOAD WINDOW
-    ipcMain.on('reload',function(e){
-        win.loadFile('src/index.html')
-    })
-
-
-    // MAXAMIZE WINDOW
-    ipcMain.on('maximize', () => {
-        win.maximize()
-    })
-
-
-    // MINIMIZE WINDOW
-    ipcMain.on('minimize', () => {
-        win.minimize()
-    })
-
-    // CLOSE WINDOW
-    ipcMain.on('close', () => {
-        var window = BrowserWindow.getFocusedWindow();
-        window.close()
-    })
-
-    // GO BACK
-    ipcMain.on('go_back', function(e, msg) {
-        console.log('running go back from main ')
-        win.webContents.goBack()
-    })
-
-
-    // showDevices()
-
-    // win.webContents.on('get_devices', (e, devicelist, callback) => {
-    //     console.log('device lengh list ' + devicelist.length)
-    // })
-
-}
 
 
 // CREATE CHILD WINDOW
@@ -1298,7 +1321,6 @@ ipcMain.on('find', function (e, args) {
 // CONFIRM MOVE FOLDER DIALOG
 ipcMain.on('confirm_move', function (e, msg) {
 
-
     let res = dialog.showMessageBoxSync(null, {
 
         title: 'Warning',
@@ -1310,34 +1332,72 @@ ipcMain.on('confirm_move', function (e, msg) {
 
     // IF RESPONSE IS 0 THEN MOVE CONFIRMED. I KNOW ITS BACKWARDS
     if (res == 0) {
-
         e.sender.send('move_confirmed', res)
     }
 
 })
 
+ipcMain.on('confirm_overwrite_dialog', (e, data) => {
+    let confirm = new BrowserWindow({
+        width: 550,
+        height: 400,
+        backgroundColor: '#2e2c29',
+    })
+
+    // LOAD INDEX FILE
+    confirm.loadFile('src/confirm.html')
+
+    confirm.once('ready-to-show', () => {
+        confirm.show()
+    })
+
+    confirm.on('close', (e) => {
+        console.log('data',data)
+        return data
+    })
+
+})
 
 // CONFIRM OVERWRITE DIALOG
-ipcMain.on('confirm_overwrite', function (e, msg) {
-    // e.preventDefault()
+ipcMain.on('confirm_overwrite', function (e, data) {
+
+    let destination = data.destination
+    let source = data.source
+
+    let destination_stats = fs.statSync(destination)
+    let source_stats = fs.statSync(source)
+
+    let icon = path.join(__dirname,'assets/icons/file.png')
+    if (destination_stats.isDirectory()) {
+        icon = path.join(__dirname,'assets/icons/folder.png')
+    }
 
     let res = dialog.showMessageBoxSync(null, {
-
-        // defaultId: 0,
-        type: 'warning',
-        title: 'Warning',
-        buttons: ['Ok', 'Cancel'],
-        // type: 'question',
-        message: 'Are you sure you want to overwrite your stuff',
-        detail: msg
-
+        icon: icon,
+        type: 'none',
+        title: 'File Conflict',
+        buttons: ['Skip', 'Replace', 'Cancel'],
+        message: 'Replace file ' + destination,
+        detail:
+                'Original file' +
+                '\n' +
+                'size: ' + get_file_size(destination_stats.size) +
+                '\n' +
+                'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+                '\n\n' +
+                'Replace with' +
+                '\n' +
+                'size: ' + get_file_size(source_stats.size) +
+                '\n' +
+                'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+                ,
+        checkboxLabel: 'Apply this action to all files and folders'
     })
 
     // console.log(res)
 
-    if (res == 0) {
-
-        e.sender.send('overwrite_confirmed', res)
+    if (res == 1) {
+        e.sender.send('overwrite', data)
     } else {
         e.sender.send('overwrite_canceled')
     }
