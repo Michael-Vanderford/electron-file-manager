@@ -2888,7 +2888,7 @@ async function get_tree(dir) {
                         id: 'tree_' + idx,
                         href: filepath,
                         linktext: filename,
-                        image: '../assets/icons/vscode/default_folder.svg',  //get_icon_path(filepath),
+                        image: path.join(__dirname, '/assets/icons/vscode/default_folder.svg'),  //get_icon_path(filepath),
                         is_folder: true,
                         description: '',
                         size: 0
@@ -5738,7 +5738,7 @@ window.addEventListener('contextmenu', function (e) {
         notification(4)
 
         let data = {
-            source: '/home/michael/source/repos/electron_file_manager/assets/templates/',
+            source: path.join(__dirname,'assets/templates/'),
             destination: breadcrumbs.value + '/'
         }
 
@@ -6804,7 +6804,7 @@ function update_parent() {
 // CREATE FILE FROM TEMPLATE
 function create_file_from_template(filename) {
 
-    let template = path.join('/home/michael/source/repos/electron_file_manager/assets/templates/', filename)
+    let template = path.join(__dirname, '/assets/templates/', filename)
     let destination = path.join(breadcrumbs.value, filename)
 
     console.log('running create file ' + template + ' destin ' + destination)

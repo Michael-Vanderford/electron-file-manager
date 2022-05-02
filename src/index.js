@@ -131,7 +131,6 @@ if (localStorage.getItem('sidebar_width')) {
 //
 if (element) {
 
-
     // var resizer = document.createElement('div')
     // resizer.className = 'draghandle'
 
@@ -256,10 +255,8 @@ $(function() {
         } else {
             localStorage.setItem('find_folders', '')
         }
-        
+
     })
-
-
 
     // FIND FILES
     let find_files = $('#find_files')
@@ -423,6 +420,8 @@ $(function() {
     }
 
     window.api.get_files(localStorage.getItem('folder'), options)
+
+    // window.api.get_files_list(localStorage.getItem('folder'))
     // console.log(Date.now() - st)
 
 

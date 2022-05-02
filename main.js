@@ -807,7 +807,7 @@ function add_templates_menu(menu, e, args){
 
     let template_menu = menu.getMenuItemById('templates')
 
-    let templates = fs.readdirSync('assets/templates')
+    let templates = fs.readdirSync(path.join(__dirname, 'assets/templates'))
     templates.forEach((file,idx) => {
 
         template_menu.submenu.append(new MenuItem({
@@ -1367,40 +1367,74 @@ ipcMain.on('confirm_overwrite', function (e, data) {
     let destination_stats = fs.statSync(destination)
     let source_stats = fs.statSync(source)
 
-    let icon = path.join(__dirname,'assets/icons/file.png')
+    let icon = path.join(__dirname,'/assets/icons/file.png')
     if (destination_stats.isDirectory()) {
-        icon = path.join(__dirname,'assets/icons/folder.png')
-    }
 
-    let res = dialog.showMessageBoxSync(null, {
-        icon: icon,
-        type: 'none',
-        title: 'File Conflict',
-        buttons: ['Skip', 'Replace', 'Cancel'],
-        message: 'Replace file ' + destination,
-        detail:
-                'Original file' +
-                '\n' +
-                'size: ' + get_file_size(destination_stats.size) +
-                '\n' +
-                'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-                '\n\n' +
-                'Replace with' +
-                '\n' +
-                'size: ' + get_file_size(source_stats.size) +
-                '\n' +
-                'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
-                ,
-        checkboxLabel: 'Apply this action to all files and folders'
-    })
+        icon = path.join(__dirname,'/assets/icons/folder.png')
+        let res = dialog.showMessageBoxSync(null, {
+            icon: icon,
+            type: 'none',
+            title: 'Directory Conflict',
+            buttons: ['Skip', 'Replace', 'Cancel'],
+            message: 'Replace directory ' + destination,
+            detail:
+                    'Original directory' +
+                    '\n' +
+                    'size: ' + get_file_size(destination_stats.size) +
+                    '\n' +
+                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+                    '\n\n' +
+                    'Replace with' +
+                    '\n' +
+                    'size: ' + get_file_size(source_stats.size) +
+                    '\n' +
+                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+                    ,
+            // checkboxLabel: 'Apply this action to all files and folders',
+            // checkboxChecked:false
 
-    // console.log(res)
+        })
 
-    if (res == 1) {
-        e.sender.send('overwrite', data)
+        if (res == 1) {
+            e.sender.send('overwrite', data)
+        } else {
+            e.sender.send('overwrite_canceled', data)
+        }
+
     } else {
-        e.sender.send('overwrite_canceled')
+
+        let res = dialog.showMessageBoxSync(null, {
+            icon: icon,
+            type: 'none',
+            title: 'File Conflict',
+            buttons: ['Skip', 'Replace', 'Cancel'],
+            message: 'Replace file ' + destination,
+            detail:
+                    'Original file' +
+                    '\n' +
+                    'size: ' + get_file_size(destination_stats.size) +
+                    '\n' +
+                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+                    '\n\n' +
+                    'Replace with' +
+                    '\n' +
+                    'size: ' + get_file_size(source_stats.size) +
+                    '\n' +
+                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+                    ,
+            // checkboxLabel: 'Apply this action to all files and folders',
+            // checkboxChecked:false
+
+        })
+
+        if (res == 1) {
+            e.sender.send('overwrite', data)
+        } else {
+            e.sender.send('overwrite_canceled', data)
+        }
     }
+
+
 
 })
 

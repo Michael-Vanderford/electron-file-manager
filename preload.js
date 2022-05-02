@@ -227,7 +227,7 @@ ipcRenderer.on('copy_files', (e, files) => {
                         update_cards(folder_grid)
                         clear_selected_files()
 
-                        // FILE
+                    // FILE
                     } else {
 
                         // BUILD DESTINATION PATH
@@ -301,53 +301,72 @@ ipcRenderer.on('copy_files', (e, files) => {
                         // IF DESTINATION FOLDER EXISTS CREATE COPY
                         if (fs.existsSync(destination)) {
 
-                            destination = destination_folder + '/' + source_filename.substr(0, source_filename.length - path.extname(source_filename).length) + ' Copy' + path.extname(source_filename)
-                            copyFolderRecursiveSync(file.source, destination)
+                            let data = {
+                                source: file.source,
+                                destination: destination
+                            }
+
+                            ipcRenderer.send('confirm_overwrite', data)
+
+                            // console.log('wawgawgawegawegaweg')
+
+                            // destination = destination_folder + '/' + source_filename.substr(0, source_filename.length - path.extname(source_filename).length) + ' Copy' + path.extname(source_filename)
+                            // copyFolderRecursiveSync(file.source, destination)
+
+                            ipcRenderer.on('overwrite_canceled', (e, res) => {
+                                console.log(res)
+                                hide_top_progress()
+                            })
+
 
                         } else {
 
                             copyFolderRecursiveSync(file.source, destination)
 
+                            // ADD FOLDER CARD
+                            let folder_grid = document.getElementById('folder_grid')
+
+                            let folders_card = document.getElementById('folders_card')
+                            folders_card.classList.remove('hidden')
+
+                            let options = {
+
+                                id: 'folder_grid_' + idx,
+                                href: destination,
+                                linktext: path.basename(destination),
+                                grid: folder_grid
+
+                            }
+
+                            try {
+
+                                add_card(options).then(col => {
+
+                                    console.log(col)
+                                    console.log(folder_grid)
+                                    folder_grid.insertBefore(col, folder_grid.firstChild)
+
+
+                                    // GET FOLDER_SIIZE
+                                    ipcRenderer.send('get_folder_size', { href: destination })
+
+                                    // COUNT ITEMS IN MAIN VIEW
+                                    folder_count = get_folder_count()
+                                    file_count = get_file_count()
+                                    ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: folder_count, file_count: file_count })
+
+                                    // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
+                                    cardindex = 0
+
+                                })
+
+                            } catch (err) {
+                                notification(err)
+                            }
+
                         }
 
-                        // ADD FOLDER CARD
-                        let folder_grid = document.getElementById('folder_grid')
 
-                        let folders_card = document.getElementById('folders_card')
-                        folders_card.classList.remove('hidden')
-
-                        let options = {
-
-                            id: 'folder_grid_' + idx,
-                            href: destination,
-                            linktext: path.basename(destination),
-                            grid: folder_grid
-
-                        }
-
-                        try {
-                            add_card(options).then(col => {
-
-                                console.log(col)
-                                console.log(folder_grid)
-                                folder_grid.insertBefore(col, folder_grid.firstChild)
-
-
-                                // GET FOLDER_SIIZE
-                                ipcRenderer.send('get_folder_size', { href: destination })
-
-                                // COUNT ITEMS IN MAIN VIEW
-                                folder_count = get_folder_count()
-                                file_count = get_file_count()
-                                ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: folder_count, file_count: file_count })
-
-                                // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
-                                cardindex = 0
-
-                            })
-                        } catch (err) {
-                            notification(err)
-                        }
 
                     // FILES
                     } else {
@@ -369,23 +388,10 @@ ipcRenderer.on('copy_files', (e, files) => {
 
                             ipcRenderer.send('confirm_overwrite', data)
 
-                            // ipcRenderer.sendSync('show_confirm_dialog', data)
-                            // confirming_overwrite(data)
-                            // alert('fuck off')
-                            // ipcRenderer.on('overwrite', (e, data) => {
-                            //     alert(data)
-                            // })
-
-                            // alert(test)
-                            // console.log('test', test)
-                            // ipcRenderer.sendSync('confirm_overwrite', data)
-
-                            // alert(test)
-                            // show_confirm_dialog(data)
-
-                            console.log('awhawehawehawehwshesrhsethsrh')
+                            // console.log('awhawehawehawehwshesrhsethsrh')
 
                             ipcRenderer.on('overwrite_canceled', (e, res) => {
+                                console.log(res)
                                 hide_top_progress()
                             })
 
@@ -570,77 +576,83 @@ ipcRenderer.on('overwrite', (e, data) => {
     notification('overwriting file ' + destination)
     console.log('overwrite ', source, destination)
 
-    delete_file(destination).then(data => {
+    if (destination_stats.isDirectory()) {
+        copyFolderRecursiveSync(source,destination)
+    } else {
 
-        // HANDLE PROGESS
-        progress.classList.remove('hidden')
-        progress.title = 'copying ' + source
-        progress.max = source_size
+        delete_file(destination).then(data => {
 
-        let intervalid = setInterval(() => {
+            // HANDLE PROGESS
+            progress.classList.remove('hidden')
+            progress.title = 'copying ' + source
+            progress.max = source_size
 
-            progress.value = destination_size
+            let intervalid = setInterval(() => {
 
-            // console.log('source size', source_size,'destination size', destination_size)
-            if (destination_size >= source_size) {
-                clearInterval(intervalid)
-                hide_top_progress()
-            }
+                progress.value = destination_size
 
-        }, 100)
+                // console.log('source size', source_size,'destination size', destination_size)
+                if (destination_size >= source_size) {
+                    clearInterval(intervalid)
+                    hide_top_progress()
+                }
 
-        // COPY FILE
-        fs.copyFile(source, destination, (err) => {
+            }, 100)
 
-            let file_grid = document.getElementById('file_grid')
+            // COPY FILE
+            fs.copyFile(source, destination, (err) => {
 
-            if (err) {
-                console.log(err)
-            } else {
+                let file_grid = document.getElementById('file_grid')
 
-                // REMOVE PREVIOUS CARD
-                let previous_card = document.querySelector('[data-href="' + destination + '"]')
-                let col = previous_card.closest('.column')
-                col.remove()
+                if (err) {
+                    console.log(err)
+                } else {
 
-                // ADD CARD
-                let options = {
+                    // REMOVE PREVIOUS CARD
+                    let previous_card = document.querySelector('[data-href="' + destination + '"]')
+                    let col = previous_card.closest('.column')
+                    col.remove()
 
-                    id: 'file_grid_' + idx,
-                    href: destination,
-                    linktext: path.basename(destination),
-                    grid: file_grid
+                    // ADD CARD
+                    let options = {
+
+                        id: 'file_grid_' + idx,
+                        href: destination,
+                        linktext: path.basename(destination),
+                        grid: file_grid
+
+                    }
+
+                    try {
+
+                        add_card(options).then(col => {
+
+                            console.log(col)
+                            file_grid.insertBefore(col, file_grid.firstChild)
+
+                            // COUNT ITEMS IN MAIN VIEW
+                            folder_count = get_folder_count()
+                            file_count = get_file_count()
+
+                            // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
+                            cardindex = 0
+
+                        })
+
+                    } catch (err) {
+                        notification(err)
+                    }
 
                 }
 
-                try {
+                // UPDATE CARDS
+                update_cards(file_grid)
 
-                    add_card(options).then(col => {
-
-                        console.log(col)
-                        file_grid.insertBefore(col, file_grid.firstChild)
-
-                        // COUNT ITEMS IN MAIN VIEW
-                        folder_count = get_folder_count()
-                        file_count = get_file_count()
-
-                        // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
-                        cardindex = 0
-
-                    })
-
-                } catch (err) {
-                    notification(err)
-                }
-
-            }
-
-            // UPDATE CARDS
-            update_cards(file_grid)
+            })
 
         })
 
-    })
+    }
 
 })
 
@@ -3002,9 +3014,6 @@ async function get_tree(dir) {
             }
 
         })
-
-
-
 
     }
 
@@ -5846,7 +5855,7 @@ window.addEventListener('contextmenu', function (e) {
         notification(4)
 
         let data = {
-            source: '/home/michael/source/repos/electron_file_manager/assets/templates/',
+            source: path.join(__dirname, 'assets/templates/'),
             destination: breadcrumbs.value + '/'
         }
 
@@ -6242,7 +6251,7 @@ function get_icon_path(file) {
 
         let stats = fs.statSync(file)
         let file_ext = path.extname(file)
-        let mimetype = mime.lookup(file)
+        // let mimetype = mime.lookup(file)
 
         // mem = os.totalmem()  // environ.get('MESON_INSTALL_PREFIX', '/usr/local')
         // info(get_file_size(mem))
@@ -6251,81 +6260,45 @@ function get_icon_path(file) {
         // console.log('icon dir', icon_dir, 'icon dir 0', icon_dir0)
 
         if (stats.isDirectory()) {
-
-            // let breadcrumbs = document.getElementById('breadcrumbs').value
-
-            if (localStorage.getItem('folder_icon') && folder_icon_path0 == folder_icon_path) {
-
-                icon = localStorage.getItem('folder_icon')
-
-            } else {
-
-                let cmd = "cd '" + icon_dir + "'; find -type f -iname 'folder.svg*' | grep '32'"
-                folder_icon_path0 = folder_icon_path
-                folder_icon_path = execSync(cmd).toString().replace('.','').trim()
-                icon = path.join(icon_dir, folder_icon_path)
-
-            }
-
-            if (fs.existsSync(icon)) {
-                localStorage.setItem('folder_icon', icon)
-            } else {
-                icon = path.join(__dirname, 'assets/icons/korla/places/scalable@2/folder.svg')
-            }
-
-            console.log('folder icon', icon)
-
+            icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
         } else if (stats.isFile()) {
 
-            // console.log('mimetype',mimetype)
+            icon_dir = path.join(__dirname,'/assets/icons/korla')
+            console.log(icon_dir)
 
-            // if (localStorage.getItem('file_icon')) {
+            if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
+                icon = file
+            } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
+                icon = path.join(icon_dir,'/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
+            } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
+                icon = path.join(icon_dir,'/apps/scalable/libreoffice-writer.svg')
+            } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
+                icon = path.join(icon_dir,'/mimetypes/scalable/audio-wav.svg')
+            } else if (file_ext == '.iso') {
+                icon = path.join(icon_dir,'/apps/scalable/isomaster.svg')
+            } else if (file_ext == '.pdf') {
+                icon = path.join(icon_dir,'/apps/scalable/gnome-pdf.svg')
+            } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
+                icon = path.join(icon_dir,'/apps/scalable/7zip.svg')
+            } else if (file_ext == '.deb') {
+                icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
+            } else if (file_ext == '.txt') {
+                icon = path.join(icon_dir,'/apps/scalable/text.svg')
+            } else if (file_ext == '.sh') {
+                icon = path.join(icon_dir,'/apps/scalable/terminal.svg')
+            } else if (file_ext == '.js') {
+                icon = path.join(icon_dir,'/apps/scalable/applications-java.svg')
+            } else if (file_ext == '.sql') {
+                icon = path.join(icon_dir,'/mimetypes/scalable/application-x-sqlite.svg')
+            } else {
+                icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
+            }
 
-            //     icon = localStorage.getItem('file_icon')
 
-            // } else {
-                // CHECK FILE EXTENTION FOR ICON
-                // icon = path.join(icon_dir, '32x32/mimetypes', mimetype.replace('/', '-').replace('+', '-') + '.svg')
-                // console.log('mimetype',mimetype, 'icon',icon)
-
-                icon_dir = path.join(__dirname,'assets/icons/korla')
-                console.log(icon_dir)
-
-                if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
-                    icon = file
-                } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
-                    icon = path.join(icon_dir,'/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
-                } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
-                    icon = path.join(icon_dir,'/apps/scalable/libreoffice-writer.svg')
-                } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
-                    icon = path.join(icon_dir,'/mimetypes/scalable/audio-wav.svg')
-                } else if (file_ext == '.iso') {
-                    icon = path.join(icon_dir,'/apps/scalable/isomaster.svg')
-                } else if (file_ext == '.pdf') {
-                    icon = path.join(icon_dir,'/apps/scalable/gnome-pdf.svg')
-                } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
-                    icon = path.join(icon_dir,'/apps/scalable/7zip.svg')
-                } else if (file_ext == '.deb') {
-                    icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
-                } else if (file_ext == '.txt') {
-                    icon = path.join(icon_dir,'/apps/scalable/text.svg')
-                } else if (file_ext == '.sh') {
-                    icon = path.join(icon_dir,'/apps/scalable/terminal.svg')
-                } else if (file_ext == '.js') {
-                    icon = path.join(icon_dir,'/apps/scalable/applications-java.svg')
-                } else if (file_ext == '.sql') {
-                    icon = path.join(icon_dir,'/mimetypes/scalable/application-x-sqlite.svg')
-                } else {
-                    icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
-                }
-
-            // }
-
-            // if (fs.existsSync(icon)) {
-            //     localStorage.setItem('file_icon', icon)
-            // }
 
         }
+
+
     } catch (err) {
         // icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
     }
@@ -6943,7 +6916,7 @@ function update_parent() {
 // CREATE FILE FROM TEMPLATE
 function create_file_from_template(filename) {
 
-    let template = path.join('/home/michael/source/repos/electron_file_manager/assets/templates/', filename)
+    let template = path.join(__dirname, 'assets/templates/', filename)
     let destination = path.join(breadcrumbs.value, filename)
 
     console.log('running create file ' + template + ' destin ' + destination)
@@ -7917,7 +7890,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // OPEN TEMPLATES FOLDER
     if (command == 'open_templates_folder') {
-        get_files(path.join(__dirname, '/assets/templates'), { sort: localStorage.getItem('sort') })
+        get_files(path.join(__dirname, 'assets/templates'), { sort: localStorage.getItem('sort') })
     }
 
     // console.log('command ' + args)
