@@ -561,10 +561,19 @@ body .ui.card .none{
 }
 
 .img {
+
     height: 48px !important;
-    /* width: 48px !important; */
+    width: 48px !important;
     border:2px solid #000000 !important;
     background:#000000 !important;
+}
+
+.image {
+
+    height: 32px !important;
+    width: 32px !important;
+    /* border:2px solid #000000 !important; */
+    /* background:#000000 !important; */
 }
 
 

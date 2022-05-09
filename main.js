@@ -45,7 +45,7 @@ function get_file_size(fileSizeInBytes) {
 }
 
 // CREATE MAIN WINDOW
-let win
+let win = null
 function createWindow() {
 
     let displayToUse = 0
@@ -137,90 +137,120 @@ function createWindow() {
 
 
 // CONFIRM DIALOG
-// let confirm
-// function createConfirmDialog(data) {
+let confirm = null
+function createConfirmDialog(data) {
 
-//     let bounds = screen.getPrimaryDisplay().bounds;
-//     let x = bounds.x + ((bounds.width - 400) / 2);
-//     let y = bounds.y + ((bounds.height - 400) / 2);
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
 
-//     confirm = new BrowserWindow({
-//         parent:win,
-//         modal:true,
-//         width: 550,
-//         height: 400,
-//         backgroundColor: '#2e2c29',
-//         x: x,
-//         y: y,
-//         frame: true,
-//         webPreferences: {
-//             nodeIntegration: false, // is default value after Electron v5
-//             contextIsolation: true, // protect against prototype pollution
-//             enableRemoteModule: false, // turn off remote
-//             nodeIntegrationInWorker: false,
-//             // nativeWindowOpen: false,
-//             preload: path.join(__dirname, 'preload.js'),
-//         },
-//     })
+    const confirm = new BrowserWindow({
+        parent:win,
+        modal:true,
+        width: 550,
+        height: 400,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            // nativeWindowOpen: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
 
-//     // LOAD INDEX FILE
-//     confirm.loadFile('src/confirm.html')
+    // LOAD INDEX FILE
+    confirm.loadFile('src/confirm.html')
 
+    confirm.once('ready-to-show', () => {
 
-//     confirm.once('ready-to-show', () => {
+        confirm.title = 'File Conflict'
+        confirm.removeMenu()
+        confirm.show()
 
-//         confirm.title = 'File Conflict'
-//         confirm.removeMenu()
-//         confirm.show()
+        // win_confirm.webContents.openDevTools()
+        confirm.send('confirming_overwrite', data)
 
-//         // win_confirm.webContents.openDevTools()
-//         confirm.send('confirming_overwrite', data)
+    })
 
-//     })
+    ipcMain.on('overwrite_confirmed', (e,data) => {
+        console.log('running')
+        win.send('overwrite', data)
+        let active_window = BrowserWindow.getFocusedWindow();
+        active_window.close()
+    })
 
-//     // confirm.webContents.on('overwrite_confirmed', (e, data) => {
-//     //     e.sender.send('overwrite', data)
-//     // })
+    ipcMain.on('overwrite_canceled', (e) => {
+        let active_window = BrowserWindow.getFocusedWindow();
+        active_window.close()
+    })
 
-//     // CLOSE
-//     // confirm.on('close',() => {
-//     //     console.log('closing confirm dialog')
-//     // })
-
-//     // OVERWRITE CONFIRM
-//     ipcMain.on('overwrite_confirmed', (e,data) => {
-//         // win.send('overwrite', data)
-//         // confirm.close()
-//         // e.returnValue = 1
-//         console.log('testing')
-//         return 1
-//     })
-
-//     // return new Promise((resolve,reject) => {
-//     //     ipcMain.once('overwrite_confirmed', (e, data) => {
-//     //         // SEND OVERWRITET CONFIRMED
-//     //         resolve(data)
-//     //     })
-//     // })
-
-// }
+}
 
 
-// // GET CONFIRM DIALOG
-// ipcMain.on('show_confirm_dialog', (e, data) => {
-//     e.preventDefault()
-//     createConfirmDialog(data)
 
-//     // e.preventDefault()
-//     // createConfirmDialog(data).then(overwrite_data => {
-//     //     // confirm.close()
-//     //     win.send('overwrite', overwrite_data)
-//     //     // callback(overwrite_data)
-//     // }).catch(err => {
-//     //     console.log(err)
-//     // })
 
-// })
+
+// GET CONFIRM DIALOG
+ipcMain.on('show_confirm_dialog', (e, data) => {
+
+    console.log('running')
+
+    // let bounds = screen.getPrimaryDisplay().bounds;
+    // let x = bounds.x + ((bounds.width - 400) / 2);
+    // let y = bounds.y + ((bounds.height - 400) / 2);
+
+    // const confirm = new BrowserWindow({
+    //     parent:win,
+    //     modal:true,
+    //     width: 550,
+    //     height: 400,
+    //     backgroundColor: '#2e2c29',
+    //     x: x,
+    //     y: y,
+    //     frame: true,
+    //     webPreferences: {
+    //         nodeIntegration: false, // is default value after Electron v5
+    //         contextIsolation: true, // protect against prototype pollution
+    //         enableRemoteModule: false, // turn off remote
+    //         nodeIntegrationInWorker: false,
+    //         // nativeWindowOpen: false,
+    //         preload: path.join(__dirname, 'preload.js'),
+    //     },
+    // })
+
+    // // LOAD INDEX FILE
+    // confirm.loadFile('src/confirm.html')
+
+
+    // confirm.on('close',  (e) => {
+
+    //     console.log(data)
+    //     // e.returnValue = 'what'
+
+    // })
+
+    // e.returnValue = 'what'
+
+    e.preventDefault()
+    createConfirmDialog(data)
+    // console.log(data1)
+
+
+    // e.preventDefault()
+    // createConfirmDialog(data).then(overwrite_data => {
+    //     // confirm.close()
+    //     win.send('overwrite', overwrite_data)
+    //     // callback(overwrite_data)
+    // }).catch(err => {
+    //     console.log(err)
+    // })
+
+})
 
 
 
@@ -1358,91 +1388,83 @@ ipcMain.on('confirm_overwrite_dialog', (e, data) => {
 
 })
 
-// CONFIRM OVERWRITE DIALOG
-ipcMain.on('confirm_overwrite', function (e, data) {
+// // CONFIRM OVERWRITE DIALOG
+// ipcMain.on('confirm_overwrite', function (e, data) {
 
-    let destination = data.destination
-    let source = data.source
+//     let destination = data.destination
+//     let source = data.source
 
-    let destination_stats = fs.statSync(destination)
-    let source_stats = fs.statSync(source)
+//     let destination_stats = fs.statSync(destination)
+//     let source_stats = fs.statSync(source)
 
-    let icon = path.join(__dirname,'/assets/icons/file.png')
-    if (destination_stats.isDirectory()) {
+//     let icon = path.join(__dirname,'/assets/icons/file.png')
+//     if (destination_stats.isDirectory()) {
 
-        icon = path.join(__dirname,'/assets/icons/folder.png')
-        let res = dialog.showMessageBoxSync(null, {
-            icon: icon,
-            type: 'none',
-            title: 'Directory Conflict',
-            buttons: ['Skip', 'Replace', 'Cancel'],
-            message: 'Replace directory ' + destination,
-            detail:
-                    'Original directory' +
-                    '\n' +
-                    'size: ' + get_file_size(destination_stats.size) +
-                    '\n' +
-                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-                    '\n\n' +
-                    'Replace with' +
-                    '\n' +
-                    'size: ' + get_file_size(source_stats.size) +
-                    '\n' +
-                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
-                    ,
-            // checkboxLabel: 'Apply this action to all files and folders',
-            // checkboxChecked:false
+//         icon = path.join(__dirname,'/assets/icons/folder.png')
+//         let res = dialog.showMessageBoxSync(null, {
+//             icon: icon,
+//             type: 'none',
+//             title: 'Directory Conflict',
+//             buttons: ['Skip', 'Replace', 'Cancel'],
+//             message: 'Replace directory ' + destination,
+//             detail:
+//                     'Original directory' +
+//                     '\n' +
+//                     'size: ' + get_file_size(destination_stats.size) +
+//                     '\n' +
+//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+//                     '\n\n' +
+//                     'Replace with' +
+//                     '\n' +
+//                     'size: ' + get_file_size(source_stats.size) +
+//                     '\n' +
+//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+//                     ,
+//             // checkboxLabel: 'Apply this action to all files and folders',
+//             // checkboxChecked:false
 
-        })
+//         })
 
-        if (res == 1) {
-            e.sender.send('overwrite', data)
-        } else {
-            e.sender.send('overwrite_canceled', data)
-        }
+//         if (res == 1) {
+//             e.sender.send('overwrite', data)
+//         } else {
+//             e.sender.send('overwrite_canceled', data)
+//         }
 
-    } else {
+//     } else {
 
-        let res = dialog.showMessageBoxSync(null, {
-            icon: icon,
-            type: 'none',
-            title: 'File Conflict',
-            buttons: ['Skip', 'Replace', 'Cancel'],
-            message: 'Replace file ' + destination,
-            detail:
-                    'Original file' +
-                    '\n' +
-                    'size: ' + get_file_size(destination_stats.size) +
-                    '\n' +
-                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-                    '\n\n' +
-                    'Replace with' +
-                    '\n' +
-                    'size: ' + get_file_size(source_stats.size) +
-                    '\n' +
-                    'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
-                    ,
-            // checkboxLabel: 'Apply this action to all files and folders',
-            // checkboxChecked:false
+//         let res = dialog.showMessageBoxSync(null, {
+//             icon: icon,
+//             type: 'none',
+//             title: 'File Conflict',
+//             buttons: ['Skip', 'Replace', 'Cancel'],
+//             message: 'Replace file ' + destination,
+//             detail:
+//                     'Original file' +
+//                     '\n' +
+//                     'size: ' + get_file_size(destination_stats.size) +
+//                     '\n' +
+//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+//                     '\n\n' +
+//                     'Replace with' +
+//                     '\n' +
+//                     'size: ' + get_file_size(source_stats.size) +
+//                     '\n' +
+//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+//                     ,
+//             // checkboxLabel: 'Apply this action to all files and folders',
+//             // checkboxChecked:false
 
-        })
+//         })
 
-        if (res == 1) {
-            e.sender.send('overwrite', data)
-        } else {
-            e.sender.send('overwrite_canceled', data)
-        }
-    }
+//         if (res == 1) {
+//             e.sender.send('overwrite', data)
+//         } else {
+//             e.sender.send('overwrite_canceled', data)
+//         }
+//     }
 
-
-
-})
-
-
-
-
-
-
+// })
 
 
 // // CONFIRM DELETE FOLDER DIALOG
@@ -1469,6 +1491,7 @@ ipcMain.on('confirm_overwrite', function (e, data) {
 //   }
 
 // })
+
 
 
 // CONFIRM DELETE FILES DIALOG
