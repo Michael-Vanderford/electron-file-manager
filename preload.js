@@ -4378,7 +4378,7 @@ async function get_files(dir) {
 
             })
 
-            alert(exts.length)
+
 
             if (groupby) {
 
