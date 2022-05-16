@@ -756,8 +756,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
     console.log('running confirming move overwrite')
 
-
-
     let confirm_dialog = document.getElementById('confirm')
 
     let source_stats = fs.statSync(data.source)
@@ -860,21 +858,21 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     btn_replace.addEventListener('click', (e) => {
 
         let chk_replace = document.getElementById('chk_replace')
-        chk_replace.addEventListener('change', (e) => {
-            alert(chk_replace.checked)
-            if (chk_replace.checked) {
+        // chk_replace.addEventListener('change', (e) => {
+            // alert(chk_replace.checked)
+            // if (chk_replace.checked) {
 
-            } else {
-                ipcRenderer.send('overwrite_move_confirmed', data)
-            }
-        })
-
+            // } else {
+            ipcRenderer.send('overwrite_move_confirmed', data)
+            // }
+        // })
 
     })
 
     // CANCEL BUTTON
     btn_cancel.addEventListener('click', (e) => {
         ipcRenderer.send('overwrite_move_canceled')
+
     })
 
     // SKIP BUTTON
@@ -2893,7 +2891,9 @@ async function add_card(options) {
         card.ondragover = function (e) {
 
             // ADD HIGHLIGHT
-            card.classList.add('highlight_select')
+            // card.classList.add('highlight_select')
+            card.classList.add('highlight')
+
 
             e.preventDefault()
             e.stopPropagation()
@@ -2914,7 +2914,8 @@ async function add_card(options) {
 
             dragcounter--
 
-            card.classList.remove('highlight_select')
+            // card.classList.remove('highlight_select')
+            card.classList.remove('highlight')
 
             if (dragcounter === 0) {
 
@@ -7364,16 +7365,16 @@ function move_to_folder(end_path) {
             destination: path.join(end_path, path.basename(file.source))
         }
 
-        console.log(data.source, data.destination)
+        console.log('source',data.source,'destination', data.destination)
 
         // Check folder
-        if (fs.existsSync(destination)) {
+        if (fs.existsSync(data.destination)) {
 
             ipcRenderer.send('show_overwrite_move_dialog', data)
 
         } else {
 
-            msg = 'Confirm move to ' + end_path
+            // msg = 'Confirm move to ' + end_path
             ipcRenderer.send('confirm_move', data)
 
         }
