@@ -9,21 +9,14 @@
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 
     <link rel="manifest" href="manifest.json">
-    <link rel='stylesheet' href='../assets/css/semantic.min.css' />
-    <link rel='stylesheet' href='../assets/css/popup.min.css' />
-    <link rel='stylesheet' href='../assets/css/style.css' />
-    <link rel='stylesheet' href='../assets/css/sidebar.css' />
+    <link rel="stylesheet" href="../assets/css/semantic.min.css" />
+    <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
+    <!-- <link rel='stylesheet' href='../assets/css/popup.min.css' /> -->
+    <link rel="stylesheet" href="../assets/css/style.css" />
+    <link rel="stylesheet" href="../assets/css/sidebar.css" />
     <script type="" src="../node_modules/chart.js/dist/chart.min.js"></script>
 
-
-
-
-
-
 </head>
-
-
-
 
 <body data-theme="" id="body">
 
@@ -126,48 +119,58 @@
 
             <div class="ui mini fixed menu borderless" id="file_menu">
                 <a class="item" id="home">
-                    <i class="home icon"></i>
+                    <!-- <i class="home icon"></i> -->
+                    <i class="icon bi-house"></i>
                     Home
                 </a>
                 <a class="item" id="documents">
-                    <i class="folder icon blue"></i>
+                    <!-- <i class="folder icon blue"></i> -->
+                    <i class="icon bi-folder"></i>
                     Documents
                 </a>
                 <a class="item" id="downloads">
-                    <i class="download icon"></i>
+                    <!-- <i class="download icon"></i> -->
+                    <i class="icon bi-download"></i>
                     Downloads
                 </a>
                 <a class="item" id="pictures">
-                    <i class="images icon"> </i>
+                    <!-- <i class="images icon"> </i> -->
+                    <i class="icon bi-images"> </i>
                     Pictures
                 </a>
                 <a class="item" id="videos">
-                    <i class="video icon"></i>
+                    <!-- <i class="video icon"></i> -->
+                    <i class="icon bi-camera-video"> </i>
                     Videos
                 </a>
                 <a class="item" id="music" title="Music">
-                    <i class="music icon"></i>
+                    <!-- <i class="music icon"></i> -->
+                    <i class="icon bi-music-note"> </i>
                     Music
                 </a>
                 <!-- todo: this needs to be fixed network and media are reversed -->
                 <a class="item" id="devices" title="/run/user/1000/gvfs" >
-                    <i class="sitemap alternative icon"></i>
+                    <!-- <i class="sitemap alternative icon"></i> -->
+                    <i class="icon bi-hdd-network"></i>
                     Network
                 </a>
                 <a class="item" id="network" title="/media">
-                    <i class="mobile alternative icon"></i>
+                    <!-- <i class="mobile alternative icon"></i> -->
+                    <i class="icon bi-tablet"></i>
                     Devices
                 </a>
                 <!-- ----------------------------------------------------- -->
 
                 <a class="item" id="terminal" title="Open a terminal in the current folder">
-                    <i class="terminal icon"></i>
+                    <!-- <i class="terminal icon"></i> -->
+                    <i class="icon bi-terminal large"></i>
                     <!-- Terminal -->
                 </a>
 
                 <a class="item button gnome_disks" title="Gnome Disks">
                     <!-- <div class="button" > -->
-                    <i class="icon disk"></i>
+                    <!-- <i class="icon disk"></i> -->
+                    <i class="icon bi-hdd large"></i>
                     <!-- Disk Management -->
                     <!-- </div> -->
                 </a>
@@ -211,14 +214,17 @@
             <div id="navigation_menu" class="ui mini menu fixed bottom borderless">
 
                 <a class="item" id="left">
-                    <i class="ui icon chevron left" title="go back"></i>
+                    <!-- <i class="ui icon chevron left" title="go back"></i> -->
+                    <i class="icon bi-chevron-left" title="go back"></i>
                 </a>
                 <a class="item" id="right">
-                    <i class="ui icon  chevron right"></i>
+                    <!-- <i class="ui icon  chevron right"></i> -->
+                    <i class="icon bi-chevron-left" title="go back"></i>
                 </a>
 
                 <a class="item">
-                    <i class="ui icon chevron up"></i>
+                    <!-- <i class="ui icon chevron up"></i> -->
+                    <i class="icon bi-chevron-up"></i>
                 </a>
 
                 <div class="item" style="width:350px">
@@ -345,7 +351,9 @@
             <div class="title" title="show home folders">
                 <!-- <i class="dropdown icon"></i> -->
                 <span id="tree_home" class="" title="change to home directory" style="color: #cfcfcf">
-                    <i class="icon large home"></i> Home
+                    <!-- <i class="icon large home"></i> -->
+                    <i class="icon bi-house large"></i>
+                    Home
                 </span>
             </div>
             <div class="content">
@@ -361,7 +369,9 @@
             <!-- SEARCH / FIND -->
             <div class="title" title="press ctrl+f to start a search">
                 <!-- <i class="dropdown icon"></i> -->
-                <i class="icon large search"></i> Search Results
+                <!-- <i class="icon large search"></i> -->
+                <i class="icon bi-search large"></i>
+                Search Results
             </div>
             <div class="grid content" id="search_content">
 
@@ -381,7 +391,9 @@
             <div class="title" id="workspace"
                 title="ctrl+shift+click on a file or directory to add it to your workspace">
                 <!-- <i class="dropdown icon"></i> -->
-                <i class="icon large clipboard"></i> Workspace
+                <!-- <i class="icon large clipboard"></i> -->
+                <i class="icon bi-clipboard large"></i>
+                Workspace
             </div>
             <div class="content" id="workspace_content">
                 <!-- <div class="ui grid"> -->
@@ -402,6 +414,7 @@
                 <!-- <i class="dropdown icon"></i> -->
                 <span id="btn_getdrives" class="" title="" style="color: #cfcfcf">
                     <!-- <i class="icon large tablet"></i> -->
+                    <i class="icon bi-tablet large"></i>
                     Devices
                 </span>
             </div>
@@ -418,7 +431,9 @@
             <!-- ROOT DIRECTORIES -->
             <div class="title" id="btn_getroot">
                 <!-- <i class="dropdown icon"></i> -->
-                <i class="icon large hdd "></i> File System
+                <!-- <i class="icon large hdd "></i> -->
+                <i class="icon bi-hdd large"></i>
+                File System
             </div>
             <div class="content">
                 <!-- <div class="ui grid">
@@ -432,7 +447,9 @@
 
             <!-- NETWORK -->
             <div class="title" id="btn_network">
-                <i class="sitemap alternative large icon"></i> Network
+                <!-- <i class="sitemap alternative large icon"></i> -->
+                <i class="icon bi-hdd-network large"></i>
+                Network
             </div>
             <div class="content">
 
@@ -492,7 +509,9 @@
 
             <!-- DISK USAGE CHART -->
             <div class="title">
-                <i class="large icon chart bar"></i> Disk Usage
+                <!-- <i class="large icon chart bar"></i>  -->
+                <i class="icon bi-bar-chart large"></i>
+                Disk Usage
             </div>
             <div class="content">
 
@@ -507,7 +526,9 @@
             <!-- LOG -->
             <div class="title">
                 <!-- <i class="dropdown icon"></i> -->
-                <i class="icon large chart history"></i> Log
+                <!-- <i class="icon large chart history"></i> -->
+                <i class="icon bi-chat large"></i>
+                Log
             </div>
             <div class="content centered">
 

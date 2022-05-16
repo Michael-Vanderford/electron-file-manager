@@ -73,6 +73,15 @@ body {
     }
 
 
+    .workspace_icon {
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    .input:focus {
+        -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
+        box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
+    }
 
   /* .tree_icon {
     background-image: url("../icons/korla/places/scalable/gnome-folder.svg");

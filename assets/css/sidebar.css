@@ -12,9 +12,9 @@
     padding-top:10px;
     padding-left: 12px;
     min-width: 200px;
-    overflow: auto;
+    overflow: scroll;
     scroll-behavior: smooth;
-    scrollbar-width: thin !important;
+    scrollbar-width: 2px !important;
 }
 
 #sidebar .ui.accordion .content {
@@ -27,8 +27,13 @@
 
 ::-webkit-scrollbar {
     /* height: 12px; */
-    width: 5px;
+    width: 1px;
+    height:100%;
     /* background: #cfcfcf; */
+}
+
+::-webkit-scrollbar-track {
+    width: 1px;
 }
 
 ::-webkit-scrollbar-thumb {

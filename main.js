@@ -135,6 +135,17 @@ function createWindow() {
 
 }
 
+// GET CONFIRM DIALOG
+ipcMain.on('show_confirm_dialog', (e, data) => {
+
+    console.log('running')
+
+    e.preventDefault()
+    createConfirmDialog(data)
+    // console.log(data1)
+
+})
+
 
 // CONFIRM DIALOG
 let confirm = null
@@ -148,7 +159,7 @@ function createConfirmDialog(data) {
         parent:win,
         modal:true,
         width: 550,
-        height: 400,
+        height: 450,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -158,7 +169,6 @@ function createConfirmDialog(data) {
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
-            // nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
         },
     })
@@ -168,11 +178,11 @@ function createConfirmDialog(data) {
 
     confirm.once('ready-to-show', () => {
 
-        confirm.title = 'File Conflict'
+        confirm.title = 'Copy File Conflict'
         confirm.removeMenu()
         confirm.show()
 
-        // win_confirm.webContents.openDevTools()
+        // confirm.webContents.openDevTools()
         confirm.send('confirming_overwrite', data)
 
     })
@@ -195,76 +205,77 @@ function createConfirmDialog(data) {
 
 
 
+
+
 // GET CONFIRM DIALOG
-ipcMain.on('show_confirm_dialog', (e, data) => {
+ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
     console.log('running')
 
-    // let bounds = screen.getPrimaryDisplay().bounds;
-    // let x = bounds.x + ((bounds.width - 400) / 2);
-    // let y = bounds.y + ((bounds.height - 400) / 2);
-
-    // const confirm = new BrowserWindow({
-    //     parent:win,
-    //     modal:true,
-    //     width: 550,
-    //     height: 400,
-    //     backgroundColor: '#2e2c29',
-    //     x: x,
-    //     y: y,
-    //     frame: true,
-    //     webPreferences: {
-    //         nodeIntegration: false, // is default value after Electron v5
-    //         contextIsolation: true, // protect against prototype pollution
-    //         enableRemoteModule: false, // turn off remote
-    //         nodeIntegrationInWorker: false,
-    //         // nativeWindowOpen: false,
-    //         preload: path.join(__dirname, 'preload.js'),
-    //     },
-    // })
-
-    // // LOAD INDEX FILE
-    // confirm.loadFile('src/confirm.html')
-
-
-    // confirm.on('close',  (e) => {
-
-    //     console.log(data)
-    //     // e.returnValue = 'what'
-
-    // })
-
-    // e.returnValue = 'what'
-
     e.preventDefault()
-    createConfirmDialog(data)
+    createOverwriteMoveDialog(data)
     // console.log(data1)
-
-
-    // e.preventDefault()
-    // createConfirmDialog(data).then(overwrite_data => {
-    //     // confirm.close()
-    //     win.send('overwrite', overwrite_data)
-    //     // callback(overwrite_data)
-    // }).catch(err => {
-    //     console.log(err)
-    // })
 
 })
 
 
+// CONFIRM OVERWRITE FOR MOVE DIALOG
+function createOverwriteMoveDialog(data) {
+
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
+
+    const confirm = new BrowserWindow({
+        parent:win,
+        modal:true,
+        width: 550,
+        height: 450,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    // LOAD FILE
+    confirm.loadFile('src/overwritemove.html')
+
+
+    confirm.once('ready-to-show', () => {
+
+        confirm.title = 'Move File Conflict'
+        confirm.removeMenu()
+        confirm.show()
+
+        // confirm.webContents.openDevTools()
+        confirm.send('confirming_overwrite_move', data)
+
+    })
 
 
 
-// ipcMain.on('overwrite_confirmed', (e, data) => {
-//     console.log('data',data)
-//     window.close()
-//     var window = BrowserWindow.getFocusedWindow();
-//     // SEND OVERWRITET CONFIRMED
-//     window.send('overwrite', data)
-// })
+    // OVERWRITE CONFIRMED
+    ipcMain.on('overwrite_move_confirmed', (e,data) => {
+        console.log('running')
+        win.send('overwrite_move', data)
+        let active_window = BrowserWindow.getFocusedWindow();
+        active_window.close()
+    })
 
+    // OVERWRITE CANCELED
+    ipcMain.on('overwrite_move_canceled', (e) => {
+        let active_window = BrowserWindow.getFocusedWindow();
+        active_window.close()
+    })
 
+}
 
 
 
@@ -1349,20 +1360,20 @@ ipcMain.on('find', function (e, args) {
 
 
 // CONFIRM MOVE FOLDER DIALOG
-ipcMain.on('confirm_move', function (e, msg) {
+ipcMain.on('confirm_move', function (e, data) {
 
     let res = dialog.showMessageBoxSync(null, {
 
         title: 'Warning',
         buttons: ['Yes', 'Cancel'],
         message: 'Are you sure you want to move?',
-        detail: msg
+        detail: data.source
 
     })
 
     // IF RESPONSE IS 0 THEN MOVE CONFIRMED. I KNOW ITS BACKWARDS
     if (res == 0) {
-        e.sender.send('move_confirmed', res)
+        e.sender.send('move_confirmed', data)
     }
 
 })
