@@ -148,7 +148,7 @@ ipcMain.on('show_confirm_dialog', (e, data) => {
 
 
 // CONFIRM DIALOG
-let confirm = null
+// let confirm = null
 function createConfirmDialog(data) {
 
     let bounds = screen.getPrimaryDisplay().bounds;
@@ -220,13 +220,14 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
 
 // CONFIRM OVERWRITE FOR MOVE DIALOG
+// let confirm = ''
 function createOverwriteMoveDialog(data) {
 
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
     let y = bounds.y + ((bounds.height - 400) / 2);
 
-    const confirm = new BrowserWindow({
+    let confirm = new BrowserWindow({
         parent:win,
         modal:true,
         width: 550,
@@ -269,13 +270,30 @@ function createOverwriteMoveDialog(data) {
         active_window.close()
     })
 
+    ipcMain.on('overwrite_move_confirmed_all', (e, destination) => {
+        e.preventDefault()
+
+        win.send('overwrite_move_all', destination)
+        confirm.hide()
+
+    })
+
+    ipcMain.on('overwrite_move_canceled_all', (e, data) => {
+        e.preventDefault()
+        confirm.hide()
+    })
+
     // OVERWRITE CANCELED
     ipcMain.on('overwrite_move_canceled', (e) => {
         let active_window = BrowserWindow.getFocusedWindow();
         active_window.close()
     })
 
+
+
 }
+
+
 
 
 

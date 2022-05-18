@@ -556,6 +556,9 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
         if (destination_stats.mtime > source_stats.mtime) {
             description = '<p>A newer folder with the same name already exists in ' +
             'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+        } else {
+            description = '<p>A older folder with the same name already exists in ' +
+            'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Merge Folder:  ' + path.basename(data.source) + '<br /><br />')
@@ -582,6 +585,9 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
         let description
         if (destination_stats.mtime >= source_stats.mtime) {
             description = '<p>A newer file with the same name already exists in ' +
+            'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
+        } else {
+            description = '<p>A older file with the same name already exists in ' +
             'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         }
 
@@ -617,10 +623,24 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
 
     confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip, replace_all)
 
+    let chk_replace = document.getElementById('chk_replace')
+    let is_checked = 0
+    chk_replace.addEventListener('change', (e) => {
+        if (chk_replace.checked) {
+            is_checked = 1
+        } else {
+            is_checked = 0
+        }
+    })
 
     // CONFIRM BUTTON
     btn_replace.addEventListener('click', (e) => {
-        ipcRenderer.send('overwrite_confirmed', data)
+        if (is_checked) {
+            ipcRenderer.send('overwrite_confirmed_all', data)
+            alert('not yet implemented')
+        } else {
+            ipcRenderer.send('overwrite_confirmed', data)
+        }
     })
 
     // CANCEL BUTTON
@@ -630,13 +650,17 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
 
     // SKIP BUTTON
     btn_skip.addEventListener('click', (e) => {
-        ipcRenderer.send('overwrite_canceled')
+        if (is_checked) {
+            ipcRenderer.send('overwrite_canceled_all')
+            alert('not yet implemented')
+        } else {
+            ipcRenderer.send('overwrite_canceled')
+        }
+
     })
 
-    let chk_replace = document.getElementById('chk_replace')
-    chk_replace.addEventListener('change', (e) => {
-        alert(chk_replace.checked)
-    })
+
+
 
 
 })
@@ -853,19 +877,26 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
     confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip, replace_all)
 
+    // Handle checkbox
+    let chk_replace = document.getElementById('chk_replace')
+    let is_checked = 0
+    chk_replace.addEventListener('change', (e) => {
+        if (chk_replace.checked) {
+            is_checked = 1
+        } else {
+            is_checked = 0
+        }
+    })
 
     // CONFIRM BUTTON
     btn_replace.addEventListener('click', (e) => {
 
-        let chk_replace = document.getElementById('chk_replace')
-        // chk_replace.addEventListener('change', (e) => {
-            // alert(chk_replace.checked)
-            // if (chk_replace.checked) {
+        if (is_checked) {
+            ipcRenderer.send('overwrite_move_confirmed_all', data.destination)
 
-            // } else {
+        } else {
             ipcRenderer.send('overwrite_move_confirmed', data)
-            // }
-        // })
+        }
 
     })
 
@@ -877,7 +908,12 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
     // SKIP BUTTON
     btn_skip.addEventListener('click', (e) => {
-        ipcRenderer.send('overwrite_move_canceled')
+        if (is_checked) {
+            ipcRenderer.send('overwrite_move_canceled_all')
+        } else {
+            ipcRenderer.send('overwrite_move_canceled')
+        }
+
     })
 
 
@@ -1016,120 +1052,44 @@ ipcRenderer.on('move_confirmed', (e, data) => {
             delete_file(source)
 
         }
+    })
+
+})
+
+
+ipcRenderer.on('overwrite_move_all', (e, destination) => {
+
+    copy_files_arr.forEach(data => {
+
+        let source_stats = fs.statSync(data.source)
+        console.log('data source', destination)
+
+        // DIRETORY
+        if (source_stats.isDirectory()) {
+
+
+
+        // FILE
+        } else {
+
+            fs.copyFile(data.source, path.join(destination, path.basename(source)) , (err) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    // REMOVE CARD
+                    // let card = document.querySelector('[data-href="' + data.source + '"]')
+                    // let col = card.closest('.column')
+                    // col.remove()
+                    delete_file(data.source)
+                }
+            })
+
+        }
 
     })
 
-    // if (copy_files_arr.length > 0) {
-
-    //     copy_files_arr.forEach((file, idx) => {
-
-    //         let start_path = file.source
-    //         let filename = path.basename(start_path)
-    //         let destinationpath = path.join(destination, '/', filename)
-    //         // let destination = path.join(destination, '/', filename)
-
-    //         console.log('moving file from ' + path.basename(file.source) + ' to ' + path.basename(destination))
-    //         notification('moving file from ' + file.source + ' to ' + destinationpath)
-
-    //         if (start_path != destinationpath && start_path != '' && destinationpath != '') {
-
-    //             console.log('running move to folder')
-
-    //             let stats = fs.statSync(start_path)
-
-    //             // DIRECTORY
-    //             if (stats.isDirectory()) {
-
-    //                 try {
-
-    //                     console.log('copying folder from ' + start_path + ' to ' + destinationpath)
-
-    //                     // COPY FOLDER
-    //                     copyFolderRecursiveSync(start_path, destinationpath)
-
-    //                     if (fs.existsSync(destinationpath)) {
-
-    //                         // delete_folder(start_path)
-
-    //                         // REMOVE CARD
-    //                         let card = document.getElementById(file.card_id)
-    //                         let col = card.closest('.column')
-    //                         col.remove()
-    //                     }
-
-
-
-    //                 } catch (err) {
-    //                     console.log(err)
-    //                 }
-
-
-    //             // FILE
-    //             } else {
-
-    //                 try {
-
-    //                     // COPY FIE
-    //                     // copyFileSync(start_path, destination)
-
-
-
-    //                     fs.copyFile(start_path, destinationpath, (err) => {
-
-    //                         if (err) {
-    //                             console.log(err)
-    //                         } else {
-
-    //                             if (fs.existsSync(destinationpath)) {
-
-    //                                 delete_file(start_path)
-    //                                 console.log('file moved to ' + destinationpath)
-
-    //                                 // REMOVE CARD
-    //                                 let card = document.getElementById(file.card_id)
-    //                                 let col = card.closest('.column')
-    //                                 col.remove()
-
-    //                             }
-
-    //                         }
-
-    //                     })
-
-
-    //                 } catch (err) {
-    //                     console.log(err)
-    //                 }
-
-    //             }
-
-
-    //         //
-    //         } else {
-
-    //             if (fs.existsSync(destination)) {
-
-    //                 // let data = {
-    //                 //     source: start_path,
-    //                 //     destination: destinationpath
-    //                 // }
-
-
-    //                 // ipcRenderer.send('show_confirm_dialog', data)
-
-
-    //             }
-
-    //         }
-
-    //     })
-
-    //     // CLEAR COPY ARRAY
-    //     clear_copy_arr()
-    //     clear_selected_files()
-
-    // }
-
+    clear_copy_arr()
+    clear_selected_files()
 
 
 })
@@ -7355,6 +7315,7 @@ function move_to_folder(end_path) {
     }
 
     console.log(copy_files_arr.length)
+    let overwrite_all = 0
 
     copy_files_arr.forEach(file => {
 
@@ -7395,7 +7356,7 @@ function move_to_folder(end_path) {
 
     })
 
-    clear_copy_arr()
+    // clear_copy_arr()
 
     // console.log('len ' + copy_files_arr.length)
     // msg = 'Confirm move to ' + end_path
