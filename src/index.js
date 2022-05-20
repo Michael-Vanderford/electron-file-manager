@@ -421,6 +421,18 @@ $(function() {
 
     window.api.get_files(localStorage.getItem('folder'), options)
 
+
+    // const ds = new DragSelect({
+    //     // customeStyles: true,
+    //     selectables: document.getElementsByClassName('card'),
+    //     multiSelectMode: true,
+    //     selectedClass: 'highligh_select',
+    // });
+
+    // ds.subscribe('callback', ({ items, event }) => {})
+
+    // ds.getSelection();
+
     // window.api.get_files_list(localStorage.getItem('folder'))
     // console.log(Date.now() - st)
 

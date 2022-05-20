@@ -20,622 +20,617 @@
 
 <body data-theme="" id="body">
 
-    <div class="ui grid">
-        <div class="column sixteen wide">
-            <div class="ui top menu fixed" id="header_menu"
-                style="background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
+    <div class="container">
+
+        <div class="ui grid hidden">
+            <div class="column sixteen wide">
+                <div class="ui top menu hidden fixed" id="header_menu"
+                    style="background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
 
 
-                <div class="ui simple dropdown item" style="" id="">
-                    File
-                    <div class="icon menu" style="background-color: #252525 !important; width:250px; ">
+                    <div class="ui simple dropdown item" style="" id="">
+                        File
+                        <div class="icon menu" style="background-color: #252525 !important; width:250px; ">
 
-                        <a class="item left block quit" style="color: #cfcfcf !important;">
-                            <i class="icon"></i>
-                            Quit
-                        </a>
-                    </div>
-                </div>
-
-                <a class="item" id="">
-                    Edit
-                </a>
-                <div class="ui dropdown item" id="">
-                    Tools
-                    <div class="menu" style="background-color: #252525 !important; width: 250px; z-index: 100;">
-
-                        <a id="" class="item block gnome_disks" style="color: #cfcfcf !important;">
-                            <i class="icon disk"></i>
-                            Disks
-                        </a>
-                        <a id="menu_dua" class="item block left" style="color: #cfcfcf !important;">
-                            <i class="icon chart pie"></i>
-                            Disk Usage Analyzer (baobab)
-                        </a>
-                        <!-- <a id="" class="item block" style="color: #cfcfcf !important;">
-                            <i class="icon sort alphabet down"></i>
-                            Sort by size
-                        </a>
-                        <a id="" class="item block" style="color: #cfcfcf !important;">
-                            <i class="icon sort file alternative outline down"></i>
-                            Sort by type
-                        </a> -->
-
-                    </div>
-                </div>
-                <div class="ui simple dropdown item" id="">
-                    View
-                    <div class="icon menu" style="background-color: #252525 !important; width: 250px">
-
-                        <a id="" class="item block" style="color: #cfcfcf !important;">
-                            <i class="icon sort amount down"></i>
-                            Sort by date
-                        </a>
-                        <a id="" class="item block left" style="color: #cfcfcf !important;">
-                            <i class="icon sort alphabet down"></i>
-                            Sort by name
-                        </a>
-                        <a id="" class="item block" style="color: #cfcfcf !important;">
-                            <i class="icon sort alphabet down"></i>
-                            Sort by size
-                        </a>
-                        <a id="" class="item block" style="color: #cfcfcf !important;">
-                            <i class="icon sort file alternative outline down"></i>
-                            Sort by type
-                        </a>
-
-                    </div>
-                </div>
-                <a class="item" id="">
-                    Window
-                </a>
-                <a class="item" id="">
-                    Help
-                </a>
-
-
-                <a class="item right block">
-                    <i id="min" class="icon minus"></i>
-                </a>
-                <a class="item block">
-                    <i id="max" class="icon square outline"></i>
-                </a>
-                <a class="item block quit">
-                    <i id="" class="icon times"></i>
-                </a>
-
-
-            </div>
-        </div>
-    </div>
-
-
-
-
-
-    <div class="ui grid" id="header_menus">
-
-        <div class="column sixteen wide">
-
-            <div class="ui mini fixed menu borderless" id="file_menu">
-                <a class="item" id="home">
-                    <!-- <i class="home icon"></i> -->
-                    <i class="icon bi-house"></i>
-                    Home
-                </a>
-                <a class="item" id="documents">
-                    <!-- <i class="folder icon blue"></i> -->
-                    <i class="icon bi-folder"></i>
-                    Documents
-                </a>
-                <a class="item" id="downloads">
-                    <!-- <i class="download icon"></i> -->
-                    <i class="icon bi-download"></i>
-                    Downloads
-                </a>
-                <a class="item" id="pictures">
-                    <!-- <i class="images icon"> </i> -->
-                    <i class="icon bi-images"> </i>
-                    Pictures
-                </a>
-                <a class="item" id="videos">
-                    <!-- <i class="video icon"></i> -->
-                    <i class="icon bi-camera-video"> </i>
-                    Videos
-                </a>
-                <a class="item" id="music" title="Music">
-                    <!-- <i class="music icon"></i> -->
-                    <i class="icon bi-music-note"> </i>
-                    Music
-                </a>
-                <!-- todo: this needs to be fixed network and media are reversed -->
-                <a class="item" id="devices" title="/run/user/1000/gvfs" >
-                    <!-- <i class="sitemap alternative icon"></i> -->
-                    <i class="icon bi-hdd-network"></i>
-                    Network
-                </a>
-                <a class="item" id="network" title="/media">
-                    <!-- <i class="mobile alternative icon"></i> -->
-                    <i class="icon bi-tablet"></i>
-                    Devices
-                </a>
-                <!-- ----------------------------------------------------- -->
-
-                <a class="item" id="terminal" title="Open a terminal in the current folder">
-                    <!-- <i class="terminal icon"></i> -->
-                    <i class="icon bi-terminal large"></i>
-                    <!-- Terminal -->
-                </a>
-
-                <a class="item button gnome_disks" title="Gnome Disks">
-                    <!-- <div class="button" > -->
-                    <!-- <i class="icon disk"></i> -->
-                    <i class="icon bi-hdd large"></i>
-                    <!-- Disk Management -->
-                    <!-- </div> -->
-                </a>
-
-
-                <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
-                    <!-- todo: enable show data content -->
-                    <!-- <div class="button" data-content="Show hidden files and folders"> -->
-                    <i class="ui icon eye"></i>
-                    <!-- show/Hide hidden -->
-                    <!-- </div> -->
-                </a>
-
-                <a class="item button" id="sort_by_date" title="sort by date">
-                    <i class="small icon sort amount down"></i>
-                    <!-- Sort by date -->
-                </a>
-
-                <a class="item" id="sort_by_name" title="sort by name">
-                    <i class="icon sort alphabet down"></i>
-                    <!-- Sort by name -->
-                </a>
-
-                <a class="item" id="sort_by_size" title="sort by size">
-                    <i class="icon sort amount down"></i>
-                    <!-- Sort by size -->
-                </a>
-
-                <a class="item" id="sort_by_type" title="sort by type">
-                    <i class="icon sort file alternative outline down"></i>
-                    <!-- Sort by type -->
-                </a>
-
-
-                <!-- <input type="file" id="files" name="avatar" accept="image/png, image/jpeg"> -->
-
-
-            </div>
-
-            <!-- NAVIGATION MENU -->
-            <div id="navigation_menu" class="ui mini menu fixed bottom borderless">
-
-                <a class="item" id="left">
-                    <!-- <i class="ui icon chevron left" title="go back"></i> -->
-                    <i class="icon bi-chevron-left" title="go back"></i>
-                </a>
-                <a class="item" id="right">
-                    <!-- <i class="ui icon  chevron right"></i> -->
-                    <i class="icon bi-chevron-left" title="go back"></i>
-                </a>
-
-                <a class="item">
-                    <!-- <i class="ui icon chevron up"></i> -->
-                    <i class="icon bi-chevron-up"></i>
-                </a>
-
-                <div class="item" style="width:350px">
-                    <!-- <div class="form"> -->
-                    <div class="ui input autocomplete">
-                        <div class="breadcrumbs buttons">
-                            <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
-                        </div>
-                        <input type="text" autocomplete="address-level4" id="breadcrumbs" value="" class="" style="width:250px; background:#efefef">
-                    </div>
-                    <!-- </div> -->
-                </div>
-
-
-                <div class="item" id="status">
-                    <!-- status information can go here -->
-                </div>
-
-
-                <div class="item">
-                    <progress id="progress" class="hidden"></progress>
-                </div>
-
-                <div class="items menu horizontal alighed right">
-
-                </div>
-
-                <div class="">
-                    <div class="ui icon input" style="width:350px;">
-                        <input type="text" id="find" placeholder="Search...">
-                        <i class="circular search link icon"></i>
-                        <!-- <button class="ui button"><i class="ui icon vertical-elipses"></i> </button> -->
-                    </div>
-
-                    <div id="find_options" class="ui card hidden border" style="background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 20px; padding: 5px; width: 100%;">
-
-                        <div class="content fluid">
-
-                            <div class="description" style="padding-left: 20px !important">
-
-                                <div class="ui header">
-                                    Search Options
-                                </div>
-
-                                <div class="ui form tiny" style="background-color: transparent !important;">
-
-                                    <div class="fields">
-                                        <div class="eight wide field">
-                                            <div class="ui checkbox">
-                                                <input type="checkbox" id="find_folders" name="find_folders">
-                                                <label style="">Folders</label>
-                                            </div>
-                                        </div>
-
-                                        <div class="eight wide field">
-                                            <div class="ui checkbox">
-                                                <input type="checkbox" id="find_files" name="find_files">
-                                                <label style="">Files</label>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="fields">
-                                        <div class="eight wide field">
-                                            <label class="label">Start date</label>
-                                            <input type="date" id="start_date" name="start_date" class=""
-                                                placeholder="enter start date" title="enter start date" />
-                                        </div>
-
-                                        <div class="eight wide field">
-                                            <label class="label">End date</label>
-                                            <input type="date" id="end_date" name="end_date" class=""
-                                                placeholder="enter end date" title="enter end date" />
-                                        </div>
-                                    </div>
-
-
-                                    <div class="fields">
-                                        <div class="eight wide field">
-                                            <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
-                                            <input type="text" id="find_size" class="" placeholder="enter size"
-                                                title="enter size" />
-                                        </div>
-                                    </div>
-
-                                    <div class="fields inline">
-                                        <div class="field">
-                                            <input type="radio" name="size_options" id="size_options" value="k">
-                                            <label for="size_options">KB</label>
-                                        </div>
-                                        <div class="field">
-                                            <input type="radio" name="size_options" id="size_options" checked value="M">
-                                            <label for="size_options">MB</label>
-                                        </div>
-                                        <div class="field">
-                                            <input type="radio" name="size_options" id="size_options" value="G">
-                                            <label for="size_options">GB</label>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
+                            <a class="item left block quit" style="color: #cfcfcf !important;">
+                                <i class="icon"></i>
+                                Quit
+                            </a>
                         </div>
                     </div>
-                </div>
 
-
-            </div>
-
-        </div>
-
-    </div>
-
-
-
-    <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
-
-
-        <div id="accordion" class="ui accordion" style="">
-
-            <div id="draghandle" class="draghandle"></div>
-
-            <!-- HOME DIRECTORY -->
-            <div class="title" title="show home folders">
-                <!-- <i class="dropdown icon"></i> -->
-                <span id="tree_home" class="" title="change to home directory" style="color: #cfcfcf">
-                    <!-- <i class="icon large home"></i> -->
-                    <i class="icon bi-house large"></i>
-                    Home
-                </span>
-            </div>
-            <div class="content">
-                <div class="ui grid">
-                    <div class="column sixteen wide" id="">
-                        <div class="navigate" id="tree_grid" data-id="michael" style="overflow:auto;padding-top: 5px;">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- SEARCH / FIND -->
-            <div class="title" title="press ctrl+f to start a search">
-                <!-- <i class="dropdown icon"></i> -->
-                <!-- <i class="icon large search"></i> -->
-                <i class="icon bi-search large"></i>
-                Search Results
-            </div>
-            <div class="grid content" id="search_content">
-
-                <div class="column sixteen wide" id="search_results_col">
-                    <div class="ui card fluid" id="search_results_card" style="border:none">
-                        <div class="content">
-                            <div class="navigate search_results" id="search_results">
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- WORKSPACE -->
-            <div class="title" id="workspace"
-                title="ctrl+shift+click on a file or directory to add it to your workspace">
-                <!-- <i class="dropdown icon"></i> -->
-                <!-- <i class="icon large clipboard"></i> -->
-                <i class="icon bi-clipboard large"></i>
-                Workspace
-            </div>
-            <div class="content" id="workspace_content">
-                <!-- <div class="ui grid"> -->
-                    <!-- <div class="column sixteen wide" id=""> -->
-                        <div class="navigate" id="workspace_grid"></div>
-                    <!-- </div> -->
-                    <!-- <br> -->
-                    <a href="#" id="clear_workspace">
-                        <i class="icon eraser"></i>
-                        clear workspace
+                    <a class="item" id="">
+                        Edit
                     </a>
-                <!-- </div> -->
-            </div>
+                    <div class="ui dropdown item" id="">
+                        Tools
+                        <div class="menu" style="background-color: #252525 !important; width: 250px; z-index: 100;">
 
+                            <a id="" class="item block gnome_disks" style="color: #cfcfcf !important;">
+                                <i class="icon disk"></i>
+                                Disks
+                            </a>
+                            <a id="menu_dua" class="item block left" style="color: #cfcfcf !important;">
+                                <i class="icon chart pie"></i>
+                                Disk Usage Analyzer (baobab)
+                            </a>
+                            <!-- <a id="" class="item block" style="color: #cfcfcf !important;">
+                                <i class="icon sort alphabet down"></i>
+                                Sort by size
+                            </a>
+                            <a id="" class="item block" style="color: #cfcfcf !important;">
+                                <i class="icon sort file alternative outline down"></i>
+                                Sort by type
+                            </a> -->
 
-            <!-- DEVICES -->
-            <div class="title" title="connected devices">
-                <!-- <i class="dropdown icon"></i> -->
-                <span id="btn_getdrives" class="" title="" style="color: #cfcfcf">
-                    <!-- <i class="icon large tablet"></i> -->
-                    <i class="icon bi-tablet large"></i>
-                    Devices
-                </span>
-            </div>
-            <div class="content active">
-                <!-- <div class="ui grid">
-                    <div class="column sixteen wide" id=""> -->
-                        <!-- <div class="navigate" id="device_grid" data-id="/media/michael" style="overflow:auto;"></div> -->
-                        <div class="navigate" id="device_grid"></div>
-                    <!-- </div>
-                </div> -->
-            </div>
-
-
-            <!-- ROOT DIRECTORIES -->
-            <div class="title" id="btn_getroot">
-                <!-- <i class="dropdown icon"></i> -->
-                <!-- <i class="icon large hdd "></i> -->
-                <i class="icon bi-hdd large"></i>
-                File System
-            </div>
-            <div class="content">
-                <!-- <div class="ui grid">
-                <div class="column sixteen wide" id="" style=""> -->
-                <div class="navigate" id="root_grid" data-id="/" style="overflow:auto;">
-                </div>
-                <!-- </div>
-                </div> -->
-            </div>
-
-
-            <!-- NETWORK -->
-            <div class="title" id="btn_network">
-                <!-- <i class="sitemap alternative large icon"></i> -->
-                <i class="icon bi-hdd-network large"></i>
-                Network
-            </div>
-            <div class="content">
-
-                <!-- <div id="accordion_network" class="ui accordion">
-                    <div class="title" title="show home folders">
-                        <span id="connect_to_server" class="" title="Connect to server" style="color: #cfcfcf">
-                            <i class="icon server"></i> Connect to server
-                        </span>
+                        </div>
                     </div>
-                    <div class="content">
-                        <div class="ui grid">
-                            <div class="column sixteen wide" id="">
-                                <div class="navigate" id="tree_grid" data-id="michael" style="overflow:auto;padding-top: 5px;">
+                    <div class="ui simple dropdown item" id="">
+                        View
+                        <div class="icon menu" style="background-color: #252525 !important; width: 250px">
+
+                            <a id="" class="item block" style="color: #cfcfcf !important;">
+                                <i class="icon sort amount down"></i>
+                                Sort by date
+                            </a>
+                            <a id="" class="item block left" style="color: #cfcfcf !important;">
+                                <i class="icon sort alphabet down"></i>
+                                Sort by name
+                            </a>
+                            <a id="" class="item block" style="color: #cfcfcf !important;">
+                                <i class="icon sort alphabet down"></i>
+                                Sort by size
+                            </a>
+                            <a id="" class="item block" style="color: #cfcfcf !important;">
+                                <i class="icon sort file alternative outline down"></i>
+                                Sort by type
+                            </a>
+
+                        </div>
+                    </div>
+                    <a class="item" id="">
+                        Window
+                    </a>
+                    <a class="item" id="">
+                        Help
+                    </a>
+
+
+                    <a class="item right block">
+                        <i id="min" class="icon minus"></i>
+                    </a>
+                    <a class="item block">
+                        <i id="max" class="icon square outline"></i>
+                    </a>
+                    <a class="item block quit">
+                        <i id="" class="icon times"></i>
+                    </a>
+
+
+                </div>
+            </div>
+        </div>
+
+        <div class="ui grid" id="header_menus">
+
+            <div class="column sixteen wide">
+
+                <div class="ui mini fixed menu borderless" id="file_menu">
+                    <a class="item" id="home">
+                        <!-- <i class="home icon"></i> -->
+                        <i class="icon bi-house"></i>
+                        Home
+                    </a>
+                    <a class="item" id="documents">
+                        <!-- <i class="folder icon blue"></i> -->
+                        <i class="icon bi-folder"></i>
+                        Documents
+                    </a>
+                    <a class="item" id="downloads">
+                        <!-- <i class="download icon"></i> -->
+                        <i class="icon bi-download"></i>
+                        Downloads
+                    </a>
+                    <a class="item" id="pictures">
+                        <!-- <i class="images icon"> </i> -->
+                        <i class="icon bi-images"> </i>
+                        Pictures
+                    </a>
+                    <a class="item" id="videos">
+                        <!-- <i class="video icon"></i> -->
+                        <i class="icon bi-camera-video"> </i>
+                        Videos
+                    </a>
+                    <a class="item" id="music" title="Music">
+                        <!-- <i class="music icon"></i> -->
+                        <i class="icon bi-music-note"> </i>
+                        Music
+                    </a>
+                    <!-- todo: this needs to be fixed network and media are reversed -->
+                    <a class="item" id="devices" title="/run/user/1000/gvfs" >
+                        <!-- <i class="sitemap alternative icon"></i> -->
+                        <i class="icon bi-hdd-network"></i>
+                        Network
+                    </a>
+                    <a class="item" id="network" title="/media">
+                        <!-- <i class="mobile alternative icon"></i> -->
+                        <i class="icon bi-tablet"></i>
+                        Devices
+                    </a>
+                    <!-- ----------------------------------------------------- -->
+
+                    <a class="item" id="terminal" title="Open a terminal in the current folder">
+                        <!-- <i class="terminal icon"></i> -->
+                        <i class="icon bi-terminal "></i>
+                        <!-- Terminal -->
+                    </a>
+
+                    <a class="item button gnome_disks" title="Gnome Disks">
+                        <!-- <div class="button" > -->
+                        <!-- <i class="icon disk"></i> -->
+                        <i class="icon bi-hdd "></i>
+                        <!-- Disk Management -->
+                        <!-- </div> -->
+                    </a>
+
+
+                    <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                        <!-- todo: enable show data content -->
+                        <!-- <div class="button" data-content="Show hidden files and folders"> -->
+                        <i class="ui icon eye"></i>
+                        <!-- show/Hide hidden -->
+                        <!-- </div> -->
+                    </a>
+
+                    <a class="item button" id="sort_by_date" title="sort by date">
+                        <i class="small icon sort amount down"></i>
+                        <!-- Sort by date -->
+                    </a>
+
+                    <a class="item" id="sort_by_name" title="sort by name">
+                        <i class="icon sort alphabet down"></i>
+                        <!-- Sort by name -->
+                    </a>
+
+                    <a class="item" id="sort_by_size" title="sort by size">
+                        <i class="icon sort amount down"></i>
+                        <!-- Sort by size -->
+                    </a>
+
+                    <a class="item" id="sort_by_type" title="sort by type">
+                        <i class="icon sort file alternative outline down"></i>
+                        <!-- Sort by type -->
+                    </a>
+
+
+                    <!-- <input type="file" id="files" name="avatar" accept="image/png, image/jpeg"> -->
+
+
+                </div>
+
+                <!-- NAVIGATION MENU -->
+                <div id="navigation_menu" class="ui mini menu fixed bottom borderless">
+
+                    <a class="item" id="left">
+                        <!-- <i class="ui icon chevron left" title="go back"></i> -->
+                        <i class="icon bi-chevron-left" title="go back"></i>
+                    </a>
+                    <a class="item" id="right">
+                        <!-- <i class="ui icon  chevron right"></i> -->
+                        <i class="icon bi-chevron-left" title="go back"></i>
+                    </a>
+
+                    <a class="item">
+                        <!-- <i class="ui icon chevron up"></i> -->
+                        <i class="icon bi-chevron-up"></i>
+                    </a>
+
+                    <div class="item" style="width:350px">
+                        <!-- <div class="form"> -->
+                        <div class="ui input autocomplete">
+                            <div class="breadcrumbs buttons">
+                                <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
+                            </div>
+                            <input type="text" autocomplete="address-level4" id="breadcrumbs" value="" class="" style="width:250px; background:#efefef">
+                        </div>
+                        <!-- </div> -->
+                    </div>
+
+
+                    <div class="item" id="status">
+                        <!-- status information can go here -->
+                    </div>
+
+
+                    <div class="item">
+                        <progress id="progress" class="hidden"></progress>
+                    </div>
+
+                    <div class="items menu horizontal alighed right">
+
+                    </div>
+
+                    <div class="">
+                        <div class="ui icon input" style="width:350px;">
+                            <input type="text" id="find" placeholder="Search...">
+                            <i class="circular search link icon"></i>
+                            <!-- <button class="ui button"><i class="ui icon vertical-elipses"></i> </button> -->
+                        </div>
+
+                        <div id="find_options" class="ui card hidden border" style="background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 20px; padding: 5px; width: 100%;">
+
+                            <div class="content fluid">
+
+                                <div class="description" style="padding-left: 20px !important">
+
+                                    <div class="ui header">
+                                        Search Options
+                                    </div>
+
+                                    <div class="ui form tiny" style="background-color: transparent !important;">
+
+                                        <div class="fields">
+                                            <div class="eight wide field">
+                                                <div class="ui checkbox">
+                                                    <input type="checkbox" id="find_folders" name="find_folders">
+                                                    <label style="">Folders</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="eight wide field">
+                                                <div class="ui checkbox">
+                                                    <input type="checkbox" id="find_files" name="find_files">
+                                                    <label style="">Files</label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="fields">
+                                            <div class="eight wide field">
+                                                <label class="label">Start date</label>
+                                                <input type="date" id="start_date" name="start_date" class=""
+                                                    placeholder="enter start date" title="enter start date" />
+                                            </div>
+
+                                            <div class="eight wide field">
+                                                <label class="label">End date</label>
+                                                <input type="date" id="end_date" name="end_date" class=""
+                                                    placeholder="enter end date" title="enter end date" />
+                                            </div>
+                                        </div>
+
+
+                                        <div class="fields">
+                                            <div class="eight wide field">
+                                                <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
+                                                <input type="text" id="find_size" class="" placeholder="enter size"
+                                                    title="enter size" />
+                                            </div>
+                                        </div>
+
+                                        <div class="fields inline">
+                                            <div class="field">
+                                                <input type="radio" name="size_options" id="size_options" value="k">
+                                                <label for="size_options">KB</label>
+                                            </div>
+                                            <div class="field">
+                                                <input type="radio" name="size_options" id="size_options" checked value="M">
+                                                <label for="size_options">MB</label>
+                                            </div>
+                                            <div class="field">
+                                                <input type="radio" name="size_options" id="size_options" value="G">
+                                                <label for="size_options">GB</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div> -->
 
-                <!-- <a href="#" id="btn_show_connect_server" class="block">
-                    <i class="icon server"></i>
-                    Connect to Server
-                </a> -->
 
-                <!-- <div class="ui card fluid" style="border:none"> -->
-                    <!-- <div class="content" id=""> -->
-                        <div class="navigate" id="network_grid" data-id="network" style="overflow:auto;">
+                </div>
+
+            </div>
+
+        </div>
+
+        <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
+
+
+            <div id="accordion" class="ui accordion" style="">
+
+                <div id="draghandle" class="draghandle"></div>
+
+                <!-- HOME DIRECTORY -->
+                <div class="title" title="show home folders">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <span id="tree_home" class="" title="change to home directory" style="color: #cfcfcf">
+                        <!-- <i class="icon large home"></i> -->
+                        <i class="icon bi-house large"></i>
+                        Home
+                    </span>
+                </div>
+                <div class="content">
+                    <div class="ui grid">
+                        <div class="column sixteen wide" id="">
+                            <div class="navigate" id="tree_grid" data-id="michael" style="overflow:auto;padding-top: 5px;">
+                            </div>
                         </div>
+                    </div>
+                </div>
+
+
+                <!-- SEARCH / FIND -->
+                <div class="title" title="press ctrl+f to start a search">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <!-- <i class="icon large search"></i> -->
+                    <i class="icon bi-search large"></i>
+                    Search Results
+                </div>
+                <div class="grid content" id="search_content">
+
+                    <div class="column sixteen wide" id="search_results_col">
+                        <div class="ui card fluid" id="search_results_card" style="border:none">
+                            <div class="content">
+                                <div class="navigate search_results" id="search_results">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- WORKSPACE -->
+                <div class="title" id="workspace"
+                    title="ctrl+shift+click on a file or directory to add it to your workspace">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <!-- <i class="icon large clipboard"></i> -->
+                    <i class="icon bi-clipboard large"></i>
+                    Workspace
+                </div>
+                <div class="content" id="workspace_content">
+                    <!-- <div class="ui grid"> -->
+                        <!-- <div class="column sixteen wide" id=""> -->
+                            <div class="navigate" id="workspace_grid"></div>
+                        <!-- </div> -->
+                        <!-- <br> -->
+                        <a href="#" id="clear_workspace">
+                            <i class="icon eraser"></i>
+                            clear workspace
+                        </a>
                     <!-- </div> -->
-                <!-- </div> -->
+                </div>
 
-                <!-- <div id="connect_server_form" class="ui tiny form">
 
-                        <div class="field fluid">
-                            <input type="text" placeholder="Server" />
+                <!-- DEVICES -->
+                <div class="title" title="connected devices">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <span id="btn_getdrives" class="" title="" style="color: #cfcfcf">
+                        <!-- <i class="icon large tablet"></i> -->
+                        <i class="icon bi-tablet large"></i>
+                        Devices
+                    </span>
+                </div>
+                <div class="content active">
+                    <!-- <div class="ui grid">
+                        <div class="column sixteen wide" id=""> -->
+                            <!-- <div class="navigate" id="device_grid" data-id="/media/michael" style="overflow:auto;"></div> -->
+                            <div class="navigate" id="device_grid"></div>
+                        <!-- </div>
+                    </div> -->
+                </div>
+
+
+                <!-- ROOT DIRECTORIES -->
+                <div class="title" id="btn_getroot">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <!-- <i class="icon large hdd "></i> -->
+                    <i class="icon bi-hdd large"></i>
+                    File System
+                </div>
+                <div class="content">
+                    <!-- <div class="ui grid">
+                    <div class="column sixteen wide" id="" style=""> -->
+                    <div class="navigate" id="root_grid" data-id="/" style="overflow:auto;">
+                    </div>
+                    <!-- </div>
+                    </div> -->
+                </div>
+
+
+                <!-- NETWORK -->
+                <div class="title" id="btn_network">
+                    <!-- <i class="sitemap alternative large icon"></i> -->
+                    <i class="icon bi-hdd-network large"></i>
+                    Network
+                </div>
+                <div class="content">
+
+                    <!-- <div id="accordion_network" class="ui accordion">
+                        <div class="title" title="show home folders">
+                            <span id="connect_to_server" class="" title="Connect to server" style="color: #cfcfcf">
+                                <i class="icon server"></i> Connect to server
+                            </span>
                         </div>
-
-                    <div class="fields">
-                        <div class="eight wide field">
-                            <input type="text" placeholder="Port" />
+                        <div class="content">
+                            <div class="ui grid">
+                                <div class="column sixteen wide" id="">
+                                    <div class="navigate" id="tree_grid" data-id="michael" style="overflow:auto;padding-top: 5px;">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="eight wide field">
-                            <select id="connection_type" class="dd">
-                                <option>ssh</option>
-                                <option>smb</option>
-                            </select>
+                    </div> -->
+
+                    <!-- <a href="#" id="btn_show_connect_server" class="block">
+                        <i class="icon server"></i>
+                        Connect to Server
+                    </a> -->
+
+                    <!-- <div class="ui card fluid" style="border:none"> -->
+                        <!-- <div class="content" id=""> -->
+                            <div class="navigate" id="network_grid" data-id="network" style="overflow:auto;">
+                            </div>
+                        <!-- </div> -->
+                    <!-- </div> -->
+
+                    <!-- <div id="connect_server_form" class="ui tiny form">
+
+                            <div class="field fluid">
+                                <input type="text" placeholder="Server" />
+                            </div>
+
+                        <div class="fields">
+                            <div class="eight wide field">
+                                <input type="text" placeholder="Port" />
+                            </div>
+                            <div class="eight wide field">
+                                <select id="connection_type" class="dd">
+                                    <option>ssh</option>
+                                    <option>smb</option>
+                                </select>
+                            </div>
+                        </div>
+                        <input type="button" value="connect" class="ui button primary" />
+
+                    </div> -->
+
+
+                </div>
+
+
+
+                <!-- DISK USAGE CHART -->
+                <div class="title">
+                    <!-- <i class="large icon chart bar"></i>  -->
+                    <i class="icon bi-bar-chart large"></i>
+                    Disk Usage
+                </div>
+                <div class="content">
+
+
+                    <canvas id="myChart" width="200" height="200" class="" style=""></canvas>
+
+                    <!-- <div id="du_grid" style="font-size: 12px;"></div> -->
+
+
+                </div>
+
+                <!-- LOG -->
+                <div class="title">
+                    <!-- <i class="dropdown icon"></i> -->
+                    <!-- <i class="icon large chart history"></i> -->
+                    <i class="icon bi-chat large"></i>
+                    Log
+                </div>
+                <div class="content centered">
+
+                    <div class="" id="notification"></div>
+
+                </div>
+
+                <br />
+
+            </div>
+
+        </aside>
+
+        <!-- MAIN VIEW -->
+        <div class="ui segments dropzone" id="main_view" tabindex="0">
+
+            <div id="messagebox"></div>
+
+            <!-- LOADER MESSAGE -->
+            <div id="loader" class="ui centered loader"></div>
+
+            <div id="list_view"></div>
+
+            <!-- <button id="clickme">Test Bluetooth</button>
+            <p>Currently selected bluetooth device: <strong id="device-name"></strong></p> -->
+
+            <!-- find from vscode -->
+            <!-- <div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px; z-index: 100;">
+                <div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false">
+
+                </div>
+                <div class="find-part">
+                    <div class="monaco-findInput">
+                        <div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;">
+                            <div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true"></div></div></div><div class="monaco-sash vertical" style="width: 2px; left: -1px;"></div></div><div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px;"><div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false"></div><div class="find-part"><div class="monaco-findInput"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div>
+                        </div>
+                        <div class="shadow">
+
+                        </div><div class="shadow">
+
+                        </div>
+                        <div class="shadow">
+
                         </div>
                     </div>
-                    <input type="button" value="connect" class="ui button primary" />
+                        <div class="controls" style="display: block;"
+                        ><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true">
 
-                </div> -->
-
-
-            </div>
-
-
-
-            <!-- DISK USAGE CHART -->
-            <div class="title">
-                <!-- <i class="large icon chart bar"></i>  -->
-                <i class="icon bi-bar-chart large"></i>
-                Disk Usage
-            </div>
-            <div class="content">
-
-
-                <canvas id="myChart" width="200" height="200" class="" style=""></canvas>
-
-                <!-- <div id="du_grid" style="font-size: 12px;"></div> -->
-
-
-            </div>
-
-            <!-- LOG -->
-            <div class="title">
-                <!-- <i class="dropdown icon"></i> -->
-                <!-- <i class="icon large chart history"></i> -->
-                <i class="icon bi-chat large"></i>
-                Log
-            </div>
-            <div class="content centered">
-
-                <div class="" id="notification"></div>
-
-            </div>
-
-            <br />
-
-        </div>
-
-    </aside>
-
-
-    <!-- MAIN VIEW -->
-    <div class="ui segments dropzone" id="main_view" tabindex="0">
-
-        <div id="messagebox"></div>
-
-        <!-- LOADER MESSAGE -->
-        <div id="loader" class="ui centered loader"></div>
-
-        <div id="list_view"></div>
-
-        <!-- <button id="clickme">Test Bluetooth</button>
-        <p>Currently selected bluetooth device: <strong id="device-name"></strong></p> -->
-
-        <!-- find from vscode -->
-        <!-- <div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px; z-index: 100;">
-            <div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false">
-
-            </div>
-            <div class="find-part">
-                <div class="monaco-findInput">
-                    <div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;">
-                        <div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true"></div></div></div><div class="monaco-sash vertical" style="width: 2px; left: -1px;"></div></div><div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px;"><div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false"></div><div class="find-part"><div class="monaco-findInput"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div>
+                        </div>
                     </div>
-                    <div class="shadow">
-
-                    </div><div class="shadow">
-
                     </div>
-                    <div class="shadow">
+                    <div class="monaco-sash vertical" style="width: 2px; left: -1px;">
+                </div>
+            </div> -->
 
+
+            <!-- FOLDERS -->
+            <div class="ui card fluid folders_card border-none" id="folders_card" style="">
+
+                <div class="content fluid">
+
+                    <div class="ui grid navigate" id="folder_grid">
                     </div>
-                </div>
-                    <div class="controls" style="display: block;"
-                    ><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true">
 
+                    <div class="ui grid navigate hidden" id="hidden_folder_grid">
                     </div>
+
+
                 </div>
-                </div>
-                <div class="monaco-sash vertical" style="width: 2px; left: -1px;">
-            </div>
-        </div> -->
-
-
-        <!-- FOLDERS -->
-        <div class="ui card fluid folders_card border-none" id="folders_card" style="">
-
-            <div class="content fluid">
-
-                <div class="ui grid navigate" id="folder_grid">
-                </div>
-
-                <div class="ui grid navigate hidden" id="hidden_folder_grid">
-                </div>
-
 
             </div>
 
-        </div>
+            <!-- FILES -->
+            <div class="ui card fluid files_card border-none" style="" id="files_card">
 
-        <!-- FILES -->
-        <div class="ui card fluid files_card border-none" style="" id="files_card">
+                <div class="content">
+                    <div class="ui grid navigate" id="file_grid"></div>
+                    <div class="ui grid navigate hidden" id="hidden_file_grid"></div>
+                </div>
 
-            <div class="content">
-                <div class="ui grid navigate" id="file_grid"></div>
-                <div class="ui grid navigate hidden" id="hidden_file_grid"></div>
             </div>
 
+            <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
+            <div class="ui inverted dimmer">
+                <div class="ui text hidden loader">Loading</div>
+            </div>
+            <div id="msg"></div>
+
+            <div class="hidden" id="notice">
+
+            </div>
+
+
+            <div class="inlinesearch" style="">
+                <input type="text" id="txt_search" class="hidden" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
+            </div>
+
+            <div id="info" class="fixed bottom hidden">
+                <!--  -->
+            </div>
+
+
+            <!-- END OF SEGMENT -->
         </div>
 
-        <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
-        <div class="ui inverted dimmer">
-            <div class="ui text hidden loader">Loading</div>
-        </div>
-        <div id="msg"></div>
-
-        <div class="hidden" id="notice">
-
-        </div>
-
-
-        <div class="inlinesearch" style="">
-            <input type="text" id="txt_search" class="hidden" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
-        </div>
-
-        <div id="info" class="fixed bottom hidden">
-            <!--  -->
-        </div>
-
-
-        <!-- END OF SEGMENT -->
     </div>
-
-
 
 
 </body>
@@ -645,6 +640,7 @@
 <script type="" src="../assets/scripts/jquery-3.6.0.min.js"></script>
 <script type="" src="../assets/scripts/semantic.min.js"></script>
 <script type="" src="../assets/scripts/popup.min.js"></script>
+<script type="" src="../node_modules/dragselect/dist/ds.min.js"></script>
 <script type="" src="index.js"></script>
 
 

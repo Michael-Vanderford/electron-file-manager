@@ -7,14 +7,15 @@
     left: 0px;
     background-color: #222222 !important;
     color: #f7f7f7 !important;
-    top: 110px;
+    /* top: 40px; */
     height:100%;
     padding-top:10px;
     padding-left: 12px;
     min-width: 200px;
     overflow: scroll;
     scroll-behavior: smooth;
-    scrollbar-width: 2px !important;
+    /* scrollbar-width: 2px !important; */
+    /* scrollbar-width: thin; */
 }
 
 #sidebar .ui.accordion .content {
@@ -25,11 +26,12 @@
     background-color: transparent !important;
 }
 
-::-webkit-scrollbar {
+#sidebar::-webkit-scrollbar {
     /* height: 12px; */
-    width: 1px;
-    height:100%;
-    /* background: #cfcfcf; */
+    width: 0px !important;
+    height:100% !important;
+    background: #2c2c2c;
+    color: #2c2c2c;
 }
 
 ::-webkit-scrollbar-track {
@@ -48,7 +50,7 @@
     position: relative;
     outline: none;
     border: none;
-    margin-top: 160px;
+    /* margin-top: 160px; */
     margin-bottom: 150px;
     margin-right: 0px;
     height: 100%;
@@ -117,7 +119,7 @@
     width: 4px;
     /* min-height: 100%; */
     /* height: auto !important; */
-    height:1000% !important;
+    height:200% !important;
     top: 0;
     right: 0;
     cursor: col-resize;

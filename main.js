@@ -78,7 +78,7 @@ function createWindow() {
         backgroundColor: '#2e2c29',
         x:displayToUse.bounds.x + 50,
         y:displayToUse.bounds.y + 50,
-        frame: false,
+        frame: true,
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -191,19 +191,63 @@ function createConfirmDialog(data) {
         console.log('running')
         win.send('overwrite', data)
         let active_window = BrowserWindow.getFocusedWindow();
-        active_window.close()
+        active_window.hide()
     })
 
     ipcMain.on('overwrite_canceled', (e) => {
         let active_window = BrowserWindow.getFocusedWindow();
-        active_window.close()
+        active_window.hide()
     })
 
 }
 
 
+ipcMain.on('show_move_dialog', (e, data) => {
+    e.preventDefault()
+    createMoveDialog(data)
+})
 
 
+function createMoveDialog(data) {
+
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
+
+    let confirm = new BrowserWindow({
+        parent:win,
+        modal:true,
+        width: 550,
+        height: 450,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    // LOAD FILE
+    confirm.loadFile('src/overwritemove.html')
+
+
+    confirm.once('ready-to-show', () => {
+
+        confirm.title = 'Move File Conflict'
+        confirm.removeMenu()
+        confirm.show()
+
+        // confirm.webContents.openDevTools()
+        confirm.send('confirming_overwrite_move', data)
+
+    })
+
+}
 
 
 
@@ -214,7 +258,6 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
     e.preventDefault()
     createOverwriteMoveDialog(data)
-    // console.log(data1)
 
 })
 
@@ -260,14 +303,12 @@ function createOverwriteMoveDialog(data) {
 
     })
 
-
-
     // OVERWRITE CONFIRMED
     ipcMain.on('overwrite_move_confirmed', (e,data) => {
         console.log('running')
         win.send('overwrite_move', data)
         let active_window = BrowserWindow.getFocusedWindow();
-        active_window.close()
+        active_window.hide()
     })
 
     ipcMain.on('overwrite_move_confirmed_all', (e, destination) => {
@@ -286,9 +327,13 @@ function createOverwriteMoveDialog(data) {
     // OVERWRITE CANCELED
     ipcMain.on('overwrite_move_canceled', (e) => {
         let active_window = BrowserWindow.getFocusedWindow();
-        active_window.close()
+        active_window.hide()
     })
 
+
+    windows.add(confirm)
+
+    console.log(windows)
 
 
 }

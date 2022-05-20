@@ -893,7 +893,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
         if (is_checked) {
             ipcRenderer.send('overwrite_move_confirmed_all', data.destination)
-
         } else {
             ipcRenderer.send('overwrite_move_confirmed', data)
         }
@@ -913,7 +912,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         } else {
             ipcRenderer.send('overwrite_move_canceled')
         }
-
     })
 
 
@@ -2646,7 +2644,7 @@ async function add_card(options) {
             if (is_folder) {
 
                 card_id = id
-                img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
+                // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
             }
 
         })
@@ -3098,7 +3096,7 @@ function add_tree_item(options) {
 
 
     // icon.classList.add('angle', 'right', 'large')
-    icon.classList.add('right')
+    icon.classList.add('right', 'icon', 'hdd')
     items.classList.add('ui', 'items')
     item.classList.add('item', 'no-wrap')
     item.style = 'margin-bottom:0px; padding-bottom:2px'
@@ -3162,7 +3160,9 @@ function add_tree_item(options) {
             }
 
             // subicon.classList.add('icon', 'folder', 'outline')
-            subicon_div.classList.add('tree_subicon')
+            // subicon_div.classList.add('tree_subicon')
+            subicon.classList.add('icon', 'bi-folder', 'tree_subicon')
+            subicon_div.append(subicon)
 
         }
 
@@ -3171,7 +3171,9 @@ function add_tree_item(options) {
     else {
 
         // icon.classList.add('icon')
-        subicon_div.classList.add('tree_subicon')
+        // subicon_div.classList.add('tree_subicon')
+        subicon.classList.add('icon', 'bi-folder', 'tree_subicon')
+        subicon_div.append(subicon)
 
     }
 
@@ -4743,7 +4745,7 @@ async function get_files(dir) {
                 if (e.ctrlKey == true) {
 
                     state = 1
-                    notification('changing state to 1')
+                    // notification('changing state to 1')
                     notification('running copy files on main_view ' + destination)
 
                     console.log('destination ' + destination)
@@ -4755,7 +4757,7 @@ async function get_files(dir) {
                 } else {
 
                     state = 0
-                    notification('changing state to 0')
+                    // notification('changing state to 0')
 
                     move_to_folder(destination)
                     // clear_selected_files()
@@ -6655,8 +6657,7 @@ function add_img(src) {
 let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
 let icon_dir = path.join('/usr/share/icons', icon_theme)
 
-let folder_icon_path = ''
-let folder_icon_path0
+let folder_icon_dir = path.join('/usr/share/icons', icon_theme)
 console.log(icon_dir,fs.existsSync(icon_dir))
 
 if (fs.existsSync(icon_dir) == false) {
@@ -6681,7 +6682,10 @@ function get_icon_path(file) {
         // console.log('icon dir', icon_dir, 'icon dir 0', icon_dir0)
 
         if (stats.isDirectory()) {
-            icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
+            // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
+            // console.log('icon_dir',folder_icon_dir)
+            icon = path.join(folder_icon_dir, '32x32/places/folder.png')
+            // icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
         } else if (stats.isFile()) {
 
             icon_dir = path.join(__dirname,'/assets/icons/korla')
@@ -7336,7 +7340,8 @@ function move_to_folder(end_path) {
         } else {
 
             // msg = 'Confirm move to ' + end_path
-            ipcRenderer.send('confirm_move', data)
+            // ipcRenderer.send('confirm_move', data)
+            ipcRenderer.send('show_overwrite_move_dialog', data)
 
         }
 

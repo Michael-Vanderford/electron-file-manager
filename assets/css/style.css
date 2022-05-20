@@ -20,7 +20,7 @@ body {
         background-repeat: no-repeat;
         background-size: cover;
         color: #cfcfcf;
-        padding-bottom: 120px;
+        padding-bottom: 40px;
         height:100% !important;
         overflow:hidden !important;
 
@@ -63,12 +63,17 @@ body {
         padding-top:20px;
     } */
 
+    .tree_item {
+        margin-top: 15px !important;
+        margin-left: 15px !important;
+    }
+
     .tree_subicon {
-        margin-top:2px;
-        margin-left: 10px;
-        background-image: url("../icons/korla-pgrey/places/scalable/gnome-folder.svg");
-        width:22px;
-        height: 22px;
+        /* margin-top:2px !important; */
+        /* margin-left: 25px !important; */
+        /* background-image: url("../icons/korla-pgrey/places/scalable/gnome-folder.svg"); */
+        /* width:22px;
+        height: 22px; */
         float:left;
     }
 
@@ -395,7 +400,7 @@ body {
     box-shadow: none !important;
     /* margin:0px !important; */
     padding:5px;
-    top:40px;
+    /* top:5px; */
     z-index: 3;
 }
 
@@ -403,7 +408,7 @@ body {
     box-shadow: none !important;
     /* margin:0px !important; */
     padding: 5px;
-    top: 82px !important;
+    top: 38px !important;
     height:24px;
     z-index: 2;
 }
@@ -571,8 +576,8 @@ body .ui.card .none{
 
 .img {
 
-    height: 48px !important;
-    width: 48px !important;
+    height: 32px !important;
+    width: 32px !important;
     border:2px solid #000000 !important;
     background:#000000 !important;
 }
@@ -583,6 +588,10 @@ body .ui.card .none{
     width: 32px !important;
     /* border:2px solid #000000 !important; */
     /* background:#000000 !important; */
+}
+
+.image:hover{
+    cursor: pointer;
 }
 
 
@@ -974,7 +983,8 @@ a:link, .bold {
 }
 
 .container {
-  margin-top: 60px !important;
+  padding-top: 70px !important;
+  height: 100% !important;
 }
 
 /* .container-fluid {
