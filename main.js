@@ -218,7 +218,7 @@ function createMoveDialog(data) {
         parent:win,
         modal:true,
         width: 550,
-        height: 450,
+        height: 300,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -233,18 +233,40 @@ function createMoveDialog(data) {
     })
 
     // LOAD FILE
-    confirm.loadFile('src/overwritemove.html')
+    confirm.loadFile('src/confirm_move.html')
 
 
     confirm.once('ready-to-show', () => {
 
-        confirm.title = 'Move File Conflict'
+        confirm.title = 'Move File'
         confirm.removeMenu()
-        confirm.show()
+        // confirm.show()
+
+        windows.add(confirm)
+
+        windows.forEach((item, idx) => {
+            console.log(item)
+            if (idx == 0) {
+                item.show()
+            }
+            return
+        })
 
         // confirm.webContents.openDevTools()
-        confirm.send('confirming_overwrite_move', data)
+        confirm.send('confirming_move', data)
 
+    })
+
+    ipcMain.on('move_confirmed', (e) => {
+
+    })
+
+
+    // OVERWRITE CANCELED
+    ipcMain.on('move_canceled', (e) => {
+        let active_window = BrowserWindow.getFocusedWindow();
+        e.sender.send('clear_copy_array')
+        active_window.hide()
     })
 
 }
@@ -1173,14 +1195,12 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
           e.sender.send('context-menu-command', 'paste')
         }
     },
-
-
-    // {
-    //   label: 'Paste file into folder',
-    //   click: () => {
-    //     e.sender.send('context-menu-command', 'paste_file')
-    //   }
-    // },
+    {
+      label: 'Paste file into folder',
+      click: () => {
+        e.sender.send('context-menu-command', 'paste_file')
+      }
+    },
     {
       label: '&Rename',
       accelerator: process.platform === 'darwin' ? 'F2' : 'F2',

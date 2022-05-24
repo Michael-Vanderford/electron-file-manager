@@ -143,11 +143,27 @@ body {
     /* color: #ffffff !important; */
   }
 
-  .ui.card .highlight_select {
+    .ui.card .highlight_select {
 
-    background:#425261 !important;
-    /* opacity: .1 */
-  }
+        background:#425261 !important;
+        /* opacity: .1 */
+    }
+
+    .drag_select {
+        border: 1px solid #cfcfcf !important;
+        background: rgba(155, 155, 155, 0.1) !important;
+    }
+
+    /* DRAG SELECT */
+    .ui.card .ds-selected {
+
+        background:#425261 !important;
+        /* outline: 3px solid black; */
+        /* outline-offset: 3px; */
+        /* color: black; */
+        /* font-weight: bold; */
+    }
+
 
   /* #selected_files_list {
       background-color: #000;

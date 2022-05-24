@@ -419,23 +419,34 @@ $(function() {
         localStorage.setItem('folder', home_folder)
     }
 
-    window.api.get_files(localStorage.getItem('folder'), options)
+    window.api.get_files(localStorage.getItem('folder'), options).then(data => {
+
+        
+    })
 
 
-    // const ds = new DragSelect({
-    //     // customeStyles: true,
-    //     selectables: document.getElementsByClassName('card'),
-    //     multiSelectMode: true,
-    //     selectedClass: 'highligh_select',
-    // });
 
-    // ds.subscribe('callback', ({ items, event }) => {})
+
+
+
+
+    // ds.addSelection(document.getElementsByClassName('card'))
+
+    // ds.addSelectables(document.getElementsByClassName('card'));
+
+    // ds.subscribe('callback', ({items, e, isDragging}) => {
+
+    //     console.log(isDragging)
+
+    //     // items.array.forEach(item => {
+    //     //     item.classList('highligh_select')
+    //     // });
+    // })
 
     // ds.getSelection();
 
     // window.api.get_files_list(localStorage.getItem('folder'))
     // console.log(Date.now() - st)
-
 
     // SHOW MODAL DIALOG
     // $('.ui.modal').modal({
@@ -770,16 +781,16 @@ $(function() {
 
 
 
-$('.nav_item')
-  .popup({
-    inline     : true,
-    hoverable  : true,
-    position   : 'bottom left',
-    delay: {
-      show: 300,
-      hide: 800
-    }
-})
+    // $('.nav_item')
+    //   .popup({
+    //     inline     : true,
+    //     hoverable  : true,
+    //     position   : 'bottom left',
+    //     delay: {
+    //       show: 300,
+    //       hide: 800
+    //     }
+    // })
 
 
 

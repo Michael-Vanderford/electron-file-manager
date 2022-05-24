@@ -9,8 +9,10 @@ const { exec, execSync, spawn, execFileSync } = require("child_process");
 const Mousetrap = require('mousetrap');
 const os = require('os');
 const { dirname, basename, normalize } = require('path');
-const Chart = require('chart.js');
+const Chart = require('chart.js')
+const DragSelect = require('dragselect')
 const mime = require('mime-types')
+
 
 
 // ARRAYS
@@ -103,10 +105,10 @@ let adj = 0
 let is_folder_card = 1
 
 // FOLDER / FILE COUNTERS
-let folder_count = 0
-let hidden_folder_count = 0
-let file_count = 0
-let hidden_file_count = 0
+let folder_count = 1
+let hidden_folder_count = 1
+let file_count = 1
+let hidden_file_count = 1
 
 // PAGING VARIABLES
 let watch_count = 0
@@ -128,7 +130,9 @@ ipcRenderer.on('start_path', (e, res) => {
     }
 })
 
-
+ipcRenderer.on('clear_copy_arr', (e) => {
+    clear_copy_arr()
+})
 
 // ON COPY FILES
 ipcRenderer.on('copy_files', (e, files) => {
@@ -659,10 +663,6 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
 
     })
 
-
-
-
-
 })
 
 
@@ -772,6 +772,43 @@ ipcRenderer.on('overwrite', (e, data) => {
 ipcRenderer.on('copy-complete', function (e) {
     get_files(breadcrumbs.value, { sort: localStorage.getItem('sort') })
 })
+
+
+// CONFIRM MOVE
+ipcRenderer.on('confirming_move', (e, data) => {
+
+    let confirm_dialog = document.getElementById('confirm')
+    let btn_cancel = add_button('btn_cancel', 'Cancel')
+    let btn_ok = add_button('btn_ok', 'Okay')
+
+    btn_ok.classList.add('primary')
+
+    let source_stats = fs.statSync(data.source)
+
+    let header = add_header('<br />Confirm Move:  ' + path.basename(data.source) + '<br /><br />')
+    let description = add_p('Move files ' + data.source)
+    let source_data = add_p(
+        add_header('').outerHTML +
+        add_img(get_icon_path(data.source)).outerHTML +
+        'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+        '<br />' +
+        '<br />'
+    )
+
+    let chk_div = add_div()
+    let chk_move_all = add_checkbox('chk_replace', 'Apply this action to all files and folders')
+
+    chk_div.append(chk_move_all)
+
+    btn_cancel.addEventListener('click', (e) => {
+        ipcRenderer.send('move_canceled')
+    })
+
+
+    confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),btn_cancel,btn_ok)
+
+})
+
 
 
 // CONFIRMI OVERWRITE MOVE DIALOG
@@ -976,41 +1013,6 @@ ipcRenderer.on('overwrite_move', (e, data) => {
 
                 } else {
 
-                    // // REMOVE PREVIOUS CARD
-                    // let card = document.querySelector('[data-href="' + source + '"]')
-                    // let col = card.closest('.column')
-                    // col.remove()
-
-                    // // ADD CARD
-                    // let options = {
-
-                    //     id: 'file_grid_' + idx,
-                    //     href: destination,
-                    //     linktext: path.basename(destination),
-                    //     grid: file_grid
-
-                    // }
-
-                    // try {
-
-                    //     add_card(options).then(col => {
-
-                    //         console.log(col)
-                    //         file_grid.insertBefore(col, file_grid.firstChild)
-
-                    //         // COUNT ITEMS IN MAIN VIEW
-                    //         folder_count = get_folder_count()
-                    //         file_count = get_file_count()
-
-                    //         // RESET CARD INDE TO HANDLE LAZY LOADED IMAGES
-                    //         cardindex = 0
-
-                    //     })
-
-                    // } catch (err) {
-                    //     notification(err)
-                    // }
-
                     delete_file(source)
 
                 }
@@ -1025,6 +1027,8 @@ ipcRenderer.on('overwrite_move', (e, data) => {
     }
 
 })
+
+
 
 
 // ON MOVE CONFIRMED. todo: this needs work
@@ -1679,9 +1683,9 @@ ipcRenderer.on('devices', (e, args) => {
 })
 
 // // PROPERTIES WINDOW
-// ipcRenderer.on('file_properties_window', (e,data) => {
-//     get_file_properties(source)
-// })
+ipcRenderer.on('file_properties_window', (e,data) => {
+    get_file_properties(source)
+})
 
 // todo: these need to be consolidated at ome point
 // NOTICE
@@ -3483,7 +3487,7 @@ function bar_chart(chart_labels, chart_labels1, chart_data) {
 // CHART OPTIONS
 function get_disk_usage_chart() {
 
-    notification('getting disk usage chart')
+    // notification('getting disk usage chart')
 
 
     let cmd = "df '" + breadcrumbs.value + "'"
@@ -3549,7 +3553,7 @@ function get_disk_usage_chart() {
             // } else {
             // }
 
-            notification(chart_data)
+            // notification(chart_data)
             bar_chart(chart_labels, chart_labels1, chart_data)
 
 
@@ -4068,7 +4072,7 @@ async function get_files_list(dir) {
 
 // MAIN GET FILES FUNCTION
 let card_counter = 0
-async function get_files(dir) {
+async function get_files(dir, callback) {
 
     show_loader()
 
@@ -4398,6 +4402,7 @@ async function get_files(dir) {
                         }
 
                         add_card(options)
+                        ++folder_count
 
                         // FILES
                     } else {
@@ -4408,8 +4413,6 @@ async function get_files(dir) {
 
                             let ext = path.extname(filename)
                             console.log('ext',ext)
-
-
 
                         } else {
 
@@ -4430,6 +4433,7 @@ async function get_files(dir) {
                         }
 
                         add_card(options)
+                        ++file_count
 
                     }
 
@@ -4478,6 +4482,38 @@ async function get_files(dir) {
             // UPDATE CARDS
             update_cards(main_view)
 
+            // DRAG SELECT
+            const ds = new DragSelect({
+                selectables: document.getElementsByClassName('nav_item'),
+                area: document.getElementById('main_view'),
+                selectorClass: 'drag_select'
+            })
+
+            ds.subscribe('elementselect', ({items,item}) => {
+                console.log(item.dataset.href)
+                // add_copy_file(item.dataset.href, item.id)
+            })
+
+            ds.subscribe('elementunselect', ({items, item}) => {
+
+                // remove_copy_file(item.dataset.href)
+                console.log(copy_files_arr.length)
+
+            })
+
+            ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
+                if(isDragging) {
+                  ds.stop(false, false)
+                  setTimeout(ds.start)
+                }
+            })
+
+
+
+            // let cards = document.querySelectorAll('.card')
+            // cards.forEach(item => {
+            //     console.log(item)
+            // })
 
             // let lazy = [].slice.call(document.querySelectorAll('.file_card'))
             // if ("IntersectionObserver" in window) {
@@ -4905,6 +4941,7 @@ async function get_files(dir) {
             cardindex = 0
 
             notice(' (' + directories.length + ') directories and (' + files.length + ') files')
+
 
         } else {
 
@@ -5442,7 +5479,7 @@ async function get_files(dir) {
     // CTRL C COPY
     Mousetrap.bind('ctrl+c', function (e) {
 
-        let highlight = document.querySelectorAll('.highlight, .highlight_select')
+        let highlight = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
 
         let folder_count = 0
         let file_count = 0
@@ -5523,12 +5560,11 @@ async function get_files(dir) {
     update_cards(main_view)
     // }
 
-
-
     clear_selected_files()
+    notification('done loading files')
 
-
-    console.log('finished running get files')
+    // let cards = document.querySelectorAll('.card')
+    // return callback = cards
 
 }
 
@@ -5562,8 +5598,8 @@ contextBridge.exposeInMainWorld('api', {
     get_tree: (dir) => {
         return get_tree(dir)
     },
-    get_files: (dir, options) => {
-        return get_files(dir, options)
+    get_files: (dir, callback) => {
+        return get_files(dir, callback)
     },
     get_files_list: (dir) => {
         return get_files_list(dir)
@@ -5724,6 +5760,20 @@ function add_copy_file(source, card_id) {
         }
     }
 
+    console.log('copy files array', copy_files_arr.length)
+
+}
+
+// REMOVE COPY FILE
+function remove_copy_file(href) {
+
+    copy_files_arr.forEach((item, idx) => {
+
+        if (item.source == href) {
+            copy_files_arr.splice(idx)
+        }
+
+    });
 }
 
 // ADD TO SELECTED FILES ARRAY
@@ -5747,8 +5797,7 @@ function add_selected_file(source, card_id) {
                     source: source
                 }
 
-                selected_files.push(file)
-
+                // selected_files.push(file)
                 console.log('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
                 notification('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
 
@@ -5965,13 +6014,11 @@ function clear_selected_files() {
     let main_view = document.getElementById('main_view')
     main_view.focus()
 
-
-
 }
 
 // CLEAR COPY CACHE
 function clear_copy_arr() {
-    console.log('clearing copy cache')
+    console.log('clearing copy array')
     copy_files_arr = []
 }
 
@@ -6589,6 +6636,11 @@ function add_header(text) {
     return header
 }
 
+// ADD BREAK
+function add_br() {
+    return document.createElement('br')
+}
+
 // ADD ITEM
 function add_item(text) {
     let item = document.createElement('div')
@@ -7151,7 +7203,7 @@ function copyFileSync(source, target) {
                 notification('done copying folder files to ' + root)
 
                 // CLEAR PROGRESS
-                clearInterval(interval_id)
+                // clearInterval(interval_id)
 
                 hide_top_progress()
                 // if (progress) {
@@ -7161,7 +7213,8 @@ function copyFileSync(source, target) {
                 c = 0
 
                 // UPDATE CARDS
-                let folder_grid = document.getElementById('folder_grid')
+                // let folder_grid = document.getElementById('folder_grid')
+                let main_view = document.getElementById('main_view')
                 update_cards(main_view)
 
             } else {
@@ -7179,28 +7232,12 @@ function copyFileSync(source, target) {
 // COPY FOLDER
 let root = ''
 let copy_folder_counter = 0
+let destination0 = ''
 function copyFolderRecursiveSync(source, destination) {
 
 
     console.log('folder_count ' + folder_count)
     copy_folder_counter += 1
-
-    // notification('copy folder source ' + source)
-    // notification('destination ' + destination)
-
-    console.log('source ', source, ' destination ', destination)
-
-    if (!fs.existsSync(destination)) {
-        fs.mkdirSync(destination);
-
-        let folder_card = document.getElementsByClassName('folder_card')
-        let grid = document.getElementById('folder_grid')
-
-    } else {
-
-        fs.mkdirSync(destination + ' Copy');
-
-    }
 
     // COPY
     // READ SOURCE DIRECTORY
@@ -7213,29 +7250,18 @@ function copyFolderRecursiveSync(source, destination) {
             // CHECK LENGTH
             if (files.length > 0) {
 
-                // FILES COUNT FOR PROGRESS BAR
-                number_of_files = files.length
-
-                // // SET UP PROGRESS BAR
-                // let progress = document.getElementById('progress')
-                // progress.classList.remove('hidden')
-                // progress.value = 1
-                // progress.max = number_of_files
-
-                // progress.max = files.length
-
-                console.log('getting folder size of ' + root)
-                // ipcRenderer.send('get_folder_size', { href: root })
+                if (!fs.existsSync(destination)) {
+                    destination0 = destination
+                    fs.mkdirSync(destination)
+                } else {
+                    fs.mkdirSync(destination + ' Copy')
+                }
 
                 // LOOP OVER FILES
-                let c = 0
                 files.forEach((file, idx) => {
 
                     // GET FOLDER SIZE WORKS HERE KIND OF!!!. RUNS TOO MANY TIMES.
                     // todo: need to figure out how to handle this better
-
-                    // console.log('getting folder size of ' + root)
-                    // ipcRenderer.send('get_folder_size' ,{href: root })
 
                     // GET CURRENT SOURCE / CURRENT DESTINATION
                     let cursource = path.join(source, file)
@@ -7254,44 +7280,22 @@ function copyFolderRecursiveSync(source, destination) {
                                 // alert('curdest ' + curdestination)
                                 copyFolderRecursiveSync(cursource, curdestination)
 
-
+                                console.log('running copyfoldersync')
+                                console.log('running copyfoldersync', 'cursource ', cursource, 'curdestination', curdestination)
                                 // UPDATE FOLDER_SIZE
                                 // ipcRenderer.send('get_folder_size', { href: destination })
 
 
-                                // FILE
+                            // FILE
                             } else if (stats.isFile() == true) {
-
-                                // console.log('copying file ' + file + ' to ' + curdestination + ' idx ' + idx + ' length ' + files.length)
-                                // progress.value = idx
 
                                 // debugger
                                 copyFileSync(cursource, curdestination)
-
-                                // GET FOLDER SIZE
-                                // DOES NOT WORK HERE
-                                // ipcRenderer.send('get_folder_size', destination)
-
-
-                                // c++
-                                // if (c === files.length) {
-
-                                //     // PROGRESS BAR ON TOP
-                                //     setTimeout(() => {
-                                //         progress.value = 0
-                                //         progress.classList.add('hidden')
-                                //     }, 1000);
-
-                                // }
-
-                                // GET FOLDER_SIZE
-                                // DOES NOT WORK HERE
+                                console.log('running copyfilesync', cursource, curdestination)
 
                             }
 
-
                             // DONT GET DISK SPACE HERE
-
 
                         }
 
@@ -7332,7 +7336,7 @@ function move_to_folder(end_path) {
 
         console.log('source',data.source,'destination', data.destination)
 
-        // Check folder
+        // Check if exists
         if (fs.existsSync(data.destination)) {
 
             ipcRenderer.send('show_overwrite_move_dialog', data)
@@ -7341,7 +7345,7 @@ function move_to_folder(end_path) {
 
             // msg = 'Confirm move to ' + end_path
             // ipcRenderer.send('confirm_move', data)
-            ipcRenderer.send('show_overwrite_move_dialog', data)
+            ipcRenderer.send('show_move_dialog', data)
 
         }
 
@@ -7433,11 +7437,11 @@ function create_file_from_template(filename) {
                     file_grid.insertBefore(card, file_grid.firstChild)
 
 
-
                     let input = card.getElementsByTagName('input')
                     input[0].classList.remove('hidden')
                     input[0].focus()
-                    input[0].select()
+                    // input[0].select()
+                    input[0].setSelectionRange(0, input[0].value.length - path.extname(filename).length)
 
                     console.log(card_id)
 
@@ -7521,6 +7525,9 @@ function rename_file(directory, new_name) {
                 source = href
 
                 header.focus()
+
+                let main_view = document.getElementById('main_view')
+                update_cards(main_view)
 
 
             }
@@ -7973,6 +7980,7 @@ function extract(source) {
         case '.xz':
             filename = source.replace('.tar.xz', '')
             filename = source.replace('.xz', '')
+            filename = source.replace('.img.xz', '')
             us_cmd = "xz -l '" + source + "' | awk 'FNR==2{print $5}'"
             cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
             break;
@@ -8848,7 +8856,8 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         let list = ''
 
         // GET HIGHLIGHTED ITEMS
-        let items = document.getElementsByClassName('highlight_select')
+        // let items = document.getElementsByClassName('highlight_select')
+        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
         if (items.length > 0) {
 
             // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
