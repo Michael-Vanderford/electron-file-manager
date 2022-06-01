@@ -4601,7 +4601,7 @@ async function get_files(dir, callback) {
             ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
                 if(isDragging) {
                     ds.stop(false,false)
-                    // setTimeout(ds.start)
+                    setTimeout(ds.start)
                 }
             })
 
