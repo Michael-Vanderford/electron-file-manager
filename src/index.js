@@ -421,29 +421,8 @@ $(function() {
 
     window.api.get_files(localStorage.getItem('folder'), options).then(data => {
 
-        
+
     })
-
-
-
-
-
-
-
-    // ds.addSelection(document.getElementsByClassName('card'))
-
-    // ds.addSelectables(document.getElementsByClassName('card'));
-
-    // ds.subscribe('callback', ({items, e, isDragging}) => {
-
-    //     console.log(isDragging)
-
-    //     // items.array.forEach(item => {
-    //     //     item.classList('highligh_select')
-    //     // });
-    // })
-
-    // ds.getSelection();
 
     // window.api.get_files_list(localStorage.getItem('folder'))
     // console.log(Date.now() - st)

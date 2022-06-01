@@ -134,8 +134,6 @@ ipcRenderer.on('clear_copy_arr', (e) => {
     clear_copy_arr()
 })
 
-
-
 // ON COPY FILES
 ipcRenderer.on('copy_files', (e, files) => {
 
@@ -1067,9 +1065,6 @@ ipcRenderer.on('overwrite_move', (e, data) => {
 
 })
 
-
-
-
 // ON MOVE CONFIRMED. todo: this needs work
 ipcRenderer.on('move_confirmed', (e, data) => {
 
@@ -1761,6 +1756,31 @@ ipcRenderer.on('devices', (e, args) => {
 // // PROPERTIES WINDOW
 ipcRenderer.on('file_properties_window', (e,data) => {
     get_file_properties(source)
+})
+
+// POPULATE FILE PROPERTIES
+ipcRenderer.on('file_properties', (e, data) => {
+
+    let file_properties = document.getElementById('file_properties')
+    let header = add_header(data.name)
+    let type = add_header(data.type)
+    let content = add_header(data.contents)
+    let size = add_header(data.size)
+    let accessed = add_header(data.accessed)
+    let modified = add_header(data.modified)
+    let created = add_header(data.created)
+
+
+    file_properties.append(
+        add_br(),
+        header,
+        type,
+        content,
+        size,
+        accessed,
+        modified,
+        created)
+
 })
 
 // todo: these need to be consolidated at ome point
@@ -4559,7 +4579,7 @@ async function get_files(dir, callback) {
             // header[0].focus()
 
             // DRAG SELECT
-            const ds = new DragSelect({
+            var ds = new DragSelect({
                 keyboardDragSpeed: 0,
                 selectables: document.getElementsByClassName('nav_item'),
                 // area: document.getElementById('main_view'),
@@ -4580,8 +4600,8 @@ async function get_files(dir, callback) {
 
             ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
                 if(isDragging) {
-                  ds.stop(false,false)
-                  setTimeout(ds.start)
+                    ds.stop(false,false)
+                    // setTimeout(ds.start)
                 }
             })
 
@@ -4872,6 +4892,8 @@ async function get_files(dir, callback) {
                     // clear_copy_cache()
 
                 }
+
+                ds.start
 
                 return false
 

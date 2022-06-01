@@ -676,7 +676,7 @@ function createPropertiesWindow(filename) {
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
             // nativeWindowOpen: false,
-            preload: path.join(__dirname, 'properties.js'),
+            preload: path.join(__dirname, 'preload.js'),
         },
     })
 
@@ -730,6 +730,10 @@ function createPropertiesWindow(filename) {
 
         console.log('send file properties')
         win.send('file_properties', file_properties)
+
+        // win.webContents.openDevTools()
+
+        console.log(file_properties)
 
     })
 

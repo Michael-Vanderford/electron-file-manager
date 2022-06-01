@@ -8455,7 +8455,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     if (command === 'props') {
 
         ipcRenderer.send('get_file_properties', source)
-        // get_file_properties(source)
+        get_file_properties(source)
 
     }
 
@@ -8472,15 +8472,15 @@ ipcRenderer.on('clear_selected_files', (e, res) => {
 
 window.addEventListener('DOMContentLoaded', () => {
 
-    // CHECK WHAT THIS IS
-    ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
+    // // CHECK WHAT THIS IS
+    // ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
 
-    // GET GIO DEVICE LIST
-    let device_grid = document.getElementById('device_grid')
-    device_grid.innerHTML = ''
-    ipcRenderer.send('get_gio_devices')
+    // // GET GIO DEVICE LIST
+    // let device_grid = document.getElementById('device_grid')
+    // device_grid.innerHTML = ''
+    // ipcRenderer.send('get_gio_devices')
 
-    get_network()
+    // get_network()
 
     // ipcRenderer.send('get_gio_volumes')
 
