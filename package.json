@@ -38,6 +38,6 @@
     "webpack": "^5.66.0"
   },
   "devDependencies": {
-    "electron": "^15.3.1"
+    "electron": "^19.0.3"
   }
 }
