@@ -135,7 +135,9 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
                             if (stats.isDirectory() == true) {
 
                                 // alert('curdest ' + curdestination)
-                                copyFolderRecursiveSync(cursource, curdestination, state, () => {})
+                                copyFolderRecursiveSync(cursource, curdestination, state, () => {
+                                    win.send('update_card', curdestination)
+                                })
 
                             // FILE
                             } else if (stats.isFile() == true) {
@@ -408,7 +410,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                     // COPY FILE
                     copyFileSync(source, destination_file, state, (res) => {
 
-                        e.sender.send('update_cards')
+                        // e.sender.send('update_cards')
+                        e.sender.send('update_card', destination)
                         win.webContents.send('notification', 'done copying files')
 
                     })
