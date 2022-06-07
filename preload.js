@@ -2102,70 +2102,11 @@ function get_available_launchers(filetype) {
         }
 
     } catch (err) {
-        console.log(err)
+        // console.log(err)
     }
 
-
-
     return launchers
-
-    //     let launchers = []
-    //     for(let i = 0; i < desktop_launchers.length - 1; i++) {
-
-    //         let name = desktop_launchers[i]
-    //         let filepath = path.join('/usr/share/applications', name)
-
-    //         console.log(filepath)
-
-    //         let exec
-
-    //         try {
-
-    //             let desktop_file = fs.readFileSync(filepath, 'utf8').split('\n')
-    //             desktop_file.forEach((items, idx) => {
-
-    //                 console.log('item = ' + items)
-
-    //                 if (items.indexOf('Name=') !== -1){
-    //                     name = items.replace('Name=', '')
-    //                 }
-
-    //                 if (items.indexOf('Exec=') !== -1) {
-    //                     exec = items.replace('Exec=','')
-    //                     console.log(exec)
-    //                 }
-
-    //             })
-
-
-    //             // desktop_file = desktop_file.split('=')
-
-
-
-    //             let options = {
-    //                 name: name,
-    //                 icon:'',
-    //                 exec: exec,
-    //             }
-
-    //             launchers.push(options)
-
-
-    //         } catch (err) {
-    //             console.log('error ' + err)
-    //         }
-
-
-    //     }
-
-    //     return launchers
-
-    // } catch (err) {
-
-    //     return err
-
-    // }
-
+    
 }
 
 // SET DEFAULT LAUNCHER
@@ -7959,160 +7900,164 @@ function update_cards(view) {
 
     console.log('updating cards')
 
-    let cards = view.querySelectorAll('.card.nav_item')
-    // console.log('cards length', cards.length)
+    try {
 
-    let cards_arr = []
+        let cards = view.querySelectorAll('.card.nav_item')
+        let cards_arr = []
 
-    for (var i = 0; i < cards.length; i++) {
-        cards_arr.push(cards[i]);
-    }
-
-    // let sort = parseInt(localStorage.getItem('sort'))
-    // switch (sort) {
-    //     case 1:
-    //         // SORT BY DATE
-    //         cards_arr.sort((a, b) => {
-
-    //             try {
-    //                 let s1 = stat.statSync(a.dataset.href)
-    //                 let s2 = stat.statSync(b.dataset.href)
-
-    //                 return s2.mtime - s1.mtime
-
-    //             } catch (err) {
-    //                 console.log(err)
-    //             }
-    //         })
-
-    //         break
-    //     case 2:
-    //         sort_by_name.classList.add('active')
-    //         break
-    //     case 3:
-    //         sort_by_size.classList.add('active')
-    //         break
-    //     case 4:
-    //         sort_by_type.classList.add('active')
-    //         break
-    // }
-
-    let size = ''
-    let folder_counter = 0
-    let file_counter = 0
-    cards_arr.forEach((card, idx) => {
-
-        // console.log(card)
-
-        let header = card.querySelector('.header_link')
-        let img = card.querySelector('.image')
-
-        // PROGRESS
-        let progress = card.querySelector('.progress')
-        let progress_bar = progress.querySelector('progress')
-
-        // DETAILS
-        let extra = card.querySelector('.extra')
-        let description = card.querySelector('.description')
-
-        let href = card.dataset.href
-
-        // ADD DATA TO CARD
-        let stats = fs.statSync(href)
-        let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-
-        // card.tabIndex = idx
-        // card.dataset.id = idx + 1
-
-        description.innerHTML = mtime
-
-        // HANDLE DIRECTORY
-        if (stats.isDirectory()) {
-
-            ++folder_counter
-
-            card.id = 'folder_card_' + folder_counter
-            card.dataset.id = folder_counter + 1
-            card.tabIndex = folder_counter
-            header.id = 'header_folder_card_' + folder_counter
-
-            // progress.id = 'progress_' + card.id
-            // progress_bar.id = 'progress_bar_' + card.id
-
-            // console.log('updating folder cards ' + card.id)
-            card.classList.add('folder_card')
-
-            // GET FILES
-            // header.addEventListener('click', (e) => {
-            //     e.preventDefault()
-            //     get_files(href)
-            // })
-
-            img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
-            img.height = '24px'
-            img.width = '24px'
-
-            ipcRenderer.send('get_folder_size', { href: href })
-            // extra.innerHTML = get_file_size(localStorage.getItem(href))
-
-            // get_folder_size1(href, size => {
-            //     extra.innerHTML = get_file_size(size)
-            // })
-
-            // CARD ON MOUSE OVER
-            card.addEventListener('mouseover', (e) => {
-                size = get_file_size(localStorage.getItem(href))
-                card.title =
-                    href +
-                    '\n' +
-                    size +
-                    '\n' +
-                    mtime
-            })
-
-        // FILES
-        } else {
-
-            ++file_counter
-
-            card.id = 'file_card_' + file_counter
-            card.dataset.id = file_counter + 1
-            card.tabIndex = file_counter
-            header.id = 'header_file_card_' + file_counter
-
-            progress.id = 'progress_' + card.id
-            progress_bar.id = 'progress_bar_' + card.id
-
-            card.classList.add('file_card')
-
-            // console.log('updating file cards ' + card.id)
-
-            // OPEN FILE
-            // todo this hangs on large files
-            // header.addEventListener('click', (e) => {
-            //     e.preventDefault()
-            //     // shell.openPath(href)
-            //     // return false
-            // })
-
-            size = get_file_size(stats.size)
-            extra.innerHTML = size
-            localStorage.setItem(href, stats.size)
-
-            // CARD ON MOUSE OVER
-            card.addEventListener('mouseover', (e) => {
-                size = get_file_size(localStorage.getItem(href))
-                card.title =
-                    href +
-                    '\n' +
-                    size +
-                    '\n' +
-                    mtime
-            })
-
+        for (var i = 0; i < cards.length; i++) {
+            cards_arr.push(cards[i]);
         }
 
-    })
+        // let sort = parseInt(localStorage.getItem('sort'))
+        // switch (sort) {
+        //     case 1:
+        //         // SORT BY DATE
+        //         cards_arr.sort((a, b) => {
+
+        //             try {
+        //                 let s1 = stat.statSync(a.dataset.href)
+        //                 let s2 = stat.statSync(b.dataset.href)
+
+        //                 return s2.mtime - s1.mtime
+
+        //             } catch (err) {
+        //                 console.log(err)
+        //             }
+        //         })
+
+        //         break
+        //     case 2:
+        //         sort_by_name.classList.add('active')
+        //         break
+        //     case 3:
+        //         sort_by_size.classList.add('active')
+        //         break
+        //     case 4:
+        //         sort_by_type.classList.add('active')
+        //         break
+        // }
+
+        let size = ''
+        let folder_counter = 0
+        let file_counter = 0
+        cards_arr.forEach((card, idx) => {
+
+            // console.log(card)
+
+            let header = card.querySelector('.header_link')
+            let img = card.querySelector('.image')
+
+            // PROGRESS
+            let progress = card.querySelector('.progress')
+            let progress_bar = progress.querySelector('progress')
+
+            // DETAILS
+            let extra = card.querySelector('.extra')
+            let description = card.querySelector('.description')
+
+            let href = card.dataset.href
+
+            // ADD DATA TO CARD
+            let stats = fs.statSync(href)
+            let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
+
+            // card.tabIndex = idx
+            // card.dataset.id = idx + 1
+
+            description.innerHTML = mtime
+
+            // HANDLE DIRECTORY
+            if (stats.isDirectory()) {
+
+                ++folder_counter
+
+                card.id = 'folder_card_' + folder_counter
+                card.dataset.id = folder_counter + 1
+                card.tabIndex = folder_counter
+                header.id = 'header_folder_card_' + folder_counter
+
+                // progress.id = 'progress_' + card.id
+                // progress_bar.id = 'progress_bar_' + card.id
+
+                // console.log('updating folder cards ' + card.id)
+                card.classList.add('folder_card')
+
+                // GET FILES
+                // header.addEventListener('click', (e) => {
+                //     e.preventDefault()
+                //     get_files(href)
+                // })
+
+                img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
+                img.height = '24px'
+                img.width = '24px'
+
+                ipcRenderer.send('get_folder_size', { href: href })
+                // extra.innerHTML = get_file_size(localStorage.getItem(href))
+
+                // get_folder_size1(href, size => {
+                //     extra.innerHTML = get_file_size(size)
+                // })
+
+                // CARD ON MOUSE OVER
+                card.addEventListener('mouseover', (e) => {
+                    size = get_file_size(localStorage.getItem(href))
+                    card.title =
+                        href +
+                        '\n' +
+                        size +
+                        '\n' +
+                        mtime
+                })
+
+            // FILES
+            } else {
+
+                ++file_counter
+
+                card.id = 'file_card_' + file_counter
+                card.dataset.id = file_counter + 1
+                card.tabIndex = file_counter
+                header.id = 'header_file_card_' + file_counter
+
+                progress.id = 'progress_' + card.id
+                progress_bar.id = 'progress_bar_' + card.id
+
+                card.classList.add('file_card')
+
+                // console.log('updating file cards ' + card.id)
+
+                // OPEN FILE
+                // todo this hangs on large files
+                // header.addEventListener('click', (e) => {
+                //     e.preventDefault()
+                //     // shell.openPath(href)
+                //     // return false
+                // })
+
+                size = get_file_size(stats.size)
+                extra.innerHTML = size
+                localStorage.setItem(href, stats.size)
+
+                // CARD ON MOUSE OVER
+                card.addEventListener('mouseover', (e) => {
+                    size = get_file_size(localStorage.getItem(href))
+                    card.title =
+                        href +
+                        '\n' +
+                        size +
+                        '\n' +
+                        mtime
+                })
+
+            }
+
+        })
+
+    } catch (err) {
+        // console.log(err)
+    }
 
     file_count = 0
     folder_count = 0

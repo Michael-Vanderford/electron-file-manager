@@ -719,10 +719,11 @@ function createMoveDialog(data, copy_files_arr) {
 // Move confirmed
 ipcMain.on('move_confirmed', (e, data) => {
 
-    console.log('source', data.source)
-    console.log('destination', data.destination)
+    console.log('move confirmed')
 
     if (fs.statSync(data.source).isDirectory()) {
+
+        console.log('what')
 
         copyFolderRecursiveSync(data.source, data.destination, () => {
             console.log('done copying folder')
@@ -730,7 +731,10 @@ ipcMain.on('move_confirmed', (e, data) => {
 
     } else {
 
-        copyFileSync(data.source, data.destination, () => {
+        state = 0
+        copyFileSync(data.source, data.destination, state, () => {
+
+            console.log('here i am')
 
             if (fs.existsSync(data.destination)) {
 
@@ -739,7 +743,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                 delete_file(data.source, () => {
                     win.send('remove_card', data.source)
                     let active_window = BrowserWindow.getFocusedWindow()
-                    active_window.hide()
+                    active_window.close()
                 })
             }
 
@@ -766,7 +770,9 @@ ipcMain.on('move_confirmed_all', (e, copy_files_arr) => {
 
         } else {
 
-            copyFileSync(data.source, data.destination, () => {
+            state = 0
+
+            copyFileSync(data.source, data.destination, state, () => {
 
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
