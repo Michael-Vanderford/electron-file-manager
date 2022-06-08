@@ -57,7 +57,7 @@ function copyFileSync(source, target, state, callback) {
 
             // console.log('target',target.length)
 
-            if (state) {
+            if (state == 1) {
 
                 console.log('adding card state ', state)
 
@@ -92,7 +92,9 @@ function copyFileSync(source, target, state, callback) {
 copy_folder_counter = 0
 function copyFolderRecursiveSync(source, destination, state, callback) {
 
-    copy_folder_counter += 1
+    // console.log(source)
+    // console.log(destination)
+    // console.log(state)
 
     // COPY
     // READ SOURCE DIRECTORY
@@ -136,7 +138,8 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
 
                                 // alert('curdest ' + curdestination)
                                 copyFolderRecursiveSync(cursource, curdestination, state, () => {
-                                    win.send('update_card', curdestination)
+                                    win.webContents.send('update_cards')
+
                                 })
 
                             // FILE
@@ -311,11 +314,19 @@ ipcMain.on('open_file', (e, href) => {
     e.preventDefault()
     // exec('xdg-open ' + href + ' &')
 
-    shell.openPath(href, (err) => {
-        ipcMain.send('notificatoin', err)
+    fs.open(href, (err) => {
+        if (err) {
+            console.log(err)
+        } else {
+            console.log('opening file')
+        }
     })
 
-    console.log('opening file')
+    // shell.openPath(href, (err) => {
+    //     ipcMain.send('notificatoin', err)
+    // })
+
+
 })
 
 // COPY
@@ -343,6 +354,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
             if (source == destination_file) {
 
+                console.log()
+
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
@@ -368,9 +381,34 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
                 } else {
 
+                    console.log('copying folder to', destination)
+
                     // COPY FOLDERS RECURSIVE
-                    copyFolderRecursiveSync(source, destination_file, state, () => {})
-                    // e.sender.send('add_card', options)
+                    copyFolderRecursiveSync(source, destination_file, state, () => {
+
+                        switch (state) {
+                            // PASTE
+                            case 2:
+                                if (idx == 0) {
+
+                                    let options = {
+                                        href: destination_file,
+                                        linktext: path.basename(destination_file)
+                                    }
+
+                                    win.webContents.send('add_card', options)
+                                    win.webContents.send('update_cards')
+
+                                }
+
+                                // win.webContents.send('update_card', destination_file)
+                            break;
+                        }
+
+
+
+                    })
+
 
                 }
 
@@ -386,8 +424,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
 
                 // COPY FILE
+                state = 1
                 copyFileSync(source, destination_file, state, () => {
-
 
                 })
 
@@ -405,9 +443,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
                 } else {
 
-                    console.log('destination::::', destination)
-
                     // COPY FILE
+                    state = 1
                     copyFileSync(source, destination_file, state, (res) => {
 
                         // e.sender.send('update_cards')
@@ -567,15 +604,7 @@ ipcMain.on('move', (e, copy_files_arr) => {
 
             if (source == destination_file) {
 
-                // BUILD DESTINATION PATH
-                destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
-
-                copyFolderRecursiveSync(source, destination_file)
-
-                // CREATE FOLDER
-                options.href = destination_file
-                options.linktext = path.basename(destination_file)
-                e.sender.send('add_card', options)
+                win.webContents.send('notification', 'select a different directory')
 
             } else {
 
@@ -592,8 +621,12 @@ ipcMain.on('move', (e, copy_files_arr) => {
                 } else {
 
                     // COPY FOLDERS RECURSIVE
-                    copyFolderRecursiveSync(source, destination_file)
-                    e.sender.send('add_card', options)
+                    win.webContents.send('notification', 'this has not been implemented yet!')
+                    // let state = 0
+                    // copyFolderRecursiveSync(source, destination_file, state, () => {
+                    //     console.log('done copying folder')
+                    // })
+                    // e.sender.send('add_card', options)
 
                 }
 

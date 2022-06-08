@@ -136,14 +136,19 @@ ipcRenderer.on('notification', (e, msg) => {
 // UPDATE CARD
 ipcRenderer.on('update_card', (e, href) => {
     console.log('updating card')
-    update_card(href)
+    try {
+        update_card(href)
+    } catch (err) {
+
+    }
+
 })
 
 // UPDATE CARDS
 ipcRenderer.on('update_cards', (e) => {
 
     console.log('updating cards')
-    let view = document.getElementById('folder_grid')
+    let view = document.getElementById('main_view')
     update_cards(view)
 
 })
@@ -2106,7 +2111,7 @@ function get_available_launchers(filetype) {
     }
 
     return launchers
-    
+
 }
 
 // SET DEFAULT LAUNCHER
@@ -2682,21 +2687,21 @@ async function add_card(options) {
 
         })
 
-        header.addEventListener('click', (e) => {
+        // header.addEventListener('click', (e) => {
 
-            e.preventDefault()
+        //     e.preventDefault()
 
-            if (is_folder) {
-                // window.loaddata(href)
-                get_files(href, options)
-                return false
-            } else {
-                // shell.openPath(href)
-                // shell.openExternal(href)
-                ipcRenderer.send('open_file', href)
-            }
+        //     if (is_folder) {
+        //         // window.loaddata(href)
+        //         get_files(href, options)
+        //         return false
+        //     } else {
+        //         // shell.openPath(href)
+        //         // shell.openExternal(href)
+        //         ipcRenderer.send('open_file', href)
+        //     }
 
-        })
+        // })
 
         // IMG CLICK
         img.addEventListener('click', function (e) {
@@ -4598,13 +4603,13 @@ async function get_files(dir, callback) {
             // let header = document.getElementsByClassName('.header_link')
             // header[0].focus()
 
-            // DRAG SELECT
-            var ds = new DragSelect({
-                keyboardDragSpeed: 0,
-                selectables: document.getElementsByClassName('nav_item'),
-                // area: document.getElementById('main_view'),
-                selectorClass: 'drag_select'
-            })
+            // // DRAG SELECT
+            // let ds = new DragSelect({
+            //     keyboardDragSpeed: 0,
+            //     selectables: document.getElementsByClassName('nav_item'),
+            //     // area: document.getElementById('main_view'),
+            //     selectorClass: 'drag_select'
+            // })
 
             // ds.subscribe('elementselect', ({items,item}) => {
             //     console.log(item.dataset.href)
@@ -4618,12 +4623,12 @@ async function get_files(dir, callback) {
 
             // })
 
-            ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-                if(isDragging) {
-                    ds.stop(false,false)
-                    setTimeout(ds.start)
-                }
-            })
+            // ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
+            //     if(isDragging) {
+            //         ds.stop(false,false)
+            //         setTimeout(ds.start)
+            //     }
+            // })
 
             // let cards = document.querySelectorAll('.card')
             // cards.forEach(item => {
@@ -5440,7 +5445,8 @@ async function get_files(dir, callback) {
     Mousetrap.bind('ctrl+v', () => {
 
         // RUN COPY FUNCTION
-        copy_files(breadcrumbs.value, 1)
+        state = 2 // paste
+        copy_files(breadcrumbs.value, state)
 
         // CLEAN UP
 
@@ -7821,6 +7827,8 @@ function navigate(direction) {
 function update_card(href) {
 
     let card = document.querySelector('[data-href="' + href + '"]')
+    let header = card.querySelector('.header_link')
+
     console.log(href)
 
     let img = card.querySelector('.image')
@@ -7847,6 +7855,10 @@ function update_card(href) {
             localStorage.setItem(href, size)
         })
 
+        header.addEventListener('click', (e) => {
+            get_files(href)
+        })
+
         // CARD ON MOUSE OVER
         card.addEventListener('mouseover', (e) => {
             size = get_file_size(localStorage.getItem(href))
@@ -7864,6 +7876,10 @@ function update_card(href) {
         size = get_file_size(stats.size)
         extra.innerHTML = size
         localStorage.setItem(href, stats.size)
+
+        header.addEventListener('click', (e) => {
+            shell.openPath(href)
+        })
 
         // CARD ON MOUSE OVER
         card.addEventListener('mouseover', (e) => {
@@ -7902,7 +7918,7 @@ function update_cards(view) {
 
     try {
 
-        let cards = view.querySelectorAll('.card.nav_item')
+        let cards = view.querySelectorAll('.nav_item')
         let cards_arr = []
 
         for (var i = 0; i < cards.length; i++) {
@@ -7984,10 +8000,9 @@ function update_cards(view) {
                 card.classList.add('folder_card')
 
                 // GET FILES
-                // header.addEventListener('click', (e) => {
-                //     e.preventDefault()
-                //     get_files(href)
-                // })
+                header.addEventListener('click', (e) => {
+                    get_files(href)
+                })
 
                 img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
                 img.height = '24px'
@@ -8030,11 +8045,12 @@ function update_cards(view) {
 
                 // OPEN FILE
                 // todo this hangs on large files
-                // header.addEventListener('click', (e) => {
-                //     e.preventDefault()
-                //     // shell.openPath(href)
-                //     // return false
-                // })
+                header.addEventListener('click', (e) => {
+                    // shell.openPath(href)
+                    exec("xdg-open " + href, () => {
+
+                    })
+                })
 
                 size = get_file_size(stats.size)
                 extra.innerHTML = size
@@ -8054,6 +8070,22 @@ function update_cards(view) {
             }
 
         })
+
+        // DRAG SELECT
+        ds = new DragSelect({
+            keyboardDragSpeed: 0,
+            selectables: document.getElementsByClassName('nav_item'),
+            // area: document.getElementById('main_view'),
+            selectorClass: 'drag_select'
+        })
+
+        ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
+            if(isDragging) {
+                ds.stop(false,false)
+                setTimeout(ds.start)
+            }
+        })
+
 
     } catch (err) {
         // console.log(err)
@@ -9157,6 +9189,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
+
+    const ds = new DragSelect({
+
+    })
 
 
 })
