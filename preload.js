@@ -8046,10 +8046,12 @@ function update_cards(view) {
                 // OPEN FILE
                 // todo this hangs on large files
                 header.addEventListener('click', (e) => {
-                    // shell.openPath(href)
-                    exec("xdg-open " + href, () => {
 
-                    })
+                    // fs.open(href, () => {})
+                    shell.openPath(href)
+                    // let cmd = 'bash -c "xdg-open '" +
+                    // console.log(cmd)
+                    // exec(cmd)
                 })
 
                 size = get_file_size(stats.size)
@@ -8071,20 +8073,20 @@ function update_cards(view) {
 
         })
 
-        // DRAG SELECT
-        ds = new DragSelect({
-            keyboardDragSpeed: 0,
-            selectables: document.getElementsByClassName('nav_item'),
-            // area: document.getElementById('main_view'),
-            selectorClass: 'drag_select'
-        })
+        // // DRAG SELECT
+        // ds = new DragSelect({
+        //     keyboardDragSpeed: 0,
+        //     selectables: document.getElementsByClassName('nav_item'),
+        //     // area: document.getElementById('main_view'),
+        //     selectorClass: 'drag_select'
+        // })
 
-        ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-            if(isDragging) {
-                ds.stop(false,false)
-                setTimeout(ds.start)
-            }
-        })
+        // ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
+        //     if(isDragging) {
+        //         ds.stop(false,false)
+        //         setTimeout(ds.start)
+        //     }
+        // })
 
 
     } catch (err) {
@@ -9190,9 +9192,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
     ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
 
-    const ds = new DragSelect({
+    // const ds = new DragSelect({
 
-    })
+    // })
 
 
 })
