@@ -42,6 +42,21 @@ function setitem(key,val){
     localStorage.setItem(key,val)
 }
 
+// LOAD FILES FROM PREELOAD.JS
+function get_files(dir) {
+
+    window.api.get_files(dir, () => {
+
+        // ds = new DragSelect({
+        //     selectables: document.getElementsByClassName('nav_item'),
+        //         area: document.getElementById('main_view'),
+        //     //     selectorClass: 'drag_select'
+        //     selectorClass: 'drag_select'
+        // })
+    })
+
+}
+
 
 // function get_data(dir) {
 
@@ -419,10 +434,10 @@ $(function() {
         localStorage.setItem('folder', home_folder)
     }
 
-    window.api.get_files(localStorage.getItem('folder'), options).then(data => {
+    get_files(localStorage.getItem('folder'))
 
-
-    })
+    // window.api.get_files(localStorage.getItem('folder'), () => {
+    // })
 
     // window.api.get_files_list(localStorage.getItem('folder'))
     // console.log(Date.now() - st)
@@ -455,7 +470,7 @@ $(function() {
 
         // window.api.get_tree('/')
         this.classList.add('active')
-        window.api.get_files('/', options)
+        get_files('/')
 
     })
 
@@ -478,7 +493,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        window.api.get_files(home_folder, options)
+        get_files(home_folder)
 
     })
 
@@ -487,7 +502,7 @@ $(function() {
     $(document).on('click', '#documents',function(e){
         clear_active()
         this.classList.add('active')
-        window.api.get_files(home_folder + '/Documents', options)
+        get_files(home_folder + '/Documents')
         // get_data(home_folder + '/Documents')
 
     })
@@ -498,7 +513,7 @@ $(function() {
         clear_active()
         this.classList.add('active')
         // get_data(home_folder + '/Documents')
-        window.api.get_files(home_folder + '/Downloads', options)
+        get_files(home_folder + '/Downloads')
 
     })
 
@@ -510,7 +525,7 @@ $(function() {
         clear_active()
         this.classList.add('active')
         // get_data(home_folder + '/Pictures')
-        window.api.get_files(home_folder + '/Pictures', options)
+        get_files(home_folder + '/Pictures')
 
     })
 
@@ -519,7 +534,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        window.api.get_files(home_folder + '/Videos', options)
+        get_files(home_folder + '/Videos')
 
     })
 
@@ -528,7 +543,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        window.api.get_files(home_folder + '/Music', options)
+        get_files(home_folder + '/Music')
 
     })
 
@@ -537,7 +552,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        window.api.get_files('/run/user/1000/gvfs/', options)
+        get_files('/run/user/1000/gvfs/')
 
     })
 
@@ -547,7 +562,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        window.api.get_files('/media', options)
+        get_files('/media')
 
     })
 
@@ -655,7 +670,7 @@ $(function() {
             search: ''
         }
 
-        window.api.get_files(dir,options)
+        get_files(dir)
 
     })
 
@@ -675,7 +690,7 @@ $(function() {
             search: ''
         }
 
-        window.api.get_files(dir,options)
+        get_files(dir,options)
 
     })
 
@@ -696,7 +711,7 @@ $(function() {
             search: ''
         }
 
-        window.api.get_files(dir,options)
+        get_files(dir,options)
 
     })
 
@@ -717,7 +732,7 @@ $(function() {
             search: ''
         }
 
-        window.api.get_files(dir,options)
+        get_files(dir,options)
 
     })
 
@@ -885,7 +900,7 @@ breadcrumbs.addEventListener('change',function(e){
     console.log('setting local storage to ' + dir)
 
     clear_active()
-    window.api.get_files(dir,options)
+    get_files(dir)
 })
 
 

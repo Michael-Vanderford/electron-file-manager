@@ -13,6 +13,9 @@ const Chart = require('chart.js')
 const DragSelect = require('dragselect')
 const mime = require('mime-types')
 
+// const ds = new DragSelect({})
+
+
 // ARRAYS
 let chart_labels = []
 let chart_data = []
@@ -842,7 +845,7 @@ ipcRenderer.on('overwrite_all', (e, copy_files_arr) => {
 
 // ON COPY COMPLETE
 ipcRenderer.on('copy-complete', function (e) {
-    get_files(breadcrumbs.value, { sort: localStorage.getItem('sort') })
+    get_files(breadcrumbs.value)
 })
 
 // CONFIRM MOVE
@@ -1429,7 +1432,7 @@ ipcRenderer.on('gio_devices', (e, res) => {
                             href.dataset.uuid = uuid
                             href.text = gio.volume
                             href.addEventListener('click', (e) => {
-                                get_files(uuid)
+                                get_files(uuid, () => {})
                             })
 
                             content.appendChild(href)
@@ -1468,7 +1471,7 @@ ipcRenderer.on('gio_devices', (e, res) => {
                             href.dataset.uuid = uuid
                             href.text = gio.volume
                             href.addEventListener('click', (e) => {
-                                get_files(uuid)
+                                get_files(uuid, () => {})
 
                             })
 
@@ -1632,7 +1635,7 @@ ipcRenderer.on('gio_mounted', (e, data) => {
         );
 
         if (path == '') { path = '/run/user/1000/gvfs' }
-        get_files(path)
+        get_files(path, () => {})
 
         console.log('path ' + path)
 
@@ -1645,7 +1648,7 @@ ipcRenderer.on('gio_mounted', (e, data) => {
     }
 
     if (data.indexOf('already mounted') > -1) {
-        get_files('/run/user/1000/gvfs', { sort: localStorage.getItem('sort'), page: 1 })
+        get_files('/run/user/1000/gvfs', () => {})
     }
 
     let str_arr = data.split(' ')
@@ -1662,7 +1665,7 @@ ipcRenderer.on('gio_mounted', (e, data) => {
 
                 direcotry = item.replace(".", "").replace("'", "").replace("`", "")
                 console.log(direcotry)
-                get_files(direcotry.trim(), { sort: localStorage.getItem('sort'), page: localStorage.getItem('page') })
+                get_files(direcotry.trim(), () => {})
             }
 
 
@@ -2030,13 +2033,14 @@ function get_mime_type(source) {
 
 
 // GET AVAILABLE LAUNCHERS
-function get_available_launchers(filetype) {
+function get_available_launchers(filetype, source) {
+
+    console.log(filetype)
 
     let launchers = []
     try {
 
         let cmd = "grep '" + filetype + "' /usr/share/applications/mimeinfo.cache"
-
         let desktop_launchers = execSync(cmd).toString().replace(filetype + '=', '').split(';')
 
         // const maptest = desktop_launchers.map(x => x.indexOf('Name=') > -1)
@@ -2050,63 +2054,79 @@ function get_available_launchers(filetype) {
         // let searchStr = 'Exec='
         // let test = desktop_launchers.filter(x => x ==)
 
-        for (let i = 0; i < desktop_launchers.length; i++) {
+        if (desktop_launchers.length > 0) {
 
-            let filepath = path.join('/usr/share/applications', desktop_launchers[i])
+            for (let i = 0; i < desktop_launchers.length; i++) {
 
-            if (!fs.statSync(filepath).isDirectory()) {
+                let filepath = path.join('/usr/share/applications', desktop_launchers[i])
 
-                // GET DESKTOP LAUNCHER EXECUTE PATH
-                cmd = "grep '^Exec=' " + filepath
-                let exec_path = execSync(cmd).toString().split('\n')
+                if (!fs.statSync(filepath).isDirectory()) {
 
-                // GET LAUNCHER NAME
-                cmd = "grep '^Name=' " + filepath
-                let exec_name = execSync(cmd).toString().split('\n')
+                    // GET DESKTOP LAUNCHER EXECUTE PATH
+                    cmd = "grep '^Exec=' " + filepath
+                    let exec_path = execSync(cmd).toString().split('\n')
 
-                // GET MIME TYPE
-                cmd = "xdg-mime query filetype '" + source + "'"
-                let exec_mime = execSync(cmd).toString()
-                // .split(';')
+                    // GET LAUNCHER NAME
+                    cmd = "grep '^Name=' " + filepath
+                    let exec_name = execSync(cmd).toString().split('\n')
 
-                console.log('source = ' + source)
-                console.log('desktop launcher = ' + desktop_launchers[i])
-                console.log('exec path = ' + exec_path[0].replace('Exec=', ''))
-                console.log('name = ' + exec_name[0].replace("Name=", ""))
-                console.log('mimetype = ' + exec_mime)
+                    // GET MIME TYPE
+                    cmd = "xdg-mime query filetype '" + source + "'"
+                    let exec_mime = execSync(cmd).toString()
+                    // .split(';')
 
-                // set_default_launcher(desktop_launchers[i],exec_mime[i].replace('MimeType=',''))
+                    console.log('source = ' + source)
+                    console.log('desktop launcher = ' + desktop_launchers[i])
+                    console.log('exec path = ' + exec_path[0].replace('Exec=', ''))
+                    console.log('name = ' + exec_name[0].replace("Name=", ""))
+                    console.log('mimetype = ' + exec_mime)
 
-                // let exe_path
-                // let launcher
+                    // set_default_launcher(desktop_launchers[i],exec_mime[i].replace('MimeType=',''))
 
-                // let desktop_file = fs.readFileSync(filepath,'utf8').split('\n')
-                // desktop_file.forEach((item, idx) => {
-                //     item = item.replace(',','')
-                //     if(item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
-                //         launcher = item.replace('Name=', '')
-                //     }
-                //     if(item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
-                //         exe_path = item.replace('Exec=', '')
-                //     }
-                // })
+                    // let exe_path
+                    // let launcher
 
-                let options = {
-                    name: exec_name[0].replace('Name=', ''),
-                    icon: '',
-                    exec: exec_path[0].replace('Exec=', ''),
-                    desktop: desktop_launchers[i],
-                    mimetype: exec_mime
+                    // let desktop_file = fs.readFileSync(filepath,'utf8').split('\n')
+                    // desktop_file.forEach((item, idx) => {
+                    //     item = item.replace(',','')
+                    //     if(item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
+                    //         launcher = item.replace('Name=', '')
+                    //     }
+                    //     if(item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
+                    //         exe_path = item.replace('Exec=', '')
+                    //     }
+                    // })
+
+                    let options = {
+                        name: exec_name[0].replace('Name=', ''),
+                        icon: '',
+                        exec: exec_path[0].replace('Exec=', ''),
+                        desktop: desktop_launchers[i],
+                        mimetype: exec_mime
+                    }
+
+                    launchers.push(options)
+
                 }
-
-                launchers.push(options)
-
+                // console.log('name ' + launcher + ' ' + exe_path)
             }
-            // console.log('name ' + launcher + ' ' + exe_path)
 
         }
 
     } catch (err) {
+
+        console.log('what the ')
+
+        let options = {
+            name: 'Code', //exec_name[0].replace('Name=', ''),
+            icon: '',
+            exec: '/usr/bin/code "' + source + '"',
+            desktop: '', //desktop_launchers[i],
+            mimetype: 'application/text'
+        }
+
+        launchers.push(options)
+
         // console.log(err)
     }
 
@@ -2184,7 +2204,7 @@ async function get_network() {
                     network_grid.appendChild(menu_items)
 
                     href.addEventListener('click', (e) => {
-                        get_files(filename)
+                        get_files(filename, () => {})
                     })
 
 
@@ -3689,7 +3709,7 @@ function get_diskspace(dir) {
         for (let i = 1; i < res.length - 1; i++) {
 
 
-            notification(res[i])
+            // notification(res[i])
 
             res1 = res[i].split(' ')
 
@@ -4391,7 +4411,7 @@ async function get_files(dir, callback) {
                     let s1 = stat.statSync(dir + '/' + a)
                     let s2 = stat.statSync(dir + '/' + b)
 
-                    notification(s1.size + ' ' + s2.size)
+                    // notification(s1.size + ' ' + s2.size)
 
                     // if(a.size < b.size){
                     //     return -1
@@ -4603,13 +4623,16 @@ async function get_files(dir, callback) {
             // let header = document.getElementsByClassName('.header_link')
             // header[0].focus()
 
-            // // DRAG SELECT
+            callback(1)
+
+            // DRAG SELECT
             // let ds = new DragSelect({
             //     keyboardDragSpeed: 0,
             //     selectables: document.getElementsByClassName('nav_item'),
-            //     // area: document.getElementById('main_view'),
+            //     area: document.getElementById('main_view'),
             //     selectorClass: 'drag_select'
             // })
+
 
             // ds.subscribe('elementselect', ({items,item}) => {
             //     console.log(item.dataset.href)
@@ -5512,7 +5535,9 @@ async function get_files(dir, callback) {
     Mousetrap.bind('f5', () => {
 
         // get_tree(breadcrumbs.value)
-        get_files(breadcrumbs.value, { sort: localStorage.getItem('sort') })
+        get_files(breadcrumbs.value, () => {
+
+        })
 
         localStorage.setItem('folder', breadcrumbs.value)
 
@@ -6335,7 +6360,7 @@ window.addEventListener('contextmenu', function (e) {
         console.log(card_id)
 
         let filetype = mime.lookup(source)
-        let associated_apps = get_available_launchers(filetype)
+        let associated_apps = get_available_launchers(filetype, source)
 
         // CHECK FOR FOLDER CARD CLASS
         if (target.classList.contains('folder_card')) {
@@ -7819,7 +7844,8 @@ function navigate(direction) {
     }
 
     //   loaddata(directory)
-    get_files(directory, options)
+    get_files(directory, () => {
+    })
 
 }
 
@@ -7856,7 +7882,9 @@ function update_card(href) {
         })
 
         header.addEventListener('click', (e) => {
-            get_files(href)
+            get_files(href, () => {
+
+            })
         })
 
         // CARD ON MOUSE OVER
@@ -8001,7 +8029,8 @@ function update_cards(view) {
 
                 // GET FILES
                 header.addEventListener('click', (e) => {
-                    get_files(href)
+                    get_files(href, () => {
+                    })
                 })
 
                 img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
@@ -8049,7 +8078,8 @@ function update_cards(view) {
 
                     // fs.open(href, () => {})
                     shell.openPath(href)
-                    // let cmd = 'bash -c "xdg-open '" +
+                    // let file = "'" + href + "'"
+                    // let cmd = 'bash -c "xdg-open ' + file + '"'
                     // console.log(cmd)
                     // exec(cmd)
                 })
