@@ -12,6 +12,7 @@ const { dirname, basename, normalize } = require('path');
 const Chart = require('chart.js')
 const DragSelect = require('dragselect')
 const mime = require('mime-types')
+const open = require('open')
 
 // const ds = new DragSelect({})
 
@@ -2732,7 +2733,7 @@ async function add_card(options) {
                 // window.loaddata(href)
                 get_files(href, options)
             } else {
-                shell.openPath(href)
+                open(href, {wait: false})
             }
 
         })
@@ -2889,30 +2890,31 @@ async function add_card(options) {
         // ON DRAG START
         card.ondragstart = function (e) {
 
+            // e.preventDefault()
+
             console.log('on drag start')
             clear_copy_arr()
 
-            var f = new File([""], linktext, { type: mime.lookup(href), lastModified: '' })
-            // console.log(file_obj)
-            // console.log('generated file ' + file_obj[0])
+            const datalist = e.dataTransfer.items
 
-            // const blob = new Blob(files, {type:"text/plain"})
-            // const file = new File([blob], href, {type: "text/plain"})
-            // const filedata = new filedata()
+            let data = fs.readFileSync(href)
+            let blob = new Blob([data])
+            let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
 
-            console.log(f)
-            e.dataTransfer.items.add(f)
-            // e.dataTransfer.setData("DownloadURL", "application/octet-stream:" + href + ".bin:data:application/octet-stream;base64");
+            const fr = new FileReader()
+            fr.readAsText(file)
+
+            e.dataTransfer.setData(path.basename(href), "testing")
+
+            console.log('bufer data', file)
+            datalist.add(file)
 
             if (e.ctrlKey) {
                 console.log('ctrl pressed')
                 e.dataTransfer.effectAllowed = 'copy'
             } else {
-                e.dataTransfer.effectAllowed = 'copyMove'
+                e.dataTransfer.effectAllowed = 'move'
             }
-
-            // var datalist = e.dataTransfer.items
-            // datalist.add(href, 'text/uri-list')
 
             let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
             console.log('items', items.length)
@@ -2924,11 +2926,11 @@ async function add_card(options) {
                     let id = item.dataset.id
                     add_copy_file(href, id)
                     console.log('size', items,length, 'href', href)
+                    datalist.add(href, mime.lookup(href))
+
                 })
 
             }
-
-            // add_copy_file(href, id)
 
         }
 
@@ -2990,7 +2992,7 @@ async function add_card(options) {
                 console.log('ctrl pressed')
                 e.dataTransfer.dropEffect = 'copy'
             } else {
-                e.dataTransfer.dropEffect = 'copyMove'
+                e.dataTransfer.dropEffect = 'all'
             }
 
             return false
@@ -3024,7 +3026,7 @@ async function add_card(options) {
             e.preventDefault()
             e.stopPropagation()
 
-
+            return false
         }
 
         // console.log(card)
@@ -4625,6 +4627,7 @@ async function get_files(dir, callback) {
 
             callback(1)
 
+
             // DRAG SELECT
             // let ds = new DragSelect({
             //     keyboardDragSpeed: 0,
@@ -4828,6 +4831,9 @@ async function get_files(dir, callback) {
 
             })
 
+
+
+
             /////////////////////////////////////////////////////////////////////
 
             // let destination
@@ -4839,8 +4845,6 @@ async function get_files(dir, callback) {
 
             // ON DRAG START
             main_view.ondragstart = function (e) {
-
-
 
             }
 
@@ -4857,7 +4861,8 @@ async function get_files(dir, callback) {
                 //
                 e.preventDefault()
                 e.stopPropagation()
-                // return false;
+
+                return false
 
             };
 
@@ -4867,55 +4872,38 @@ async function get_files(dir, callback) {
                 e.stopPropagation()
                 e.preventDefault()
                 e.dataTransfer.effectAllowed = 'move,copy,none'
-                // return false
+                return false
 
             }
 
-            // ON DRAG LEAVE
-            // main_view.ondragleave = function (e) {
+            main_view.ondragleave = (e) => {
+                e.preventDefault()
 
-            //     // dragging--
-            //     // if (dragging === 0) {
-
-            //     //     notification('running on drag leave main view')
-
-            //     //     let target = e.target
-            //     //     if (target.classList.contains('folder_card')) {
-            //     //         notification('main view on drag leave ' + target.id)
-            //     //         notification('running too much')
-            //     //     }
-
-            //     // }
-
-            //     // e.preventDefault()
-            //     // e.stopPropagation()
-            //     // return false
-
-            // };
-
-            // main_view.ondragend = function (e) {
-            //     return false
-            // }
+                copy_files_arr.forEach(file => {
+                    ipcRenderer.send('ondragstart', file.source)
+                })
 
 
-
+                console.log('leaving main window')
+            }
 
             // ON DROP
             main_view.ondrop = function (e) {
 
                 e.preventDefault();
-                e.stopPropagation();
+                // e.stopPropagation();
 
-                var files = e.dataTransfer.files
-                console.log(files[0])
+                const file_data = e.dataTransfer.files
+                // console.log('data' ,dat[0])
+
+                // GETTING FILE DROPED FROM EXTERNAL SOURCE
+                if (file_data.length > 0) {
+                    for (let i = 0; i < file_data.length; i++) {
+                        add_copy_file(file_data[i].path, 'card_' + i)
+                    }
+                }
 
                 state = 0
-
-                // dodrop(e)
-
-                // for (let f of e.dataTransfer.files) {
-                //     console.log('File(s) you dragged here: ', f.path)
-                // }
 
                 notification('on drop main view destination ' + destination)
 
@@ -7906,7 +7894,8 @@ function update_card(href) {
         localStorage.setItem(href, stats.size)
 
         header.addEventListener('click', (e) => {
-            shell.openPath(href)
+            console.log('opening ', href)
+            open(href, {wait: false})
         })
 
         // CARD ON MOUSE OVER
@@ -8076,12 +8065,9 @@ function update_cards(view) {
                 // todo this hangs on large files
                 header.addEventListener('click', (e) => {
 
-                    // fs.open(href, () => {})
-                    shell.openPath(href)
-                    // let file = "'" + href + "'"
-                    // let cmd = 'bash -c "xdg-open ' + file + '"'
-                    // console.log(cmd)
-                    // exec(cmd)
+                    console.log('opening ', href)
+                    open(href, {wait: false})
+
                 })
 
                 size = get_file_size(stats.size)
@@ -9097,10 +9083,6 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         // ipcRenderer.send('confirm_file_delete', source_list)
 
     }
-
-
-
-
 
     // // CONFIRM DELETE FOLDER
     // ipcRenderer.on('delete_folder_confirmed',(e, res) => {

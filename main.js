@@ -12,28 +12,27 @@ const move_windows = new Set()
 const windows = new Set()
 
 // copy_files_arr = []
-
 // const webusb = new usb.WebUSB({
 //     allowAllDevices:true
 // })
-
 // const showDevices = async () => {
 //     const devices = await webusb.getDevices();
 //     const text = devices.map(d => `${d.vendorId}\t${d.productId}\t${d.serialNumber || '<no serial>'}`);
 //     text.unshift('VID\tPID\tSerial\n-------------------------------------');
-
 //     console.log('running showdevices ' + text)
+// windows.forEach(win => {
+//     if (win) {
+//         console.log(text)
+//         win.webContents.send('devices', text.join('\n'));
+//     }
+// });
 
-    // windows.forEach(win => {
-    //     if (win) {
-    //         console.log(text)
-    //         win.webContents.send('devices', text.join('\n'));
-    //     }
-    // });
+ipcMain.on('open_file', (e) => {
+    
+
+})
 
 let recursive = 0
-
-
 function copyFileSync(source, target, state, callback) {
 
     var targetFile = target
@@ -164,7 +163,6 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
             }
 
             callback(1)
-
         }
 
     })
@@ -199,7 +197,6 @@ function delete_file(file, callback) {
     }
 
 }
-
 
 function clear_copy_arr() {
     console.log('clearing copy array')
@@ -310,24 +307,107 @@ function createWindow() {
 
 }
 
-ipcMain.on('open_file', (e, href) => {
-    e.preventDefault()
-    // exec('xdg-open ' + href + ' &')
+// GET ICON PATH
+function get_icon_path(file) {
 
-    fs.open(href, (err) => {
-        if (err) {
-            console.log(err)
-        } else {
-            console.log('opening file')
+    try {
+
+        let stats = fs.statSync(file)
+        let file_ext = path.extname(file)
+        // let mimetype = mime.lookup(file)
+
+        // mem = os.totalmem()  // environ.get('MESON_INSTALL_PREFIX', '/usr/local')
+        // info(get_file_size(mem))
+
+        // datadir = os.path.join(prefix, 'share')
+        // console.log('icon dir', icon_dir, 'icon dir 0', icon_dir0)
+
+        if (stats.isDirectory()) {
+            // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
+            // console.log('icon_dir',folder_icon_dir)
+            icon = path.join(folder_icon_dir, '32x32/places/folder.png')
+            // icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
+        } else if (stats.isFile()) {
+
+            icon_dir = path.join(__dirname,'/assets/icons/korla')
+            // console.log(icon_dir)
+
+            if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
+                icon = file
+            } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
+                icon = path.join(icon_dir,'/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
+            } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
+                icon = path.join(icon_dir,'/apps/scalable/libreoffice-writer.svg')
+            } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
+                icon = path.join(icon_dir,'/mimetypes/scalable/audio-wav.svg')
+            } else if (file_ext == '.iso') {
+                icon = path.join(icon_dir,'/apps/scalable/isomaster.svg')
+            } else if (file_ext == '.pdf') {
+                icon = path.join(icon_dir,'/apps/scalable/gnome-pdf.svg')
+            } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
+                icon = path.join(icon_dir,'/apps/scalable/7zip.svg')
+            } else if (file_ext == '.deb') {
+                icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
+            } else if (file_ext == '.txt') {
+                icon = path.join(icon_dir,'/apps/scalable/text.svg')
+            } else if (file_ext == '.sh') {
+                icon = path.join(icon_dir,'/apps/scalable/terminal.svg')
+            } else if (file_ext == '.js') {
+                icon = path.join(icon_dir,'/apps/scalable/applications-java.svg')
+            } else if (file_ext == '.sql') {
+                icon = path.join(icon_dir,'/mimetypes/scalable/application-x-sqlite.svg')
+            } else {
+                icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
+            }
+
+
+
         }
+
+
+    } catch (err) {
+        // icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
+    }
+
+
+
+    return icon
+
+}
+
+// HANDLE DRAG START
+ipcMain.on('ondragstart', (e, href) => {
+
+    console.log('added', href, 'to start drag')
+
+    let icon_path = path.join(__dirname, '/assets/icons/file.png')
+    if (fs.statSync(href).isDirectory()) {
+        icon_path = path.join(__dirname,'/assets/icons/folder.png')
+    }
+
+    e.sender.startDrag({
+        file: href,
+        icon: icon_path //path.join(__dirname,'/assets/icons/folder.png')
     })
-
-    // shell.openPath(href, (err) => {
-    //     ipcMain.send('notificatoin', err)
-    // })
-
-
 })
+
+// // OPEN FILE
+// ipcMain.on('open_file', (e, href) => {
+//     e.preventDefault()
+//     // exec('xdg-open ' + href + ' &')
+
+//     fs.open(href, (err) => {
+//         if (err) {
+//             console.log(err)
+//         } else {
+//             console.log('opening file')
+//         }
+//     })
+
+//     // shell.openPath(href, (err) => {
+//     //     ipcMain.send('notificatoin', err)
+//     // })
+// })
 
 // COPY
 ipcMain.on('copy', (e, copy_files_arr, state) => {
@@ -483,7 +563,6 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
 })
 
-
 // GET CONFIRM DIALOG
 ipcMain.on('show_confirm_dialog', (e, data) => {
 
@@ -574,7 +653,6 @@ function createConfirmDialog(data, copy_files_arr) {
     })
 
 }
-
 
 // MOVE
 ipcMain.on('move', (e, copy_files_arr) => {
@@ -2229,12 +2307,12 @@ ipcMain.on('confirm_file_delete', function (e, target_name) {
 // })
 
 
-ipcMain.on('ondragstart', (e, filePath) => {
-  e.sender.startDrag({
-    file: path.join(__dirname, filePath),
-    icon: iconName,
-  })
-})
+// ipcMain.on('ondragstart', (e, filePath) => {
+//   e.sender.startDrag({
+//     file: path.join(__dirname, filePath),
+//     icon: iconName,
+//   })
+// })
 
 
 app.on('window-all-closed', () => {

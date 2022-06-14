@@ -34,6 +34,7 @@
     "mime-types": "^2.1.35",
     "mousetrap": "^1.6.5",
     "node-sqlite": "^0.0.2-security",
+    "open": "^8.4.0",
     "usb": "^2.1.2",
     "webpack": "^5.66.0"
   },
