@@ -619,7 +619,7 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
 
         let description
         if (destination_stats.mtime >= source_stats.mtime) {
-            description = '<p>A newer file with the same name already exists ' +
+            description = '<p>A newer file with the same name already exists. ' +
             'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         } else {
             description = '<p>A older file with the same name already exists ' +
@@ -2618,7 +2618,7 @@ async function add_card(options) {
                     //
                 } else {
 
-                    notification('selected ' + href)
+                    // notification('selected ' + href)
 
                     // NAV COUNTER
                     nc = parseInt(card.dataset.id)
@@ -2658,12 +2658,12 @@ async function add_card(options) {
             // !! DO NOT USE ADD_SELECTED_FILES HERE. YOU MIGHT DELETE SOMETHING IMPORTANT!!!
             source = href
 
-            if (e.ctrlKey == true) {
+            // if (e.ctrlKey == true) {
 
-            } else {
+            // } else {
 
-                // clear_selected_files()
-            }
+            //     // clear_selected_files()
+            // }
 
             if (is_folder) {
 
@@ -2708,29 +2708,11 @@ async function add_card(options) {
 
         })
 
-        // header.addEventListener('click', (e) => {
-
-        //     e.preventDefault()
-
-        //     if (is_folder) {
-        //         // window.loaddata(href)
-        //         get_files(href, options)
-        //         return false
-        //     } else {
-        //         // shell.openPath(href)
-        //         // shell.openExternal(href)
-        //         ipcRenderer.send('open_file', href)
-        //     }
-
-        // })
-
         // IMG CLICK
         img.addEventListener('click', function (e) {
-
             e.preventDefault()
 
             if (is_folder) {
-                // window.loaddata(href)
                 get_files(href, options)
             } else {
                 open(href, {wait: false})
@@ -2768,17 +2750,27 @@ async function add_card(options) {
         header.draggable = false
 
 
-        // HEADER MOUSE OVER
-        header.addEventListener('mouseover', function (e) {
+        header.addEventListener('click', (e) => {
+            e.preventDefault()
 
             if (is_folder) {
-
-                card_id = id
-                // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
+                get_files(href, () => {})
+            } else {
+                open(href, {wait: false})
             }
 
         })
 
+
+        // HEADER MOUSE OVER
+        header.addEventListener('mouseover', function (e) {
+            if (is_folder) {
+                card_id = id
+                // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
+            }
+        })
+
+        // HEADER MOUSE OUT
         header.addEventListener('mouseout', function (e) {
             img.src = icon_path
         })
@@ -2895,26 +2887,26 @@ async function add_card(options) {
             console.log('on drag start')
             clear_copy_arr()
 
-            const datalist = e.dataTransfer.items
+            let datalist = e.dataTransfer.items
 
-            let data = fs.readFileSync(href)
-            let blob = new Blob([data])
-            let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
+            // let data = fs.readFileSync(href)
+            // let blob = new Blob([data])
+            // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
 
-            const fr = new FileReader()
-            fr.readAsText(file)
+            // const fr = new FileReader()
+            // fr.readAsText(file)
 
-            e.dataTransfer.setData(path.basename(href), "testing")
+            // e.dataTransfer.setData(path.basename(href), "testing")
 
-            console.log('bufer data', file)
-            datalist.add(file)
+            // console.log('bufer data', file)
+            // datalist.add(file)
 
-            if (e.ctrlKey) {
-                console.log('ctrl pressed')
-                e.dataTransfer.effectAllowed = 'copy'
-            } else {
-                e.dataTransfer.effectAllowed = 'move'
-            }
+            // if (e.ctrlKey) {
+            //     console.log('ctrl pressed')
+            //     e.dataTransfer.effectAllowed = 'copy'
+            // } else {
+            //     e.dataTransfer.effectAllowed = 'move'
+            // }
 
             let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
             console.log('items', items.length)
@@ -2959,21 +2951,18 @@ async function add_card(options) {
 
             notification('setting destination ' + destination)
 
-            if (e.ctrlKey) {
-                console.log('ctrl pressed')
-                e.dataTransfer.dropEffect = 'copy'
-            } else {
-                e.dataTransfer.dropEffect = 'copyMove'
-            }
 
             // SET DRAGGABLE ON MAIN VIEW TO FALSE
             notification('setting draggable to false on main view')
+
             let main_view = document.getElementById('main_view')
             main_view.classList.add('selectableunselected')
             main_view.draggable = false
 
             e.preventDefault()
             e.stopPropagation()
+
+            return false
 
         }
 
@@ -2988,14 +2977,7 @@ async function add_card(options) {
             e.preventDefault()
             e.stopPropagation()
 
-            if (e.ctrlKey) {
-                console.log('ctrl pressed')
-                e.dataTransfer.dropEffect = 'copy'
-            } else {
-                e.dataTransfer.dropEffect = 'all'
-            }
-
-            return false
+            // return false
 
         }
 
@@ -3415,7 +3397,7 @@ function add_tree_item(options) {
 
         // }
 
-        get_files(filepath, { sort: localStorage.getItem('sort') })
+        get_files(filepath, () => {})
 
     })
 
@@ -4321,6 +4303,7 @@ async function get_files(dir, callback) {
         btn_show_hidden.classList.remove('active')
     }
 
+    //
     let sort = parseInt(localStorage.getItem('sort'))
     switch (sort) {
         case 1:
@@ -4606,7 +4589,7 @@ async function get_files(dir, callback) {
 
             // GET DISK SPACE
             // console.log('folder count ' + folder_count + ' file count ' + file_count)
-            notification('loaded ' + folder_count + ' folders ' + file_count + ' files')
+            // notification('loaded ' + folder_count + ' folders ' + file_count + ' files')
 
             if (dir.indexOf('/gvfs') === -1) {
 
@@ -4844,9 +4827,9 @@ async function get_files(dir, callback) {
             let dragging = 0
 
             // ON DRAG START
-            main_view.ondragstart = function (e) {
+            // main_view.ondragstart = function (e) {
 
-            }
+            // }
 
             // ON DRAG ENTER
             main_view.ondragenter = function (e) {
@@ -4854,11 +4837,16 @@ async function get_files(dir, callback) {
                 dragging++
 
                 destination = breadcrumbs.value
-
                 target = e.target
-                notification('running main view on drag enter ' + destination)
+                // notification('running main view on drag enter ' + destination)
 
-                //
+                // if (e.ctrlKey) {
+                //     notification('Copy file to ' + destination)
+                // } else [
+                //     notification('Move file to ' + destination)
+                // ]
+
+
                 e.preventDefault()
                 e.stopPropagation()
 
@@ -4871,20 +4859,30 @@ async function get_files(dir, callback) {
 
                 e.stopPropagation()
                 e.preventDefault()
-                e.dataTransfer.effectAllowed = 'move,copy,none'
+                // e.dataTransfer.effectAllowed = 'move,copy,none'
+
+                // if (e.ctrlKey) {
+                //     notification('Copy file to ' + destination)
+                // } else [
+                //     notification('Move file to ' + destination)
+                // ]
+
+
                 return false
 
             }
 
             main_view.ondragleave = (e) => {
+
                 e.preventDefault()
 
-                copy_files_arr.forEach(file => {
-                    ipcRenderer.send('ondragstart', file.source)
-                })
-
+                // copy_files_arr.forEach(file => {
+                //     ipcRenderer.send('ondragstart', file.source)
+                // })
 
                 console.log('leaving main window')
+                return false
+
             }
 
             // ON DROP
@@ -4905,15 +4903,17 @@ async function get_files(dir, callback) {
 
                 state = 0
 
-                notification('on drop main view destination ' + destination)
+                console.log('on drop main view destination ' + destination)
 
                 // COPY FILES
                 if (e.ctrlKey == true) {
 
-                    notification('running copy files on main_view ' + destination)
+                    // notification('running copy files on main_view ' + destination)
 
-                    if (breadcrumbs.value == destination) {
-                        state = 1
+                    console.log('bread crumb', breadcrumbs.value, 'destination', destination)
+                    if (breadcrumbs.value != destination) {
+
+                        state = 0
                     }
 
                     // THIS IS RUNNING COPY FOLDERS TOO
@@ -5636,7 +5636,7 @@ async function get_files(dir, callback) {
     // }
 
     clear_selected_files()
-    notification('done loading files')
+    // notification('done loading files')
 
     // let cards = document.querySelectorAll('.card')
     // return callback = cards
@@ -7220,6 +7220,8 @@ function rename_folder(directory, new_directory) {
 // COPY FILES
 async function copy_files(destination_folder, state) {
 
+    console.log('destination', destination,'state', state)
+
     // RESET COUNTER. HANDLES SETTING ROOT FOLDER SO THE SIZE CAN BE UPDATED
     // copy_folder_counter = 0
 
@@ -7869,12 +7871,6 @@ function update_card(href) {
             localStorage.setItem(href, size)
         })
 
-        header.addEventListener('click', (e) => {
-            get_files(href, () => {
-
-            })
-        })
-
         // CARD ON MOUSE OVER
         card.addEventListener('mouseover', (e) => {
             size = get_file_size(localStorage.getItem(href))
@@ -7892,11 +7888,6 @@ function update_card(href) {
         size = get_file_size(stats.size)
         extra.innerHTML = size
         localStorage.setItem(href, stats.size)
-
-        header.addEventListener('click', (e) => {
-            console.log('opening ', href)
-            open(href, {wait: false})
-        })
 
         // CARD ON MOUSE OVER
         card.addEventListener('mouseover', (e) => {
@@ -8017,10 +8008,11 @@ function update_cards(view) {
                 card.classList.add('folder_card')
 
                 // GET FILES
-                header.addEventListener('click', (e) => {
-                    get_files(href, () => {
-                    })
-                })
+                // header.addEventListener('click', (e) => {
+                //     e.preventDefault()
+                //     get_files(href, () => {
+                //     })
+                // })
 
                 img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
                 img.height = '24px'
@@ -8063,12 +8055,12 @@ function update_cards(view) {
 
                 // OPEN FILE
                 // todo this hangs on large files
-                header.addEventListener('click', (e) => {
+                // header.addEventListener('click', (e) => {
+                //     e.preventDefault()
+                //     console.log('opening ', href)
+                //     open(href, {wait: false})
 
-                    console.log('opening ', href)
-                    open(href, {wait: false})
-
-                })
+                // })
 
                 size = get_file_size(stats.size)
                 extra.innerHTML = size

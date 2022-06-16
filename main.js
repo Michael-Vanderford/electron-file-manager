@@ -28,7 +28,7 @@ const windows = new Set()
 // });
 
 ipcMain.on('open_file', (e) => {
-    
+
 
 })
 
@@ -56,7 +56,7 @@ function copyFileSync(source, target, state, callback) {
 
             // console.log('target',target.length)
 
-            if (state == 1) {
+            if (state == 1 || state == 2) {
 
                 console.log('adding card state ', state)
 
@@ -434,7 +434,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
             if (source == destination_file) {
 
-                console.log()
+                console.log('source = destination')
 
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
@@ -450,6 +450,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
             } else {
 
                 if (fs.existsSync(destination_file)) {
+
+                    console.log('copying folder to', destination)
 
                     // CREATE CONFIRM COPY OVERWRITE
                     let data = {
@@ -524,7 +526,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 } else {
 
                     // COPY FILE
-                    state = 1
+                    // state = 1
                     copyFileSync(source, destination_file, state, (res) => {
 
                         // e.sender.send('update_cards')
