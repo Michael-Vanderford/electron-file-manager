@@ -1855,6 +1855,7 @@ function notice(notice_msg) {
 // INFO
 function info(msg) {
     let container = document.getElementById('info')
+    container.style = 'font-size:small; right: 0;'
     container.classList.remove('hidden')
     container.innerHTML = ''
     container.innerHTML = msg
@@ -2949,12 +2950,6 @@ async function add_card(options) {
 
             }
 
-            notification('setting destination ' + destination)
-
-
-            // SET DRAGGABLE ON MAIN VIEW TO FALSE
-            notification('setting draggable to false on main view')
-
             let main_view = document.getElementById('main_view')
             main_view.classList.add('selectableunselected')
             main_view.draggable = false
@@ -3996,8 +3991,6 @@ function quick_search() {
 }
 
 
-
-
 async function get_files_list(dir) {
 
     let list_view = document.getElementById('list_view')
@@ -4193,11 +4186,12 @@ async function get_files_list(dir) {
 }
 
 
-// MAIN GET FILES FUNCTION
 let card_counter = 0
+// MAIN GET FILES FUNCTION
 async function get_files(dir, callback) {
 
     show_loader()
+
 
     options.sort = localStorage.getItem('sort')
     options.page = localStorage.getItem('page')
@@ -4612,32 +4606,37 @@ async function get_files(dir, callback) {
 
 
             // DRAG SELECT
-            // let ds = new DragSelect({
-            //     keyboardDragSpeed: 0,
-            //     selectables: document.getElementsByClassName('nav_item'),
-            //     area: document.getElementById('main_view'),
-            //     selectorClass: 'drag_select'
-            // })
+            // if (!ds) {
 
+                console.log('creating new drag select')
 
-            // ds.subscribe('elementselect', ({items,item}) => {
-            //     console.log(item.dataset.href)
-            //     // add_copy_file(item.dataset.href, item.id)
-            // })
+                // const ds = new DragSelect({
+                //     keyboardDragSpeed: 0,
+                //     selectables: document.getElementsByClassName('nav_item'),
+                //     area: document.getElementById('main_view'),
+                //     // selectorClass: 'drag_select'
+                // })
+
+            // }
+
+            ds.addSelectables(document.getElementsByClassName('nav_item'),false)
+
+            ds.subscribe('elementselect', ({items,item}) => {
+                console.log(item.dataset.href)
+                // add_copy_file(item.dataset.href, item.id)
+            })
 
             // ds.subscribe('elementunselect', ({items, item}) => {
-
             //     // remove_copy_file(item.dataset.href)
             //     console.log(copy_files_arr.length)
-
             // })
 
-            // ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-            //     if(isDragging) {
-            //         ds.stop(false,false)
-            //         setTimeout(ds.start)
-            //     }
-            // })
+            ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
+                if(isDragging) {
+                    ds.stop(false,false)
+                    setTimeout(ds.start)
+                }
+            })
 
             // let cards = document.querySelectorAll('.card')
             // cards.forEach(item => {
@@ -4718,8 +4717,6 @@ async function get_files(dir, callback) {
 
 
             } else {
-
-
                 // Possibly fall back to event handlers here
             }
 
@@ -4807,7 +4804,7 @@ async function get_files(dir, callback) {
                     console.log('esc pressed on keydown')
 
                     clear_selected_files()
-                    // // CLEAR COPY ARRAY
+                    // CLEAR COPY ARRAY
                     // copy_files_arr = []
 
                 }
@@ -5581,7 +5578,7 @@ async function get_files(dir, callback) {
             })
         }
 
-        info('Copied ' + folder_count + ' Folders ' + file_count + ' files')
+        // info('copied ' + folder_count + ' Folder/s ' + file_count + ' file/s')
 
         // clear_selected_files()
 
@@ -6353,7 +6350,7 @@ window.addEventListener('contextmenu', function (e) {
         // CHECK FOR FOLDER CARD CLASS
         if (target.classList.contains('folder_card')) {
 
-            notification(1)
+            // notification(1)
             ipcRenderer.send('show-context-menu-directory', associated_apps)
 
             // CHECK IF FILE CARD
@@ -6379,7 +6376,7 @@ window.addEventListener('contextmenu', function (e) {
 
     } else {
 
-        notification(4)
+        // notification(4)
 
         let data = {
             source: path.join(__dirname, 'assets/templates/'),
@@ -7573,6 +7570,8 @@ function rename_file(directory, new_name) {
 
 
 // DELETE CONFIRMED
+delete_files_count = 0
+delete_folder_count = 0
 function delete_confirmed() {
 
     // LOOP OVER ITEMS DELETE ARRAY
@@ -7590,19 +7589,24 @@ function delete_confirmed() {
             // IF DIRECTORY
             if (fs.statSync(file.source).isDirectory()) {
 
-                // console.log('running delete folder on ' + file.source)
+                ++delete_folder_count
                 console.log('running delete folder ' + file.source + ' card_id ' + file.card_id)
 
                 // DELETE FOLDER
                 delete_folder(file.source)
 
-                // IF FILE
+                // notification(delete_folder_count + ' folders deleted.')
+
+            // IF FILE
             } else if (fs.statSync(file.source).isFile()) {
 
+                ++delete_files_count
                 console.log('running delete file ' + file.source + ' card_id ' + file.card_id)
 
                 // DELETE FILE
                 delete_file(file.source)
+
+                // notification(delete_files_count + ' files deleted.')
 
             }
 
@@ -7615,6 +7619,15 @@ function delete_confirmed() {
             // update_cards(main_view)
 
         })
+
+        let msg = ""
+        if (delete_folder_count > 0) {
+            msg = delete_folder_count + ' folder/s deleted.'
+        }
+        if (delete_files_count > 0) {
+            msg = msg + ' ' + delete_files_count + ' file/s deleted'
+        }
+        notification(msg)
 
 
         // ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: 0,file_count: 0 })
@@ -7638,6 +7651,7 @@ function delete_confirmed() {
 
 
 // DELETE FILE
+
 async function delete_file(file) {
 
     console.log('deleting file ' + file)
@@ -7660,10 +7674,13 @@ async function delete_file(file) {
                     notification('Error deleting file: ' + source + ' \n' + err)
                     console.log('Error deleting file: ' + source + ' \n' + err)
 
-
                 } else {
 
-                    notification('deleted file ' + file)
+                    // folder_count = delete_arr.filter(item => fs.statSync(item.source).isDirectory().length)
+                    // file_count = delete_arr.filter(item => fs.statSync(item.source).isFile().length)
+
+                    // notification (get_file_count() + ' Files deleted.')
+                    // notification('deleted file ' + file)
                     // ipcRenderer.send('get_folder_size', { href: breadcrumbs.value })
 
                     // HIDE PROGRESS
@@ -7674,7 +7691,7 @@ async function delete_file(file) {
                     col.remove()
 
                     // UDATE CARDS
-                    update_cards(main_view)
+                    // update_cards(main_view)
 
                 }
 
@@ -7730,7 +7747,7 @@ function delete_folder(directory) {
                     // update_cards(main_view)
 
                     // hide_progress(card_id)
-                    notification('Deleted directory ' + directory)
+                    // notification('Deleted directory ' + directory)
                     ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: folder_count, file_count: file_count })
 
                 }
@@ -9196,9 +9213,10 @@ window.addEventListener('DOMContentLoaded', () => {
 
     ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
 
-    // const ds = new DragSelect({
-
-    // })
+    ds = new DragSelect({
+        area: document.getElementById('main_view'),
+        selectorClass: 'drag_select',
+    })
 
 
 })

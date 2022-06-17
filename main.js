@@ -56,7 +56,7 @@ function copyFileSync(source, target, state, callback) {
 
             // console.log('target',target.length)
 
-            if (state == 1 || state == 2) {
+            if (state == 1) {
 
                 console.log('adding card state ', state)
 
@@ -75,7 +75,7 @@ function copyFileSync(source, target, state, callback) {
 
                 // win.webContents.send('add_card', options)
                 // win.webContents.send('update_cards')
-                console.log('done copying files')
+                console.log('Done copying files')
 
                 const result = 1
                 callback(result)
@@ -93,7 +93,7 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
 
     // console.log(source)
     // console.log(destination)
-    // console.log(state)
+    console.log(state)
 
     // COPY
     // READ SOURCE DIRECTORY
@@ -369,10 +369,7 @@ function get_icon_path(file) {
         // icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
     }
 
-
-
     return icon
-
 }
 
 // HANDLE DRAG START
@@ -471,7 +468,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                         switch (state) {
                             // PASTE
                             case 2:
-                                if (idx == 0) {
+                                // if (idx == 0) {
 
                                     let options = {
                                         href: destination_file,
@@ -481,7 +478,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                                     win.webContents.send('add_card', options)
                                     win.webContents.send('update_cards')
 
-                                }
+                                // }
 
                                 // win.webContents.send('update_card', destination_file)
                             break;
@@ -526,7 +523,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 } else {
 
                     // COPY FILE
-                    // state = 1
+                    console.log('state', state)
                     copyFileSync(source, destination_file, state, (res) => {
 
                         // e.sender.send('update_cards')
