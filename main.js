@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, screen, dialog, accelerator, WebContents, webContents, MenuItem, ipcRenderer} = require('electron')
+const { app, globalShortcut, BrowserWindow, Menu, screen, dialog, accelerator, WebContents, webContents, MenuItem, ipcRenderer} = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { exec, execSync, spawn, execFileSync } = require("child_process");
@@ -29,7 +29,6 @@ const windows = new Set()
 
 ipcMain.on('open_file', (e) => {
 
-
 })
 
 let recursive = 0
@@ -42,9 +41,6 @@ function copyFileSync(source, target, state, callback) {
         }
     }
 
-    // console.log('copy source', source)
-    // console.log('copy target', target)
-
     recursive++
 
     // COPY FILE
@@ -53,8 +49,6 @@ function copyFileSync(source, target, state, callback) {
         if (err) {
             console.log(err)
         } else {
-
-            // console.log('target',target.length)
 
             if (state == 1) {
 
@@ -74,7 +68,7 @@ function copyFileSync(source, target, state, callback) {
             if (--recursive == 0) {
 
                 // win.webContents.send('add_card', options)
-                // win.webContents.send('update_cards')
+                win.webContents.send('update_cards')
                 console.log('Done copying files')
 
                 const result = 1
@@ -91,10 +85,6 @@ function copyFileSync(source, target, state, callback) {
 copy_folder_counter = 0
 function copyFolderRecursiveSync(source, destination, state, callback) {
 
-    // console.log(source)
-    // console.log(destination)
-    console.log(state)
-
     // COPY
     // READ SOURCE DIRECTORY
     fs.readdir(source, function (err, files) {
@@ -110,10 +100,6 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
                     destination0 = destination
                     fs.mkdirSync(destination)
                 }
-
-                // else {
-                //     fs.mkdirSync(destination + ' Copy')
-                // }
 
                 // LOOP OVER FILES
                 files.forEach((file, idx) => {
@@ -148,7 +134,7 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
                                 copyFileSync(cursource, curdestination, state, () => {
 
                                 })
-                                // console.log('running copyfilesync', cursource, curdestination)
+
 
                             }
 
@@ -431,13 +417,16 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
             if (source == destination_file) {
 
-                console.log('source = destination')
-
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
                 state = 0
-                copyFolderRecursiveSync(source, destination_file, state, () => {})
+                let max = parseInt(item.size)
+                console.log('size',max)
+
+                copyFolderRecursiveSync(source, destination_file, state, () => {
+                    win.webContents.send('progress', {max, destination_file})
+                })
 
                 // CREATE FOLDER
                 options.href = destination_file
@@ -468,26 +457,19 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                         switch (state) {
                             // PASTE
                             case 2:
-                                // if (idx == 0) {
 
-                                    let options = {
-                                        href: destination_file,
-                                        linktext: path.basename(destination_file)
-                                    }
+                                let options = {
+                                    href: destination_file,
+                                    linktext: path.basename(destination_file)
+                                }
 
-                                    win.webContents.send('add_card', options)
-                                    win.webContents.send('update_cards')
+                                win.webContents.send('add_card', options)
+                                win.webContents.send('update_cards')
 
-                                // }
-
-                                // win.webContents.send('update_card', destination_file)
                             break;
                         }
 
-
-
                     })
-
 
                 }
 
@@ -504,8 +486,9 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
                 // COPY FILE
                 state = 1
+                // let max = parseInt(item.size)
                 copyFileSync(source, destination_file, state, () => {
-
+                //     win.webContents.send('progress', {max, destination_file})
                 })
 
             } else {
@@ -526,29 +509,23 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                     console.log('state', state)
                     copyFileSync(source, destination_file, state, (res) => {
 
+                        if (state == 2) {
+
+                            let options = {
+                                id: 0,
+                                href: destination_file,
+                                linktext: path.basename(destination_file),
+                                grid: ''
+                            }
+
+                            e.sender.send('add_card', options)
+                        }
+
                         // e.sender.send('update_cards')
                         e.sender.send('update_card', destination)
                         win.webContents.send('notification', 'done copying files')
 
                     })
-
-
-
-                    // // START TIMER FOR PROGRESS
-                    // let interval = setInterval(() => {
-
-                    //     // if (destination_file) {
-                    //         let size = fs.statSync(destination_file).size
-                    //         console.log('current size', size)
-
-                    //         if (size >= source_stats.size) {
-                    //             clearInterval(interval)
-                    //         }
-
-                    //     // }
-
-                    // }, 1000);
-
 
                 }
 
@@ -620,7 +597,7 @@ function createConfirmDialog(data, copy_files_arr) {
 
         // win.send('overwrite_all', copy_files_arr)
         // console.log('overwrite all ', copy_files_arr.length)
-        copyFolderRecursiveSync(data.source, data.destination)
+        copyFolderRecursiveSync(data.source, data.destination, state, () => {})
 
         copy_files_arr = []
 
@@ -786,7 +763,8 @@ function createMoveDialog(data, copy_files_arr) {
         parent:win,
         modal:true,
         width: 550,
-        height: 350,
+        height: 320,
+        // maxHeight:350,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -816,15 +794,18 @@ function createMoveDialog(data, copy_files_arr) {
 
     })
 
-    // OVERWRITE CANCELED
-    ipcMain.on('move_canceled', (e) => {
-
-        let active_window = BrowserWindow.getFocusedWindow()
-        active_window.hide()
-
-    })
-
 }
+
+
+// OVERWRITE CANCELED
+ipcMain.on('move_canceled', (e) => {
+
+    let active_window = BrowserWindow.getFocusedWindow()
+    active_window.hide()
+
+})
+
+
 
 // Move confirmed
 ipcMain.on('move_confirmed', (e, data) => {
@@ -1278,6 +1259,8 @@ ipcMain.on('get_folder_size', (e , args) => {
             let size = parseInt(res.replace('.', '') * 1024)
             e.sender.send('folder_size', {href: args.href, size: size})
 
+
+
         })
 
     }
@@ -1481,6 +1464,13 @@ function createChildWindow() {
 //   });
 
 app.whenReady().then(() => {
+
+    // globalShortcut.register('Escape', (e) => {
+    //     console.log('Escape is pressed');
+    //     let active_window = BrowserWindow.getFocusedWindow()
+    //     active_window.hide()
+
+    // });
 
     // webusb.addEventListener('connect', showDevices);
     // webusb.addEventListener('disconnect', showDevices);

@@ -906,6 +906,12 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
         ipcRenderer.send('move_canceled')
     })
 
+    window.addEventListener('keyup', (e) => {
+        if (e.key == 'Escape') {
+            ipcRenderer.send('move_canceled')
+        }
+    })
+
 
     // confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),btn_cancel,btn_ok)
 
@@ -930,6 +936,8 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     let btn_replace = add_button('btn_replace', 'Replace')
     let btn_skip = add_button('btn_skip', 'Skip')
     let icon = add_icon('info-circle')
+
+    btn_cancel.style = 'position:absolute; bottom: 0'
 
 
     let confirm_msg = add_div()
@@ -995,9 +1003,9 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         source_data = add_p(
             add_header('Replace with').outerHTML +
             add_img(get_icon_path(data.source)).outerHTML +
-            'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified:' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-            '<br />' +
-            '<br />'
+            'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified:' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
+            // '<br />' +
+            // '<br />'
         )
 
     }
@@ -1946,71 +1954,130 @@ async function get_file_properties(filename) {
 // }
 
 
-function get_progress(source_size, destination_file, c) {
+ipcRenderer.on('progress', (e, max) => {
+    set_progress(max)
+})
+
+ipcRenderer.on('update_progress', (e, step) => {
+    update_progress(step)
+})
+
+
+
+function set_progress(options) {
 
     let progress = document.getElementById('progress')
     progress.classList.remove('hidden')
+    progress.max = options.max
+    progress.value = 0
 
-    // GET STATS
-    let stats = fs.statSync(destination_file)
-    console.log('dest size', stats.size, 'destination', destination_file)
+    let size = 0
+    let interval_id = setInterval(() => {
 
-    // DIRECTORY
-    if (stats.isDirectory()) {
+        let stats = fs.statSync(options.destination_file)
 
-        ipcRenderer.send('get_folder_size', { href: destination_file })
-        ipcRenderer.on('folder_size', (e, data) => {
+        if (stats.isDirectory()) {
 
-            current_size = data.size
-            transfer_speed = get_transfer_speed(source_size, current_size, c)
+            cmd = "du -s '" + options.destination_file + "' | awk '{print $1}'"
 
-            if (progress) {
+            du = execSync(cmd)
+            size = parseInt(du) * 1024
 
-                progress.value = current_size
+            console.log(cmd)
 
-                if (current_size >= source_size) {
+            console.log('du size', size)
+            console.log('max size', options.max)
 
-                    // HIDE PROGRESS BAR
-                    hide_progress()
+        } else {
 
-                    // CLEAR TIMER INTERVAL
-                    clearInterval(intervalid)
-                    console.log('clearing interval',interval_id)
+            console.log('here i am')
 
-                }
-
-
-
-            }
-
-        })
-
-    // FILE
-    } else {
-
-        current_size = stats.size
-        transfer_speed = get_transfer_speed(source_size, current_size, c)
-
-        if (progress) {
-
-            progress.value = current_size
-
-            if (parseInt(current_size) >= parseInt(source_size)) {
-
-                // HIDE PROGRESS BAR
-                hide_progress()
-
-                // CLEAR TIMER INTERVAL
-                clearInterval(interval_id)
-                console.log('clearing interval',interval_id)
-
-            }
-
+            size = stats.size
+            // progress.value = size
         }
 
-    }
+        progress.value = size
+
+        if (size >= parseInt(options.max) - 1024) {
+            progress.classList.add('hidden')
+            clearInterval(interval_id)
+        }
+
+
+
+    }, 100);
+
 
 }
+
+
+
+
+// function get_progress(source_size, destination_file, c) {
+
+//     let progress = document.getElementById('progress')
+//     progress.classList.remove('hidden')
+
+//     // GET STATS
+//     let stats = fs.statSync(destination_file)
+//     console.log('dest size', stats.size, 'destination', destination_file)
+
+//     // DIRECTORY
+//     if (stats.isDirectory()) {
+
+//         ipcRenderer.send('get_folder_size', { href: destination_file })
+//         ipcRenderer.on('folder_size', (e, data) => {
+
+//             current_size = data.size
+//             transfer_speed = get_transfer_speed(source_size, current_size, c)
+
+//             if (progress) {
+
+//                 progress.value = current_size
+
+//                 if (current_size >= source_size) {
+
+//                     // HIDE PROGRESS BAR
+//                     hide_progress()
+
+//                     // CLEAR TIMER INTERVAL
+//                     clearInterval(intervalid)
+//                     console.log('clearing interval',interval_id)
+
+//                 }
+
+
+
+//             }
+
+//         })
+
+//     // FILE
+//     } else {
+
+//         current_size = stats.size
+//         transfer_speed = get_transfer_speed(source_size, current_size, c)
+
+//         if (progress) {
+
+//             progress.value = current_size
+
+//             if (parseInt(current_size) >= parseInt(source_size)) {
+
+//                 // HIDE PROGRESS BAR
+//                 hide_progress()
+
+//                 // CLEAR TIMER INTERVAL
+//                 clearInterval(interval_id)
+//                 console.log('clearing interval',interval_id)
+
+//             }
+
+//         }
+
+//     }
+
+// }
 
 
 // GET FILE TYPE
@@ -2429,6 +2496,8 @@ async function add_card(options) {
 
     try {
 
+        console.log('options id', options.id)
+
         //
         // network-server-symbolic.svg
         let id = options.id
@@ -2818,9 +2887,14 @@ async function add_card(options) {
                 header.href = href
                 header.title = 'open file? ' + path.dirname(href) + '/' + this.value
 
-                console.log('linktext ' + linktext + ' setting source to ' + this.value)
                 source = path.dirname(href) + '/' + this.value.trim()
-                header.focus()
+
+                // header.focus()
+
+                let main_view = document.getElementById('main_view')
+                update_cards(main_view)
+
+
 
                 clear_selected_files()
 
@@ -2902,6 +2976,12 @@ async function add_card(options) {
             // console.log('bufer data', file)
             // datalist.add(file)
 
+            if (e.ctrlKey) {
+                e.dataTransfer.effectAllowed = 'copy'
+            } else {
+                e.dataTransfer.effectAllowed = 'move'
+            }
+
             // if (e.ctrlKey) {
             //     console.log('ctrl pressed')
             //     e.dataTransfer.effectAllowed = 'copy'
@@ -2947,7 +3027,6 @@ async function add_card(options) {
             } else {
 
                 destination = breadcrumbs.value
-
             }
 
             let main_view = document.getElementById('main_view')
@@ -2968,11 +3047,16 @@ async function add_card(options) {
             // card.classList.add('highlight_select')
             card.classList.add('highlight')
 
+            if (e.ctrlKey == true) {
+                e.dataTransfer.effectAllowed = 'copy'
+            } else {
+                e.dataTransfer.effectAllowed = 'move'
+            }
 
             e.preventDefault()
             e.stopPropagation()
 
-            // return false
+            return false
 
         }
 
@@ -3031,6 +3115,7 @@ async function add_card(options) {
 
 
     } catch (err) {
+        console.log(err)
         return err
     }
 
@@ -3916,10 +4001,14 @@ async function get_workspace() {
 let workspace_arr = []
 function add_workspace() {
 
-    let items = document.querySelectorAll('.highlight, .highlight_select')
+    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+
+    console.log('items length', items.length)
+
     if (items.length > 0) {
 
         let workspace_content = document.getElementById('workspace_content')
+        let workspace = document.getElementById('workspace')
         let workspace_grid = document.getElementById('workspace_grid')
         workspace_content.classList.add('active')
 
@@ -3929,12 +4018,10 @@ function add_workspace() {
             if (localStorage.getItem('workspace')) {
                 let local_items = JSON.parse(localStorage.getItem('workspace'))
                 for (let ii = 0; ii < local_items.length; ii++) {
-
                     if (items[i].dataset.href == local_items[0]) {
                         file_exists = 1
                         return
                     }
-
                 }
             }
 
@@ -3952,6 +4039,8 @@ function add_workspace() {
 
                 workspace_arr.push(options.href)
                 add_card(options)
+
+                update_cards(workspace_grid)
 
                 localStorage.setItem('workspace', JSON.stringify(workspace_arr))
 
@@ -4421,11 +4510,11 @@ async function get_files(dir, callback) {
                         let ext1 = path.extname(path.basename(a))
                         let ext2 = path.extname(path.basename(b))
 
-                        if (ext1 > ext2) return -1
-                        if (ext1 < ext2) return 1
+                        if (ext1 < ext2) return -1
+                        if (ext1 > ext2) return 1
 
-                        if (s1.mtime > s2.mtime) return -1
-                        if (s1.mtime < s2.mtime) return 1
+                        if (s1.mtime < s2.mtime) return -1
+                        if (s1.mtime > s2.mtime) return 1
 
                     } catch {
                         console.log(err)
@@ -4604,6 +4693,41 @@ async function get_files(dir, callback) {
 
             callback(1)
 
+            let filename0 = ''
+            fs.watch(dir, (e, filename) => {
+
+                if (filename0 != filename) {
+
+                    filename0 = filename
+
+                    console.log('filename', filename)
+
+                //         let href = path.join(dir, filename)
+                //         if (fs.existsSync(path.join(dir, filename))) {
+                //             if (e == 'change') {
+
+                //                 options = {
+                //                     id: 'file_card_0',
+                //                     href: href,
+                //                     linktext: filename,
+                //                     grid: file_grid
+                //                 }
+                //                 console.log('adding card', options)
+                //                 add_card(options)
+                //                 // update_cards(main_view)
+                //                 pfile = filename
+
+
+                //             }
+                //         }
+
+                //         console.log(e)
+                //         console.log(filename)
+
+                }
+
+
+            })
 
             // DRAG SELECT
             // if (!ds) {
@@ -4619,24 +4743,7 @@ async function get_files(dir, callback) {
 
             // }
 
-            ds.addSelectables(document.getElementsByClassName('nav_item'),false)
 
-            ds.subscribe('elementselect', ({items,item}) => {
-                console.log(item.dataset.href)
-                // add_copy_file(item.dataset.href, item.id)
-            })
-
-            // ds.subscribe('elementunselect', ({items, item}) => {
-            //     // remove_copy_file(item.dataset.href)
-            //     console.log(copy_files_arr.length)
-            // })
-
-            ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-                if(isDragging) {
-                    ds.stop(false,false)
-                    setTimeout(ds.start)
-                }
-            })
 
             // let cards = document.querySelectorAll('.card')
             // cards.forEach(item => {
@@ -4741,13 +4848,9 @@ async function get_files(dir, callback) {
             // })
 
             // HANDLE MAIN VIEW CLICK
-            main_view.addEventListener('click', function (e) {
-
-                // messagebox('what', 'when')
-                e.preventDefault()
-                // clear_selected_files()
-
-            })
+            // main_view.addEventListener('mouseup', function (e) {
+            //     clear_selected_files()
+            // })
 
             // HANDLE QUICK SEARCH KEY PRESS. THIS IS FOR FIND BY TYPING //////////////////////////////////
             let letters = ''
@@ -4812,7 +4915,25 @@ async function get_files(dir, callback) {
             })
 
 
+            // DRAG AMD DROP
+            ds.addSelectables(document.getElementsByClassName('nav_item'),false)
 
+            ds.subscribe('elementselect', ({items,item}) => {
+                console.log(item.dataset.href)
+                // add_copy_file(item.dataset.href, item.id)
+            })
+
+            // ds.subscribe('elementunselect', ({items, item}) => {
+            //     // remove_copy_file(item.dataset.href)
+            //     console.log(copy_files_arr.length)
+            // })
+
+            ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
+                if(isDragging) {
+                    ds.stop(false,false)
+                    setTimeout(ds.start)
+                }
+            })
 
             /////////////////////////////////////////////////////////////////////
 
@@ -4835,7 +4956,6 @@ async function get_files(dir, callback) {
 
                 destination = breadcrumbs.value
                 target = e.target
-                // notification('running main view on drag enter ' + destination)
 
                 // if (e.ctrlKey) {
                 //     notification('Copy file to ' + destination)
@@ -4947,17 +5067,34 @@ async function get_files(dir, callback) {
 
             let workspace = document.getElementById('workspace')
 
+            // workspace.draggable = true
+
             // WORKSPACE ON DRAG ENETER
             workspace.ondragenter = function (e) {
-                notification('running')
-                workspace_content.classList.add('active')
-
                 e.preventDefault()
+
+                notification('om drag enter workspace')
+                workspace_content.classList.add('active')
+                // workspace.style = 'height:140px;'
+
+                return false
+
+            }
+
+            workspace.ondragover = (e) => {
+                console.log('workspace on drag over')
+                return false
             }
 
             workspace.ondragleave = function (e) {
-
                 e.preventDefault()
+                return false
+            }
+
+            workspace.ondrop = (e) => {
+                // e.preventDefault()
+                console.log('workspace on drop')
+                add_workspace()
 
             }
 
@@ -4970,6 +5107,8 @@ async function get_files(dir, callback) {
 
             // WORKSPACE CONTENT
             let workspace_content = document.getElementById('workspace_content')
+            workspace_content.height = '40px'
+
 
             workspace_content.ondragenter = function (e) {
                 notification('running on drag enter workspace content')
@@ -4983,8 +5122,6 @@ async function get_files(dir, callback) {
             workspace_content.ondrop = function (e) {
 
                 notification('running workspace on drop ')
-
-                add_workspace()
 
             }
 
@@ -5820,7 +5957,7 @@ function add_copy_file(source ,card_id) {
             let file = {
                 card_id: card_id,
                 source: source,
-                size: localStorage.getItem(source)
+                size: localStorage.getItem(source),
             }
 
             copy_files_arr.push(file)
@@ -7422,6 +7559,8 @@ function update_parent() {
 // CREATE FILE FROM TEMPLATE
 function create_file_from_template(filename) {
 
+    let main_view = document.getElementById('main_view')
+
     let template = path.join(__dirname, 'assets/templates/', filename)
     let destination = path.join(breadcrumbs.value, filename)
 
@@ -7460,8 +7599,8 @@ function create_file_from_template(filename) {
 
                 add_card(options).then(card => {
 
-                    // let files_card = document.getElementById('files_card')
-                    // files_card.classList.remove('hidden')
+                    let files_card = document.getElementById('files_card')
+                    files_card.classList.remove('hidden')
 
                     let file_grid = document.getElementById('file_grid')
                     file_grid.insertBefore(card, file_grid.firstChild)
@@ -7478,9 +7617,11 @@ function create_file_from_template(filename) {
                     let header = document.getElementById('header_' + card_id)
                     header.classList.add('hidden')
 
-                    update_parent()
 
-                    // update_cards()
+
+                    // update_parent()
+
+                    update_cards(main_view)
 
                 })
 
@@ -7943,12 +8084,16 @@ function update_cards(view) {
 
     try {
 
+        let total = 0
+
         let cards = view.querySelectorAll('.nav_item')
         let cards_arr = []
 
         for (var i = 0; i < cards.length; i++) {
             cards_arr.push(cards[i]);
         }
+
+        console.log('total', total)
 
         // let sort = parseInt(localStorage.getItem('sort'))
         // switch (sort) {
@@ -8018,18 +8163,13 @@ function update_cards(view) {
                 card.tabIndex = folder_counter
                 header.id = 'header_folder_card_' + folder_counter
 
+
+
                 // progress.id = 'progress_' + card.id
                 // progress_bar.id = 'progress_bar_' + card.id
 
                 // console.log('updating folder cards ' + card.id)
                 card.classList.add('folder_card')
-
-                // GET FILES
-                // header.addEventListener('click', (e) => {
-                //     e.preventDefault()
-                //     get_files(href, () => {
-                //     })
-                // })
 
                 img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
                 img.height = '24px'
@@ -8083,6 +8223,8 @@ function update_cards(view) {
                 extra.innerHTML = size
                 localStorage.setItem(href, stats.size)
 
+
+
                 // CARD ON MOUSE OVER
                 card.addEventListener('mouseover', (e) => {
                     size = get_file_size(localStorage.getItem(href))
@@ -8097,22 +8239,6 @@ function update_cards(view) {
             }
 
         })
-
-        // // DRAG SELECT
-        // ds = new DragSelect({
-        //     keyboardDragSpeed: 0,
-        //     selectables: document.getElementsByClassName('nav_item'),
-        //     // area: document.getElementById('main_view'),
-        //     selectorClass: 'drag_select'
-        // })
-
-        // ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-        //     if(isDragging) {
-        //         ds.stop(false,false)
-        //         setTimeout(ds.start)
-        //     }
-        // })
-
 
     } catch (err) {
         // console.log(err)
@@ -8139,12 +8265,10 @@ function extract(source) {
         case '.zip':
             filename = source.replace('.zip', '')
             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-            // us_cmd = "unzip '" + source + "' -d "
             cmd = "unzip '" + source + "' -d '" + filename + "'"
             break;
         case '.tar':
             filename = source.replace('.tar', '')
-            // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '" -C "' + filename + '"'
             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
             cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
             break;
@@ -9201,7 +9325,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // START MONITORING FOR GIO DEVICES
     // ipcRenderer.send('monitor_gio')
 
-
     const replaceText = (selector, text) => {
         const element = document.getElementById(selector)
         if (element) element.innerText = text
@@ -9217,7 +9340,6 @@ window.addEventListener('DOMContentLoaded', () => {
         area: document.getElementById('main_view'),
         selectorClass: 'drag_select',
     })
-
 
 })
 
