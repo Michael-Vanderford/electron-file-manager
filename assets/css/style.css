@@ -447,13 +447,24 @@ body {
     overflow: auto;
 }
 
-#progress{
-  /* background:rgb(0, 0, 0); */
-  position: fixed;
-  bottom: 0;
-  /* top: 50%; */
-  /* left: 50%; */
-  z-index: 1000;
+#progress_div{
+    background:rgba(0,0,0,.075);
+    position: fixed;
+    bottom: 0;
+    padding: 5px;
+    width: 210px;
+    /* top: 50%; */
+    /* left: 50%; */
+    z-index: 1000;
+}
+
+progress::-moz-progress-bar { background: blue; }
+progress::-webkit-progress-value { background: blue; }
+progress { color: blue; }
+
+
+#progress {
+    width: 200px;
 }
 
 

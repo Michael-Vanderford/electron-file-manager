@@ -395,6 +395,18 @@ ipcMain.on('ondragstart', (e, href) => {
 // COPY
 ipcMain.on('copy', (e, copy_files_arr, state) => {
 
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        console.log('item', item.size)
+        max += parseInt(item.size)
+    })
+
+    console.log('size', max);
+
+    // win.webContents.send('progress', {max, destination_file})
+    win.webContents.send('progress', max);
+
+
     copy_files_arr.forEach((item, idx) => {
 
         let source = item.source
@@ -404,6 +416,8 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
         let destination_stats = fs.statSync(destination)
 
         let destination_file = path.join(destination, path.basename(source))
+
+        let max = 0
 
         // DIRECTORY
         if (source_stats.isDirectory()) {
@@ -420,12 +434,15 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
-                state = 0
-                let max = parseInt(item.size)
-                console.log('size',max)
+                state = 0;
+                // max += parseInt(item.size);
+                // console.log('size', max);
+
+                // // win.webContents.send('progress', {max, destination_file})
+                // win.webContents.send('progress', max);
 
                 copyFolderRecursiveSync(source, destination_file, state, () => {
-                    win.webContents.send('progress', {max, destination_file})
+
                 })
 
                 // CREATE FOLDER

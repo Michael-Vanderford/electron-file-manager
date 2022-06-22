@@ -139,7 +139,7 @@ ipcRenderer.on('notification', (e, msg) => {
 
 // UPDATE CARD
 ipcRenderer.on('update_card', (e, href) => {
-    console.log('updating card')
+    // console.log('updating card')
     try {
         update_card(href)
     } catch (err) {
@@ -151,7 +151,7 @@ ipcRenderer.on('update_card', (e, href) => {
 // UPDATE CARDS
 ipcRenderer.on('update_cards', (e) => {
 
-    console.log('updating cards')
+    // console.log('updating cards')
     let view = document.getElementById('main_view')
     update_cards(view)
 
@@ -1963,52 +1963,102 @@ ipcRenderer.on('update_progress', (e, step) => {
 })
 
 
+function update_progress(val) {
+    let progress = document.getElementById('progress');
+    progress.value = val;
+}
 
-function set_progress(options) {
+function set_progress(max) {
 
-    let progress = document.getElementById('progress')
-    progress.classList.remove('hidden')
-    progress.max = options.max
-    progress.value = 0
+    let breadcrumbs = document.getElementById('breadcrumbs');
+    let progress_div = document.getElementById('progress_div')
+    let progress = document.getElementById('progress');
 
-    let size = 0
+    progress_div.classList.remove('hidden')
+    progress.classList.remove('hidden');
+
+    progress.value = 0;
+
+    // CONVRT TO KB
+    max = max / 1024
+
+    let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
+    var start_size = parseInt(execSync(cmd));
+
+    progress.max = max + start_size;
+    let current_size0 = 0;
+    let current_size = 0;
     let interval_id = setInterval(() => {
 
-        let stats = fs.statSync(options.destination_file)
+        current_size0 = current_size
 
-        if (stats.isDirectory()) {
+        cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
+        current_size = parseInt(execSync(cmd));
 
-            cmd = "du -s '" + options.destination_file + "' | awk '{print $1}'"
+        console.log('max', max);
+        console.log('start size', start_size);
+        console.log('current size', current_size);
 
-            du = execSync(cmd)
-            size = parseInt(du) * 1024
+        progress.value = current_size;
 
-            console.log(cmd)
+        if (current_size0 >= current_size) {
 
-            console.log('du size', size)
-            console.log('max size', options.max)
-
-        } else {
-
-            console.log('here i am')
-
-            size = stats.size
-            // progress.value = size
-        }
-
-        progress.value = size
-
-        if (size >= parseInt(options.max) - 1024) {
+            progress.value = 0
+            progress_div.classList.add('hidden')
             progress.classList.add('hidden')
-            clearInterval(interval_id)
+
+            clearInterval(interval_id);
         }
 
 
-
-    }, 100);
-
+    }, 1000);
 
 }
+
+
+// function set_progress(options) {
+
+//     let size = 0
+
+//     let progress = document.getElementById('progress')
+//     progress.classList.remove('hidden')
+//     progress.max = options.max
+//     progress.value = 0
+
+
+//     let interval_id = setInterval(() => {
+
+//         let stats = fs.statSync(options.destination_file)
+
+//         if (stats.isDirectory()) {
+
+//             cmd = "du -s '" + options.destination_file + "' | awk '{print $1}'"
+
+//             du = execSync(cmd)
+//             size = parseInt(du) * 1024
+
+//             // console.log(cmd)
+//             // console.log('du size', size)
+//             // console.log('max size', options.max)
+
+//             // } else {
+
+//             // size_file = stats.size
+
+//         }
+
+//         // progress.value = size
+//         update_progress(size)
+
+//         if (parseInt(size) >= (parseInt(options.max) - 10/100)) {
+//             progress.classList.add('hidden')
+//             clearInterval(interval_id)
+//         }
+
+//     }, 100);
+
+
+// }
 
 
 
@@ -4929,7 +4979,7 @@ async function get_files(dir, callback) {
             // })
 
             ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-                if(isDragging) {
+                if(isDragging || isDraggingKeyboard) {
                     ds.stop(false,false)
                     setTimeout(ds.start)
                 }
@@ -8080,7 +8130,7 @@ function update_card(href) {
 // UPDATE CARDS WITH
 function update_cards(view) {
 
-    console.log('updating cards')
+    // console.log('updating cards')
 
     try {
 
@@ -8093,7 +8143,7 @@ function update_cards(view) {
             cards_arr.push(cards[i]);
         }
 
-        console.log('total', total)
+        // console.log('total', total)
 
         // let sort = parseInt(localStorage.getItem('sort'))
         // switch (sort) {
