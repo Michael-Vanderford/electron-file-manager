@@ -1,21 +1,56 @@
 
-#sidebar {
-    outline: none;
-    width: 0;
-    position: fixed;
-    z-index: 0 !important;
-    left: 0px;
-    background-color: #222222 !important;
-    color: #f7f7f7 !important;
-    /* top: 40px; */
-    height:100%;
-    padding-top:10px;
-    padding-left: 12px;
-    min-width: 200px;
-    overflow: scroll;
-    scroll-behavior: smooth;
-    /* scrollbar-width: 2px !important; */
-    /* scrollbar-width: thin; */
+@media (prefers-color-scheme: dark) {
+
+    #sidebar {
+        outline: none;
+        width: 0;
+        position: fixed;
+        z-index: 0 !important;
+        left: 0px;
+        background-color: #222222 !important;
+        color: #f7f7f7 !important;
+        /* top: 40px; */
+        height:100%;
+        padding-top:10px;
+        padding-left: 12px;
+        min-width: 200px;
+        overflow: scroll;
+        scroll-behavior: smooth;
+        /* scrollbar-width: 2px !important; */
+        /* scrollbar-width: thin; */
+    }
+
+    .ui.accordion .title:not(.ui) {
+        color:#f7f7f7 !important;
+    }
+
+}
+
+@media (prefers-color-scheme: light) {
+    #sidebar {
+        outline: none;
+        width: 0;
+        position: fixed;
+        z-index: 0 !important;
+        left: 0px;
+        background-color: #f7f7f7 !important;
+        color: #000000 !important;
+        /* top: 40px; */
+        height:100%;
+        padding-top:10px;
+        padding-left: 12px;
+        min-width: 200px;
+        overflow: scroll;
+        scroll-behavior: smooth;
+        /* scrollbar-width: 2px !important; */
+        /* scrollbar-width: thin; */
+    }
+
+    .ui.accordion .title {
+        color:#000000 !important;
+    }
+
+
 }
 
 #sidebar .ui.accordion .content {
@@ -27,7 +62,6 @@
 }
 
 #sidebar::-webkit-scrollbar {
-    /* height: 12px; */
     width: 0px !important;
     height:100% !important;
     background: #2c2c2c;
@@ -70,10 +104,10 @@
     margin-top: 2px !important;
 }
 
-  .ui.accordion .title:not(.ui) {
+  /* .ui.accordion .title:not(.ui) {
 
       color:#f7f7f7 !important;
-  }
+  } */
 
   aside.sidebar#resizable {
     height: 100% !important;
@@ -162,27 +196,6 @@
     z-index: 1;
   }
 
-
-
-  /* .drag_bar {
-    width: 1px;
-    position: fixed;
-    z-index: 2;
-    height:100%;
-    left:255px;
-
-    background-color:#d1d1d1 !important;
-  } */
-
-  /* .drag_bar:hover {
-    cursor:col-resize;
-  } */
-
-
-/* #tree_grid {
-    height:500px !important
-} */
-
 .description {
     color: #ffffff !important;
     font-weight: bold !important;
@@ -196,40 +209,3 @@
 }
 
 
-  /* The navigation menu links */
-  /* .sidebar1 a {
-    padding: 4px 4px 4px 4px;
-    text-decoration: none; */
-    /* font-size: 10px; */
-    /* color: #818181;
-    display: block; */
-    /* transition: 0.3s; */
-  /* } */
-
-  /* When you mouse over the navigation links, change their color */
-  /* .sidebar1 a:hover {
-    color: #000000;
-  } */
-
-  /* Position and style the close button (top right corner) */
-  /* .sidebar1 .closebtn { */
-    /* position: absolute; */
-    /* top: 0; */
-    /* right: 5px; */
-    /* font-size: 36px;/ */
-    /* margin-left: 50px; */
-  /* } */
-
-  /* Style page content - use this if you want to push the page content to the right when you open the side navigation */
-  /* #main { */
-    /* transition: margin-left .1s; */
-    /* padding: 0px; */
-  /* } */
-
-
-
-  /* On smaller screens, where height is less than 450px, change the style of the sidebar (less padding and a smaller font size) */
-  /* @media screen and (max-height: 450px) { */
-    /* .sidebar1 {padding-top: 10px;} */
-    /* .sidebar1 a {font-size: 5px;} */
-  /* } */

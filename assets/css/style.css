@@ -219,7 +219,7 @@ body {
         background-color: #fff !important;
         background-repeat: no-repeat;
         background-size: cover;
-        color: #000000;
+        color: #000000 !important;
         padding-bottom: 120px;
         height:100% !important;
         overflow:hidden !important;
@@ -265,7 +265,6 @@ body {
         background-color: #cfcfcf !important;
         border: none !important;
     }
-
 
     .ui.menu.item {
         color:#cfcfcf !important;
@@ -363,15 +362,14 @@ body {
         border:none;
     } */
 
-    .description {
+    .ui.card .description {
+        font-weight: normal !important;
         color:#000000 !important;
     }
 
     .extra {
         color:#000000 !important;
     }
-
-
 
     .stats
     {

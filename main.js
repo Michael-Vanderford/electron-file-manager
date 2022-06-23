@@ -651,7 +651,6 @@ function createConfirmDialog(data, copy_files_arr) {
 ipcMain.on('move', (e, copy_files_arr) => {
 
     console.log('length', copy_files_arr.length)
-
     copy_files_arr.forEach((item, idx) => {
 
         let source = item.source
@@ -828,6 +827,7 @@ ipcMain.on('move_canceled', (e) => {
 ipcMain.on('move_confirmed', (e, data) => {
 
     console.log('move confirmed')
+    
 
     if (fs.statSync(data.source).isDirectory()) {
 

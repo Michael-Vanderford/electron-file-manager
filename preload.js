@@ -2711,10 +2711,10 @@ async function add_card(options) {
                 notification('ctlr pressed')
 
                 // CHECK IF ALREADY SELECTED
-                if (this.classList.contains('highlight_select')) {
+                if (this.classList.contains('highlight_select') || this.classList.contains('ds-selected')) {
 
                     // REMOVE HIGHLIGHT
-                    this.classList.remove('highlight_select')
+                    this.classList.remove('highlight_select', 'ds-selected')
 
                 } else {
 
@@ -2764,8 +2764,6 @@ async function add_card(options) {
         })
 
         let cardclick_et = new Date().getTime() - cardclick_st
-        // console.log('cardclick elapsed time ' + cardclick_et)
-
 
         // // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
         card.addEventListener('contextmenu', function (e) {
@@ -3049,7 +3047,7 @@ async function add_card(options) {
                     let id = item.dataset.id
                     add_copy_file(href, id)
                     console.log('size', items,length, 'href', href)
-                    datalist.add(href, mime.lookup(href))
+                    // datalist.add(href, mime.lookup(href))
 
                 })
 
@@ -5007,11 +5005,11 @@ async function get_files(dir, callback) {
                 destination = breadcrumbs.value
                 target = e.target
 
-                // if (e.ctrlKey) {
-                //     notification('Copy file to ' + destination)
-                // } else [
-                //     notification('Move file to ' + destination)
-                // ]
+                if (e.ctrlKey) {
+                    notification('Copy file to ' + destination)
+                } else {
+                    notification('Move file to ' + destination)
+                }
 
 
                 e.preventDefault()
@@ -5026,8 +5024,8 @@ async function get_files(dir, callback) {
 
                 e.stopPropagation()
                 e.preventDefault()
-                // e.dataTransfer.effectAllowed = 'move,copy,none'
 
+                // e.dataTransfer.effectAllowed = 'move,copy,none'
                 // if (e.ctrlKey) {
                 //     notification('Copy file to ' + destination)
                 // } else [
@@ -8198,8 +8196,8 @@ function update_cards(view) {
             let stats = fs.statSync(href)
             let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
 
-            // card.tabIndex = idx
-            // card.dataset.id = idx + 1
+            card.tabIndex = idx
+            card.dataset.id = idx + 1
 
             description.innerHTML = mtime
 
@@ -8213,12 +8211,6 @@ function update_cards(view) {
                 card.tabIndex = folder_counter
                 header.id = 'header_folder_card_' + folder_counter
 
-
-
-                // progress.id = 'progress_' + card.id
-                // progress_bar.id = 'progress_bar_' + card.id
-
-                // console.log('updating folder cards ' + card.id)
                 card.classList.add('folder_card')
 
                 img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
@@ -8227,10 +8219,6 @@ function update_cards(view) {
 
                 ipcRenderer.send('get_folder_size', { href: href })
                 // extra.innerHTML = get_file_size(localStorage.getItem(href))
-
-                // get_folder_size1(href, size => {
-                //     extra.innerHTML = get_file_size(size)
-                // })
 
                 // CARD ON MOUSE OVER
                 card.addEventListener('mouseover', (e) => {
@@ -8258,22 +8246,9 @@ function update_cards(view) {
 
                 card.classList.add('file_card')
 
-                // console.log('updating file cards ' + card.id)
-
-                // OPEN FILE
-                // todo this hangs on large files
-                // header.addEventListener('click', (e) => {
-                //     e.preventDefault()
-                //     console.log('opening ', href)
-                //     open(href, {wait: false})
-
-                // })
-
                 size = get_file_size(stats.size)
                 extra.innerHTML = size
                 localStorage.setItem(href, stats.size)
-
-
 
                 // CARD ON MOUSE OVER
                 card.addEventListener('mouseover', (e) => {
@@ -9390,6 +9365,12 @@ window.addEventListener('DOMContentLoaded', () => {
         area: document.getElementById('main_view'),
         selectorClass: 'drag_select',
     })
+
+    window.addEventListener("keydown", function(e) {
+        if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+            e.preventDefault();
+        }
+    }, false);
 
 })
 
