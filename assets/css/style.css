@@ -677,7 +677,13 @@ body .ui.card .none{
     font-weight: bold !important;
 }
 
-#find {
+#find input[type="text"] {
+    /* position:fixed; */
+    /* background-color: #000000; */
+    height: 24px !important;
+    width: 200px !important;
+    /* top: 80px; */
+    /* right: 0; */
     font-size: 12px;
     font-weight: bold !important;
 }

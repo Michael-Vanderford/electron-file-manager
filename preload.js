@@ -9367,9 +9367,9 @@ window.addEventListener('DOMContentLoaded', () => {
     })
 
     window.addEventListener("keydown", function(e) {
-        if(["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
-            e.preventDefault();
-        }
+    if(["ArrowUp","ArrowDown"].indexOf(e.code) > -1) {
+        e.preventDefault();
+    }
     }, false);
 
 })
