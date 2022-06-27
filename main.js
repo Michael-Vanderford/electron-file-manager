@@ -284,78 +284,58 @@ function createWindow() {
         win.webContents.goBack()
     })
 
-
     // showDevices()
-
     // win.webContents.on('get_devices', (e, devicelist, callback) => {
     //     console.log('device lengh list ' + devicelist.length)
     // })
 
 }
 
-// GET ICON PATH
-function get_icon_path(file) {
 
-    try {
+nativeTheme.on('updated', () => {
 
-        let stats = fs.statSync(file)
-        let file_ext = path.extname(file)
-        // let mimetype = mime.lookup(file)
+    console.log('changed theme', nativeTheme.shouldUseDarkColors)
 
-        // mem = os.totalmem()  // environ.get('MESON_INSTALL_PREFIX', '/usr/local')
-        // info(get_file_size(mem))
+    if (nativeTheme.shouldUseDarkColors == true) {
+        console.log('what')
+        win.webContents.send('updatetheme', 'dark')
+    //     nativeTheme.themeSource = 'dark'
+    //     // win.loadFile('src/index.html')
+    } else {
+        console.log('where')
+        win.webContents.send('updatetheme', 'light')
+    //     nativeTheme.themeSource = 'light'
+    //     // win.loadFile('src/index.html')
 
-        // datadir = os.path.join(prefix, 'share')
-        // console.log('icon dir', icon_dir, 'icon dir 0', icon_dir0)
-
-        if (stats.isDirectory()) {
-            // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
-            // console.log('icon_dir',folder_icon_dir)
-            icon = path.join(folder_icon_dir, '32x32/places/folder.png')
-            // icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
-        } else if (stats.isFile()) {
-
-            icon_dir = path.join(__dirname,'/assets/icons/korla')
-            // console.log(icon_dir)
-
-            if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
-                icon = file
-            } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
-                icon = path.join(icon_dir,'/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
-            } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
-                icon = path.join(icon_dir,'/apps/scalable/libreoffice-writer.svg')
-            } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
-                icon = path.join(icon_dir,'/mimetypes/scalable/audio-wav.svg')
-            } else if (file_ext == '.iso') {
-                icon = path.join(icon_dir,'/apps/scalable/isomaster.svg')
-            } else if (file_ext == '.pdf') {
-                icon = path.join(icon_dir,'/apps/scalable/gnome-pdf.svg')
-            } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
-                icon = path.join(icon_dir,'/apps/scalable/7zip.svg')
-            } else if (file_ext == '.deb') {
-                icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
-            } else if (file_ext == '.txt') {
-                icon = path.join(icon_dir,'/apps/scalable/text.svg')
-            } else if (file_ext == '.sh') {
-                icon = path.join(icon_dir,'/apps/scalable/terminal.svg')
-            } else if (file_ext == '.js') {
-                icon = path.join(icon_dir,'/apps/scalable/applications-java.svg')
-            } else if (file_ext == '.sql') {
-                icon = path.join(icon_dir,'/mimetypes/scalable/application-x-sqlite.svg')
-            } else {
-                icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
-            }
-
-
-
-        }
-
-
-    } catch (err) {
-        // icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
     }
 
-    return icon
+})
+
+
+
+ipcMain.on('get_icon_path', (e, href) => {
+    get_icon_path(href)
+})
+
+// GET ICON PATH
+function get_icon_path(href) {
+
+    app.getFileIcon(href).then(icon => {
+
+        // let icon_path = ''
+        // if (fs.statSync(href).isDirectory()) {
+        //     // icon_path = path.join(__dirname, '/assets/icons/folder.png')
+        // } else {
+            icon_path = icon.toDataURL()
+        // }
+
+        let data = {
+            href: href,
+            icon_path: icon_path
+        }
+
+        win.webContents.send('icon_path',data)
+    })
 }
 
 // HANDLE DRAG START
@@ -527,14 +507,12 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                     copyFileSync(source, destination_file, state, (res) => {
 
                         if (state == 2) {
-
                             let options = {
                                 id: 0,
                                 href: destination_file,
                                 linktext: path.basename(destination_file),
                                 grid: ''
                             }
-
                             e.sender.send('add_card', options)
                         }
 
@@ -566,7 +544,6 @@ ipcMain.on('show_confirm_dialog', (e, data) => {
     // console.log(data1)
 
 })
-
 
 // CONFIRM DIALOG FOR COPY
 // let confirm = null
@@ -651,6 +628,7 @@ function createConfirmDialog(data, copy_files_arr) {
 ipcMain.on('move', (e, copy_files_arr) => {
 
     console.log('length', copy_files_arr.length)
+
     copy_files_arr.forEach((item, idx) => {
 
         let source = item.source
@@ -685,6 +663,7 @@ ipcMain.on('move', (e, copy_files_arr) => {
                         source: source,
                         destination: destination_file
                     }
+
 
                     createConfirmDialog(data, copy_files_arr)
 
@@ -734,6 +713,8 @@ ipcMain.on('move', (e, copy_files_arr) => {
                         source: source,
                         destination: destination_file
                     }
+
+                    createOverwriteMoveDialog(data)
 
                 } else {
 
@@ -827,7 +808,6 @@ ipcMain.on('move_canceled', (e) => {
 ipcMain.on('move_confirmed', (e, data) => {
 
     console.log('move confirmed')
-    
 
     if (fs.statSync(data.source).isDirectory()) {
 
@@ -1446,18 +1426,7 @@ function createChildWindow() {
 //   }
 
 
-  ipcMain.handle('dark-mode:toggle', () => {
-    if (nativeTheme.shouldUseDarkColors) {
-      nativeTheme.themeSource = 'light'
-    } else {
-      nativeTheme.themeSource = 'dark'
-    }
-    return nativeTheme.shouldUseDarkColors
-  })
 
-  ipcMain.handle('dark-mode:system', () => {
-    nativeTheme.themeSource = 'system'
-  })
 
 
   // // START OF SESSION MANAGEMENT

@@ -114,16 +114,27 @@ let hidden_file_count = 1
 
 // PAGING VARIABLES
 let watch_count = 0
-let pagesize = 500
+let pagesize = 1000
 let page = 1
 
 let start_path = ''
 
-// this doesnt work
+
 let main_view = document.getElementById('main_view')
-let folder_grid = document.getElementById('folder_grid')
-// let file_grid = document.getElementById('file_grid')
 let progress = document.getElementById('progress')
+
+ipcRenderer.on('updatetheme', (e, theme) => {
+
+    console.log('theme', theme)
+
+    if (theme == 'dark') {
+        body.dataset.theme = 'dark'
+        document.documentElement.dataset.theme('dark');
+    } else if (theme == 'light') {
+        document.documentElement.dataset.theme('light');
+    }
+
+})
 
 // ON START PATH
 ipcRenderer.on('start_path', (e, res) => {
@@ -932,21 +943,28 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders')
 
 
-    let btn_cancel = add_button('btn_cancel', 'Cancel')
-    let btn_replace = add_button('btn_replace', 'Replace')
-    let btn_skip = add_button('btn_skip', 'Skip')
-    let icon = add_icon('info-circle')
+    let footer = add_div();
+    let btn_cancel = add_button('btn_cancel', 'Cancel');
+    let btn_replace = add_button('btn_replace', 'Replace');
+    let btn_skip = add_button('btn_skip', 'Skip');
+    let icon = add_icon('info-circle');
 
-    btn_cancel.style = 'position:absolute; bottom: 0'
+    footer.style = 'position:fixed; bottom:0; margin-bottom: 25px;';
+    footer.append(btn_cancel)
+    footer.append(btn_replace)
+    footer.append(btn_skip)
+    // btn_replace.style = ';
+    // btn_skip.style = 'position:absolute; bottom: 15; left: 150';
+    // btn_cancel.style = 'position:absolute; bottom: 15, left: 300';
 
+    //
+    let confirm_msg = add_div();
 
-    let confirm_msg = add_div()
+    btn_replace.classList.add('primary');
 
-    btn_replace.classList.add('primary')
-
-    let source_data = ''
-    let destination_data = ''
-    let header = ''
+    let source_data = '';
+    let destination_data = '';
+    let header = '';
 
     // DIRECTORY
     if (destination_stats.isDirectory()) {
@@ -1020,7 +1038,7 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     replace_all.append(chk_replace_div)
 
 
-    confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip, replace_all)
+    confirm_dialog.append(header,destination_data,source_data,replace_all,footer)
 
     // Handle checkbox
     let chk_replace = document.getElementById('chk_replace')
@@ -2532,12 +2550,21 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 
 // GET FILE FROM INPUT
 async function get_file_from_input() {
-
     let input = document.getElementById('files')
     let file = input.files[0]
-
 }
 
+// ON ICON PATH
+ipcRenderer.on('icon_path', (e, data) => {
+
+    let href = data.href
+    let card = document.querySelector('[data-href="' + href + '"]')
+    let img = card.querySelector('img')
+    img.src = data.icon_path
+    img.dataset.src = data.icon_path
+    img.classList.add('lazy')
+
+})
 
 var cardindex = 0
 
@@ -2545,8 +2572,6 @@ var cardindex = 0
 async function add_card(options) {
 
     try {
-
-        console.log('options id', options.id)
 
         //
         // network-server-symbolic.svg
@@ -2556,32 +2581,12 @@ async function add_card(options) {
         let icon_path = get_icon_path(href) //options.image
         let is_folder = options.is_folder
 
-        // STATS
-        // let stats = '' //fs.lstatSync(options.href)
-        // let is_folder = 0 //stats.isDirectory() //options.is_directory
-        // let mtime = '' //new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime) //options.description
-
-
         // CHECK IF GVFS
         // let is_gvfs = 0
         // let gvfs = href.indexOf('/gvfs') // -1 is false
         // if (gvfs > -1) {
         //     is_gvfs = 1
         // }
-
-        // GET START TIME OF STATS
-        // let stats_st = new Date().getTime()
-        // try {
-        //     stats = fs.statSync(options.href)
-        //     is_folder = stats.isDirectory() //options.is_directory
-        //     mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime) //options.description
-        // } catch (err) {
-        //     console.log(err)
-        // }
-
-        // SEE HOW LONG STATS ARE TAKING
-        // let stats_et = new Date().getTime() - stats_st
-        // console.log('getting stats elapsed time ' + stats_et)
 
         let size = '' //options.size
         let grid = options.grid
@@ -2609,7 +2614,9 @@ async function add_card(options) {
         // ADD CSS
         input.setAttribute('required', 'required')
         col.classList.add('column', 'three', 'wide')
+
         popovermenu.classList.add('popup')
+
         card.classList.add('ui', 'card', 'fluid', 'nav_item')
         card.draggable = 'true'
 
@@ -2649,25 +2656,27 @@ async function add_card(options) {
         // CREATE ITEM
         item.classList.add('item', 'fluid')
 
-        // CREATE IMAGE CONTAINER
+        // CREATE IMAGE CLASS
         image.classList.add('image')
         // image.style = 'width:36px; height:36px;cursor:pointer'
 
-        // CREATE IMAGE
+        // DISABLE IMAGE DRAG
         img.draggable = false
 
+        // SET FOLDER ICON
         if (grid.id == 'folder_grid') {
 
-            // img.classList.add('tree_subicon')
             img.src = get_icon_path(href)
 
-
+        // SEARCH AND WORKSPACE ICONS
         } else if (grid.id == 'search_results' || grid.id == 'workspace_grid') {
 
             card.style.marginLeft = '15px'
             img.classList.add('workspace_icon')
             img.src = get_icon_path(href)
 
+
+        // FILE ICONS
         } else {
 
             if (cardindex > 1 && id != 0) {
@@ -2676,9 +2685,17 @@ async function add_card(options) {
                 img.dataset.src = icon_path
                 img.classList.add('lazy')
 
+                if (!img.classList.contains('img')) {
+                    ipcRenderer.send('get_icon_path', href)
+                }
+
+
             } else {
 
-                img.src = icon_path
+                // img.src = icon_path
+                if (!img.classList.contains('img')) {
+                    ipcRenderer.send('get_icon_path', href)
+                }
 
             }
 
@@ -2738,14 +2755,11 @@ async function add_card(options) {
                     //
                 } else {
 
-                    // notification('selected ' + href)
-
                     // NAV COUNTER
                     nc = parseInt(card.dataset.id)
                     console.log('counter ' + nc)
 
                     this.classList.add('highlight_select')
-
 
                     if (prev_card) {
 
@@ -2765,7 +2779,7 @@ async function add_card(options) {
 
         let cardclick_et = new Date().getTime() - cardclick_st
 
-        // // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
+        // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
         card.addEventListener('contextmenu', function (e) {
 
             // SET GLOBAL CARD_ID
@@ -2775,13 +2789,6 @@ async function add_card(options) {
             // todo: this needs work add selected files here has unintended results
             // !! DO NOT USE ADD_SELECTED_FILES HERE. YOU MIGHT DELETE SOMETHING IMPORTANT!!!
             source = href
-
-            // if (e.ctrlKey == true) {
-
-            // } else {
-
-            //     // clear_selected_files()
-            // }
 
             if (is_folder) {
 
@@ -2806,7 +2813,6 @@ async function add_card(options) {
             // SET GLOBAL CARD ID ON HOVER
             // todo: this needs to be vetted
             card_id = id
-
 
             // HIGHLIGHT CARD timeoutid = setTimeout(() => {
             card.classList.add("highlight")
@@ -2838,22 +2844,22 @@ async function add_card(options) {
 
         })
 
-        // IMG MOUSE OVER
-        img.addEventListener('mouseover', function (e) {
-            e.preventDefault()
-            if (is_folder) {
-                // this.src = '../assets/icons/korla/places/scalable/gnome-folder.svg'
-                // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
-            } else {
-                // img.style = 'background-color:rgb(0, 0, 0);'
-            }
+        // // IMG MOUSE OVER
+        // img.addEventListener('mouseover', function (e) {
+        //     e.preventDefault()
+        //     if (is_folder) {
+        //         // this.src = '../assets/icons/korla/places/scalable/gnome-folder.svg'
+        //         // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
+        //     } else {
+        //         // img.style = 'background-color:rgb(0, 0, 0);'
+        //     }
 
-        })
+        // })
 
-        img.addEventListener('mouseout', (e) => {
-            e.preventDefault()
-            img.src = icon_path
-        })
+        // img.addEventListener('mouseout', (e) => {
+        //     e.preventDefault()
+        //     // img.src = icon_path
+        // })
 
         // CREATE CONTENT
         content.classList.add('content')
@@ -2884,14 +2890,13 @@ async function add_card(options) {
         header.addEventListener('mouseover', function (e) {
             if (is_folder) {
                 card_id = id
-                // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
             }
         })
 
         // HEADER MOUSE OUT
-        header.addEventListener('mouseout', function (e) {
-            img.src = icon_path
-        })
+        // header.addEventListener('mouseout', function (e) {
+        //     // img.src = icon_path
+        // })
 
         form_field.classList.add('one', 'fields')
 
@@ -2941,8 +2946,6 @@ async function add_card(options) {
 
                 let main_view = document.getElementById('main_view')
                 update_cards(main_view)
-
-
 
                 clear_selected_files()
 
@@ -3024,11 +3027,11 @@ async function add_card(options) {
             // console.log('bufer data', file)
             // datalist.add(file)
 
-            if (e.ctrlKey) {
-                e.dataTransfer.effectAllowed = 'copy'
-            } else {
-                e.dataTransfer.effectAllowed = 'move'
-            }
+            // if (e.ctrlKey) {
+                e.dataTransfer.effectAllowed = 'copyMove'
+            // } else {
+                // e.dataTransfer.effectAllowed = 'move'
+            // }
 
             // if (e.ctrlKey) {
             //     console.log('ctrl pressed')
@@ -3061,6 +3064,9 @@ async function add_card(options) {
         // ON DRAG ENTER
         card.ondragenter = function (e) {
 
+            e.preventDefault()
+            e.stopPropagation()
+
             dragcounter++
 
             let target = e.target
@@ -3070,7 +3076,6 @@ async function add_card(options) {
             if (target.id == "") {
                 destination = href
                 // card.classList.add('highlight_select')
-
                 // BLANK
             } else {
 
@@ -3081,8 +3086,12 @@ async function add_card(options) {
             main_view.classList.add('selectableunselected')
             main_view.draggable = false
 
-            e.preventDefault()
-            e.stopPropagation()
+            if (e.ctrlKey == true) {
+                e.dataTransfer.dropEffect = "copy";
+                console.log('ctrl pressed')
+            } else {
+                e.dataTransfer.dropEffect = "move";
+            }
 
             return false
 
@@ -3096,9 +3105,10 @@ async function add_card(options) {
             card.classList.add('highlight')
 
             if (e.ctrlKey == true) {
-                e.dataTransfer.effectAllowed = 'copy'
+                e.dataTransfer.dropEffect = "copy";
+                console.log('ctrl pressed')
             } else {
-                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.dropEffect = "move";
             }
 
             e.preventDefault()
@@ -4524,11 +4534,12 @@ async function get_files(dir, callback) {
                 // SORT BY SIZE
                 dirents.sort((a, b) => {
 
+                    console.log('a',a)
+                    // let s1 = localStorage.getItem(path.join(dir, a))
+                    // let s2 = localStorage.getItem(path.join(dir, b))
+
                     let s1 = stat.statSync(dir + '/' + a)
                     let s2 = stat.statSync(dir + '/' + b)
-
-                    // notification(s1.size + ' ' + s2.size)
-
                     // if(a.size < b.size){
                     //     return -1
                     // }
@@ -4658,8 +4669,25 @@ async function get_files(dir, callback) {
                         add_card(options)
                         ++folder_count
 
-                        // FILES
+                    // FILES
                     } else {
+
+                        // // PAGE FILES
+                        // if (idx > pagesize) {
+
+                        //     let number_pages = parseInt(parseInt(dirents.length) / parseInt(pagesize))
+
+                        //     for (let i = 1; i < number_pages + 1; i++) {
+
+                        //         add_pager_item({ dir, name: i })
+
+                        //     }
+
+                        //     dirents = paginate(dirents, pagesize, page)
+
+                        // }
+
+
                         let filename = path.basename(file)
                         let filepath = path.join(dir, '/', filename)
 
@@ -4701,20 +4729,20 @@ async function get_files(dir, callback) {
 
             /////////////////////////////////////////////////////////////////////
 
-            // PAGE FILES
-            if (dirents.length > pagesize) {
+            // // PAGE FILES
+            // if (dirents.length > pagesize) {
 
-                let number_pages = parseInt(parseInt(dirents.length) / parseInt(pagesize))
+            //     let number_pages = parseInt(parseInt(dirents.length) / parseInt(pagesize))
 
-                for (let i = 1; i < number_pages + 1; i++) {
+            //     for (let i = 1; i < number_pages + 1; i++) {
 
-                    add_pager_item({ dir, name: i })
+            //         add_pager_item({ dir, name: i })
 
-                }
+            //     }
 
-                dirents = paginate(dirents, pagesize, page)
+            //     dirents = paginate(dirents, pagesize, page)
 
-            }
+            // }
 
             hide_loader()
 
@@ -5005,18 +5033,10 @@ async function get_files(dir, callback) {
                 destination = breadcrumbs.value
                 target = e.target
 
-                if (e.ctrlKey) {
-                    notification('Copy file to ' + destination)
-                } else {
-                    notification('Move file to ' + destination)
-                }
-
-
                 e.preventDefault()
                 e.stopPropagation()
 
                 return false
-
             };
 
             // DRAG OVER
@@ -5025,14 +5045,6 @@ async function get_files(dir, callback) {
                 e.stopPropagation()
                 e.preventDefault()
 
-                // e.dataTransfer.effectAllowed = 'move,copy,none'
-                // if (e.ctrlKey) {
-                //     notification('Copy file to ' + destination)
-                // } else [
-                //     notification('Move file to ' + destination)
-                // ]
-
-
                 return false
 
             }
@@ -5040,24 +5052,18 @@ async function get_files(dir, callback) {
             main_view.ondragleave = (e) => {
 
                 e.preventDefault()
-
-                // copy_files_arr.forEach(file => {
-                //     ipcRenderer.send('ondragstart', file.source)
-                // })
-
                 console.log('leaving main window')
                 return false
 
             }
 
             // ON DROP
+            let state = 0
             main_view.ondrop = function (e) {
 
                 e.preventDefault();
-                // e.stopPropagation();
 
                 const file_data = e.dataTransfer.files
-                // console.log('data' ,dat[0])
 
                 // GETTING FILE DROPED FROM EXTERNAL SOURCE
                 if (file_data.length > 0) {
@@ -5066,20 +5072,24 @@ async function get_files(dir, callback) {
                     }
                 }
 
-                state = 0
-
                 console.log('on drop main view destination ' + destination)
 
                 // COPY FILES
                 if (e.ctrlKey == true) {
 
+                    // alert('test')
                     // notification('running copy files on main_view ' + destination)
 
-                    console.log('bread crumb', breadcrumbs.value, 'destination', destination)
-                    if (breadcrumbs.value != destination) {
+                    // if the place you copy to is breadcrumbs then 2 else 1
 
+                    console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
+                    if (breadcrumbs.value == destination) {
+                        state = 2
+                    } else {
                         state = 0
                     }
+
+                    console.log('state', state)
 
                     // THIS IS RUNNING COPY FOLDERS TOO
                     copy_files(destination, state)
@@ -5248,7 +5258,7 @@ async function get_files(dir, callback) {
     let folder_cards = document.getElementsByClassName('folder_card')
     let file_cards = document.getElementsByClassName('file_card')
     let items = document.querySelectorAll('.nav_item')
-    let selected_items = document.getElementsByClassName('highlight')
+    let selected_items = document.getElementsByClassName('highlight, highlight_select, ds-selected')
     let headers = document.getElementsByClassName('header_link')
 
 
@@ -5263,8 +5273,24 @@ async function get_files(dir, callback) {
         e.preventDefault()
         console.log('extracting file')
 
-        let href = selected_items[0].dataset.href
-        extract(href)
+        // let selected_items = document.getElementsByClassName('highlight, highlight_select, ds-selected')
+        // selected_items.forEach(item => {
+        // })
+
+        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        if (items.length > 0) {
+
+            // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
+            for (let i = 0; i < items.length; i++) {
+
+                let item = items[i]
+                let href = item.getAttribute('data-href')
+
+                extract(href)
+
+            }
+        }
+
 
     })
 
@@ -5507,8 +5533,7 @@ async function get_files(dir, callback) {
             is_last = 1
         }
 
-        console.log(min, is_last)
-
+        //
         if (keycounter < 1) {
             keycounter = 1
         } else {
@@ -5966,11 +5991,11 @@ contextBridge.exposeInMainWorld('api', {
 let copy_files_arr = []
 function add_copy_file(source ,card_id) {
 
-    console.log('adding files to copy array')
+    // console.log('adding files to copy array')
 
     if (source == '' || card_id == '') {
 
-        console.log('error line #2955: empty source or card_id')
+        // console.log('error line #2955: empty source or card_id')
 
     } else {
 
@@ -7001,6 +7026,12 @@ function get_icon_path(file) {
             // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
             // console.log('icon_dir',folder_icon_dir)
             icon = path.join(folder_icon_dir, '32x32/places/folder.png')
+            if (!fs.existsSync(icon)) {
+
+                icon = path.join(__dirname,'/assets/icons/folder.png')
+
+            }
+
             // icon = path.join(__dirname, '/assets/icons/korla/places/scalable/folder.svg')
         } else if (stats.isFile()) {
 
@@ -7576,14 +7607,15 @@ function copyFolderRecursiveSync(source, destination) {
 // MOVE FOLDER
 function move_to_folder(destination) {
 
+    // ADD DESTINATION TO ARRAY
     copy_files_arr.forEach((item,idx) => {
         item.destination = destination
     })
 
-    console.log('ahhhhhh', copy_files_arr)
+    // SEND TO MAIN
     ipcRenderer.send('move', copy_files_arr)
 
-    // clear_copy_arr()
+    clear_copy_arr()
     // console.log('len ' + copy_files_arr.length)
     // msg = 'Confirm move to ' + end_path
     // ipcRenderer.send('')
@@ -8196,7 +8228,7 @@ function update_cards(view) {
             let stats = fs.statSync(href)
             let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
 
-            card.tabIndex = idx
+            // card.tabIndex = idx
             card.dataset.id = idx + 1
 
             description.innerHTML = mtime
@@ -8207,8 +8239,8 @@ function update_cards(view) {
                 ++folder_counter
 
                 card.id = 'folder_card_' + folder_counter
-                card.dataset.id = folder_counter + 1
-                card.tabIndex = folder_counter
+                // card.dataset.id = folder_counter + 1
+                // card.tabIndex = folder_counter
                 header.id = 'header_folder_card_' + folder_counter
 
                 card.classList.add('folder_card')
@@ -8237,8 +8269,8 @@ function update_cards(view) {
                 ++file_counter
 
                 card.id = 'file_card_' + file_counter
-                card.dataset.id = file_counter + 1
-                card.tabIndex = file_counter
+                // card.dataset.id = file_counter + 1
+                // card.tabIndex = file_counter
                 header.id = 'header_file_card_' + file_counter
 
                 progress.id = 'progress_' + card.id
@@ -8303,9 +8335,8 @@ function extract(source) {
             cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '" -C "' + filename + '"'
             break;
         case '.xz':
-            filename = source.replace('.tar.xz', '')
-            filename = source.replace('.xz', '')
-            filename = source.replace('.img.xz', '')
+            filename = source.replace('tar.xz', '')
+            filename = filename.replace('.img.xz', '')
             us_cmd = "xz -l '" + source + "' | awk 'FNR==2{print $5}'"
             cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
             break;
@@ -8331,7 +8362,7 @@ function extract(source) {
 
         // ipcRenderer.send('confirm_overwrite', data)
 
-        let confirm_overwrite = confirm('Folder exists.\nWould you like to overwrite?\n')
+        let confirm_overwrite = confirm(filename, 'exists.\nWould you like to overwrite?\n')
         if (confirm_overwrite) {
             alert('overwrite confirmed')
         }
