@@ -43,6 +43,21 @@ function copyFileSync(source, target, state, callback) {
 
     recursive++
 
+    if (state == 1) {
+
+        console.log('adding card state ', state)
+
+        let options = {
+            id: 0,
+            href: targetFile,
+            linktext: path.basename(targetFile),
+            grid: ''
+        }
+
+        win.webContents.send('add_card', options)
+
+    }
+
     // COPY FILE
     fs.copyFile(source, targetFile, (err) => {
 
@@ -50,20 +65,20 @@ function copyFileSync(source, target, state, callback) {
             console.log(err)
         } else {
 
-            if (state == 1) {
+            // if (state == 1) {
 
-                console.log('adding card state ', state)
+            //     console.log('adding card state ', state)
 
-                let options = {
-                    id: 0,
-                    href: targetFile,
-                    linktext: path.basename(targetFile),
-                    grid: ''
-                }
+            //     let options = {
+            //         id: 0,
+            //         href: targetFile,
+            //         linktext: path.basename(targetFile),
+            //         grid: ''
+            //     }
 
-                win.webContents.send('add_card', options)
+            //     win.webContents.send('add_card', options)
 
-            }
+            // }
 
             if (--recursive == 0) {
 
@@ -284,6 +299,10 @@ function createWindow() {
         win.webContents.goBack()
     })
 
+    ipcMain.on('go_foward', (e) => {
+        win.webContents.goFoward()
+    })
+
     // showDevices()
     // win.webContents.on('get_devices', (e, devicelist, callback) => {
     //     console.log('device lengh list ' + devicelist.length)
@@ -297,15 +316,16 @@ nativeTheme.on('updated', () => {
     console.log('changed theme', nativeTheme.shouldUseDarkColors)
 
     if (nativeTheme.shouldUseDarkColors == true) {
-        console.log('what')
-        win.webContents.send('updatetheme', 'dark')
+        // console.log('what')
+        // app.relaunch()
+        // win.webContents.send('updatetheme', 'dark')
     //     nativeTheme.themeSource = 'dark'
     //     // win.loadFile('src/index.html')
     } else {
-        console.log('where')
-        win.webContents.send('updatetheme', 'light')
-    //     nativeTheme.themeSource = 'light'
-    //     // win.loadFile('src/index.html')
+        // console.log('where')
+        // nativeTheme.themeSource = 'light'
+        // win.loadFile('src/index.html')
+        // app.relaunch()
 
     }
 
@@ -377,11 +397,11 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
     let max = 0;
     copy_files_arr.forEach(item => {
-        console.log('item', item.size)
+        // console.log('item', item.size)
         max += parseInt(item.size)
     })
 
-    console.log('size', max);
+    // console.log('size', max);
 
     // win.webContents.send('progress', {max, destination_file})
     win.webContents.send('progress', max);
@@ -414,7 +434,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
-                state = 0;
+                state = 0
                 // max += parseInt(item.size);
                 // console.log('size', max);
 
@@ -434,7 +454,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
                 if (fs.existsSync(destination_file)) {
 
-                    console.log('copying folder to', destination)
+                    // console.log('copying folder to', destination)
 
                     // CREATE CONFIRM COPY OVERWRITE
                     let data = {
@@ -446,7 +466,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
                 } else {
 
-                    console.log('copying folder to', destination)
+                    // console.log('copying folder to', destination)
 
                     // COPY FOLDERS RECURSIVE
                     copyFolderRecursiveSync(source, destination_file, state, () => {
@@ -503,21 +523,13 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                 } else {
 
                     // COPY FILE
+                    // if state = 2 then change to 1 to add cards
                     console.log('state', state)
+                    if (state == 2) {
+                        state = 1
+                    }
                     copyFileSync(source, destination_file, state, (res) => {
 
-                        if (state == 2) {
-                            let options = {
-                                id: 0,
-                                href: destination_file,
-                                linktext: path.basename(destination_file),
-                                grid: ''
-                            }
-                            e.sender.send('add_card', options)
-                        }
-
-                        // e.sender.send('update_cards')
-                        e.sender.send('update_card', destination)
                         win.webContents.send('notification', 'done copying files')
 
                     })
@@ -537,7 +549,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 // GET CONFIRM DIALOG
 ipcMain.on('show_confirm_dialog', (e, data) => {
 
-    console.log('running')
+    // console.log('running')
 
     e.preventDefault()
     createConfirmDialog(data)
@@ -811,7 +823,7 @@ ipcMain.on('move_confirmed', (e, data) => {
 
     if (fs.statSync(data.source).isDirectory()) {
 
-        console.log('what')
+        // console.log('what')
 
         copyFolderRecursiveSync(data.source, data.destination, () => {
             console.log('done copying folder')
@@ -1086,7 +1098,7 @@ ipcMain.on('get_gio_devices', (e) => {
     let cmd = "gio mount --list -i"
     let gio_device = exec(cmd)
 
-    console.log('running get gio cmd ' + cmd)
+    // console.log('running get gio cmd ' + cmd)
 
     // GET DATA FROM COMMAND
     // let output = ''
@@ -1107,7 +1119,7 @@ ipcMain.on('get_gio_devices', (e) => {
     })
 
     gio_device.on('exit', (data) => {
-        console.log('running get_gio_devces exit')
+        // console.log('running get_gio_devces exit')
         e.sender.send('gio_devices', output)
         // console.log('running get_gio_devces ' + output)
     })
@@ -1122,7 +1134,7 @@ ipcMain.on('mount_gio', (e, data) => {
     let uuid = data.uuid
 
     let cmd = "gio mount " + uuid
-    console.log('gio mount cmd ' + cmd)
+    // console.log('gio mount cmd ' + cmd)
 
     let mount_gio = exec(cmd)
 
@@ -1210,7 +1222,7 @@ ipcMain.on('get_uncompressed_size', (e, filename) => {
 // GET FILES
 ipcMain.on('get_files', (e, dir) => {
 
-    console.log('directory ' + dir)
+    // console.log('directory ' + dir)
     // let dirents = fs.readdirSync(args.dir)
     // if (dirents.length > 0) {
     //     e.sender.send('files', dirents)
@@ -1268,8 +1280,7 @@ ipcMain.on('get_folder_size', (e , args) => {
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
 
-    console.log('directory ' + href.href)
-
+    // console.log('directory ' + href.href)
     // if (href.href.indexOf('gvfs') === -1) {
 
         // RUN DISK FREE COMMAND
@@ -1360,6 +1371,8 @@ ipcMain.on('add_copy_files', function( e, data) {
 
     copy_files_arr = data
     console.log('copy files array ' + copy_files_arr.length)
+
+    // win.webContents.printToPDF()
 
 })
 

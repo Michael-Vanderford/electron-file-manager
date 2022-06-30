@@ -428,7 +428,7 @@ $(function() {
     // LOAD INITIAL FILES / FOLDER VIEW
     // let st = Date.now()
 
-    console.log('running too many times here')
+    // console.log('running too many times here')
 
     if (!localStorage.getItem('folder')) {
         localStorage.setItem('folder', home_folder)
