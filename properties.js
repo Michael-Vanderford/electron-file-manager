@@ -7084,7 +7084,7 @@ function delete_folder(directory) {
         if (fs.statSync(directory).isDirectory()) {
 
             // DELETE FOLDER
-            fs.rmdir(directory, { recursive: true }, (err) => {
+            fs.rm(directory, { recursive: true }, (err) => {
 
                 if (err) {
 

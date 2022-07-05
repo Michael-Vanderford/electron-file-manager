@@ -13,6 +13,8 @@ const Chart = require('chart.js')
 const DragSelect = require('dragselect')
 const mime = require('mime-types')
 const open = require('open')
+const readline = require('readline');
+
 
 // const ds = new DragSelect({})
 
@@ -918,11 +920,13 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     })
 
     window.addEventListener('keyup', (e) => {
+
         if (e.key == 'Escape') {
+            console.log('escape pressed on move')
             ipcRenderer.send('move_canceled')
         }
-    })
 
+    })
 
     // confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),btn_cancel,btn_ok)
 
@@ -1336,9 +1340,7 @@ ipcRenderer.on('gio_devices', (e, res) => {
         if (item.indexOf('Volume(0):') > -1) {
 
             let split_item = item.split('->')
-
-            console.log(item)
-
+            // console.log(item)
             let volume_obj = {
                 idx: idx,
                 volume: split_item[0]
@@ -1958,35 +1960,25 @@ async function get_file_properties(filename) {
 
 }
 
-
-// function getprogress(copy_files_arr) {
-
-//     alert(copy_files_arr.length)
-
-//     copy_files_arr.forEach(file => {
-
-//         console.log('progress copy file array',file.source)
-
-//     });
-
-// }
-
-
+// SET PROGRESS
 ipcRenderer.on('progress', (e, max) => {
-    set_progress(max)
+    get_progress(max)
 })
 
+// UPDATE PROGRESS
 ipcRenderer.on('update_progress', (e, step) => {
     update_progress(step)
 })
 
 
+// UPDATE PROGRESS
 function update_progress(val) {
     let progress = document.getElementById('progress');
     progress.value = val;
 }
 
-function set_progress(max) {
+// SET PROGRESS
+function get_progress(max) {
 
     let breadcrumbs = document.getElementById('breadcrumbs');
     let progress_div = document.getElementById('progress_div')
@@ -1997,39 +1989,50 @@ function set_progress(max) {
 
     progress.value = 0;
 
-    // CONVRT TO KB
+    // CONVERT TO KB
     max = max / 1024
 
     let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
-    var start_size = parseInt(execSync(cmd));
 
-    progress.max = max + start_size;
-    let current_size0 = 0;
-    let current_size = 0;
-    let interval_id = setInterval(() => {
+    exec(cmd, (err, stdout) => {
 
-        current_size0 = current_size
+        var start_size = parseInt(stdout)
 
-        cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
-        current_size = parseInt(execSync(cmd));
+        progress.max = max + start_size;
+        let current_size0 = 0;
+        let current_size = 0;
+        let interval_id = setInterval(() => {
 
-        console.log('max', max);
-        console.log('start size', start_size);
-        console.log('current size', current_size);
+            current_size0 = current_size
 
-        progress.value = current_size;
+            cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
+            exec(cmd, (err, stdout) => {
+                if (err) {
+                    console.log(err)
+                } else {
 
-        if (current_size0 >= current_size) {
+                    current_size = parseInt(stdout);
+                    console.log('max', max);
+                    console.log('start size', start_size);
+                    console.log('current size', current_size);
 
-            progress.value = 0
-            progress_div.classList.add('hidden')
-            progress.classList.add('hidden')
+                    progress.value = current_size;
 
-            clearInterval(interval_id);
-        }
+                    if (current_size0 >= current_size) {
 
+                        progress.value = 0
+                        progress_div.classList.add('hidden')
+                        progress.classList.add('hidden')
 
-    }, 1000);
+                        clearInterval(interval_id);
+                    }
+
+                }
+            })
+
+        }, 1000);
+
+    })
 
 }
 
@@ -2263,7 +2266,6 @@ function get_available_launchers(filetype, source) {
         }
 
         launchers.push(options)
-
         // console.log(err)
     }
 
@@ -2290,38 +2292,42 @@ function set_default_launcher(desktop_file, mimetype) {
 // GET NETWORK
 async function get_network() {
 
-    let network_grid = document.getElementById('network_grid')
-    network_grid.innerHTML = ''
+    let network_grid = document.getElementById('network_grid');
+    network_grid.innerHTML = '';
 
-    let menu_items = add_div()
-    menu_items.classList.add('ui', 'items')
+    let menu_items = add_div();
+    menu_items.classList.add('ui', 'items');
 
     let dir = '/run/user/1000/gvfs/'
 
     fs.readdir(dir, function (err, files) {
 
         if (err) {
-            console.log(err)
+            console.log(err);
         } else {
 
             // console.log('network length ' + files.length)
             if (files.length > 0) {
 
+                let content = add_div();
+                content.classList.add('item');
+
                 files.forEach((file, idx) => {
 
-                    let filename = path.join('/run/user/1000/gvfs/', file)
+                    let filename = path.join('/run/user/1000/gvfs/', file);
 
                     // CREATE HREF ELEMENT
-                    let href = document.createElement('a')
+                    let href = document.createElement('a');
                     let icon = document.createElement('i')
-                    let icon_phone = document.createElement('i')
-                    let menu_item = add_div()
-                    let content = add_div()
+                    let icon_phone = document.createElement('i');
+                    let menu_item = add_div();
+
                     // let hr = add_div()
 
                     href.href = filename
                     href.text = file
                     href.dataset.uuid = filename
+                    href.title = filename
                     // href.preventDefault = true
 
                     // hr.classList.add('ui','horizontal','divider')
@@ -2330,7 +2336,7 @@ async function get_network() {
                     icon.style.marginLeft = '15px'
                     icon_phone.classList.add('icon', 'mobile', 'alternate')
                     menu_item.classList.add('item')
-                    content.classList.add('item')
+
 
                     menu_item.appendChild(icon)
                     content.appendChild(href)
@@ -2346,6 +2352,8 @@ async function get_network() {
 
 
                 })
+
+                network_grid.closest('.content').classList.add('active')
 
             }
 
@@ -2617,7 +2625,7 @@ async function add_card(options) {
 
         popovermenu.classList.add('popup')
 
-        card.classList.add('ui', 'card', 'fluid', 'nav_item')
+        card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav')
         card.draggable = 'true'
 
 
@@ -2666,14 +2674,21 @@ async function add_card(options) {
         // SET FOLDER ICON
         if (grid.id == 'folder_grid') {
 
-            img.src = get_icon_path(href)
+            // img.src = get_icon_path(href)
+            // ipcRenderer.send('get_icon_path', href)
+            get_folder_icon(icon => {
+                img.src = icon
+            })
+
 
         // SEARCH AND WORKSPACE ICONS
         } else if (grid.id == 'search_results' || grid.id == 'workspace_grid') {
 
             card.style.marginLeft = '15px'
             img.classList.add('workspace_icon')
-            img.src = get_icon_path(href)
+            // img.src = get_icon_path(href)
+
+            ipcRenderer.send('get_icon_path', href)
 
 
         // FILE ICONS
@@ -2837,7 +2852,7 @@ async function add_card(options) {
             e.preventDefault()
 
             if (is_folder) {
-                get_files(href, options)
+                get_files(href, () => {})
             } else {
                 open(href, {wait: false})
             }
@@ -2876,9 +2891,12 @@ async function add_card(options) {
 
         header.addEventListener('click', (e) => {
             e.preventDefault()
+            e.stopPropagation()
 
             if (is_folder) {
-                get_files(href, () => {})
+                get_files(href, () => {
+                    console.log('shit')
+                })
             } else {
                 open(href, {wait: false})
             }
@@ -3933,11 +3951,6 @@ function get_folder_size(href) {
         if (folder_card.length > 0) {
             for (let i = 0; i < folder_card.length; i++) {
 
-                // let href = folder_card[i].querySelector('a')
-                // href = href.getAttribute('href')
-
-                // href = dir.replace("'", "/")
-
                 cmd = 'cd "' + href + '"; du -s'
                 du = exec(cmd)
 
@@ -3958,12 +3971,7 @@ function get_folder_size(href) {
 
                 })
 
-                // let extra = folder_card[i].querySelector('.extra')
-                // extra.innerHTML = du
 
-                // let card = document.getElementById(folder_card[i].id)
-                // let extra = card.find()
-                // console.log('what ' + folder_card[i].id)
             }
         }
 
@@ -4091,10 +4099,7 @@ function add_workspace() {
 
         }
 
-
-
     }
-
 }
 
 // QUICK SEARCH
@@ -4123,9 +4128,12 @@ function quick_search() {
 }
 
 
-async function get_files_list(dir) {
+async function get_list_view(dir) {
+
+    console.log(dir)
 
     let list_view = document.getElementById('list_view')
+    list_view.classList.remove('hidden')
 
     let sort = localStorage.getItem('sort')
 
@@ -4162,10 +4170,6 @@ async function get_files_list(dir) {
     // REGEX FOR HIDDEN FILE
     const regex = /^\..*/
 
-    // let list_view_header = document.getElementById('list_view_header')
-    // let folder_grid = document.getElementById('folder_grid')
-    // let file_grid = document.getElementById('file_grid')
-
     let show_hidden = 0
     if (localStorage.getItem('show_hidden')) {
         show_hidden = localStorage.getItem('show_hidden')
@@ -4186,23 +4190,10 @@ async function get_files_list(dir) {
             cols_arr.forEach(col => {
                 let col1 = add_column(col.size)
                 col1.appendChild(add_header(col.name))
+                col1.classList.add('border')
+                // col1.appendChild(add_draghandle())
                 row.appendChild(col1)
             })
-
-            // let col1 = add_column('five')
-            // let col2 = add_column('three')
-            // let col3 = add_column('three')
-            // let col4 = add_column('three')
-
-            // let row = add_row()
-
-            // col1.appendChild(add_header('Name'))
-            // col2.appendChild(add_header('Size'))
-            // col3.appendChild(add_header('Modified'))
-
-            // row.appendChild(col1)
-            // row.appendChild(col2)
-            // row.appendChild(col3)
 
             header_grid.appendChild(row)
 
@@ -4273,13 +4264,13 @@ async function get_files_list(dir) {
                         row.appendChild(col3)
                         row.appendChild(col4)
 
-                        if (isdir && !ishidden) {
-                            col2.appendChild(add_item(size))
-                            folder_grid.appendChild(row)
-                        } else if (!isdir) {
-                            col2.appendChild(add_item(get_file_size(stats.size)))
-                            file_grid.appendChild(row)
-                        }
+                        // if (isdir && !ishidden) {
+                        //     col2.appendChild(add_item(size))
+                        //     folder_grid.appendChild(row)
+                        // } else if (!isdir) {
+                        //     col2.appendChild(add_item(get_file_size(stats.size)))
+                        //     file_grid.appendChild(row)
+                        // }
 
                     }
 
@@ -4837,36 +4828,26 @@ async function get_files(dir, callback) {
                 sidebar.focus()
             })
 
-            // // MAIN
-            // let main_view = document.getElementById('main_view')
-
-            // // HANDLE MAIN VIEW ON MOUSE OVER
-            // main_view.addEventListener('mouseover', function (e) {
-
-            //     e.preventDefault()
-
-            //     // console.log('focusing')
-            //     // main_view.backgroundColor = '#000000'
-            //     main_view.focus()
-
-            // })
-
-            // HANDLE MAIN VIEW CLICK
-            // main_view.addEventListener('mouseup', function (e) {
-            //     clear_selected_files()
-            // })
 
             // HANDLE QUICK SEARCH KEY PRESS. THIS IS FOR FIND BY TYPING //////////////////////////////////
             let letters = ''
             let txt_search = document.getElementById('txt_search')
 
+            // MAIN VIEW
+            main_view.tabIndex = 0
+
+            // KEYBOARD NAVIGATION
             main_view.addEventListener('keypress', function (e) {
+
+                console.log('pressing key ', e.key)
+
+                // PEVENT KEYPRESS FROM BEING FIRED ON QUICK SEARCH AND FIND
+                e.stopPropagation()
+                console.log('main view key code is ' + e.key)
 
                 // LOOK FOR LETTERS AND NUMBERS. I DONT THINK THIS
                 // let regex = /[^A-Za-z0-9]+/
                 let regex = /[^A-Za-z0-9]+/
-
-                console.log('key code is ' + e.key)
 
                 // TEST FOR LETTERS AND NUMBERS
                 if (regex.test(e.key) === false && !e.shiftKey && e.key !== 'Delete' && !e.ctrlKey) {
@@ -4876,7 +4857,6 @@ async function get_files(dir, callback) {
 
                         txt_search.classList.remove('hidden')
                         txt_search.focus()
-
 
                         if (e.key === 'Enter') {
 
@@ -4901,6 +4881,15 @@ async function get_files(dir, callback) {
 
             })
 
+            // DISABLE MOVING CONTENT ON ARROW
+            document.addEventListener('keydown', (e) => {
+                if (["ArrowUp","ArrowDown"].indexOf(e.code) > -1) {
+                    e.preventDefault()
+                    console.log('arrow key pressed')
+                    return false
+                }
+            })
+
             // HIDE QUICK SEARCH
             txt_search.addEventListener('keydown', function (e) {
 
@@ -4918,14 +4907,16 @@ async function get_files(dir, callback) {
 
             })
 
-
             // DRAG AMD DROP
-            ds.addSelectables(document.getElementsByClassName('nav_item'),false)
+            ds.addSelectables(document.getElementsByClassName('nav'), false)
 
-            ds.subscribe('elementselect', ({items,item}) => {
-                console.log(item.dataset.href)
-                // add_copy_file(item.dataset.href, item.id)
-            })
+
+
+            // ds.subscribe('elementselect', ({items,item}) => {
+
+            //     console.log(item.dataset.href)
+            //     // add_copy_file(item.dataset.href, item.id)
+            // })
 
             // ds.subscribe('elementunselect', ({items, item}) => {
             //     // remove_copy_file(item.dataset.href)
@@ -5041,7 +5032,6 @@ async function get_files(dir, callback) {
             }
 
             // WORSPACE
-
             // POPULATE WORKSPACE
             workspace_arr = []
             get_workspace()
@@ -5153,40 +5143,10 @@ async function get_files(dir, callback) {
     // console.log('folder count ' + folder_count + ' file count ' + file_count)
     // ipcRenderer.send('get_disk_space', { dir: dir, folder_count: folder_count, file_count: file_count } )
 
-
     ///////////////////////////////////////////////////////////////////////
 
-    // let find = document.getElementById('find')
-    // let find_options = document.getElementById('find_options')
-    // let find_directory = document.getElementById('find_directory')
-
-    // find_directory.setAttribute('checked', localStorage.getItem('find_directory'))
-    // find_directory.addEventListener('click', function(e) {
-    //     if (localStorage.getItem('find_directory') == '') {
-    //         localStorage.setItem('find_directory','1')
-    //     } else {
-    //         localStorage.setItem('find_directory','')
-    //     }
-    // })
-
-    // find.addEventListener('click', function(e) {
-
-    //     find_options.classList.remove('hidden')
-
-    // })
-
-    // find.addEventListener('change',function (e) {
-
-    //     find_options.classList.add('hidden')
-
-    // })
-
-    // c = 0
-
     let folder_cards = document.getElementsByClassName('folder_card')
-    let file_cards = document.getElementsByClassName('file_card')
     let items = document.querySelectorAll('.nav_item')
-    let selected_items = document.getElementsByClassName('highlight, highlight_select, ds-selected')
     let headers = document.getElementsByClassName('header_link')
 
 
@@ -5668,9 +5628,7 @@ async function get_files(dir, callback) {
 
     // FIND
     Mousetrap.bind('ctrl+f', () => {
-        let find = document.getElementById('find')
-        find.focus()
-        find.select()
+        find_files();
     })
 
 
@@ -5811,8 +5769,8 @@ contextBridge.exposeInMainWorld('api', {
     get_files: (dir, callback) => {
         return get_files(dir, callback)
     },
-    get_files_list: (dir) => {
-        return get_files_list(dir)
+    get_list_view: (dir) => {
+        return get_list_view(dir)
     },
     get_network: () => {
         return get_network()
@@ -6045,15 +6003,27 @@ function clear_selected_files() {
     //THIS SHOULD BE CLEARED AFTER COPY NOT HERE
     // copy_files_arr = []
 
-    let find_options = document.getElementById('find_options')
-    find_options.classList.add('hidden')
-
+    // PAGER
     let pager = document.getElementById('pager')
     pager.innerHTML = ''
 
+
+    // QUICK SEARCH
     let txt_search = document.getElementById('txt_search')
     txt_search.value = ''
     txt_search.classList.add('hidden')
+
+    // FIND
+    let find_div = document.getElementById('find_div')
+    find_div.classList.add('hidden')
+
+    // FIND ADVANCED OPTIONS
+    let find_options = document.getElementById('find_options')
+    find_options.classList.add('hidden')
+
+    // FIND RESULTS VIEW
+    let search_content = document.getElementById('search_content')
+    search_content.classList.remove('active')
 
     // CLEAR TEXT
     // let selected_files_list = document.getElementById('selected_files_list')
@@ -6199,172 +6169,187 @@ async function find_files() {
     let cmd
 
     // SEARCH VIEW
-    // let search_results_col = document.getElementById('search_results_col')
-    let search_results = document.getElementById('search_results')
-    // let search_results_card = document.getElementById('search_results_card')
+    let search_content = document.getElementById('search_content');
+    let search_results = document.getElementById('search_results');
+
     search_results.innerHTML = ''
 
-    let search = document.getElementById('find')
+    let find_div = document.getElementById('find_div')
+    let find = document.getElementById('find')
+    let find_options = document.getElementById('find_options')
+    let btn_find_options = document.getElementById('btn_find_options')
     let breadcrumbs = document.getElementById('breadcrumbs').value
     let find_size = document.getElementById('find_size').value
     let start_date = document.getElementById('start_date').value
     let end_date = document.getElementById('end_date').value
 
+    find_div.classList.remove('hidden')
+    find.focus()
+
     // CANCEL SEARCH
-    search.addEventListener('keydown', function (e) {
+    find.addEventListener('keyup', function (e) {
 
+        console.log(e)
+
+        // CLEAR ON ESCAPE
         if (e.key === 'Escape') {
-
-            console.log('esc pressed on keydown')
-
-            // CLEAR ITEMS
-            search.value = ''
-
-            // FOCUS MAIN VIEW ON AFTER GETTING FILES
-            let main_view = document.getElementById('main_view')
-            main_view.focus()
-
+            console.log('esc pressed on find')
+            clear_selected_files()
         }
 
-    })
+        if (e.key === 'Enter') {
+
+        if (find.value > '' || find_size > '' || start_date > '' || end_date > '') {
+
+            search_results.innerHTML = ''
+            console.log('running find files')
+
+            // CHECK LOCAL STORAGE
+            if (localStorage.getItem('find_folders') == '') {
+                localStorage.setItem('find_folders', 1)
+            }
+
+            if (localStorage.getItem('find_files') == '') {
+                localStorage.setItem('find_files', 1)
+            }
+
+            let find_folders = localStorage.getItem('find_folders')
+            let find_files = localStorage.getItem('find_files')
+
+            let options = {
+                d: find_folders,
+                f: find_files,
+                start_date: start_date,
+                end_date: end_date,
+                size: find_size, //localStorage.getItem('find_by_size'),
+                o: ' -o ',
+                s: find.value
+            }
+
+            //  SIZE
+            if (find_size != '') {
+                let size_option = document.querySelector('input[name="size_options"]:checked').value
+                options.size = '-size +' + options.size + size_option
+            }
+
+            // START DATE
+            if (options.start_date != '') {
+                let start_date = ' -newermt "' + options.start_date + '"'
+                options.start_date = start_date
+            } else {
+                options.start_date = ''
+            }
+
+            // END DATE
+            if (options.end_date != '') {
+                let end_date = ' ! -newermt "' + options.end_date + '"'
+                options.end_date = end_date
+            } else {
+                options.end_date = ''
+            }
 
 
-    if (search.value > '' || find_size > '' || start_date > '' || end_date > '') {
+            // DIR
+            if (options.d != '' && options.s != '') {
+                options.d = ' -type d ' + options.size + ' -iname "' + options.s + '*"'
+            } else {
+                options.d = ''
+            }
+            // FILES
+            if (options.f != '' && options.s != '') {
+                options.f = ' -type f ' + options.size + ' -iname "' + options.s + '*"'
+            } else {
+                options.f = ''
+            }
 
 
-        search_results.innerHTML = ''
-
-        console.log('running find files')
-
-        let options = {
-            d: localStorage.getItem('find_folders'),
-            f: localStorage.getItem('find_files'),
-            start_date: start_date,
-            end_date: end_date,
-            size: find_size, //localStorage.getItem('find_by_size'),
-            o: ' -o ',
-            s: search.value
-        }
+            // OR
+            if (options.d && options.f && options.s != '') {
+                options.o = ' -or '
+            } else {
+                options.o = ''
+            }
 
 
-        if (!options.d && !options.f) {
-            alert('select file or folder filter')
-            return
-        }
+            search_results.innerHTML = 'Searching...'
 
 
-        //  SIZE
-        if (find_size != '') {
-            let size_option = document.querySelector('input[name="size_options"]:checked').value
-            options.size = '-size +' + options.size + size_option
-        }
+            //  FIND FILES
+            cmd = ' find "' + breadcrumbs + '" ' + options.start_date + options.end_date + options.size + options.d + options.o + options.f
+            console.log(cmd)
+            let child = exec(cmd)
 
+            console.log(child)
 
-        // START DATE
-        if (options.start_date != '') {
-            let start_date = ' -newermt "' + options.start_date + '"'
-            options.start_date = start_date
-        } else {
-            options.start_date = ''
-        }
+            child.stdout.on('data', (res) => {
 
-        // END DATE
-        if (options.end_date != '') {
-            let end_date = ' ! -newermt "' + options.end_date + '"'
-            options.end_date = end_date
-        } else {
-            options.end_date = ''
-        }
+                res = res.split('\n')
+                if (res.length > 0 && res.length < 500) {
 
+                    search_content.classList.add('active')
+                    search_results.innerHTML = ''
 
-        // DIR
-        if (options.d != '' && options.s != '') {
-            options.d = ' -type d ' + options.size + ' -iname "' + options.s + '*"'
-        } else {
-            options.d = ''
-        }
-        // FILES
-        if (options.f != '' && options.s != '') {
-            options.f = ' -type f ' + options.size + ' -iname "' + options.s + '*"'
-        } else {
-            options.f = ''
-        }
+                    // let sort = res.sort((a, b) => {
+                    //     return (fs.statSync(a).isDirectory() - fs.statSync(b).isDirectory())
+                    //     // let stata = fs.statSync(a)
+                    //     // let statb = fs.statSync(b)
+                    //     // return (stata.isDirectory() === statb.isDirectory())? 0 : x? -1 : 1
+                    // })
 
+                    for (let i = 0; i < res.length; i++) {
 
-        // OR
-        if (options.d && options.f && options.s != '') {
-            options.o = ' -or '
-        } else {
-            options.o = ''
-        }
+                        try {
 
+                            let filename = res[i]
 
-        search_results.innerHTML = 'Searching...'
+                            if (fs.statSync(filename).isDirectory() || fs.statSync(filename).isFile()) {
 
+                                let options = {
 
-        //  FIND FILES
-        cmd = ' find "' + breadcrumbs + '" ' + options.start_date + options.end_date + options.size + options.d + options.o + options.f
-        console.log(cmd)
-        let child = exec(cmd)
+                                    id: 'find_file_' + i,
+                                    linktext: path.basename(filename),
+                                    href: filename,
+                                    grid: search_results
 
-        console.log(child)
+                                }
 
-        child.stdout.on('data', (res) => {
-
-            res = res.split('\n')
-            if (res.length > 0 && res.length < 500) {
-
-                search_results.innerHTML = ''
-
-                // let sort = res.sort((a, b) => {
-                //     return (fs.statSync(a).isDirectory() - fs.statSync(b).isDirectory())
-                //     // let stata = fs.statSync(a)
-                //     // let statb = fs.statSync(b)
-                //     // return (stata.isDirectory() === statb.isDirectory())? 0 : x? -1 : 1
-                // })
-
-                for (let i = 0; i < res.length; i++) {
-
-                    try {
-
-                        let filename = res[i]
-
-                        if (fs.statSync(filename).isDirectory() || fs.statSync(filename).isFile()) {
-
-                            let options = {
-
-                                id: 'find_file_' + i,
-                                linktext: path.basename(filename),
-                                href: filename,
-                                grid: search_results
+                                add_card(options)
 
                             }
 
-                            add_card(options)
 
+                        } catch (err) {
+                            notification(err)
                         }
 
-
-                    } catch (err) {
-                        notification(err)
                     }
 
                 }
 
-            }
+            })
 
-        })
+            child.stdout.on('end', (res) => {
+                if (search_results.innerHTML == 'Searching...') {
+                    search_results.innerHTML = 'No results found......'
+                }
+            })
 
-        child.stdout.on('end', (res) => {
-            if (search_results.innerHTML == 'Searching...') {
-                search_results.innerHTML = 'No results found......'
-            }
-        })
+            show_sidebar()
 
-
-        show_sidebar()
+        } else {
+            search_content.classList.remove('active')
+        }
 
     }
+
+    })
+
+    // FIND OPTIONS
+    btn_find_options.addEventListener('click', (e) => {
+        e.preventDefault()
+        find_options.classList.remove('hidden')
+    })
+
 
 
 }
@@ -6758,24 +6743,51 @@ function add_div() {
     return div
 }
 
-// ADD COLUNN
-function add_column(length) {
-    let div = document.createElement('div')
-    div.classList.add('column', length, 'wide')
-    return div
-}
-
 // ADD ROW
 function add_row() {
-    let div = document.createElement('div')
-    div.classList.add('row')
-    return div
+    let row = document.createElement('div')
+    row.classList.add('row')
+    // row.classList.add('border')
+    row.style = 'width: 100%';
+    return row
+}
+
+// ADD DRAGHANDLE
+function add_draghandle() {
+
+    let draghandle = add_div()
+    draghandle.style = 'width: 2px; height:100%; position:absolute; right: 0; background-color: #2c2c2c';
+
+    draghandle.addEventListener('mouseover', (e) => {
+
+        console.log('mouse over')
+        draghandle.style.cursor = 'col-resize';
+
+    })
+
+    draghandle.addEventListener('mouseout', (e) => {
+        console.log('mouse out');
+    })
+
+    return draghandle;
+}
+
+// ADD COLUNN
+function add_column(length) {
+
+    // CREATE OOLUMN
+    let column = add_div()
+    column.classList.add('column', length, 'wide')
+
+    // ADD DRAG HANDLE
+    column.append(add_draghandle())
+
+    return column
 }
 
 // ADD HEADER
 function add_header(text) {
-    let header = document.createElement('div')
-    header.classList.add('ui', 'header')
+    let header = document.createElement('h5')
     header.innerHTML = text
     return header
 }
@@ -6863,6 +6875,50 @@ if (fs.existsSync(icon_dir) == false) {
 
 }
 
+// IF ICONS ARE NOT IN PATH THEN TRY ICONS IN .icons
+if (!fs.existsSync(folder_icon_dir)) {
+    folder_icon_dir = path.join(get_home(), '.icons', icon_theme)
+    console.log('folder_icons', folder_icon_dir)
+}
+
+// GET FOLDER_ICON
+function get_folder_icon(callback) {
+
+    let theme = readline.createInterface({
+        input: fs.createReadStream(path.join(folder_icon_dir, 'index.theme'))
+    });
+
+    let places = '';
+    theme.on('line', (line) => {
+        if (line.indexOf('Directories') === -1 && line.indexOf('symbolic') === -1 && line.indexOf('scalable') === -1 && line.indexOf('places') > -1) {
+
+            places = line.replace('[', '').replace(']', '');
+
+            let folder = ['folder.svg', 'folder.png'];
+            folder.every(file => {
+
+                icon = path.join(folder_icon_dir, places, file);
+                // console.log('places', icon);
+
+                if (!fs.existsSync(icon)) {
+                    icon = path.join(__dirname,'/assets/icons/folder.png');
+                    return true;
+                } else {
+                    return false;
+                }
+
+            });
+
+            // console.log('search folder', icon);
+            callback(icon);
+
+            return false;
+
+        }
+    })
+
+}
+
 function get_icon_path(file) {
 
     try {
@@ -6880,7 +6936,45 @@ function get_icon_path(file) {
         if (stats.isDirectory()) {
             // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
             // console.log('icon_dir',folder_icon_dir)
-            icon = path.join(folder_icon_dir, '32x32/places/folder.png')
+
+            let indextheme = fs.readFileSync(path.join(folder_icon_dir, 'index.theme'), {encoding: 'utf-8'});
+            let theme = readline.createInterface({
+                input: fs.createReadStream(path.join(folder_icon_dir, 'index.theme'))
+            });
+
+            let places = '';
+            theme.on('line', (line) => {
+                if (line.indexOf('Directories') === -1 && line.indexOf('32') > -1 && line.indexOf('places') > -1) {
+                    console.log(line);
+                    places = line.replace('[', '').replace(']', '');
+
+                    icon = path.join(folder_icon_dir, places, 'folder.png')
+                    console.log('search folder', icon)
+
+                    if (!fs.existsSync(icon)) {
+                        icon = path.join(__dirname,'/assets/icons/folder.png')
+                    }
+
+                    return icon
+
+                }
+            })
+
+            // let places = ''
+            // lineReader.eachLine(path.join(folder_icon_dir, 'index.theme'), (line, last) => {
+
+            //     if (line.indexOf('Directories') === -1 && line.indexOf('32') > -1 && line.indexOf('places') > -1) {
+            //         console.log(line);
+            //         places = line.replace('[', '').replace(']', '');
+
+            //     }
+            // })
+
+
+            icon = path.join(folder_icon_dir, places, 'folder.png')
+
+            console.log('search folder', icon)
+
             if (!fs.existsSync(icon)) {
 
                 icon = path.join(__dirname,'/assets/icons/folder.png')
@@ -7651,14 +7745,19 @@ function delete_confirmed() {
             console.log('file source ' + file.source + ' card_id ' + file.card_id)
 
             // CLEAR HREF LOCAL STORAGE
-            console.log('href ' + file.source)
-            localStorage.setItem(file.source, '')
+            // console.log('href ' + file.source)
+            // localStorage.setItem(file.source, '')
 
             // IF DIRECTORY
             if (fs.statSync(file.source).isDirectory()) {
 
                 ++delete_folder_count
                 console.log('running delete folder ' + file.source + ' card_id ' + file.card_id)
+
+                console.log('size', localStorage.getItem(file.source))
+
+                // RUN PROGRESS
+                get_progress(parseInt(localStorage.getItem(file.source) * -1))
 
                 // DELETE FOLDER
                 delete_folder(file.source)
@@ -7795,7 +7894,7 @@ function delete_folder(directory) {
         if (fs.statSync(directory).isDirectory()) {
 
             // DELETE FOLDER
-            fs.rmdir(directory, { recursive: true }, (err) => {
+            fs.rm(directory, { recursive: true }, (err) => {
 
                 if (err) {
 
@@ -8243,38 +8342,39 @@ function extract(source) {
     }
 
 
-
-    // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-    let card_id = document.querySelector('[data-href="' + source + '"]').id
-    let progress_file_card = document.getElementById('progress_' + card_id)
-    progress_file_card.classList.remove('hidden')
-
-    progress = document.getElementById('progress_bar_' + card_id)
-
-    console.log(progress)
-
     // GET UNCOMPRESSED SIZE
     let uncompressed_size = parseInt(execSync(us_cmd))
 
-    console.log('size is ' + uncompressed_size)
-
-    // SET MAX OF PROGRESS BAR
-    // if (ext == '.xz') {
-    progress.max = get_raw_file_size(uncompressed_size)
-    // } else {
-    // progress.max = uncompressed_size
-    // }
+    // RUN PROGRESS
+    get_progress(get_raw_file_size(uncompressed_size))
 
 
-    let c = 0
-    interval_id = setInterval(() => {
+    // // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+    // let card_id = document.querySelector('[data-href="' + source + '"]').id
+    // let progress_file_card = document.getElementById('progress_' + card_id)
+    // progress_file_card.classList.remove('hidden')
 
-        ++c
+    // progress = document.getElementById('progress_bar_' + card_id)
 
-        console.log('ahhhh', uncompressed_size, filename, c)
-        get_progress(uncompressed_size, filename, c)
+    // console.log(progress)
 
-    }, 1000);
+    // // GET UNCOMPRESSED SIZE
+    // let uncompressed_size = parseInt(execSync(us_cmd))
+
+    // console.log('size is ' + uncompressed_size)
+
+    // // SET MAX OF PROGRESS BAR
+    // progress.max = get_raw_file_size(uncompressed_size)
+
+    // let c = 0
+    // interval_id = setInterval(() => {
+
+    //     ++c
+
+    //     console.log('ahhhh', uncompressed_size, filename, c)
+    //     get_progress(uncompressed_size, filename, c)
+
+    // }, 1000);
 
 
 
@@ -8321,9 +8421,6 @@ function extract(source) {
 
                     let header_link = card.querySelector('.header_link')
                     header_link.focus()
-
-                    // CLEAR INTERVAL
-                    clearInterval(interval_id)
 
                     // UPDATE CARDS
                     update_cards(folder_grid)
@@ -9262,16 +9359,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
     ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
 
+    // INITIALIZE DRAG SELECT
     ds = new DragSelect({
-        area: document.getElementById('main_view'),
+        // area: document.getElementById('main_view'),
         selectorClass: 'drag_select',
     })
 
-    window.addEventListener("keydown", function(e) {
-    if(["ArrowUp","ArrowDown"].indexOf(e.code) > -1) {
-        e.preventDefault();
-    }
-    }, false);
+    // ds.addSelectables(document.getElementsByClassName('folder_card'),false)
+
+    // window.addEventListener("keydown", function(e) {
+    // if(["ArrowUp","ArrowDown"].indexOf(e.code) > -1) {
+    //     e.preventDefault();
+    // }
+    // }, false);
 
 })
 

@@ -15,6 +15,14 @@ const devices = document.getElementById('devices')
 const network = document.getElementById('network')
 const footer = document.getElementById('footer')
 
+// TOGGLE VIEWS
+let btn_list_view = document.getElementById('btn_list_view')
+let btn_icon_view = document.getElementById('btn_icon_view')
+
+// VIEWS
+let list_view = document.getElementById('list_view')
+let icon_view = document.getElementById('icon_view')
+
 let home_folder = window.api.get_home()
 
 if (localStorage.getItem('folder') == '') {
@@ -45,15 +53,17 @@ function setitem(key,val){
 // LOAD FILES FROM PREELOAD.JS
 function get_files(dir) {
 
-    window.api.get_files(dir, () => {
 
-        // ds = new DragSelect({
-        //     selectables: document.getElementsByClassName('nav_item'),
-        //         area: document.getElementById('main_view'),
-        //     //     selectorClass: 'drag_select'
-        //     selectorClass: 'drag_select'
-        // })
-    })
+    // ICON VIEW
+    if (localStorage.getItem('view') == '1' || localStorage.getItem('view') == '') {
+        window.api.get_files(dir, () => {})
+        btn_icon_view.classList.add('active')
+
+    // LIST VIEW
+    } else {
+        window.api.get_list_view(dir)
+        btn_list_view.classList.add('active')
+    }
 
 }
 
@@ -190,9 +200,40 @@ function stopResize(e) {
 
     // console.log('setting width ' + element.clientWidth)
     localStorage.setItem('sidebar_width', element.clientWidth)
-
 }
 
+
+// LIST VIEW
+btn_list_view.addEventListener('click', (e) => {
+
+    e.preventDefault()
+    // window.api.get_files_list(breadcrumbs.value)
+    list_view.classList.remove('hidden')
+    icon_view.classList.add('hidden')
+
+    get_files(localStorage.getItem('folder'))
+
+    btn_list_view.classList.add('active')
+    btn_icon_view.classList.remove('active')
+    localStorage.setItem('view', 2)
+})
+
+// ICON VIEW
+btn_icon_view.addEventListener('click', (e) => {
+
+    e.preventDefault()
+    icon_view.classList.remove('hidden')
+    list_view.classList.add('hidden')
+
+    get_files(localStorage.getItem('folder'))
+
+    // window.api.get_files(breadcrumbs.value)
+    btn_list_view.classList.remove('active')
+    btn_icon_view.classList.add('active')
+
+
+    localStorage.setItem('view', 1)
+})
 
 
 $(function() {
@@ -238,11 +279,11 @@ $(function() {
     //////////////////////////////////////////////////
     // FIND
 
-    let find = $('#find')
-    let find_options = $('#find_options')
-    $(document).on('click', '#find', function(e) {
-        find_options.removeClass('hidden')
-    })
+    // let find = $('#find')
+    // let find_options = $('#find_options')
+    // $(document).on('click', '#find', function(e) {
+    //     find_options.removeClass('hidden')
+    // })
 
     // find.on('keyup', function(e) {
 
@@ -474,7 +515,6 @@ $(function() {
 
     })
 
-
     // DRIVES
     $(document).on('click', '#btn_getdrives', function(e){
 
@@ -622,33 +662,28 @@ $(function() {
         let hidden_directory = document.getElementById('hidden_folder_grid')
         let hidden_files = document.getElementById('hidden_file_grid')
 
-        // // btn_show_hidden_folders.addEventListener('click',function(e){
+        if(hidden_directory.classList.contains('hidden')){
 
-            if(hidden_directory.classList.contains('hidden')){
+            $(this).addClass('active')
 
-                $(this).addClass('active')
+            hidden_directory.classList.remove('hidden')
+            hidden_files.classList.remove('hidden')
 
-                hidden_directory.classList.remove('hidden')
-                hidden_files.classList.remove('hidden')
+            localStorage.setItem('show_hidden', 1)
 
-                localStorage.setItem('show_hidden', 1)
+            window.api.get_tree(breadcrumbs.value)
 
-                window.api.get_tree(breadcrumbs.value)
+        }else {
 
-            }else {
+            $(this).removeClass('active')
 
-                $(this).removeClass('active')
+            hidden_directory.classList.add('hidden')
+            hidden_files.classList.add('hidden')
 
-                hidden_directory.classList.add('hidden')
-                hidden_files.classList.add('hidden')
+            localStorage.setItem('show_hidden', 0)
 
-                localStorage.setItem('show_hidden', 0)
-
-                window.api.get_tree(breadcrumbs.value)
-            }
-
-
-
+            window.api.get_tree(breadcrumbs.value)
+        }
 
 
     })
@@ -690,7 +725,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir,options)
+        get_files(dir)
 
     })
 
@@ -711,7 +746,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir,options)
+        get_files(dir)
 
     })
 
@@ -735,70 +770,6 @@ $(function() {
         get_files(dir,options)
 
     })
-
-
-//     // SORT BY NAME
-// let sort_by_name = document.getElementById('sort_by_name')
-// sort_by_name.addEventListener('click',function(e){
-//     e.preventDefault()
-//     e.stopPropagation()
-
-//     dir = breadcrumbs.value
-
-//     localStorage.setItem('sort', 2)
-
-//     // console.log('testing')
-
-//     let options = {
-//         sort: 2,
-//         search: ''
-//     }
-
-//     window.api.get_files(dir,options)
-// })
-
-//     let sort_by_date = document.getElementById('sort_by_date')
-//     sort_by_date.addEventListener('click',function(e){
-//         e.preventDefault()
-
-//         dir = breadcrumbs.value
-//         localStorage.setItem('sort', 1)
-
-//     let options = {
-//     sort: 1,
-//     search: ''
-//     }
-
-//     window.api.get_files(dir,options)
-
-
-
-
-
-    // $('.nav_item')
-    //   .popup({
-    //     inline     : true,
-    //     hoverable  : true,
-    //     position   : 'bottom left',
-    //     delay: {
-    //       show: 300,
-    //       hide: 800
-    //     }
-    // })
-
-
-
-    // $('.nav_item')
-    // .popup({
-    //     inline:false,
-    //     hoverable: true,
-    //     position: 'bottom right'
-    // })
-
-    // function add_div(){
-    //     let div = document.createElement('div')
-    //     return div
-    // }
 
 
 })
@@ -827,32 +798,32 @@ $(function() {
 
 
 // FIND
-$(document).on('keydown', '#find, #find_size, #start_date, #end_date', function(e) {
+// $(document).on('keydown', '#find, #find_size, #start_date, #end_date', function(e) {
 
-    // console.log($(this).val())
-    // OPEN SEARCH RESULTS
-    $('.ui.accordion').accordion('close', 0)
-    $('.ui.accordion').accordion('open', 1)
+//     // console.log($(this).val())
+//     // OPEN SEARCH RESULTS
+//     $('.ui.accordion').accordion('close', 0)
+//     $('.ui.accordion').accordion('open', 1)
 
-    // $('#find_options').addClass('hidden')
+//     // $('#find_options').addClass('hidden')
 
-    window.api.find_files()
+//     window.api.find_files()
 
-    // $('#find_options').addClass('hidden')
+//     // $('#find_options').addClass('hidden')
 
-})
+// })
 
-$('#find').on('mouseover', function(e) {
-    // $('#find_options').removeClass('hidden')
-})
+// $('#find').on('mouseover', function(e) {
+//     // $('#find_options').removeClass('hidden')
+// })
 
-$('#find_options').on('mouseover', function (e) {
-    $(this).removeClass('hidden')
-})
+// $('#find_options').on('mouseover', function (e) {
+//     $(this).removeClass('hidden')
+// })
 
-$('#find_options').on('mouseout', function (e) {
-    $(this).addClass('hidden')
-})
+// $('#find_options').on('mouseout', function (e) {
+//     $(this).addClass('hidden')
+// })
 
 // // find.focus()
 // find.addEventListener('keyup',function(e){

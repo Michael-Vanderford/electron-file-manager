@@ -22,7 +22,7 @@ body {
         color: #cfcfcf;
         padding-bottom: 40px;
         height:100% !important;
-        overflow:hidden !important;
+        overflow: hidden !important;
 
     }
 
@@ -386,16 +386,16 @@ body {
 
     #files_card#folders_card { border:1px solid #444444; /* height: auto; overflow: auto; */ }
 
-
-
-
-
     .inlinesearch {
       margin: auto !important;
       /* margin-right: auto; */
       position:fixed;
       bottom: 0px;
       width: 300px;
+    }
+
+    input[type="text"] .search {
+        height: 20px;
     }
 
 }
@@ -438,11 +438,11 @@ body {
 /* #main_view li { margin: 3px; padding: 0.4em; font-size: 1.4em; height: 18px; } */
 
 #list_view .grid {
-    margin:0px;
-    padding:5px;
+    /* margin:0px; */
+    /* padding:5px; */
     /* background:#000000; */
-    height:100% !important;
-    overflow: auto;
+    /* height:100% !important; */
+    /* overflow: auto; */
 }
 
 #progress_div{

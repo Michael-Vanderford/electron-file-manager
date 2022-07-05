@@ -10,22 +10,10 @@ const usb = require('usb');
 
 const move_windows = new Set()
 const windows = new Set()
+const mime = require('mime-types')
 
-// copy_files_arr = []
-// const webusb = new usb.WebUSB({
-//     allowAllDevices:true
-// })
-// const showDevices = async () => {
-//     const devices = await webusb.getDevices();
-//     const text = devices.map(d => `${d.vendorId}\t${d.productId}\t${d.serialNumber || '<no serial>'}`);
-//     text.unshift('VID\tPID\tSerial\n-------------------------------------');
-//     console.log('running showdevices ' + text)
-// windows.forEach(win => {
-//     if (win) {
-//         console.log(text)
-//         win.webContents.send('devices', text.join('\n'));
-//     }
-// });
+
+
 
 ipcMain.on('open_file', (e) => {
 
@@ -35,11 +23,16 @@ let recursive = 0
 function copyFileSync(source, target, state, callback) {
 
     var targetFile = target
-    if (fs.existsSync(target)) {
-        if (fs.lstatSync(target).isDirectory()) {
-            targetFile = path.join(target, path.basename(source));
+    try {
+        if (fs.existsSync(target)) {
+            if (fs.lstatSync(target).isDirectory()) {
+                targetFile = path.join(target, path.basename(source));
+            }
         }
+    } catch (err) {
+        console.log('copy file sync. stat sync err', err)
     }
+
 
     recursive++
 
@@ -62,7 +55,7 @@ function copyFileSync(source, target, state, callback) {
     fs.copyFile(source, targetFile, (err) => {
 
         if (err) {
-            console.log(err)
+            console.log('copy file sync err', err)
         } else {
 
             // if (state == 1) {
@@ -178,21 +171,33 @@ function delete_file(file, callback) {
 
     if (stats) {
 
-        if (stats.isFile()) {
+        if (stats.isDirectory()) {
+
+            fs.rm(file, {recursive: true}, (err) => {
+                if (err) {
+                    console.log(err)
+                } else {
+                    console.log('folder deleted')
+                    win.send('remove_card', file)
+                    // win.webContents.send('update_cards')
+                }
+            })
+
+        } else {
 
             fs.unlink(file, err => {
 
                 if (err) {
                     console.log('error deleteing file', source)
+                    callback(0)
                 } else {
                     console.log('file deleted')
+                    win.send('remove_card', file)
                     callback(1)
                 }
 
             })
 
-        } else {
-            console.log('Error deleting file: ' + source)
         }
 
     }
@@ -319,8 +324,8 @@ nativeTheme.on('updated', () => {
         // console.log('what')
         // app.relaunch()
         // win.webContents.send('updatetheme', 'dark')
-    //     nativeTheme.themeSource = 'dark'
-    //     // win.loadFile('src/index.html')
+        // nativeTheme.themeSource = 'dark'
+        // // win.loadFile('src/index.html')
     } else {
         // console.log('where')
         // nativeTheme.themeSource = 'light'
@@ -332,7 +337,6 @@ nativeTheme.on('updated', () => {
 })
 
 
-
 ipcMain.on('get_icon_path', (e, href) => {
     get_icon_path(href)
 })
@@ -342,12 +346,8 @@ function get_icon_path(href) {
 
     app.getFileIcon(href).then(icon => {
 
-        // let icon_path = ''
-        // if (fs.statSync(href).isDirectory()) {
-        //     // icon_path = path.join(__dirname, '/assets/icons/folder.png')
-        // } else {
-            icon_path = icon.toDataURL()
-        // }
+        icon_path = icon.toDataURL()
+        // console.log(icon)
 
         let data = {
             href: href,
@@ -681,6 +681,13 @@ ipcMain.on('move', (e, copy_files_arr) => {
 
                 } else {
 
+                    let data = {
+                        source: source,
+                        destination: destination_file
+                    }
+
+                    createMoveDialog(data, copy_files_arr)
+
                     // COPY FOLDERS RECURSIVE
                     win.webContents.send('notification', 'this has not been implemented yet!')
                     // let state = 0
@@ -821,12 +828,30 @@ ipcMain.on('move_confirmed', (e, data) => {
 
     console.log('move confirmed')
 
+    let active_window = BrowserWindow.getFocusedWindow()
+    active_window.close()
+
     if (fs.statSync(data.source).isDirectory()) {
+        state = 0
+        copyFolderRecursiveSync(data.source, data.destination, state, () => {
 
-        // console.log('what')
-
-        copyFolderRecursiveSync(data.source, data.destination, () => {
             console.log('done copying folder')
+
+            try {
+
+                if (fs.existsSync(data.destination)) {
+
+                    console.log('file exists',data.source)
+
+                    delete_file(data.source, () => {
+
+                    })
+                }
+            } catch (err) {
+                console.log('copy folder recursive error', err)
+            }
+
+
         })
 
     } else {
@@ -841,9 +866,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                 console.log('file exists',data.source)
 
                 delete_file(data.source, () => {
-                    win.send('remove_card', data.source)
-                    let active_window = BrowserWindow.getFocusedWindow()
-                    active_window.close()
+
                 })
             }
 

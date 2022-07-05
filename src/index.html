@@ -54,14 +54,6 @@
                                 <i class="icon chart pie"></i>
                                 Disk Usage Analyzer (baobab)
                             </a>
-                            <!-- <a id="" class="item block" style="color: #cfcfcf !important;">
-                                <i class="icon sort alphabet down"></i>
-                                Sort by size
-                            </a>
-                            <a id="" class="item block" style="color: #cfcfcf !important;">
-                                <i class="icon sort file alternative outline down"></i>
-                                Sort by type
-                            </a> -->
 
                         </div>
                     </div>
@@ -225,104 +217,31 @@
                         <i class="icon bi-chevron-up"></i>
                     </a>
 
-                    <div class="item" style="width:350px">
-                        <!-- <div class="form"> -->
-                        <div class="ui input tiny autocomplete">
+                    <div class="item" style="width:400px; height:20px">
+                        <div class="" style="width:100%;">
                             <div class="breadcrumbs buttons">
                                 <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
                             </div>
-                            <input type="text" autocomplete="address-level4" id="breadcrumbs" value="" class="" style="width:250px; background:#efefef">
+                            <input type="text" autocomplete="address-level4" id="breadcrumbs" value="" class="" style="width:250px; background:#efefef;">
                         </div>
-                        <!-- </div> -->
                     </div>
 
+                    <!-- LIST VIEW -->
+                    <a class="item hidden" id="btn_list_view">
+                        <i class="ui icon list"></i>
+                    </a>
+
+                    <!-- ICON VIEW -->
+                    <a class="item" id="btn_icon_view">
+                        <i class="ui icon th large"></i>
+                    </a>
 
                     <div class="item" id="status">
                         <!-- status information can go here -->
                     </div>
 
                     <div class="items menu horizontal alighed right">
-
                     </div>
-
-                    <div class="hidden">
-                        <div class="ui icon input tiny" style="width:250px;">
-                            <input type="text" id="find" placeholder="Search...">
-                            <i class="circular search link icon"></i>
-                        </div>
-
-                        <div id="find_options" class="ui card hidden border" style="background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 20px; padding: 5px; width: 100%;">
-
-                            <div class="content fluid">
-
-                                <div class="description" style="padding-left: 20px !important">
-
-                                    <div class="ui header">
-                                        Search Options
-                                    </div>
-
-                                    <div class="ui form tiny" style="background-color: transparent !important;">
-
-                                        <div class="fields">
-                                            <div class="eight wide field">
-                                                <div class="ui checkbox">
-                                                    <input type="checkbox" id="find_folders" name="find_folders">
-                                                    <label style="">Folders</label>
-                                                </div>
-                                            </div>
-
-                                            <div class="eight wide field">
-                                                <div class="ui checkbox">
-                                                    <input type="checkbox" id="find_files" name="find_files">
-                                                    <label style="">Files</label>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="fields">
-                                            <div class="eight wide field">
-                                                <label class="label">Start date</label>
-                                                <input type="date" id="start_date" name="start_date" class=""
-                                                    placeholder="enter start date" title="enter start date" />
-                                            </div>
-
-                                            <div class="eight wide field">
-                                                <label class="label">End date</label>
-                                                <input type="date" id="end_date" name="end_date" class=""
-                                                    placeholder="enter end date" title="enter end date" />
-                                            </div>
-                                        </div>
-
-
-                                        <div class="fields">
-                                            <div class="eight wide field">
-                                                <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
-                                                <input type="text" id="find_size" class="" placeholder="enter size"
-                                                    title="enter size" />
-                                            </div>
-                                        </div>
-
-                                        <div class="fields inline">
-                                            <div class="field">
-                                                <input type="radio" name="size_options" id="size_options" value="k">
-                                                <label for="size_options">KB</label>
-                                            </div>
-                                            <div class="field">
-                                                <input type="radio" name="size_options" id="size_options" checked value="M">
-                                                <label for="size_options">MB</label>
-                                            </div>
-                                            <div class="field">
-                                                <input type="radio" name="size_options" id="size_options" value="G">
-                                                <label for="size_options">GB</label>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
 
                 </div>
 
@@ -358,80 +277,54 @@
 
                 <!-- SEARCH / FIND -->
                 <div class="title" title="press ctrl+f to start a search">
-                    <!-- <i class="dropdown icon"></i> -->
-                    <!-- <i class="icon large search"></i> -->
                     <i class="icon bi-search large"></i>
                     Search Results
                 </div>
                 <div class="grid content" id="search_content">
-
                     <div class="column sixteen wide" id="search_results_col">
                         <div class="ui card fluid" id="search_results_card" style="border:none">
-                            <div class="content">
-                                <div class="navigate search_results" id="search_results">
-
-                                </div>
+                            <div class="content" id="search_results">
                             </div>
                         </div>
                     </div>
-
                 </div>
 
                 <!-- WORKSPACE -->
                 <div class="title" id="workspace"
                     title="ctrl+shift+click on a file or directory to add it to your workspace">
-                    <!-- <i class="dropdown icon"></i> -->
-                    <!-- <i class="icon large clipboard"></i> -->
                     <i class="icon bi-clipboard large"></i>
                     Workspace
                 </div>
                 <div class="content" id="workspace_content">
-                    <!-- <div class="ui grid"> -->
-                        <!-- <div class="column sixteen wide" id=""> -->
-                            <div class="navigate" id="workspace_grid"></div>
-                        <!-- </div> -->
-                        <!-- <br> -->
-                        <a href="#" id="clear_workspace">
-                            <i class="icon eraser"></i>
-                            clear workspace
-                        </a>
-                    <!-- </div> -->
+
+                    <div class="navigate" id="workspace_grid"></div>
+                    <a href="#" id="clear_workspace">
+                        <i class="icon eraser"></i>
+                        clear workspace
+                    </a>
+
                 </div>
 
 
                 <!-- DEVICES -->
                 <div class="title" title="connected devices">
-                    <!-- <i class="dropdown icon"></i> -->
                     <span id="btn_getdrives" class="" title="">
-                        <!-- <i class="icon large tablet"></i> -->
                         <i class="icon bi-tablet large"></i>
                         Devices
                     </span>
                 </div>
                 <div class="content active">
-                    <!-- <div class="ui grid">
-                        <div class="column sixteen wide" id=""> -->
-                            <!-- <div class="navigate" id="device_grid" data-id="/media/michael" style="overflow:auto;"></div> -->
-                            <div class="navigate" id="device_grid"></div>
-                        <!-- </div>
-                    </div> -->
+                    <div class="navigate" id="device_grid"></div>
                 </div>
-
 
                 <!-- ROOT DIRECTORIES -->
                 <div class="title" id="btn_getroot">
-                    <!-- <i class="dropdown icon"></i> -->
-                    <!-- <i class="icon large hdd "></i> -->
                     <i class="icon bi-hdd large"></i>
                     File System
                 </div>
                 <div class="content">
-                    <!-- <div class="ui grid">
-                    <div class="column sixteen wide" id="" style=""> -->
                     <div class="navigate" id="root_grid" data-id="/" style="overflow:auto;">
                     </div>
-                    <!-- </div>
-                    </div> -->
                 </div>
 
 
@@ -466,7 +359,7 @@
 
                     <!-- <div class="ui card fluid" style="border:none"> -->
                         <!-- <div class="content" id=""> -->
-                            <div class="navigate" id="network_grid" data-id="network" style="overflow:auto;">
+                            <div class="navigate" id="network_grid" data-id="network" style="overflow:none">
                             </div>
                         <!-- </div> -->
                     <!-- </div> -->
@@ -499,24 +392,15 @@
 
                 <!-- DISK USAGE CHART -->
                 <div class="title">
-                    <!-- <i class="large icon chart bar"></i>  -->
                     <i class="icon bi-bar-chart large"></i>
                     Disk Usage
                 </div>
                 <div class="content">
-
-
                     <canvas id="myChart" width="200" height="200" class="" style=""></canvas>
-
-                    <!-- <div id="du_grid" style="font-size: 12px;"></div> -->
-
-
                 </div>
 
                 <!-- LOG -->
                 <div class="title">
-                    <!-- <i class="dropdown icon"></i> -->
-                    <!-- <i class="icon large chart history"></i> -->
                     <i class="icon bi-chat large"></i>
                     Log
                 </div>
@@ -532,94 +416,151 @@
 
         </aside>
 
-        <!-- <div id="find" class="find" style="width: 218px;">
-            <div id="txt_find" contenteditable="true" style="white-space: pre; overflow-wrap: initial; padding-right: 22px; width: 218px;""></div>
-        </div> -->
+
+
 
         <!-- MAIN VIEW -->
-        <div class="ui segments dropzone" id="main_view" tabindex="0">
-
-
-
-            <div id="messagebox"></div>
+        <div class="" id="main_view">
 
             <!-- LOADER MESSAGE -->
             <div id="loader" class="ui centered loader"></div>
 
+            <!-- SEARCH / FIND -->
+            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:35px; width:420px; right: 0; z-index: 100;" id="find_div" class="hidden border">
+
+                <!-- FIND -->
+                <div style="float:left; width:0%; text-align: center;">
+                    <a href="#" id="btn_find_options" style="color: #cfcfcf; text-decoration: none !important;">
+                        <i class="ui icon chevron right"></i>
+                    </a>
+                </div>
+                <div style="float:left; margin-left: 25px; width: 240px;">
+                    <input style="height:20px !important; " type="text" id="find" class="" placeholder="search">
+                </div>
+                <div style="position:absolute; right: 0;">
+                    <a href="">
+                        <i class="ui icon times"></i>
+                    </a>
+                </div>
+
+                <!-- FIND OPTIONS -->
+                <div id="find_options" class="" style="background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 35px; width: 100%;">
+
+                    <div class="content fluid">
+                        <div class="description" style="padding-left: 20px !important">
+                            <div class="ui header">
+                                Search Options
+                            </div>
+                            <div class="ui form tiny" style="background-color: transparent !important;">
+                                <div class="fields">
+                                    <div class="eight wide field">
+                                        <div class="">
+                                            <input type="checkbox" id="find_folders" name="find_folders">
+                                            <label style="font-weight: normal;">Folders</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="eight wide field">
+                                        <div class="">
+                                            <input type="checkbox" id="find_files" name="find_files">
+                                            <label style="font-weight: normal;">Files</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="fields small">
+                                    <div class="eight wide field">
+                                        <label class="label">Start date</label>
+                                        <input style="height: 20px !important;" type="date" id="start_date" name="start_date" class="" placeholder="enter start date" title="enter start date" />
+                                    </div>
+
+                                    <div class="eight wide field small">
+                                        <label class="label">End date</label>
+                                        <input style="height: 20px !important;" type="date" id="end_date" name="end_date" class="" placeholder="enter end date" title="enter end date" />
+                                    </div>
+                                </div>
+
+
+                                <div class="fields">
+                                    <div class="eight wide field small">
+                                        <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
+                                        <input style="height: 20px !important;" type="text" id="find_size" class="" placeholder="enter size" title="enter size" />
+                                    </div>
+                                </div>
+
+                                <div class="fields inline">
+                                    <div class="field small">
+                                        <input type="radio" name="size_options" id="size_options" value="k">
+                                        <label for="size_options">KB</label>
+                                    </div>
+                                    <div class="field">
+                                        <input type="radio" name="size_options" id="size_options" checked value="M">
+                                        <label for="size_options">MB</label>
+                                    </div>
+                                    <div class="field">
+                                        <input type="radio" name="size_options" id="size_options" value="G">
+                                        <label for="size_options">GB</label>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- LIST VIEW -->
             <div id="list_view"></div>
 
-            <!-- <button id="clickme">Test Bluetooth</button>
-            <p>Currently selected bluetooth device: <strong id="device-name"></strong></p> -->
 
-            <!-- find from vscode -->
-            <!-- <div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px; z-index: 100;">
-                <div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false">
+            <!-- ICON VIEW -->
+            <div id="icon_view">
+
+                <!-- FOLDERS -->
+                <div class="ui card fluid folders_card border-none" id="folders_card" style="">
+
+                    <div class="content fluid">
+
+                        <div class="ui grid navigate" id="folder_grid">
+                        </div>
+
+                        <div class="ui grid navigate hidden" id="hidden_folder_grid">
+                        </div>
+
+
+                    </div>
 
                 </div>
-                <div class="find-part">
-                    <div class="monaco-findInput">
-                        <div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;">
-                            <div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true"></div></div></div><div class="monaco-sash vertical" style="width: 2px; left: -1px;"></div></div><div class="editor-widget find-widget visible" aria-hidden="false" widgetid="editor.contrib.findWidget" style="width: 419px; height: 32px; position: absolute; max-width: 1037px; right: 28px; top: 0px;"><div title="Toggle Replace" tabindex="0" class="button toggle left codicon-find-collapsed codicon" role="button" aria-label="Toggle Replace" aria-expanded="false" aria-disabled="false"></div><div class="find-part"><div class="monaco-findInput"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="18" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Find" placeholder="Find" title="Find" style="background-color: inherit; width: calc(100% - 66px); height: 22px; color: rgb(204, 204, 204);"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial; padding-right: 66px;">source</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute; width: 0px; height: 10px; left: 0px; bottom: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; width: 0px;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute; width: 10px; height: 22px; right: 0px; top: 0px;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict; height: 22px;"></div></div><div class="shadow"></div><div class="shadow"></div><div class="shadow"></div></div><div class="controls" style="display: block;"><div title="Match Case (Alt+C)" class="monaco-custom-checkbox codicon codicon-case-sensitive" tabindex="0" role="checkbox" aria-checked="false" aria-label="Match Case (Alt+C)" aria-disabled="false" style="color: inherit;"></div><div title="Match Whole Word (Alt+W)" class="monaco-custom-checkbox codicon codicon-whole-word checked" tabindex="0" role="checkbox" aria-checked="true" aria-label="Match Whole Word (Alt+W)" aria-disabled="false" style="color: rgb(255, 255, 255); border-color: rgba(0, 122, 204, 0); background-color: rgba(0, 127, 212, 0.4);"></div><div title="Use Regular Expression (Alt+R)" class="monaco-custom-checkbox codicon codicon-regex" tabindex="0" role="checkbox" aria-checked="false" aria-label="Use Regular Expression (Alt+R)" aria-disabled="false" style="color: inherit;"></div></div></div><div class="find-actions"><div class="matchesCount" title="" style="min-width: 69px;">135 of 207</div><div title="Previous Match (Shift+Enter)" tabindex="0" class="button codicon codicon-find-previous-match" role="button" aria-label="Previous Match (Shift+Enter)" aria-disabled="false"></div><div title="Next Match (Enter)" tabindex="0" class="button codicon codicon-find-next-match" role="button" aria-label="Next Match (Enter)" aria-disabled="false"></div><div title="Find in Selection (Alt+L)" class="monaco-custom-checkbox codicon codicon-find-selection" tabindex="0" role="checkbox" aria-checked="false" aria-label="Find in Selection (Alt+L)" aria-disabled="true" style="color: inherit;"></div><div title="Close (Escape)" tabindex="0" class="button codicon codicon-widget-close" role="button" aria-label="Close (Escape)" aria-disabled="false"></div></div></div><div class="replace-part"><div class="monaco-findInput disabled"><div class="monaco-scrollable-element " role="presentation" style="position: relative; overflow: hidden;"><div class="monaco-inputbox idle" data-keybinding-context="19" style="overflow: hidden; background-color: rgb(60, 60, 60); color: rgb(204, 204, 204);"><div class="ibwrapper"><textarea class="input empty" autocorrect="off" autocapitalize="off" spellcheck="false" wrap="off" aria-label="Replace" placeholder="Replace" title="Replace" disabled="" style="background-color: inherit; color: rgb(204, 204, 204); height: 0px;"></textarea><div class="mirror" style="white-space: pre; overflow-wrap: initial;">&nbsp;</div></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar horizontal" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; height: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div></div><div role="presentation" aria-hidden="true" class="invisible scrollbar vertical" style="position: absolute;"><div class="slider" style="position: absolute; top: 0px; left: 0px; width: 10px; transform: translate3d(0px, 0px, 0px); contain: strict;"></div>
-                        </div>
-                        <div class="shadow">
 
-                        </div><div class="shadow">
+                <!-- FILES -->
+                <div class="ui card fluid files_card border-none" style="" id="files_card">
 
-                        </div>
-                        <div class="shadow">
-
-                        </div>
+                    <div class="content">
+                        <div class="ui grid navigate" id="file_grid"></div>
+                        <div class="ui grid navigate hidden" id="hidden_file_grid"></div>
                     </div>
-                        <div class="controls" style="display: block;"
-                        ><div title="Preserve Case (Alt+P)" class="monaco-custom-checkbox codicon codicon-preserve-case" tabindex="0" role="checkbox" aria-checked="false" aria-label="Preserve Case (Alt+P)" aria-disabled="true" style="color: inherit;"></div></div></div><div class="replace-actions"><div title="Replace (Enter)" tabindex="-1" class="button codicon codicon-find-replace disabled" role="button" aria-label="Replace (Enter)" aria-disabled="true"></div><div title="Replace All (Ctrl+Alt+Enter)" tabindex="-1" class="button codicon codicon-find-replace-all disabled" role="button" aria-label="Replace All (Ctrl+Alt+Enter)" aria-disabled="true">
-
-                        </div>
-                    </div>
-                    </div>
-                    <div class="monaco-sash vertical" style="width: 2px; left: -1px;">
-                </div>
-            </div> -->
-
-
-            <!-- FOLDERS -->
-            <div class="ui card fluid folders_card border-none" id="folders_card" style="">
-
-                <div class="content fluid">
-
-                    <div class="ui grid navigate" id="folder_grid">
-                    </div>
-
-                    <div class="ui grid navigate hidden" id="hidden_folder_grid">
-                    </div>
-
 
                 </div>
 
             </div>
 
-            <!-- FILES -->
-            <div class="ui card fluid files_card border-none" style="" id="files_card">
 
-                <div class="content">
-                    <div class="ui grid navigate" id="file_grid"></div>
-                    <div class="ui grid navigate hidden" id="hidden_file_grid"></div>
-                </div>
 
-            </div>
+            <!-- PAGING -->
+            <div id="pager" class="ui pagination menu" style="margin-left:20px; margin-top:10px"></div>
 
-            <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
             <div class="ui inverted dimmer">
                 <div class="ui text hidden loader">Loading</div>
             </div>
             <div id="msg"></div>
 
-            <div class="hidden" id="notice">
 
-            </div>
-
+            <!-- NOTICE -->
+            <div class="hidden" id="notice"></div>
 
             <div class="inlinesearch" style="">
-                <input type="text" id="txt_search" class="hidden" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
+                <input type="text" id="txt_search" class="" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
             </div>
 
             <!-- BOTTOM STATUS INFO -->
@@ -632,16 +573,10 @@
                 <progress id="progress" class="hidden"></progress>
             </div>
 
-            <!-- END OF SEGMENT -->
+
         </div>
 
-
-
     </div>
-
-
-
-
 
 </body>
 
