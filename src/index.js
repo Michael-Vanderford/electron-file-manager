@@ -207,7 +207,9 @@ function stopResize(e) {
 btn_list_view.addEventListener('click', (e) => {
 
     e.preventDefault()
-    // window.api.get_files_list(breadcrumbs.value)
+
+    localStorage.setItem('view', 2)
+
     list_view.classList.remove('hidden')
     icon_view.classList.add('hidden')
 
@@ -215,13 +217,16 @@ btn_list_view.addEventListener('click', (e) => {
 
     btn_list_view.classList.add('active')
     btn_icon_view.classList.remove('active')
-    localStorage.setItem('view', 2)
+
 })
 
 // ICON VIEW
 btn_icon_view.addEventListener('click', (e) => {
 
     e.preventDefault()
+
+    localStorage.setItem('view', 1)
+
     icon_view.classList.remove('hidden')
     list_view.classList.add('hidden')
 
@@ -232,7 +237,7 @@ btn_icon_view.addEventListener('click', (e) => {
     btn_icon_view.classList.add('active')
 
 
-    localStorage.setItem('view', 1)
+
 })
 
 
