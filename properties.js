@@ -4234,7 +4234,7 @@ async function get_files(dir) {
                     state = 0
                     notification('changing state to 0')
 
-                    move_to_folder(destination, state)
+                    move_to_folder(destination,)
                     // clear_selected_files()
                     // clear_copy_cache()
 

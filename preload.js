@@ -872,14 +872,11 @@ ipcRenderer.on('copy-complete', function (e) {
 // CONFIRM MOVE
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
-    console.log('data obj', data)
-
-    let footer = add_div()
-    let confirm_dialog = document.getElementById('confirm')
     let btn_cancel = add_button('btn_cancel', 'Cancel')
     let btn_ok = add_button('btn_ok', 'Move')
     btn_ok.classList.add('primary')
 
+    let footer = add_div()
     footer.style = 'position:fixed; bottom:0; margin-bottom: 25px;';
     footer.append(btn_cancel)
     footer.append(btn_ok)
@@ -887,6 +884,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     let source_stats = fs.statSync(data.source)
 
     let header = add_header('<br />Confirm Move:  ' + path.basename(data.source) + '<br /><br />')
+
     let description = add_p('Move files ' + data.source)
     let source_data = add_p(
         add_header('').outerHTML +
@@ -900,7 +898,10 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     let chk_move_all = add_checkbox('chk_replace', 'Apply this action to all files and folders')
     chk_div.append(chk_move_all)
 
+
+    let confirm_dialog = document.getElementById('confirm')
     confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),footer)
+
 
     chk = document.getElementById('chk_replace')
 
@@ -4229,10 +4230,6 @@ async function get_list_view(dir) {
             })
 
             list_view.append(table)
-
-            // header_grid.appendChild(row)
-            // list_view.appendChild(header_grid)
-
             console.log('sorting by ', sort)
 
             // SORT BY DATE
@@ -4300,8 +4297,12 @@ async function get_list_view(dir) {
 
             })
 
+            let file0 = '';
+
             // LOOP OVER FILES
             dirents.forEach((file, idx) => {
+
+                file0 = file;
 
                 // GET FILE NAME
                 let filename = path.join(dir, file)
@@ -4313,7 +4314,6 @@ async function get_list_view(dir) {
 
                     if (stats) {
 
-                        // let ishidden = regex.test(file)
                         let type = mime.lookup(filename)
 
                         if (!type) {
@@ -4322,29 +4322,64 @@ async function get_list_view(dir) {
 
                         let header_link = add_link('#',file);
                         header_link.classList.add('header_link')
-                        header_link.style = 'display:block !important; font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important;'
+                        header_link.style = 'font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important; width: 100%'
 
-                        tr1 = document.createElement('tr')
-                        tr = document.createElement('tr')
+                        let input = document.createElement('input')
+                        input.type = 'text'
+                        input.value = file
+                        input.classList.add('hidden', 'input')
+                        input.setSelectionRange(0, input.value.length - path.extname(filename).length)
 
+                        input.addEventListener('change', (e) => {
+                            rename_file(dir, input.value)
+                        })
+
+
+                        let tr = document.createElement('tr')
+                        tr.dataset.href = filename
+                        tr.draggable = 'true'
+
+                        // LOOP OVER COLUMNS
                         cols_arr.forEach(item => {
 
+                            let box = add_div();
+                            box.style = 'display:flex; align-items: center';
+
+                            let td = document.createElement('td');
+                            td.style = 'color: #cfcfcf; vertical-align: middle;';
+
+
                             // ADD DATA
-                            let box = add_div()
-                            let td = document.createElement('td')
-
-                            td.style = 'color: #cfcfcf; vertical-align: middle;'
-                            box.style = 'display:flex; align-items: center'
-
                             switch(item.name) {
                                 case 'Name': {
 
-                                    box.append(add_img(get_icon_path(filename)), header_link);
-                                    td.append(box)
+                                    box.append(add_img(get_icon_path(filename)), header_link, input);
+                                    td.append(box);
 
-                                    // header_link.addEventListener('click', (e) => {
-                                    //     get_list_view(filename)
-                                    // })
+                                    td.tabIndex = idx
+
+                                    td.addEventListener('mouseover', (e) => {
+                                        td.focus()
+                                    })
+
+                                    // EDIT MODE
+                                    td.addEventListener('keyup', (e) => {
+
+                                        if (e.key === 'F2') {
+                                            header_link.classList.add('hidden')
+                                            input.classList.remove('hidden', 'input')
+                                            input.focus()
+                                        }
+
+                                        if (e.key === 'Escape') {
+                                            input.classList.add('hidden');
+                                            input.value = file0;
+                                            header_link.classList.remove('hidden');
+                                        }
+
+                                    })
+
+                                    td.classList.add('card')
 
                                     break;
                                 }
@@ -4363,20 +4398,22 @@ async function get_list_view(dir) {
                             }
 
                             tr.append(td)
-                            tr.addEventListener('click', (e) => {
-                                td.classList.add('highlight_select')
-                            })
+                            // tr.addEventListener('click', (e) => {
+                            //     td.classList.add('highlight_select')
+                            // })
 
-                            tr.addEventListener('mouseover', (e) => {
-                                td.classList.add('highlight')
-                            })
+                            // tr.addEventListener('mouseover', (e) => {
+                            //     td.classList.add('highlight')
+                            // })
 
-                            tr.addEventListener('mouseout', (e) => {
-                                td.classList.remove('highlight')
-                            })
+                            // tr.addEventListener('mouseout', (e) => {
+                            //     td.classList.remove('highlight')
+                            // })
 
 
                         })
+
+
 
                         tbody.appendChild(tr)
 
@@ -4419,7 +4456,6 @@ async function get_list_view(dir) {
             // list_view.appendChild(file_grid)
 
         }
-
 
 
     })
@@ -5712,6 +5748,8 @@ async function get_files(dir, callback) {
     // RENAME
     Mousetrap.bind('f2', () => {
 
+        console.log('f2 pressed')
+
         let cards = document.querySelectorAll('.highlight, .highlight_select')
         if (cards.length > 0) {
             cards.forEach(card => {
@@ -6926,10 +6964,10 @@ function add_p(text) {
     return p
 }
 
-// ADD ICON
+// ADD HEADER
 function add_header(text) {
-    let header = document.createElement('span');
-    header.style = 'font-weight:bold; font-size: 14px; padding: 5px; position: fixed;';
+    let header = document.createElement('h4');
+    // header.style = 'font-weight:bold; font-size: 14px; padding: 5px; position: fixed;';
     header.innerHTML = text;
     return header;
 }
@@ -7541,61 +7579,71 @@ function create_file_from_template(filename) {
 // RENAME FILE OR FOLDER
 function rename_file(directory, new_name) {
 
-    let exixts = fs.existsSync(new_name)
 
-    if (exixts) {
+    if (new_name == "") {
 
-        alert(new_name + ' already exists!')
+        alert('Enter a file name');
 
     } else {
-        fs.rename(directory, new_name, function (err) {
-            if (err) {
 
-                console.log(err)
+        let filename = path.join(directory, new_name)
+        console.log('renaming', directory, filename)
 
-            } else {
+        let exists = fs.existsSync(filename)
 
-                console.log('File/folder renamed successfully!');
-                notification('renamed ' + directory + ' to ' + new_name);
+        if (exists) {
 
-                let card = document.getElementById(card_id)
-                let input = card.querySelector('input')
-                let header = card.querySelector('a')
+            alert(new_name + ' already exists!')
 
-                let href = new_name //path.join(path.dirname(directory), input.value)
-                card.dataset.href = href
+        } else {
 
-                card.classList.remove('highlight')
-                let stats = fs.statSync(href)
-                let file_size = stats.size
-                let mtime = stats.mtime
-                card.title =
-                    href +
-                    '\n' +
-                    file_size +
-                    '\n' +
-                    mtime
+            fs.rename(directory, new_name, function (err) {
+                if (err) {
 
-                input.classList.add('hidden')
+                    console.log(err)
 
-                header.classList.remove('hidden')
-                header.text = input.value
-                header.href = href
-                header.title = 'open file? ' + path.dirname(href) + '/' + input.value
+                } else {
 
-                source = href
+                    console.log('File/folder renamed successfully!');
+                    notification('renamed ' + directory + ' to ' + new_name);
 
-                header.focus()
+                    let card = document.getElementById(card_id)
+                    let input = card.querySelector('input')
+                    let header = card.querySelector('a')
 
-                let main_view = document.getElementById('main_view')
-                update_cards(main_view)
+                    let href = new_name //path.join(path.dirname(directory), input.value)
+                    card.dataset.href = href
+
+                    card.classList.remove('highlight')
+                    let stats = fs.statSync(href)
+                    let file_size = stats.size
+                    let mtime = stats.mtime
+                    card.title =
+                        href +
+                        '\n' +
+                        file_size +
+                        '\n' +
+                        mtime
+
+                    input.classList.add('hidden')
+
+                    header.classList.remove('hidden')
+                    header.text = input.value
+                    header.href = href
+                    header.title = 'open file? ' + path.dirname(href) + '/' + input.value
+
+                    source = href
+
+                    header.focus()
+
+                    let main_view = document.getElementById('main_view')
+                    update_cards(main_view)
 
 
-            }
-        })
+                }
+            })
+        }
     }
-
-
 
 }
 

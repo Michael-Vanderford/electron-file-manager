@@ -83,10 +83,11 @@ body {
         height: 22px !important;
     }
 
-    .input:focus {
+    /* .input:focus {
         -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
         box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
-    }
+    } */
+
 
   /* .tree_icon {
     background-image: url("../icons/korla/places/scalable/gnome-folder.svg");
@@ -720,16 +721,16 @@ progress[value]::-webkit-progress-bar {
     font-weight: bold !important;
 }
 
-#find input[type="text"] {
+/* #find input[type="text"] { */
     /* position:fixed; */
     /* background-color: #000000; */
-    height: 24px !important;
-    width: 200px !important;
+    /* height: 24px !important; */
+    /* width: 200px !important; */
     /* top: 80px; */
     /* right: 0; */
-    font-size: 12px;
-    font-weight: bold !important;
-}
+    /* font-size: 12px; */
+    /* font-weight: bold !important; */
+/* } */
 
 
 #files_card
@@ -877,7 +878,7 @@ button .button .link {
 
 
 
-input[type=text], input[type=date],  textarea, .dd {
+/* input[type=text], input[type=date],  textarea, .dd {
 
     width: 100% !important;
     height: 24px !important;
@@ -885,7 +886,7 @@ input[type=text], input[type=date],  textarea, .dd {
     outline: none !important;
     -moz-outline-style: none !important;
 
-}
+} */
 
 .form {
   /* position:fixed !important; */
@@ -900,13 +901,28 @@ h5 {
 
 #main_view a {
     text-decoration: underline !important;
-/* color: black;    */
 }
 
 .card:focus {
   outline: 0;
   border: none;
   -moz-outline-style: none;
+}
+
+input[type=text], input[type=date],  textarea, .dd {
+    width: 100% !important;
+    height: 23px;
+    border-radius: 4px;
+    /* color:#cfcfcf; */
+    /* background:#425261 !important; */
+    /* -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255); */
+}
+
+input:focus {
+    outline: 0;
+    border: none;
+    -moz-outline-style: none;
 }
 
 .ui.card .folder_card,
