@@ -591,9 +591,16 @@ function createConfirmDialog(data, copy_files_arr) {
     //
     ipcMain.on('overwrite_confirmed', (e,data) => {
 
-        // console.log('running overwrite confirmed', data)
+        console.log('running overwrite confirmed', data.source, data.destination)
+
         // win.send('overwrite', data)
-        copyFolderRecursiveSync(data.source, data.destination, data.state, () => {})
+        // copyFolderRecursiveSync(data.source, data.destination, data.state, () => {})
+
+        if (fs.statSync(data.source).isDirectory()) {
+            copyFolderRecursiveSync(data.source, data.destination, data.state, () => {})
+        } else {
+            copyFileSync(data.source, data.destination, 0, () => {})
+        }
 
         let active_window = BrowserWindow.getFocusedWindow();
         active_window.hide()

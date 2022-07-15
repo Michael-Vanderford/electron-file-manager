@@ -574,27 +574,27 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
 
     console.log('running confirming overwrite')
 
-    // const childWindow = window.open('src/confirm.html')
-    // childWindow.document.write('Hello')
-
     let confirm_dialog = document.getElementById('confirm')
 
     let source_stats = fs.statSync(data.source)
     let destination_stats = fs.statSync(data.destination)
 
-    // let chk_replace_label = add_label('Apply this action to all files and folders')
+
     let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders')
 
 
     let btn_cancel = add_button('btn_cancel', 'Cancel')
     let btn_replace = add_button('btn_replace', 'Replace')
     let btn_skip = add_button('btn_skip', 'Skip')
-    let icon = add_icon('info-circle')
 
-
-    let confirm_msg = add_div()
 
     btn_replace.classList.add('primary')
+
+    let footer = add_div()
+    footer.style = 'position:fixed; bottom:0; margin-bottom: 25px;';
+    footer.append(btn_cancel, btn_replace, btn_skip)
+
+
 
     let source_data = ''
     let destination_data = ''
@@ -674,12 +674,11 @@ ipcRenderer.on('confirming_overwrite', (e, data) => {
     let replace_all = add_div()
     let br = document.createElement('br')
     let br1 = document.createElement('br')
+    replace_all.append(chk_replace_div)
     replace_all.append(br)
     replace_all.append(br1)
-    replace_all.append(chk_replace_div)
 
-
-    confirm_dialog.append(header,source_data,destination_data,btn_cancel,btn_replace,btn_skip, replace_all)
+    confirm_dialog.append(header,source_data,destination_data,replace_all, footer)
 
     let chk_replace = document.getElementById('chk_replace')
     let is_checked = 0
@@ -2642,9 +2641,7 @@ async function add_card(options) {
 
         card.id = id
         card.dataset.href = href
-        // card.tabIndex = cardindex
-        input.autocomplete = true
-
+        input.spellcheck = false
 
         // SET INDEX FOR NAVIGATION
         if (grid.id == 'folder_grid' || grid.id == 'file_grid') {
@@ -2933,6 +2930,7 @@ async function add_card(options) {
         input.id = 'edit_' + id
         input.classList.add('hidden', 'input')
         input.type = 'text'
+        input.spellcheck = false
         input.value = linktext
 
 
@@ -2957,7 +2955,7 @@ async function add_card(options) {
                 card.classList.add('highlight_select')
 
                 // RENAME FILE
-                rename_file(href, path.dirname(href) + '/' + this.value.trim())
+                rename_file(href, this.value.trim())
 
                 this.classList.add('hidden')
 
@@ -4162,21 +4160,27 @@ async function get_list_view(dir) {
     let cols_arr = [
         {
             name:'Name',
-            size: 'six'
+            size: 'six',
+            sort: 2,
+            show: 1
         },
         {
             name:'Size',
-            size:'three'
+            size:'three',
+            sort: 3,
+            show: 1
         },
         {
             name:'Modified',
-            size:'three'
-
+            size:'three',
+            sort: 1,
+            ahow: 1
         },
         {
             name:'Type',
-            size:'three'
-
+            size:'three',
+            sort: 4,
+            show: 1
         }
     ]
 
@@ -4192,22 +4196,12 @@ async function get_list_view(dir) {
 
         if (err) {
 
-
         } else {
 
             let table = document.createElement('table')
             let thead = document.createElement('thead')
             let tr = document.createElement('tr')
             let tbody = document.createElement('tbody')
-
-            // let header_grid = add_grid()
-            // let folder_list = add_grid()
-            // let file_list = add_grid()
-            // let row = add_row()
-
-            // header_grid.style = 'margin-top: 5px; margin-bottom: 20px; height: 25px;'
-            // row.style = 'background: #000000 !important; position fixed;'
-            // row.style = 'margin-top: 15px;'
 
             table.classList.add('ui','four', 'small', 'selectable', 'sortable', 'compact', 'celled', 'table')
             thead.classList.add('full-width')
@@ -4216,15 +4210,24 @@ async function get_list_view(dir) {
             table.append(thead)
             thead.append(tr)
 
-            cols_arr.forEach(col => {
+            cols_arr.forEach((col, idx) => {
 
                 let th = document.createElement('th')
                 th.innerHTML = col.name
+                th.dataset.sort = idx + 1
+
+                th.addEventListener('click', (e) => {
+                    let sort = col.sort
+                    localStorage.setItem('sort', sort)
+                    get_list_view(dir)
+                })
+
                 if (col.name == 'Name') {
                     th.classList.add('eight' , 'wide')
                 } else {
                     th.classList.add('two' , 'wide')
                 }
+
                 tr.append(th)
 
             })
@@ -4233,7 +4236,7 @@ async function get_list_view(dir) {
             console.log('sorting by ', sort)
 
             // SORT BY DATE
-            switch (sort) {
+            switch (parseInt(sort)) {
 
                 case 1: {
 
@@ -4255,14 +4258,14 @@ async function get_list_view(dir) {
                     })
 
                     break
-
                 }
 
                 // SORT BY NAME
                 case 2: {
                     dirents.sort((a,b) => {
-                        return a.toLocaleLowerCase().localeCompare(b.toLocaleLowerCase())
+                        return a.toLocaleLowerCase().localeCompare(b.toLocaleLowerCase());
                     })
+                    break;
                 }
 
                 // SORT BY SIZE
@@ -4278,6 +4281,12 @@ async function get_list_view(dir) {
 
                     })
                 }
+
+                // SORT BY TYPE
+                case 4: {
+
+                }
+
 
 
 
@@ -4327,11 +4336,12 @@ async function get_list_view(dir) {
                         let input = document.createElement('input')
                         input.type = 'text'
                         input.value = file
+                        input.spellcheck = false
                         input.classList.add('hidden', 'input')
                         input.setSelectionRange(0, input.value.length - path.extname(filename).length)
 
                         input.addEventListener('change', (e) => {
-                            rename_file(dir, input.value)
+                            rename_file(filename, input.value)
                         })
 
 
@@ -4520,6 +4530,7 @@ async function get_files(dir, callback) {
 
     // GET REFERENCES
     let main_view = document.getElementById('main_view')
+    let icon_view = document.getElementById('icon_view')
     let dimmer = document.getElementsByClassName('dimmer')
     let folder_grid = document.getElementById('folder_grid')
     let hidden_folder_grid = document.getElementById('hidden_folder_grid')
@@ -4872,7 +4883,7 @@ async function get_files(dir, callback) {
             }
 
             // UPDATE CARDS
-            update_cards(main_view)
+            update_cards(icon_view)
 
             // let header = document.getElementsByClassName('.header_link')
             // header[0].focus()
@@ -5757,14 +5768,17 @@ async function get_files(dir, callback) {
                 if (card) {
 
                     let header = card.querySelector('a')
-                    let input = card.querySelector('input')
-
                     header.classList.add('hidden')
+
+                    let input = card.querySelector('input')
+                    input.spellcheck = false
                     input.classList.remove('hidden')
+                    input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
+                    input.focus()
+
 
                     console.log('running focus')
-                    input.focus()
-                    input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
+
 
                 }
 
@@ -7577,17 +7591,18 @@ function create_file_from_template(filename) {
 
 
 // RENAME FILE OR FOLDER
-function rename_file(directory, new_name) {
+function rename_file(source, destination_name) {
 
 
-    if (new_name == "") {
+
+    if (destination_name == "") {
 
         alert('Enter a file name');
 
     } else {
 
-        let filename = path.join(directory, new_name)
-        console.log('renaming', directory, filename)
+        let filename = path.join(path.dirname(source), destination_name)
+        console.log('renaming', source, filename)
 
         let exists = fs.existsSync(filename)
 
@@ -7597,52 +7612,58 @@ function rename_file(directory, new_name) {
 
         } else {
 
-            fs.rename(directory, new_name, function (err) {
+            console.log(source, filename)
+
+            fs.rename(source, filename, function (err) {
+
                 if (err) {
 
                     console.log(err)
 
                 } else {
 
+
                     console.log('File/folder renamed successfully!');
-                    notification('renamed ' + directory + ' to ' + new_name);
+                    notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
 
-                    let card = document.getElementById(card_id)
-                    let input = card.querySelector('input')
-                    let header = card.querySelector('a')
+                    //                 let card = document.getElementById(card_id)
+                    //                 let input = card.querySelector('input')
+                    //                 let header = card.querySelector('a')
 
-                    let href = new_name //path.join(path.dirname(directory), input.value)
-                    card.dataset.href = href
+                    //                 let href = new_name //path.join(path.dirname(directory), input.value)
+                    //                 card.dataset.href = href
 
-                    card.classList.remove('highlight')
-                    let stats = fs.statSync(href)
-                    let file_size = stats.size
-                    let mtime = stats.mtime
-                    card.title =
-                        href +
-                        '\n' +
-                        file_size +
-                        '\n' +
-                        mtime
+                    //                 card.classList.remove('highlight')
+                    //                 let stats = fs.statSync(href)
+                    //                 let file_size = stats.size
+                    //                 let mtime = stats.mtime
+                    //                 card.title =
+                    //                     href +
+                    //                     '\n' +
+                    //                     file_size +
+                    //                     '\n' +
+                    //                     mtime
 
-                    input.classList.add('hidden')
+                    //                 input.classList.add('hidden')
 
-                    header.classList.remove('hidden')
-                    header.text = input.value
-                    header.href = href
-                    header.title = 'open file? ' + path.dirname(href) + '/' + input.value
+                    //                 header.classList.remove('hidden')
+                    //                 header.text = input.value
+                    //                 header.href = href
+                    //                 header.title = 'open file? ' + path.dirname(href) + '/' + input.value
 
-                    source = href
+                    //                 source = href
 
-                    header.focus()
+                    //                 header.focus()
 
                     let main_view = document.getElementById('main_view')
                     update_cards(main_view)
 
 
                 }
+
             })
         }
+
     }
 
 }
