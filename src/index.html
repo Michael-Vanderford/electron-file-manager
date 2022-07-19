@@ -22,10 +22,10 @@
 
     <div class="container">
 
-        <div class="ui grid hidden">
+        <div class="ui grid hidden" style="margin-bottom: 0px;">
             <div class="column sixteen wide">
-                <div class="ui top menu hidden fixed" id="header_menu"
-                    style="background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
+                <div class="ui top menu fixed" id="header_menu"
+                    style="border-top-left-radius: 15px !important; border-top-right-radius: 15px; background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
 
 
                     <div class="ui simple dropdown item" style="" id="">
@@ -107,60 +107,61 @@
 
             <div class="column sixteen wide">
 
-                <div class="ui mini fixed menu borderless" id="file_menu">
+                <!-- FILE MENU -->
+                <div class="ui mini fixed menu borderless" id="file_menu" style="background: #3a3a3a !important; margin-top:0px;">
                     <a class="item" id="home">
                         <!-- <i class="home icon"></i> -->
-                        <i class="icon bi-house"></i>
+                        <i class="icon bi-house small"></i>
                         Home
                     </a>
                     <a class="item" id="documents">
                         <!-- <i class="folder icon blue"></i> -->
-                        <i class="icon bi-folder"></i>
+                        <i class="icon bi-folder small"></i>
                         Documents
                     </a>
                     <a class="item" id="downloads">
                         <!-- <i class="download icon"></i> -->
-                        <i class="icon bi-download"></i>
+                        <i class="icon bi-download small"></i>
                         Downloads
                     </a>
                     <a class="item" id="pictures">
                         <!-- <i class="images icon"> </i> -->
-                        <i class="icon bi-images"> </i>
+                        <i class="icon bi-images small"> </i>
                         Pictures
                     </a>
                     <a class="item" id="videos">
                         <!-- <i class="video icon"></i> -->
-                        <i class="icon bi-camera-video"> </i>
+                        <i class="icon bi-camera-video small"> </i>
                         Videos
                     </a>
                     <a class="item" id="music" title="Music">
                         <!-- <i class="music icon"></i> -->
-                        <i class="icon bi-music-note"> </i>
+                        <i class="icon bi-music-note small"> </i>
                         Music
                     </a>
                     <!-- todo: this needs to be fixed network and media are reversed -->
                     <a class="item" id="devices" title="/run/user/1000/gvfs" >
                         <!-- <i class="sitemap alternative icon"></i> -->
-                        <i class="icon bi-hdd-network"></i>
+                        <i class="icon bi-hdd-network small"></i>
                         Network
                     </a>
                     <a class="item" id="network" title="/media">
                         <!-- <i class="mobile alternative icon"></i> -->
-                        <i class="icon bi-tablet"></i>
+                        <i class="icon bi-tablet small"></i>
                         Devices
                     </a>
                     <!-- ----------------------------------------------------- -->
 
                     <a class="item" id="terminal" title="Open a terminal in the current folder">
                         <!-- <i class="terminal icon"></i> -->
-                        <i class="icon bi-terminal "></i>
+                        <i class="icon bi-terminal small"></i>
                         <!-- Terminal -->
                     </a>
 
                     <a class="item button gnome_disks" title="Gnome Disks">
                         <!-- <div class="button" > -->
                         <!-- <i class="icon disk"></i> -->
-                        <i class="icon bi-hdd "></i>
+                        <i class="icon bi-hdd small"></i>
                         <!-- Disk Management -->
                         <!-- </div> -->
                     </a>
@@ -169,7 +170,7 @@
                     <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
                         <!-- todo: enable show data content -->
                         <!-- <div class="button" data-content="Show hidden files and folders"> -->
-                        <i class="ui icon eye"></i>
+                        <i class="ui icon eye small"></i>
                         <!-- show/Hide hidden -->
                         <!-- </div> -->
                     </a>
@@ -180,17 +181,17 @@
                     </a>
 
                     <a class="item" id="sort_by_name" title="sort by name">
-                        <i class="icon sort alphabet down"></i>
+                        <i class="icon sort alphabet down small"></i>
                         <!-- Sort by name -->
                     </a>
 
                     <a class="item" id="sort_by_size" title="sort by size">
-                        <i class="icon sort amount down"></i>
+                        <i class="icon sort amount down small"></i>
                         <!-- Sort by size -->
                     </a>
 
                     <a class="item" id="sort_by_type" title="sort by type">
-                        <i class="icon sort file alternative outline down"></i>
+                        <i class="icon sort file alternative outline down small"></i>
                         <!-- Sort by type -->
                     </a>
 
@@ -201,7 +202,7 @@
                 </div>
 
                 <!-- NAVIGATION MENU -->
-                <div id="navigation_menu" class="ui mini menu fixed bottom borderless">
+                <div id="navigation_menu" class="ui mini menu fixed bottom borderless" style="margin-top: 0px;">
 
                     <a class="item" id="left">
                         <!-- <i class="ui icon chevron left" title="go back"></i> -->
@@ -231,8 +232,8 @@
                         <i class="ui icon list small"></i>
                     </a>
 
-                    <!-- ICON VIEW -->
-                    <a class="item" id="btn_icon_view">
+                    <!-- GRID VIEW -->
+                    <a class="item" id="btn_grid_view">
                         <i class="ui icon th small"></i>
                     </a>
 
@@ -423,7 +424,7 @@
             <div id="loader" class="ui centered loader"></div>
 
             <!-- SEARCH / FIND -->
-            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:35px; width:420px; right: 0; z-index: 100;" id="find_div" class="hidden border">
+            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:35px; width:420px; right: 0; z-index: 1000 !important;" id="find_div" class="hidden border">
 
                 <!-- FIND -->
                 <div style="float:left; width:0%; text-align: center;">
@@ -507,12 +508,14 @@
 
             </div>
 
+            <!-- EMPTY DIR -->
+            <div id="info_view"></div>
+
             <!-- LIST VIEW -->
             <div id="list_view" style="margin-top: 5px"></div>
 
-
             <!-- ICON VIEW -->
-            <div id="icon_view" style="margin-top: 20px">
+            <div id="grid_view" style="margin-top: 20px">
 
                 <!-- FOLDERS -->
                 <div class="ui card fluid folders_card border-none" id="folders_card" style="">
@@ -542,8 +545,6 @@
 
             </div>
 
-
-
             <!-- PAGING -->
             <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
 
@@ -557,7 +558,7 @@
             <div class="hidden" id="notice"></div>
 
             <div class="inlinesearch" style="">
-                <input spellcheck="true" type="text" id="txt_search" class="" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
+                <input spellcheck="true" type="text" id="txt_search" class="hidden" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
             </div>
 
             <!-- BOTTOM STATUS INFO -->

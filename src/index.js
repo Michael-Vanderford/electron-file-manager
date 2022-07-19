@@ -17,11 +17,11 @@ const footer = document.getElementById('footer')
 
 // TOGGLE VIEWS
 let btn_list_view = document.getElementById('btn_list_view')
-let btn_icon_view = document.getElementById('btn_icon_view')
+let btn_grid_view = document.getElementById('btn_grid_view')
 
 // VIEWS
 let list_view = document.getElementById('list_view')
-let icon_view = document.getElementById('icon_view')
+let grid_view = document.getElementById('grid_view')
 
 let home_folder = window.api.get_home()
 
@@ -46,18 +46,16 @@ function clear_active() {
 
 }
 
-function setitem(key,val){
-    localStorage.setItem(key,val)
-}
+
 
 // LOAD FILES FROM PREELOAD.JS
 function get_files(dir) {
 
 
-    // ICON VIEW
-    if (localStorage.getItem('view') == '1' || localStorage.getItem('view') == '') {
+    // GRID VIEW
+    if (localStorage.getItem('view') == 'grid' || localStorage.getItem('view') == '') {
         window.api.get_files(dir, () => {})
-        btn_icon_view.classList.add('active')
+        btn_grid_view.classList.add('active')
 
     // LIST VIEW
     } else {
@@ -208,33 +206,33 @@ btn_list_view.addEventListener('click', (e) => {
 
     e.preventDefault()
 
-    localStorage.setItem('view', 2)
+    localStorage.setItem('view', 'list')
 
     list_view.classList.remove('hidden')
-    icon_view.classList.add('hidden')
+    grid_view.classList.add('hidden')
 
     get_files(localStorage.getItem('folder'))
 
     btn_list_view.classList.add('active')
-    btn_icon_view.classList.remove('active')
+    btn_grid_view.classList.remove('active')
 
 })
 
 // ICON VIEW
-btn_icon_view.addEventListener('click', (e) => {
+btn_grid_view.addEventListener('click', (e) => {
 
     e.preventDefault()
 
-    localStorage.setItem('view', 1)
+    localStorage.setItem('view', 'grid')
 
-    icon_view.classList.remove('hidden')
+    grid_view.classList.remove('hidden')
     list_view.classList.add('hidden')
 
     get_files(localStorage.getItem('folder'))
 
     // window.api.get_files(breadcrumbs.value)
     btn_list_view.classList.remove('active')
-    btn_icon_view.classList.add('active')
+    btn_grid_view.classList.add('active')
 
 
 

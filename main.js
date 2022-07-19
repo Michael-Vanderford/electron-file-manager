@@ -90,10 +90,7 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
                 if (!fs.existsSync(destination)) {
                     destination0 = destination
                     fs.mkdirSync(destination)
-
-                    console.log('creating destination ', destination)
-
-
+                    // console.log('creating destination ', destination)
                 }
 
                 // LOOP OVER FILES
@@ -335,8 +332,6 @@ function get_icon_path(href) {
     app.getFileIcon(href).then(icon => {
 
         icon_path = icon.toDataURL()
-        // console.log(icon)
-
         let data = {
             href: href,
             icon_path: icon_path
@@ -362,37 +357,10 @@ ipcMain.on('ondragstart', (e, href) => {
     })
 })
 
-// // OPEN FILE
-// ipcMain.on('open_file', (e, href) => {
-//     e.preventDefault()
-//     // exec('xdg-open ' + href + ' &')
-
-//     fs.open(href, (err) => {
-//         if (err) {
-//             console.log(err)
-//         } else {
-//             console.log('opening file')
-//         }
-//     })
-
-//     // shell.openPath(href, (err) => {
-//     //     ipcMain.send('notificatoin', err)
-//     // })
-// })
-
 // COPY
 ipcMain.on('copy', (e, copy_files_arr, state) => {
 
-    let max = 0;
-    copy_files_arr.forEach(item => {
-        // console.log('item', item.size)
-        max += parseInt(item.size)
-    })
-
-    win.webContents.send('progress', max);
-
-
-    copy_files_arr.forEach((item, idx) => {
+    copy_files_arr.every((item, idx) => {
 
         let source = item.source
         let destination = item.destination
@@ -496,6 +464,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                     }
 
                     createConfirmDialog(data, copy_files_arr)
+                    return false
 
                 } else {
 
@@ -508,8 +477,11 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
                     copyFileSync(source, destination_file, state, (res) => {
 
                         win.webContents.send('notification', 'done copying files')
+                        console.log('running')
 
                     })
+
+                    return true
 
                 }
 
@@ -519,7 +491,7 @@ ipcMain.on('copy', (e, copy_files_arr, state) => {
 
     })
 
-
+    return true
 
 })
 
@@ -538,9 +510,11 @@ ipcMain.on('show_confirm_dialog', (e, data) => {
 // let confirm = null
 function createConfirmDialog(data, copy_files_arr) {
 
+
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
     let y = bounds.y + ((bounds.height - 400) / 2);
+
 
     const confirm = new BrowserWindow({
         parent:win,
@@ -563,6 +537,7 @@ function createConfirmDialog(data, copy_files_arr) {
     // LOAD INDEX FILE
     confirm.loadFile('src/confirm.html')
 
+    //
     confirm.once('ready-to-show', () => {
 
         confirm.title = 'Copy File Conflict'
@@ -570,46 +545,114 @@ function createConfirmDialog(data, copy_files_arr) {
         confirm.show()
 
         // confirm.webContents.openDevTools()
-        confirm.send('confirming_overwrite', data)
+        confirm.send('confirming_overwrite', data, copy_files_arr)
 
     })
 
+
+    // OVERWRITE CONFIRMED ALL
     ipcMain.on('overwrite_confirmed_all', (e, destination) => {
 
         e.preventDefault()
 
-        // win.send('overwrite_all', copy_files_arr)
-        // console.log('overwrite all ', copy_files_arr.length)
+        // GET SIZE FOR PROGRESS
+        let max = 0;
+        copy_files_arr.forEach(item => {
+            max += parseInt(item.size)
+        })
+
+        // SHOW PROGRESS
+        win.webContents.send('progress', max);
+
+        // COPY FOLDER SYNC
         copyFolderRecursiveSync(data.source, data.destination, state, () => {})
 
         copy_files_arr = []
 
+        //
         confirm.hide()
 
     })
 
-    //
-    ipcMain.on('overwrite_confirmed', (e,data) => {
 
+    // OVERWRITE CONFIRMED
+    ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr) => {
+
+        // HIDE
+        confirm.hide();
+
+        // GET SIZE FOR PROGRESS
+        let max = 0;
+        copy_files_arr.forEach(item => {
+            max += parseInt(item.size)
+        })
+
+        // SHOW PROGRESS
+        win.webContents.send('progress', max);
         console.log('running overwrite confirmed', data.source, data.destination)
 
-        // win.send('overwrite', data)
-        // copyFolderRecursiveSync(data.source, data.destination, data.state, () => {})
-
+        // COPY FOLDER
         if (fs.statSync(data.source).isDirectory()) {
             copyFolderRecursiveSync(data.source, data.destination, data.state, () => {})
+
+        // COPY FILE
         } else {
-            copyFileSync(data.source, data.destination, 0, () => {})
+
+            copyFileSync(data.source, data.destination, 0, () => {
+
+                // REMOVE ITEM FROM ARRAY
+                copy_files_arr.shift()
+
+                if (copy_files_arr.length > 0) {
+
+                    data = {
+                        state: 0,
+                        source: copy_files_arr[0].source,
+                        destination: copy_files_arr[0].destination
+                    }
+
+                    console.log('copy files array length', copy_files_arr.length)
+
+                    // CREATE CONFIRM COPY
+                    createConfirmDialog(data, copy_files_arr);
+
+                }
+
+            })
         }
 
-        let active_window = BrowserWindow.getFocusedWindow();
-        active_window.hide()
+        // let active_window = BrowserWindow.getFocusedWindow();
+        // active_window.hide()
 
-        copy_files_arr = []
+        // copy_files_arr = []
 
     })
 
-    //
+    ipcMain.on('overwrite_skip', (e) => {
+
+        confirm.hide()
+
+        // REMOVE ITEM FROM ARRAY
+        copy_files_arr.shift()
+
+        if (copy_files_arr.length > 0) {
+
+            data = {
+                state: 0,
+                source: copy_files_arr[0].source,
+                destination: copy_files_arr[0].destination
+            }
+
+            console.log('copy files array length', copy_files_arr.length)
+
+            // CREATE CONFIRM COPY
+            createConfirmDialog(data, copy_files_arr);
+
+        }
+
+    })
+
+    // OVERWRITE CONFIRMED CANCLED
     ipcMain.on('overwrite_canceled', (e) => {
 
         let active_window = BrowserWindow.getFocusedWindow();
@@ -619,7 +662,21 @@ function createConfirmDialog(data, copy_files_arr) {
 
     })
 
+    // OVERWRITE CONFIRMED CANCLED
+    ipcMain.on('overwrite_canceled_all', (e) => {
+
+        let active_window = BrowserWindow.getFocusedWindow();
+        active_window.hide()
+
+        copy_files_arr = []
+
+    })
+
 }
+
+
+
+
 
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
@@ -909,6 +966,7 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
         if (fs.statSync(data.source).isDirectory()) {
 
             copyFolderRecursiveSync(data.source, data.destination, state, () => {
+
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
                         win.send('remove_card', data.source);
@@ -1605,8 +1663,6 @@ process.on('uncaughtException', function (err) {
   console.log(err);
 })
 
-
-
 // TEMPLATE MENU
 function add_templates_menu(menu, e, args){
 
@@ -1650,7 +1706,6 @@ function add_launcher_menu(menu, e, args) {
         }
     }
 }
-
 
 // MAIN MENU
 ipcMain.on('show-context-menu', (e, options) => {
@@ -1742,6 +1797,310 @@ ipcMain.on('show-context-menu', (e, options) => {
 
 })
 
+// FOLDERS MENU
+ipcMain.on('show-context-menu-directory', (e, args) => {
+
+    const template1 = [
+      {
+        label: 'Open with Code',
+        click: () => {
+          e.sender.send('context-menu-command', 'vscode')
+        }
+      },
+      {
+          type: 'separator'
+      },
+      {
+          label: 'Open',
+          click: () => {
+              e.sender.send('open')
+          }
+      },
+      {
+        label: 'Open in new window',
+        click: () => {
+          e.sender.send('context-menu-command', 'open_in_new_window')
+        }
+      },
+      {
+          id: 'launchers',
+          label: 'Open with',
+          submenu: []
+      },
+      {
+          type: 'separator'
+      },
+      {
+          id: 'templates',
+          label: 'New Document',
+          submenu: [
+          {
+              label: 'Open Templates Folder',
+              click: () => {
+                  e.sender.send('context-menu-command', 'open_templates_folder'
+              ),
+              {
+                  type: 'separator'
+              }
+          }
+      },],
+      },
+      {
+          label: 'New Folder',
+          accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
+          click: () => {
+              e.sender.send('context-menu-command', 'new_folder')
+          }
+      },
+      {
+        type: 'separator'
+      },
+      {
+          label: 'Add to workspace',
+          click: () => {
+              e.sender.send('open')
+          }
+      },
+      {
+          type: 'separator'
+      },
+      {
+        label: 'Cut',
+        click: () => {
+          e.sender.send('context-menu-command', 'cut')
+        }
+      },
+      {
+        label: 'Copy',
+        accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
+        click: () => {
+          e.sender.send('context-menu-command', 'copy')
+        }
+      },
+      {
+          label: 'Paste',
+          accelerator: process.platform === 'darwin' ? 'CTRL+V' : 'CTRL+V',
+          click: () => {
+            e.sender.send('context-menu-command', 'paste')
+          }
+      },
+      {
+        label: 'Paste file into folder',
+        click: () => {
+          e.sender.send('context-menu-command', 'paste_file')
+        }
+      },
+      {
+        label: '&Rename',
+        accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
+        click: () => {
+          e.sender.send('context-menu-command', 'rename')
+        }
+      },
+      {
+          type: 'separator'
+      },
+      {
+        label: 'Compress',
+        click: () => {
+          e.sender.send('context-menu-command', 'compress_folder')
+        }
+      },
+      {
+          type: 'separator'
+      },
+      {
+          label: 'Delete',
+          click: () => {
+            // e.sender.send('context-menu-command', 'delete_folder')
+            e.sender.send('context-menu-command', 'delete')
+          }
+        },
+        {
+          type: 'separator'
+      },
+      {
+        label: 'Open in terminal',
+        click: () => {
+          e.sender.send('context-menu-command', 'open_folder_in_terminal')
+        }
+      },
+      {
+          type: 'separator'
+      },
+      {
+          label: 'Properties',
+          click:()=>{
+              // createPropertiesWindow()
+              e.sender.send('context-menu-command', 'props')
+          }
+      },
+      {
+          type: 'separator'
+      }
+      // {
+      //   label: 'Move to trash',
+      //   click: () => {
+      //     e.sender.send('context-menu-command', 'move_to_trash')
+      //   }
+      // },
+    ]
+
+      const menu1 = Menu.buildFromTemplate(template1)
+
+      // ADD TEMPLATES
+      add_templates_menu(menu1, e, args)
+
+      // ADD LAUNCHER MENU
+      add_launcher_menu(menu1, e, args)
+
+
+      menu1.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
+// FILES MENU
+ipcMain.on('show-context-menu-files', (e, args) => {
+
+    const template = [
+        {
+            label: 'Open with Code',
+            click: () => {
+            e.sender.send('context-menu-command', 'vscode')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            id: 'launchers',
+            label: 'Open with',
+            // click: () => {
+            //     e.sender.send('open_with')
+            // },
+            submenu: []
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: '&New Folder',
+            accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
+            click: () => {
+            e.sender.send('context-menu-command', 'new_folder')
+            }
+        },
+        {
+            label: 'Cut',
+            click: () => {
+            e.sender.send('context-menu-command', 'cut')
+            }
+        },
+        {
+            label: 'Copy',
+            accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
+            click: () => {
+            e.sender.send('context-menu-command', 'copy')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            id: 'templates',
+            label: 'New Document',
+            submenu: [
+            {
+                label: 'Open Templates Folder',
+                click: () => {
+                    e.sender.send('context-menu-command', 'open_templates_folder'
+                ),
+                {
+                    type: 'separator'
+                }
+            }
+        }],
+        },
+
+        {
+        label: '&Rename',
+        accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
+        click: () => { e.sender.send('context-menu-command', 'rename') }
+        },
+        {
+            type: 'separator'
+        },
+        {
+        label: '&Extract',
+        accelerator: process.platform === 'darwin' ? 'ALT+E' : 'ALT+E',
+        click: () => { e.sender.send('context-menu-command', 'extract_here') }
+        },
+        {
+            label: 'Compress',
+            click: () => {
+            e.sender.send(
+                'context-menu-command', 'compress_folder'
+            )
+            }
+        },
+        {
+        type: 'separator'
+        },
+        // {
+        //   label: 'Trash',
+        //   click: () => {
+        //     e.sender.send(
+        //       'context-menu-command', 'trash_file'
+        //     )
+        //   }
+        // },
+        // {
+        //   type: 'separator'
+        // },
+        {
+        label: 'Delete file',
+        click: () => {
+            // e.sender.send('context-menu-command', 'delete_file')
+            e.sender.send('context-menu-command', 'delete')
+        }
+        },
+        {
+            type: 'separator'
+        },
+        {
+        label: 'Terminal',
+        click: () => {
+            e.sender.send(
+            'context-menu-command', 'menu_terminal'
+            )
+        }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Properties',
+            click:()=>{
+                // createPropertiesWindow()
+                e.sender.send('context-menu-command', 'props')
+            }
+        },
+    ]
+
+
+    let menu = Menu.buildFromTemplate(template)
+
+    // ADD TEMPLATES
+    add_templates_menu(menu, e, args)
+
+
+    // ADD LAUNCHER MENU
+    add_launcher_menu(menu, e, args)
+
+
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
 
 // CREATE NEW WINDOW
 ipcMain.on('new_window', function (e, args) {
@@ -1761,342 +2120,6 @@ ipcMain.on('find', function (e, args) {
   console.log('running find')
   // const requestId = win.webContents.findInPage(text, args);
 })
-
-// // CONFIRM DELETE FOLDER DIALOG
-// ipcMain.on('confirm_delete_folder', function (e, msg) {
-//   // e.preventDefault()
-
-//   let res = dialog.showMessageBoxSync(null, {
-
-//     // defaultId: 0,
-//     type: 'warning',
-//     title: 'Warning',
-//     buttons: ['Delete', 'Cancel'],
-//     // type: 'question',
-//     message: 'This will permanetly delete your stuff. \n Are you sure you want to continue',
-//     detail: msg
-
-//   })
-
-//   if (res == 0) {
-//     e.sender.send('delete_folder_confirmed', res)
-//   }
-
-// })
-
-
-
-
-// FOLDERS MENU
-ipcMain.on('show-context-menu-directory', (e, args) => {
-
-  const template1 = [
-    {
-      label: 'Open with Code',
-      click: () => {
-        e.sender.send('context-menu-command', 'vscode')
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Open',
-        click: () => {
-            e.sender.send('open')
-        }
-    },
-    {
-      label: 'Open in new window',
-      click: () => {
-        e.sender.send('context-menu-command', 'open_in_new_window')
-      }
-    },
-    {
-        id: 'launchers',
-        label: 'Open with',
-        submenu: []
-    },
-    {
-        type: 'separator'
-    },
-    {
-        id: 'templates',
-        label: 'New Document',
-        submenu: [
-        {
-            label: 'Open Templates Folder',
-            click: () => {
-                e.sender.send('context-menu-command', 'open_templates_folder'
-            ),
-            {
-                type: 'separator'
-            }
-        }
-    },],
-    },
-    {
-        label: 'New Folder',
-        accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
-        click: () => {
-            e.sender.send('context-menu-command', 'new_folder')
-        }
-    },
-    {
-      type: 'separator'
-    },
-    {
-        label: 'Add to workspace',
-        click: () => {
-            e.sender.send('open')
-        }
-    },
-    {
-        type: 'separator'
-    },
-    {
-      label: 'Cut',
-      click: () => {
-        e.sender.send('context-menu-command', 'cut')
-      }
-    },
-    {
-      label: 'Copy',
-      accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
-      click: () => {
-        e.sender.send('context-menu-command', 'copy')
-      }
-    },
-    {
-        label: 'Paste',
-        accelerator: process.platform === 'darwin' ? 'CTRL+V' : 'CTRL+V',
-        click: () => {
-          e.sender.send('context-menu-command', 'paste')
-        }
-    },
-    {
-      label: 'Paste file into folder',
-      click: () => {
-        e.sender.send('context-menu-command', 'paste_file')
-      }
-    },
-    {
-      label: '&Rename',
-      accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
-      click: () => {
-        e.sender.send('context-menu-command', 'rename')
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-      label: 'Compress',
-      click: () => {
-        e.sender.send('context-menu-command', 'compress_folder')
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Delete',
-        click: () => {
-          // e.sender.send('context-menu-command', 'delete_folder')
-          e.sender.send('context-menu-command', 'delete')
-        }
-      },
-      {
-        type: 'separator'
-    },
-    {
-      label: 'Open in terminal',
-      click: () => {
-        e.sender.send('context-menu-command', 'open_folder_in_terminal')
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Properties',
-        click:()=>{
-            // createPropertiesWindow()
-            e.sender.send('context-menu-command', 'props')
-        }
-    },
-    {
-        type: 'separator'
-    }
-    // {
-    //   label: 'Move to trash',
-    //   click: () => {
-    //     e.sender.send('context-menu-command', 'move_to_trash')
-    //   }
-    // },
-  ]
-
-    const menu1 = Menu.buildFromTemplate(template1)
-
-    // ADD TEMPLATES
-    add_templates_menu(menu1, e, args)
-
-    // ADD LAUNCHER MENU
-    add_launcher_menu(menu1, e, args)
-
-
-    menu1.popup(BrowserWindow.fromWebContents(e.sender))
-
-})
-
-
-
-// FILES MENU
-ipcMain.on('show-context-menu-files', (e, args) => {
-
-    console.log(e + ' ' + args)
-
-  // console.log('running main menu')
-  const template = [
-    {
-        label: 'Open with Code',
-        click: () => {
-          e.sender.send('context-menu-command', 'vscode')
-        }
-    },
-    {
-          type: 'separator'
-    },
-    {
-        id: 'launchers',
-        label: 'Open with',
-        // click: () => {
-        //     e.sender.send('open_with')
-        // },
-        submenu: []
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: '&New Folder',
-        accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
-        click: () => {
-          e.sender.send('context-menu-command', 'new_folder')
-        }
-    },
-    {
-        label: 'Cut',
-        click: () => {
-          e.sender.send('context-menu-command', 'cut')
-        }
-    },
-    {
-        label: 'Copy',
-        accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
-        click: () => {
-          e.sender.send('context-menu-command', 'copy')
-        }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        id: 'templates',
-        label: 'New Document',
-        submenu: [
-        {
-            label: 'Open Templates Folder',
-            click: () => {
-                e.sender.send('context-menu-command', 'open_templates_folder'
-            ),
-            {
-                type: 'separator'
-            }
-        }
-      }],
-    },
-
-    {
-      label: '&Rename',
-      accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
-      click: () => { e.sender.send('context-menu-command', 'rename') }
-    },
-    {
-        type: 'separator'
-    },
-    {
-      label: '&Extract',
-      accelerator: process.platform === 'darwin' ? 'ALT+E' : 'ALT+E',
-      click: () => { e.sender.send('context-menu-command', 'extract_here') }
-    },
-    {
-        label: 'Compress',
-        click: () => {
-          e.sender.send(
-            'context-menu-command', 'compress_folder'
-          )
-        }
-    },
-    {
-      type: 'separator'
-    },
-    // {
-    //   label: 'Trash',
-    //   click: () => {
-    //     e.sender.send(
-    //       'context-menu-command', 'trash_file'
-    //     )
-    //   }
-    // },
-    // {
-    //   type: 'separator'
-    // },
-    {
-      label: 'Delete file',
-      click: () => {
-        // e.sender.send('context-menu-command', 'delete_file')
-        e.sender.send('context-menu-command', 'delete')
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-      label: 'Terminal',
-      click: () => {
-        e.sender.send(
-          'context-menu-command', 'menu_terminal'
-        )
-      }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Properties',
-        click:()=>{
-            // createPropertiesWindow()
-            e.sender.send('context-menu-command', 'props')
-        }
-    },
-  ]
-
-
-    let menu = Menu.buildFromTemplate(template)
-
-    // ADD TEMPLATES
-    add_templates_menu(menu, e, args)
-
-
-    // ADD LAUNCHER MENU
-    add_launcher_menu(menu, e, args)
-
-
-    menu.popup(BrowserWindow.fromWebContents(e.sender))
-
-})
-
 
 // CREATE NEW WINDOW
 // ipcMain.on('new_window', function (e, args) {
@@ -2119,151 +2142,6 @@ ipcMain.on('find', function (e, args) {
   console.log('running find')
   // const requestId = win.webContents.findInPage(text, args);
 })
-
-
-// // CONFIRM MOVE FOLDER DIALOG
-// ipcMain.on('confirm_move', function (e, data) {
-
-//     let res = dialog.showMessageBoxSync(null, {
-//         title: 'Warning',
-//         buttons: ['Yes', 'Cancel'],
-//         message: 'Are you sure you want to move?',
-//         detail: data.source
-//     })
-
-//     // IF RESPONSE IS 0 THEN MOVE CONFIRMED. I KNOW ITS BACKWARDS
-//     if (res == 0) {
-//         e.sender.send('move_confirmed', data)
-//     }
-
-// })
-
-// ipcMain.on('confirm_overwrite_dialog', (e, data) => {
-//     let confirm = new BrowserWindow({
-//         width: 550,
-//         height: 400,
-//         backgroundColor: '#2e2c29',
-//     })
-
-//     // LOAD INDEX FILE
-//     confirm.loadFile('src/confirm.html')
-
-//     confirm.once('ready-to-show', () => {
-//         confirm.show()
-//     })
-
-//     confirm.on('close', (e) => {
-//         console.log('data',data)
-//         return data
-//     })
-
-// })
-
-// // CONFIRM OVERWRITE DIALOG
-// ipcMain.on('confirm_overwrite', function (e, data) {
-
-//     let destination = data.destination
-//     let source = data.source
-
-//     let destination_stats = fs.statSync(destination)
-//     let source_stats = fs.statSync(source)
-
-//     let icon = path.join(__dirname,'/assets/icons/file.png')
-//     if (destination_stats.isDirectory()) {
-
-//         icon = path.join(__dirname,'/assets/icons/folder.png')
-//         let res = dialog.showMessageBoxSync(null, {
-//             icon: icon,
-//             type: 'none',
-//             title: 'Directory Conflict',
-//             buttons: ['Skip', 'Replace', 'Cancel'],
-//             message: 'Replace directory ' + destination,
-//             detail:
-//                     'Original directory' +
-//                     '\n' +
-//                     'size: ' + get_file_size(destination_stats.size) +
-//                     '\n' +
-//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-//                     '\n\n' +
-//                     'Replace with' +
-//                     '\n' +
-//                     'size: ' + get_file_size(source_stats.size) +
-//                     '\n' +
-//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
-//                     ,
-//             // checkboxLabel: 'Apply this action to all files and folders',
-//             // checkboxChecked:false
-
-//         })
-
-//         if (res == 1) {
-//             e.sender.send('overwrite', data)
-//         } else {
-//             e.sender.send('overwrite_canceled', data)
-//         }
-
-//     } else {
-
-//         let res = dialog.showMessageBoxSync(null, {
-//             icon: icon,
-//             type: 'none',
-//             title: 'File Conflict',
-//             buttons: ['Skip', 'Replace', 'Cancel'],
-//             message: 'Replace file ' + destination,
-//             detail:
-//                     'Original file' +
-//                     '\n' +
-//                     'size: ' + get_file_size(destination_stats.size) +
-//                     '\n' +
-//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-//                     '\n\n' +
-//                     'Replace with' +
-//                     '\n' +
-//                     'size: ' + get_file_size(source_stats.size) +
-//                     '\n' +
-//                     'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
-//                     ,
-//             // checkboxLabel: 'Apply this action to all files and folders',
-//             // checkboxChecked:false
-
-//         })
-
-//         if (res == 1) {
-//             e.sender.send('overwrite', data)
-//         } else {
-//             e.sender.send('overwrite_canceled', data)
-//         }
-//     }
-
-// })
-
-
-// // CONFIRM DELETE FOLDER DIALOG
-// ipcMain.on('confirm_delete_folder', function (e, msg) {
-//   // e.preventDefault()
-
-//   let res = dialog.showMessageBoxSync(null, {
-
-//     // defaultId: 0,
-//     type: 'warning',
-//     title: 'Warning',
-//     buttons: ['Delete', 'Cancel'],
-//     // type: 'question',
-//     message: 'This will permanetly delete your stuff. \n Are you sure you want to continue',
-//     detail: msg
-
-//   })
-
-//   // console.log(res)
-
-//   if (res == 0) {
-
-//     e.sender.send('delete_folder_confirmed', res)
-//   }
-
-// })
-
-
 
 // CONFIRM DELETE FILES DIALOG
 ipcMain.on('confirm_file_delete', function (e, target_name) {
@@ -2294,8 +2172,6 @@ ipcMain.on('confirm_file_delete', function (e, target_name) {
 
 
 })
-
-
 
 // // CONFIRM OVERWRITE FILE DIALOG
 // ipcMain.on('confirm_move_overwrite', function (e, msg) {
@@ -2349,15 +2225,11 @@ ipcMain.on('confirm_file_delete', function (e, target_name) {
 //   })
 // })
 
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
-
-
-
 
 ipcMain.on('quit', () => {
     app.quit()
