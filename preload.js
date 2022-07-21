@@ -477,6 +477,8 @@ ipcRenderer.on('copy-complete', function (e) {
 // CONFIRM MOVE
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
+    console.log('array', copy_files_arr)
+
     let btn_cancel = add_button('btn_cancel', 'Cancel')
     let btn_ok = add_button('btn_ok', 'Move')
     btn_ok.classList.add('primary')
@@ -526,6 +528,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
         if (is_checked) {
             ipcRenderer.send('move_confirmed_all', data, copy_files_arr)
         } else {
+            console.log('moving', destination, copy_files_arr)
             ipcRenderer.send('move_confirmed', data, copy_files_arr)
         }
 
@@ -533,7 +536,12 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
     // CANCEL MOVE
     btn_cancel.addEventListener('click', (e) => {
-        ipcRenderer.send('move_canceled')
+        if (is_checked) {
+            ipcRenderer.send('move_canceled_all')
+        } else {
+            ipcRenderer.send('move_canceled')
+        }
+
     })
 
     window.addEventListener('keyup', (e) => {
@@ -671,29 +679,30 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         }
     })
 
-    // CONFIRM BUTTON
+    // MOVE OVERWRITE
     btn_replace.addEventListener('click', (e) => {
 
         if (is_checked) {
             ipcRenderer.send('overwrite_move_confirmed_all', data.destination)
+            // alert('not implemented yet');
         } else {
             ipcRenderer.send('overwrite_move_confirmed', data)
         }
 
     })
 
-    // CANCEL BUTTON
+    // CANCEL OVERWRITE BUTTON
     btn_cancel.addEventListener('click', (e) => {
         ipcRenderer.send('overwrite_move_canceled')
 
     })
 
-    // SKIP BUTTON
+    // SKIP OVERWRITE BUTTON
     btn_skip.addEventListener('click', (e) => {
         if (is_checked) {
-            ipcRenderer.send('overwrite_move_canceled_all')
+            ipcRenderer.send('overwrite_move_cancel_all')
         } else {
-            ipcRenderer.send('overwrite_move_canceled')
+            ipcRenderer.send('overwrite_move_skip')
         }
     })
 
