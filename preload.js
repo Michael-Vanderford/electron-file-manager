@@ -210,24 +210,29 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
 
 
     // CHECKBOX REPLACE
-    let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders')
+    let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders');
 
     // CANCEL BUTTON
-    let btn_cancel = add_button('btn_cancel', 'Cancel')
+    let btn_cancel = add_button('btn_cancel', 'Cancel');
     btn_cancel.addEventListener('click', (e) => {
-        ipcRenderer.send('overwrite_canceled')
+        if (is_checked) {
+            ipcRenderer.send('overwrite_canceled_all', copy_files_arr);
+        } else {
+            ipcRenderer.send('overwrite_canceled', copy_files_arr);
+        }
+
     })
 
 
     // CONFIRM BUTTON
-    let btn_replace = add_button('btn_replace', 'Replace')
-    btn_replace.classList.add('primary')
+    let btn_replace = add_button('btn_replace', 'Replace');
+    btn_replace.classList.add('primary');
     btn_replace.addEventListener('click', (e) => {
 
         if (is_checked) {
-            ipcRenderer.send('overwrite_confirmed_all', data)
+            ipcRenderer.send('overwrite_confirmed_all', copy_files_arr);
         } else {
-            ipcRenderer.send('overwrite_confirmed', data, copy_files_arr)
+            ipcRenderer.send('overwrite_confirmed', data, copy_files_arr);
         }
 
     })
@@ -239,7 +244,7 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
             ipcRenderer.send('overwrite_canceled_all')
             // alert('not yet implemented')
         } else {
-            ipcRenderer.send('overwrite_skip')
+            ipcRenderer.send('overwrite_skip', copy_files_arr)
         }
 
     })
@@ -263,10 +268,10 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
         let description = ''
         if (destination_stats.mtime > source_stats.mtime) {
             description = '<p>A newer folder with the same name already exists ' +
-            'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         } else {
             description = '<p>A older folder with the same name already exists in ' +
-            'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Merge Folder:  ' + path.basename(data.source) + '<br /><br />')
@@ -601,10 +606,10 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         let description = ''
         if (destination_stats.mtime > source_stats.mtime) {
             description = '<p>A newer folder with the same name already exists. ' +
-            'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         } else {
             description = '<p>An older folder with the same name already exists. ' +
-            'Meging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Merge Folder:  ' + path.basename(data.source) + '<br /><br />')
@@ -683,7 +688,7 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     btn_replace.addEventListener('click', (e) => {
 
         if (is_checked) {
-            ipcRenderer.send('overwrite_move_confirmed_all', data.destination)
+            ipcRenderer.send('overwrite_move_confirmed_all', data)
             // alert('not implemented yet');
         } else {
             ipcRenderer.send('overwrite_move_confirmed', data)
@@ -1434,13 +1439,15 @@ ipcRenderer.on('add_card', (e, options) => {
             console.log(card)
             options.grid.insertBefore(card, options.grid.firstChild)
 
-            let view = document.getElementById('main_view')
-            update_cards(view)
-
-            let item = card.querySelector('[data-href="' + options.href + '"]')
-            item.classList.add('highlight_select')
+            // update_cards(document.getElementById('main_view'))
+            // let item = card.querySelector('[data-href="' + options.href + '"]')
+            // item.classList.add('highlight_select')
 
         })
+
+        update_cards(document.getElementById('main_view'))
+        // ui card fluid nav_item nav file_card
+        // ui card fluid nav_item nav file_card ds-selectable
 
     } catch (err) {
         console.log(err)
@@ -4588,14 +4595,12 @@ async function get_files(dir, callback) {
             })
 
             // DRAG AMD DROP
-            ds.addSelectables(document.getElementsByClassName('nav'), false)
-
+            // moved this to the update_cards function
+            // ds.addSelectables(document.getElementsByClassName('nav'), false)
             // ds.subscribe('elementselect', ({items,item}) => {
-
             //     console.log(item.dataset.href)
             //     // add_copy_file(item.dataset.href, item.id)
             // })
-
             // ds.subscribe('elementunselect', ({items, item}) => {
             //     // remove_copy_file(item.dataset.href)
             //     console.log(copy_files_arr.length)
@@ -4612,7 +4617,6 @@ async function get_files(dir, callback) {
 
             // ON DRAG START
             // main_view.ondragstart = function (e) {
-
             // }
 
             // ON DRAG ENTER
@@ -5483,20 +5487,22 @@ contextBridge.exposeInMainWorld('api', {
 
 function add_history(dir) {
 
-    // if (history_arr.length > 0) {
+    if (history_arr.length > 0) {
 
-    //     if (history_arr.every(x => x != dir)) {
-    //         history_arr.push(dir)
-    //     }
+        if (history_arr.every(x => x != dir)) {
+            if (fs.existsSync(dir)) {
+                history_arr.push(dir)
+            }
+        }
 
-    // } else {
+    } else {
 
         if (fs.existsSync(dir)) {
             history_arr.push(dir)
         }
 
 
-    // }
+    }
 }
 
 
@@ -6805,19 +6811,22 @@ function rename_folder(directory, new_directory) {
 // COPY FILES
 async function copy_files(destination_folder, state) {
 
-    console.log('destination', destination,'state', state)
-    console.log('copy files array length', copy_files_arr.length)
+    let info_view = document.getElementById('info_view');
+    info_view.innerHTML = '';
+
+    console.log('destination', destination,'state', state);
+    console.log('copy files array length', copy_files_arr.length);
 
     // RESET COUNTER. HANDLES SETTING ROOT FOLDER SO THE SIZE CAN BE UPDATED
     // copy_folder_counter = 0
 
     // ADD DESTINATION TO COPY FILES ARRAY
     copy_files_arr.forEach((item, idx) => {
-        item.destination = destination_folder
+        item.destination = destination_folder;
     })
 
-    ipcRenderer.send('copy', copy_files_arr, state)
-    clear_copy_arr()
+    ipcRenderer.send('copy', copy_files_arr, state);
+    clear_copy_arr();
 
 }
 
@@ -7424,24 +7433,36 @@ function navigate(direction) {
 
     is_navigate = true;
     let dir = get_home();
+
     let breadcrumbs = document.getElementById('breadcrumbs');
+    let last_index = history_arr.lastIndexOf(breadcrumbs.value);
+
+    console.log('array',history_arr,'last index', last_index)
 
     for(i = 0; i < history_arr.length; i++) {
 
-        console.log(history_arr[i]);
         if (history_arr[i] == breadcrumbs.value) {
 
             // NAVIGATE LEFT
-            if (direction == 'left' && i > 0) {
-                dir = history_arr[i - 1];
+            if (direction == 'left') {
+                console.log('navigating left', history_arr);
+                if (i > 1) {
+                    dir = history_arr[last_index - 1];
+                } else {
+                    dir = breadcrumbs.value.substring(0, breadcrumbs.value.length - path.basename(breadcrumbs.value).length - 1)
+                }
             }
 
             // NAVIGATE RIGHT
-            if (direction == 'right' && i < history_arr.length - 1) {
-                dir = history_arr[i + 1];
+            if (direction == 'right') {
+
+                if (i < history_arr.length - 1) {
+                    dir = history_arr[last_index + 1];
+                }
             }
 
         }
+
     };
 
     console.log('navigate path', dir);
@@ -7547,41 +7568,15 @@ function update_cards(view) {
 
         console.log('card length', cards.length)
 
-        // let sort = parseInt(localStorage.getItem('sort'))
-        // switch (sort) {
-        //     case 1:
-        //         // SORT BY DATE
-        //         cards_arr.sort((a, b) => {
-
-        //             try {
-        //                 let s1 = stat.statSync(a.dataset.href)
-        //                 let s2 = stat.statSync(b.dataset.href)
-
-        //                 return s2.mtime - s1.mtime
-
-        //             } catch (err) {
-        //                 console.log(err)
-        //             }
-        //         })
-
-        //         break
-        //     case 2:
-        //         sort_by_name.classList.add('active')
-        //         break
-        //     case 3:
-        //         sort_by_size.classList.add('active')
-        //         break
-        //     case 4:
-        //         sort_by_type.classList.add('active')
-        //         break
-        // }
-
         let size = ''
         let folder_counter = 0
         let file_counter = 0
         cards_arr.forEach((card, idx) => {
 
             // console.log(card)
+
+            // DRAG AMD DROP
+            ds.addSelectables(card, false)
 
             let header = card.querySelector('.header_link')
             let img = card.querySelector('.image')
@@ -8546,6 +8541,15 @@ window.addEventListener('DOMContentLoaded', () => {
     ds = new DragSelect({
         // area: document.getElementById('main_view'),
         selectorClass: 'drag_select',
+    })
+
+
+    // BACKSPACE
+    Mousetrap.bind('alt+right', () => {
+
+        console.log('back pressed')
+        navigate('right')
+
     })
 
 
