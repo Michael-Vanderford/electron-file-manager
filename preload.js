@@ -2320,23 +2320,6 @@ async function add_card(options) {
 
             })
 
-            // // IMG MOUSE OVER
-            // img.addEventListener('mouseover', function (e) {
-            //     e.preventDefault()
-            //     if (is_folder) {
-            //         // this.src = '../assets/icons/korla/places/scalable/gnome-folder.svg'
-            //         // img.src = path.join(icon_dir, '/places/scalable/folder-black-drag-accept.svg')
-            //     } else {
-            //         // img.style = 'background-color:rgb(0, 0, 0);'
-            //     }
-
-            // })
-
-            // img.addEventListener('mouseout', (e) => {
-            //     e.preventDefault()
-            //     // img.src = icon_path
-            // })
-
             // CREATE CONTENT
             content.classList.add('content')
             content.style = 'overflow-wrap: break-word;'
@@ -2422,12 +2405,11 @@ async function add_card(options) {
 
                     source = path.dirname(href) + '/' + this.value.trim()
 
-                    // header.focus()
+                    // // header.focus()
 
-                    let main_view = document.getElementById('main_view')
-                    update_cards(main_view)
-
-                    clear_selected_files()
+                    // let main_view = document.getElementById('main_view')
+                    update_card(source)
+                    // clear_selected_files()
 
                 }
 
@@ -4606,12 +4588,12 @@ async function get_files(dir, callback) {
             //     console.log(copy_files_arr.length)
             // })
 
-            ds.subscribe('dragstart', ({ isDragging, isDraggingKeyboard }) => {
-                if(isDragging || isDraggingKeyboard) {
-                    ds.stop(false,false)
-                    setTimeout(ds.start)
-                }
-            })
+            // ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
+            //     if(isDragging) {
+            //         ds.stop(false,false)
+            //         // setTimeout(ds.start)
+            //     }
+            // })
 
             /////////////////////////////////////////////////////////////////////
 
@@ -5234,7 +5216,7 @@ async function get_files(dir, callback) {
 
         console.log('f2 pressed')
 
-        let cards = document.querySelectorAll('.highlight, .highlight_select')
+        let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
         if (cards.length > 0) {
             cards.forEach(card => {
 
@@ -5818,8 +5800,10 @@ function clear_selected_files() {
     // console.log('clearing selected files')
 
     // FOCUS MAIN VIEW
-    let main_view = document.getElementById('main_view')
-    main_view.focus()
+    let main_view = document.getElementById('main_view');
+    main_view.focus();
+
+    ds.start();
 
 }
 
@@ -7097,8 +7081,6 @@ function create_file_from_template(filename) {
 // RENAME FILE OR FOLDER
 function rename_file(source, destination_name) {
 
-
-
     if (destination_name == "") {
 
         alert('Enter a file name');
@@ -7112,12 +7094,13 @@ function rename_file(source, destination_name) {
 
         if (exists) {
 
-            alert(new_name + ' already exists!')
+            // todo: this is not working correctly
+            alert(filename + ' already exists!')
+            return false
 
         } else {
 
             console.log(source, filename)
-
             fs.rename(source, filename, function (err) {
 
                 if (err) {
@@ -7126,42 +7109,13 @@ function rename_file(source, destination_name) {
 
                 } else {
 
-
                     console.log('File/folder renamed successfully!');
                     notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
 
-                    //                 let card = document.getElementById(card_id)
-                    //                 let input = card.querySelector('input')
-                    //                 let header = card.querySelector('a')
+                    // let main_view = document.getElementById('main_view')
+                    // update_cards(main_view)
 
-                    //                 let href = new_name //path.join(path.dirname(directory), input.value)
-                    //                 card.dataset.href = href
-
-                    //                 card.classList.remove('highlight')
-                    //                 let stats = fs.statSync(href)
-                    //                 let file_size = stats.size
-                    //                 let mtime = stats.mtime
-                    //                 card.title =
-                    //                     href +
-                    //                     '\n' +
-                    //                     file_size +
-                    //                     '\n' +
-                    //                     mtime
-
-                    //                 input.classList.add('hidden')
-
-                    //                 header.classList.remove('hidden')
-                    //                 header.text = input.value
-                    //                 header.href = href
-                    //                 header.title = 'open file? ' + path.dirname(href) + '/' + input.value
-
-                    //                 source = href
-
-                    //                 header.focus()
-
-                    let main_view = document.getElementById('main_view')
-                    update_cards(main_view)
-
+                    // update_card(filename)
 
                 }
 
@@ -7476,9 +7430,9 @@ function navigate(direction) {
 function update_card(href) {
 
     let card = document.querySelector('[data-href="' + href + '"]')
-    let header = card.querySelector('.header_link')
+    // let header = card.querySelector('.header_link')
 
-    console.log(href)
+    console.log(card)
 
     let img = card.querySelector('.image')
 
@@ -7499,10 +7453,10 @@ function update_card(href) {
         img.height = '24px'
         img.width = '24px'
 
-        get_folder_size1(href, size => {
-            extra.innerHTML = get_file_size(size)
-            localStorage.setItem(href, size)
-        })
+        // get_folder_size1(href, size => {
+        //     extra.innerHTML = get_file_size(size)
+        //     localStorage.setItem(href, size)
+        // })
 
         // CARD ON MOUSE OVER
         card.addEventListener('mouseover', (e) => {
@@ -7577,6 +7531,16 @@ function update_cards(view) {
 
             // DRAG AMD DROP
             ds.addSelectables(card, false)
+
+            ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
+
+                console.log('dragging', isDragging, isDraggingKeyboard)
+
+                if(isDragging) {
+                    ds.stop(false,true)
+                    // setTimeout(ds.start)
+                }
+            })
 
             let header = card.querySelector('.header_link')
             let img = card.querySelector('.image')

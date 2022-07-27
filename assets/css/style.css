@@ -161,7 +161,8 @@ body {
     }
 
     .drag_select {
-        border: 1px solid #cfcfcf !important;
+        /* border: 1px solid #cfcfcf !important; */
+        border: none !important;
         background: rgba(155, 155, 155, 0.1) !important;
     }
 
