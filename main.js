@@ -1687,13 +1687,13 @@ ipcMain.on('get_disk_space', (e, href) => {
                         switch (i) {
                             case 1:
                                 // console.log('found 6 ' + res1[i])
-                                options.disksize = get_file_size(size * 1024)
+                                options.disksize = get_file_size(parseFloat(size) * 1024)
                                 break;
                             case 2:
-                                options.usedspace = get_file_size(size * 1024)
+                                options.usedspace = get_file_size(parseFloat(size) * 1024)
                                 break;
                             case 3:
-                                options.availablespace = get_file_size(size * 1024)
+                                options.availablespace = get_file_size(parseFloat(size) * 1024)
                                 break;
                         }
                     }
