@@ -1673,8 +1673,6 @@ ipcMain.on('get_disk_space', (e, href) => {
 
                     if (size != '') {
 
-                        ++c;
-
                         console.log('size', size);
 
                         // 0 DISK
@@ -1696,6 +1694,9 @@ ipcMain.on('get_disk_space', (e, href) => {
                                 options.availablespace = get_file_size(parseFloat(size) * 1024)
                                 break;
                         }
+
+                        ++c;
+
                     }
 
 
