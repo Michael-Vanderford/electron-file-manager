@@ -1670,27 +1670,32 @@ ipcMain.on('get_disk_space', (e, href) => {
 
                 res1.forEach((size, i) => {
 
-                    console.log(size)
+                    if (size != '') {
+                        
+                        console.log('size', size)
 
-                    // 0 DISK
-                    // 6 SIZE OF DISK
-                    // 7 USED SPACE
-                    // 8 AVAILABLE SPACE
-                    // 10 PERCENTAGE USED
-                    // 11 CURRENT DIR
+                        // 0 DISK
+                        // 6 SIZE OF DISK
+                        // 7 USED SPACE
+                        // 8 AVAILABLE SPACE
+                        // 10 PERCENTAGE USED
+                        // 11 CURRENT DIR
 
-                    switch (i) {
-                        case 1:
-                            // console.log('found 6 ' + res1[i])
-                            options.disksize = get_file_size(size * 1024)
-                            break;
-                        case 2:
-                            options.usedspace = get_file_size(size * 1024)
-                            break;
-                        case 3:
-                            options.availablespace = get_file_size(size * 1024)
-                            break;
+                        switch (i) {
+                            case 1:
+                                // console.log('found 6 ' + res1[i])
+                                options.disksize = get_file_size(size * 1024)
+                                break;
+                            case 2:
+                                options.usedspace = get_file_size(size * 1024)
+                                break;
+                            case 3:
+                                options.availablespace = get_file_size(size * 1024)
+                                break;
+                        }
                     }
+
+
 
                 })
 
