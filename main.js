@@ -1684,7 +1684,7 @@ ipcMain.on('get_disk_space', (e, href) => {
                         // 10 PERCENTAGE USED
                         // 11 CURRENT DIR
 
-                        switch (i) {
+                        switch (c) {
                             case 1:
                                 // console.log('found 6 ' + res1[i])
                                 options.disksize = get_file_size(parseFloat(size) * 1024)
