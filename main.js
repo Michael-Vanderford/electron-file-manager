@@ -1668,11 +1668,14 @@ ipcMain.on('get_disk_space', (e, href) => {
 
                 let res1 = disk_arr[1].split(' ')
 
+                let c = 0;
                 res1.forEach((size, i) => {
 
                     if (size != '') {
-                        
-                        console.log('size', size)
+
+                        ++c;
+
+                        console.log('size', size);
 
                         // 0 DISK
                         // 6 SIZE OF DISK
