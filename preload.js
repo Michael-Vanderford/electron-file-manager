@@ -876,9 +876,11 @@ ipcRenderer.on('file_size', function (e, args) {
 // ON DISk SPACE - NEW
 ipcRenderer.on('disk_space', (e, data) => {
 
-    // console.log(data)
+    console.log('disk space', data)
 
     if (data.length > 0) {
+
+
 
         let status = document.getElementById('status')
         status.innerHTML = ''
@@ -890,6 +892,8 @@ ipcRenderer.on('disk_space', (e, data) => {
         let filecount = add_div()
 
         data.forEach(item => {
+
+            console.log('space', item)
 
             disksize.innerHTML = '<div class="item">Disk size: <b>&nbsp' + item.disksize + '</b></div>'
             usedspace.innerHTML = '<div class="item">Used space: <b>&nbsp' + item.usedspace + '</b></div>'

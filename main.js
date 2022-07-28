@@ -1650,7 +1650,7 @@ ipcMain.on('get_disk_space', (e, href) => {
         child.stdout.on("data", (res) => {
 
             // CREATE ARRAY FROM RESULT
-            res = res.split('\n')
+            let disk_arr = res.split('\n')
 
             if (res.length > 0) {
 
@@ -1666,9 +1666,11 @@ ipcMain.on('get_disk_space', (e, href) => {
                     filecount:0
                 }
 
-                let res1 = res[1].split(' ')
+                let res1 = disk_arr[1].split(' ')
 
                 res1.forEach((size, i) => {
+
+                    console.log(size)
 
                     // 0 DISK
                     // 6 SIZE OF DISK
