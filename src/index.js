@@ -3,17 +3,18 @@ let options = {
     search: ''
 }
 
-const find = document.getElementById('find')
-const breadcrumbs = document.getElementById('breadcrumbs')
-const home = document.getElementById('home')
-const documents = document.getElementById('documents')
-const downloads = document.getElementById('downloads')
-const pictures = document.getElementById('pictures')
-const videos = document.getElementById('videos')
-const music = document.getElementById('music')
-const devices = document.getElementById('devices')
-const network = document.getElementById('network')
-const footer = document.getElementById('footer')
+let find = document.getElementById('find')
+let breadcrumbs = document.getElementById('breadcrumbs')
+let home = document.getElementById('home')
+let documents = document.getElementById('documents')
+let downloads = document.getElementById('downloads')
+let pictures = document.getElementById('pictures')
+let videos = document.getElementById('videos')
+let music = document.getElementById('music')
+let devices = document.getElementById('devices')
+let network = document.getElementById('network')
+let footer = document.getElementById('footer')
+let btn_disk_usage = document.getElementById('btn_disk_usage')
 
 // TOGGLE VIEWS
 let btn_list_view = document.getElementById('btn_list_view')
@@ -22,6 +23,7 @@ let btn_grid_view = document.getElementById('btn_grid_view')
 // VIEWS
 let list_view = document.getElementById('list_view')
 let grid_view = document.getElementById('grid_view')
+let info_view = document.getElementById('info_view')
 
 let home_folder = window.api.get_home()
 
@@ -46,11 +48,8 @@ function clear_active() {
 
 }
 
-
-
 // LOAD FILES FROM PREELOAD.JS
 function get_files(dir) {
-
 
     // GRID VIEW
     if (localStorage.getItem('view') == 'grid' || localStorage.getItem('view') == '') {
@@ -206,12 +205,13 @@ btn_list_view.addEventListener('click', (e) => {
 
     e.preventDefault()
 
-    localStorage.setItem('view', 'list')
+    localStorage.setItem('view', 'list');
+    window.api.get_view(localStorage.getItem('folder'));
 
-    list_view.classList.remove('hidden')
-    grid_view.classList.add('hidden')
+    // list_view.classList.remove('hidden')
+    // grid_view.classList.add('hidden')
 
-    get_files(localStorage.getItem('folder'))
+    // get_files(localStorage.getItem('folder'))
 
     btn_list_view.classList.add('active')
     btn_grid_view.classList.remove('active')
@@ -221,20 +221,29 @@ btn_list_view.addEventListener('click', (e) => {
 // ICON VIEW
 btn_grid_view.addEventListener('click', (e) => {
 
-    e.preventDefault()
+    e.preventDefault();
 
-    localStorage.setItem('view', 'grid')
+    localStorage.setItem('view', 'grid');
+    window.api.get_view(localStorage.getItem('folder'));
 
-    grid_view.classList.remove('hidden')
-    list_view.classList.add('hidden')
+    // grid_view.classList.remove('hidden')
+    // list_view.classList.add('hidden')
 
-    get_files(localStorage.getItem('folder'))
+    // get_files(localStorage.getItem('folder'))
 
     // window.api.get_files(breadcrumbs.value)
     btn_list_view.classList.remove('active')
     btn_grid_view.classList.add('active')
 
 
+
+})
+
+// DISK SUMMARY VIEW
+btn_disk_usage.addEventListener('click', (e) => {
+
+    localStorage.setItem('view', 'disk_summary')
+    window.api.get_view('/')
 
 })
 
@@ -478,7 +487,10 @@ $(function() {
         localStorage.setItem('folder', home_folder)
     }
 
-    get_files(localStorage.getItem('folder'))
+    // LOAD FILES
+    // get_files(localStorage.getItem('folder'))
+    // localStorage.setItem('view', 'disk_summary')
+    window.api.get_view(localStorage.getItem('folder'))
 
     // window.api.get_files(localStorage.getItem('folder'), () => {
     // })
@@ -555,8 +567,8 @@ $(function() {
         e.preventDefault()
         clear_active()
         this.classList.add('active')
-        // get_data(home_folder + '/Documents')
-        get_files(home_folder + '/Downloads')
+        // get_files(home_folder + '/Downloads')
+        window.api.get_view(home_folder + '/Downloads')
 
     })
 

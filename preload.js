@@ -1331,7 +1331,6 @@ ipcRenderer.on('gio_mounted', (e, data) => {
                 get_files(direcotry.trim(), () => {})
             }
 
-
             // console.log(direcotry)
             // get_files(direcotry.trim(), {sort: localStorage.getItem('sort'), page: localStorage.getItem('page')})
 
@@ -1426,6 +1425,8 @@ ipcRenderer.on('gio_files', (e, data) => {
 
 // ADD CARD VIA IPC
 ipcRenderer.on('add_card', (e, options) => {
+
+    console.log('on adding card', options)
 
     try {
 
@@ -2724,7 +2725,6 @@ var execute = function (command, callback) {
     exec(command, { maxBuffer: 1024 * 500 }, function (error, stdout, stderr) { callback(error, stdout); });
 };
 
-
 // GET DISK USAGE
 let du = []
 async function get_disk_usage() {
@@ -2766,6 +2766,8 @@ async function get_disk_usage() {
 
     })
 
+    // localStorage.setItem('view', 'disk_summary')
+    // get_view('disk_summary:')
 
 }
 
@@ -3089,8 +3091,93 @@ function get_templates(file) {
 }
 
 // DISK USAGE CHART
+var chart
+function add_chart(chart_type ,chart_labels, chart_data) {
+
+    console.log('adding chart');
+    // console.log(chart_labels);
+    // console.log(chart_data);
+    // if (chart != undefined) {
+    //     chart.destroy()
+    // }
+
+
+    const ctx = document.createElement('canvas');
+    ctx.getContext('2d');
+    ctx.id = 'chart';
+    ctx.width = 200;
+    ctx.height = 100;
+
+    chart = new Chart(ctx, {
+        type: chart_type,
+        data: {
+            labels: chart_labels,
+            datasets: [{
+                data: chart_data,
+                backgroundColor: [
+                    // pattern.draw('square', '#ff6384'),
+                    // pattern.draw('circle', '#36a2eb'),
+                    // pattern.draw('diamond', '#cc65fe'),
+                    // pattern.draw('triangle', '#ffce56'),
+                    'rgba(255, 132, 132, 0.2)',
+                    'rgba(54, 162, 235, 0.2)',
+                    'rgba(255, 206, 86, 0.2)',
+                    // 'rgba(75, 192, 192, 0.1)',
+                    // 'rgba(153, 102, 255, 0.1)',
+                    // 'rgba(255, 159, 64, 0.1)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, .5)',
+                    'rgba(54, 162, 235, .5)',
+                    'rgba(255, 206, 86, .5)',
+                    'rgba(75, 192, 192, .5)',
+                    'rgba(153, 102, 255, .5)',
+                    'rgba(255, 159, 64, .5)'
+                ],
+                borderWidth: 1,
+            }]
+        },
+        options: {
+            responsive: false,
+            // indexAxis: 'y',
+            scales: {
+                x: {
+                    ticks: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                },
+            },
+            plugins: {
+                legend: {
+                    display: false,
+                },
+                footer: {
+                    display: false,
+                },
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function(x) {
+                            console.log('context', x)
+                            return get_file_size(x.dataset.data[x.dataIndex] * 1024)
+                        }
+                    }
+                }
+            }
+
+        }
+    })
+
+    return ctx;
+
+}
+
+// DISK USAGE CHART
 var disk_usage_chart
-function bar_chart(chart_labels, chart_labels1, chart_data) {
+function bar_chart(chart_labels, chart_data) {
 
     console.log(chart_labels)
     console.log(chart_data)
@@ -3100,7 +3187,6 @@ function bar_chart(chart_labels, chart_labels1, chart_data) {
     }
 
     const ctx = document.getElementById('myChart').getContext('2d');
-
 
     disk_usage_chart = new Chart(ctx, {
 
@@ -3161,22 +3247,28 @@ function bar_chart(chart_labels, chart_labels1, chart_data) {
 
     })
 
-
-
 }
 
 // CHART OPTIONS
 function get_disk_usage_chart() {
 
+    console.log('get disk usage chart')
+
+    let info_view = document.getElementById('info_view');
+
+    let grid = add_div();
+    grid.classList.add('ui', 'grid');
+
+    let col = add_div();
+    col.classList.add('column', 'sixteen', 'wide');
+
     // notification('getting disk usage chart')
+    let cmd = "df '" + breadcrumbs.value + "'";
+    let child = exec(cmd);
 
-
-    let cmd = "df '" + breadcrumbs.value + "'"
-    let child = exec(cmd)
-
-    let chart_labels = []
-    let chart_labels1 = []
-    let chart_data = []
+    let chart_labels = [];
+    let chart_labels1 = [];
+    let chart_data = [];
 
 
     child.stdout.on("data", (res) => {
@@ -3184,44 +3276,29 @@ function get_disk_usage_chart() {
         let res1 = res.split('\n')
 
         let headers = res1[0].split(' ')
-        let details = res1[1].split(' ')
         for (let i = 0; i < headers.length; i++) {
-
             if (headers[i] != '') {
                 chart_labels.push(headers[i])
             }
-
-            // if(details[i] != ''){
-            //     chart_data.push(details[i])
-            // }
         }
 
-
+        let details = res1[1].split(' ')
         for (let i = 0; i < details.length; i++) {
-
             if (details[i] != '') {
                 chart_labels1.push(get_file_size(details[i]))
             }
-
         }
 
-
         for (let i = 0; i < details.length; i++) {
-
             if (details[i] != '') {
                 chart_data.push(details[i])
-
             }
-
         }
 
         cmd = 'cd "' + breadcrumbs.value + '"; du -s'
         du = exec(cmd)
 
         du.stdout.on('data', function (res) {
-
-            // let item = add_div()
-            // let extra = folder_card[i].querySelector('.extra')
 
             let size = parseInt(res.replace('.', ''))
             // size = get_file_size(size)
@@ -3235,8 +3312,12 @@ function get_disk_usage_chart() {
             // }
 
             // notification(chart_data)
-            bar_chart(chart_labels, chart_labels1, chart_data)
-
+            // bar_chart(chart_labels, chart_data)
+            grid.append(col)
+            let chart = add_chart('bar',chart_labels, chart_data)
+            // chart.style = 'height: 100px !important; width: 800px !important'
+            col.append(chart);
+            info_view.append(grid)
 
         })
 
@@ -3567,14 +3648,233 @@ function get_time_stamp(date) {
 }
 
 // LOAD VIEW
+let view = ''
+let view0 = ''
 async function get_view(dir) {
 
-    let view = localStorage.getItem('view');
+    let grid_view  = document.getElementById('grid_view')
+    let list_view = document.getElementById('list_view')
+    let info_view = document.getElementById('info_view')
+
+    view0 = view
+    view = localStorage.getItem('view');
+
     if (view == 'grid') {
+
+        console.log('grid view')
+
+        grid_view.classList.remove('hidden')
+
+        list_view.classList.add('hidden')
+        list_view.innerHTML = ''
+
+        info_view.classList.add('hidden')
+        info_view.innerHTML = ''
+
         get_files(dir, () => {});
+
     } else if (view == 'list') {
+
+        console.log('list view')
+
+        list_view.classList.remove('hidden');
+        // list_view.innerHTML = ''
+
+        info_view.classList.add('hidden')
+        // info_view.innerHTML = ''
+
+        grid_view.classList.add('hidden');
+
         get_list_view(dir);
+
+    } else if (view == 'disk_summary') {
+
+        console.log('sumarry view')
+
+        info_view.classList.remove('hidden')
+        info_view.innerHTML = ''
+
+        list_view.classList.add('hidden')
+        grid_view.classList.add('hidden')
+
+        get_disk_summary_view()
+
     }
+
+    if (view == 'disk_summary') {
+        localStorage.setItem('view', view0)
+    }
+
+}
+
+// GET DISK SUMMARY VIEW
+async function get_disk_summary_view() {
+
+    // ADD ARRAY
+    let chart_labels = []
+    let labels = []
+
+    // INFO VIEW
+    let view = document.getElementById('info_view')
+    view.innerHTML = ''
+
+    // GRID
+    let grid = add_div()
+    grid.classList.add('ui', 'grid')
+
+    // COMMAND
+    let disks = execSync('df -l -t ext4').toString().split('\n');
+    // disks.shift()
+    disks_arr = disks.filter(a => {return a !== '';})
+    disks_arr.forEach((disk, i) => {
+
+        // GRID FOR DATA
+        let data_grid = add_div()
+        data_grid.classList.add('ui', 'grid', 'fluid')
+
+        let chart_data = []
+
+        // ADD COLUMN TO GRID
+        let col = add_div()
+        col.classList.add('column', 'eight', 'wide')
+
+        // ADD CARD
+        let card = add_div()
+        card.classList.add('ui', 'card', 'fluid', 'shadow')
+        card.style = 'border: 1px solid black'
+
+        let image = add_div()
+        image.classList.add('image1')
+
+        // ADD CONTENT
+        let content = add_div()
+        content.classList.add('content')
+
+        // ADD HEADER
+        let header = add_div()
+        header.classList.add('header')
+
+        // CREATE ARRAY OF DISK INFO
+        let data = disk.split(' ');
+        let data_arr = data.filter(a => {
+            return a !== '';
+        })
+
+        // LOOP OVER DATA ARRAY
+        data_arr.forEach((item, ii) => {
+
+            // // ADD COLUMN TO DATA GRID
+            // let data_grid_col = add_div()
+            // data_grid_col.classList.add('column', 'eight', 'wide')
+
+            // GET LABELS
+            if (i == 0) {
+                labels.push(item)
+            }
+
+            // ADD CHART LABELS
+            if (i == 0 && (ii > 0 && ii < 4)) {
+
+                chart_labels.push(item)
+                content.append(item)
+
+            // ADD CHART DATA
+            } else if (i > 0 && (ii > 0 && ii < 4)) {
+                chart_data.push(parseInt(item))
+            }
+
+            // ADD FIRST ITEM AS HEADER
+            if (ii == 0) {
+
+                header.append(item)
+                content.append(header, add_br(), add_br())
+
+            // ADD DATA
+            } else {
+
+                // IF INTEGER THEN GET FILE SIZE
+                if (ii > 0 && ii < 4) {
+
+                    // data_grid_col.append(labels[ii])
+                    // data_grid_col.append(get_file_size(parseInt(item) * 1024))
+                    let data_col1 = add_column('six')
+                    data_col1.append(labels[ii])
+                    data_col1.style = 'border: none;'
+
+                    let data_col2 = add_column('eight')
+                    data_col2.append(get_file_size(parseInt(item) * 1024))
+                    data_col2.style = 'border: none;'
+
+                    data_grid.append(data_col1, data_col2)
+
+                    // content.append(labels[ii], '\t', get_file_size(parseInt(item) * 1024), add_br())
+                } else {
+
+                    let data_col1 = add_column('six')
+                    data_col1.append(labels[ii])
+
+                    let data_col2 = add_column('eight')
+                    data_col2.append(item)
+
+                    data_grid.append(data_col1, data_col2)
+
+                    // content.append(data_grid)
+
+                    // data_grid.append(data_grid_col)
+                    // content.append(labels[ii], '\t', item, add_br())
+                }
+
+            }
+
+            content.append(data_grid)
+            // data_grid.append(data_grid_col)
+
+
+            card.append(content)
+            col.append(card)
+
+        })
+
+        // CREATE CHART
+        if (i > 0)  {
+
+            let chart = add_chart('doughnut', chart_labels, chart_data)
+            chart.style = 'float:left'
+
+            image.append(chart)
+            content.prepend(image)
+
+            // ADD COLUMN TO GRID
+            grid.append(col)
+
+        }
+
+        // // CREATE CHART
+        // let chart = add_chart('pie', chart_labels, chart_data)
+        // chart.style = 'float:left'
+        // image.append(chart)
+        // card.append(image)
+    });
+
+    // GET DISK USAGE CHART
+    // get_disk_usage_chart()
+
+    // ADD GRID TO VIEW
+    view.append(grid);
+
+    // console.log(disks)
+    // Filesystem      Size  Used Avail Use% Mounted on
+    // VM2719 preload.js:3598 tmpfs           1.6G  3.0M  1.6G   1% /run
+    // VM2719 preload.js:3598 /dev/nvme0n1p2   92G   34G   53G  39% /
+    // VM2719 preload.js:3598 tmpfs           7.8G  347M  7.4G   5% /dev/shm
+    // VM2719 preload.js:3598 tmpfs           5.0M  4.0K  5.0M   1% /run/lock
+    // VM2719 preload.js:3598 /dev/nvme0n1p1   93M  5.3M   88M   6% /boot/efi
+    // VM2719 preload.js:3598 /dev/nvme0n1p3  825G  656G  127G  84% /home
+    // VM2719 preload.js:3598 tmpfs           1.6G  212K  1.6G   1% /run/user/1000
+    // VM2719 preload.js:3598 /dev/sda1       916G  316G  554G  37% /media/michael/backup-drive
+    // VM2719 preload.js:3598 /dev/sdb1       140K   76K   64K  55% /media/michael/SCARLETT
+
+
 
 }
 
@@ -4009,7 +4309,6 @@ async function get_list_view(dir) {
             // LAZY LOAD IMAGES
             lazyload()
 
-
         }
 
     })
@@ -4038,6 +4337,14 @@ async function get_files(dir, callback) {
 
     show_loader()
 
+    // GET REFERENCES
+    let main_view = document.getElementById('main_view');
+    let info_view = document.getElementById('info_view');
+    let folder_grid = document.getElementById('folder_grid');
+    let hidden_folder_grid = document.getElementById('hidden_folder_grid');
+    let file_grid = document.getElementById('file_grid');
+    let hidden_file_grid = document.getElementById('hidden_file_grid');
+    let pager = document.getElementById('pager');
     let grid_view = document.getElementById('grid_view')
     let list_view = document.getElementById('list_view')
 
@@ -4073,14 +4380,7 @@ async function get_files(dir, callback) {
     // SET FOLDER TO LOCAL STORAGE
     localStorage.setItem('folder', dir)
 
-    // GET REFERENCES
-    let main_view = document.getElementById('main_view');
-    let info_view = document.getElementById('info_view');
-    let folder_grid = document.getElementById('folder_grid');
-    let hidden_folder_grid = document.getElementById('hidden_folder_grid');
-    let file_grid = document.getElementById('file_grid');
-    let hidden_file_grid = document.getElementById('hidden_file_grid');
-    let pager = document.getElementById('pager');
+
 
     file_grid.innerHTML = '';
     folder_grid.innerHTML = '';
@@ -4170,7 +4470,7 @@ async function get_files(dir, callback) {
         if (dirents.length > 0) {
 
             // CLEAR INFO VIEW
-            info_view.innerHTMl = ''
+            // info_view.innerHTMl = ''
 
             // SORT BY DATE
             if (sort == 1) {
@@ -4783,7 +5083,7 @@ async function get_files(dir, callback) {
             return false
         }
 
-        info_view.innerHTML = ''
+        // info_view.innerHTML = ''
 
     })
 
@@ -5447,8 +5747,11 @@ contextBridge.exposeInMainWorld('api', {
     get_files: (dir, callback) => {
         return get_files(dir, callback)
     },
+    get_view: (dir) => {
+        return get_view(dir);
+    },
     get_list_view: (dir) => {
-        return get_list_view(dir)
+        return get_list_view(dir);
     },
     get_network: () => {
         return get_network()
@@ -6259,7 +6562,7 @@ function add_column(length) {
 
     // CREATE OOLUMN
     let column = add_div()
-    column.style = 'float:left; width:25%; margin-left: 5px; padding: 5px; border-bottom: 1px solid #000; border-right: 1px solid #000'
+    column.style = 'float:left; width:25%;'
     column.classList.add('column', length, 'wide')
 
 

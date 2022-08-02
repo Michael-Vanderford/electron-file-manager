@@ -37,16 +37,18 @@ function copyFileSync(source, target, state, callback) {
 
     recursive++
 
-    if (state == 1) {
-        // console.log('adding card state ', state)
-        let options = {
-            id: 0,
-            href: targetFile,
-            linktext: path.basename(targetFile),
-            grid: ''
-        }
-        win.webContents.send('add_card', options)
-    }
+    // if (state == 1) {
+    //     // console.log('adding card state ', state)
+    //     let options = {
+    //         id: 0,
+    //         href: targetFile,
+    //         linktext: path.basename(targetFile),
+    //         grid: ''
+    //     }
+
+    //     console.log('1234213434')
+    //     win.webContents.send('add_card', options)
+    // }
 
     // COPY FILE
     fs.copyFile(source, targetFile, (err) => {
@@ -56,6 +58,19 @@ function copyFileSync(source, target, state, callback) {
         } else {
 
             if (--recursive == 0) {
+
+                if (state == 1) {
+                    // console.log('adding card state ', state)
+                    let options = {
+                        id: 0,
+                        href: targetFile,
+                        linktext: path.basename(targetFile),
+                        grid: ''
+                    }
+
+                    console.log('1234213434')
+                    win.webContents.send('add_card', options)
+                }
 
                 win.webContents.send('update_cards')
 
@@ -145,6 +160,208 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
         }
 
     })
+
+}
+
+function get_disk_space(href, callback) {
+
+    df = []
+
+    // RUN DISK FREE COMMAND
+    let cmd = 'df "' + href.href + '"'
+
+    console.log('running', cmd)
+
+    let data = execSync(cmd).toString()
+    let data_arr = data.split('\n')
+
+    // CREATE OPTIONS OBJECT
+    let options = {
+        disksize: 0,
+        usedspace: 0,
+        availablespace:0,
+        foldersize:0,
+        foldercount:0,
+        filecount:0
+    }
+
+    if (data_arr.length > 0) {
+
+        // // CREATE OPTIONS OBJECT
+        // let options = {
+        //     disksize: 0,
+        //     usedspace: 0,
+        //     availablespace:0,
+        //     foldersize:0,
+        //     foldercount:0,
+        //     filecount:0
+        // }
+
+        let res1 = data_arr[1].split(' ')
+
+        let c = 0;
+        res1.forEach((size, i) => {
+
+            if (size != '') {
+
+                console.log('size', size);
+
+                // 0 DISK
+                // 6 SIZE OF DISK
+                // 7 USED SPACE
+                // 8 AVAILABLE SPACE
+                // 10 PERCENTAGE USED
+                // 11 CURRENT DIR
+
+                switch (c) {
+                    case 1:
+                        // console.log('found 6 ' + res1[i])
+                        options.disksize = get_file_size(parseFloat(size) * 1024)
+                        break;
+                    case 2:
+                        options.usedspace = get_file_size(parseFloat(size) * 1024)
+                        break;
+                    case 3:
+                        options.availablespace = get_file_size(parseFloat(size) * 1024)
+                        break;
+                }
+
+                ++c;
+
+            }
+        })
+
+        cmd = 'cd "' + href.href + '"; du -s'
+        du = exec(cmd)
+
+        // console.log('command ' + cmd)
+
+        du.stdout.on('data', function (res) {
+
+            let size = parseInt(res.replace('.', '') * 1024)
+            size = get_file_size(size)
+
+            options.foldersize = size
+
+            options.foldercount = href.folder_count
+            options.filecount = href.file_count
+
+            df.push(options)
+
+            // SEND DISK SPACE
+            win.webContents.send('disk_space', df)
+
+        })
+
+        // console.log(options)
+
+    }
+
+    callback(options)
+
+// })
+
+
+
+
+    // let child = exec(cmd)
+
+    // // console.log(cmd)
+
+    // let df = []
+
+    // child.stdout.on("data", (res) => {
+
+    //     // CREATE ARRAY FROM RESULT
+    //     let disk_arr = res.split('\n')
+
+    //     if (res.length > 0) {
+
+
+
+    //         // CREATE OPTIONS OBJECT
+    //         let options = {
+    //             disksize: 0,
+    //             usedspace: 0,
+    //             availablespace:0,
+    //             foldersize:0,
+    //             foldercount:0,
+    //             filecount:0
+    //         }
+
+    //         let res1 = disk_arr[1].split(' ')
+
+    //         let c = 0;
+    //         res1.forEach((size, i) => {
+
+    //             if (size != '') {
+
+    //                 console.log('size', size);
+
+    //                 // 0 DISK
+    //                 // 6 SIZE OF DISK
+    //                 // 7 USED SPACE
+    //                 // 8 AVAILABLE SPACE
+    //                 // 10 PERCENTAGE USED
+    //                 // 11 CURRENT DIR
+
+    //                 switch (c) {
+    //                     case 1:
+    //                         // console.log('found 6 ' + res1[i])
+    //                         options.disksize = get_file_size(parseFloat(size) * 1024)
+    //                         break;
+    //                     case 2:
+    //                         options.usedspace = get_file_size(parseFloat(size) * 1024)
+    //                         break;
+    //                     case 3:
+    //                         options.availablespace = get_file_size(parseFloat(size) * 1024)
+    //                         break;
+    //                 }
+
+    //                 ++c;
+
+    //             }
+    //         })
+
+    //         cmd = 'cd "' + href.href + '"; du -s'
+    //         du = exec(cmd)
+
+    //         // console.log('command ' + cmd)
+
+    //         du.stdout.on('data', function (res) {
+
+    //             let size = parseInt(res.replace('.', '') * 1024)
+    //             size = get_file_size(size)
+
+    //             options.foldersize = size
+
+    //             options.foldercount = href.folder_count
+    //             options.filecount = href.file_count
+
+    //             df.push(options)
+
+    //             // SEND DISK SPACE
+    //             win.webContents.send('disk_space', df)
+
+    //         })
+
+    //     }
+
+    // })
+
+
+
+}
+
+function get_diskspace_summary() {
+
+    console.log('getting diskspace summary')
+
+    get_disk_space({href: '/'}, (res) => {
+        console.log('root disk space', res);
+
+    });
+
 
 }
 
@@ -1634,106 +1851,24 @@ ipcMain.on('get_folder_size', (e , args) => {
 })
 
 
+
+
+
 // GET DISK SPACE
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
 
-    // console.log('directory ' + href.href)
-    // if (href.href.indexOf('gvfs') === -1) {
-
-        // RUN DISK FREE COMMAND
-        let cmd = 'df "' + href.href + '"'
-        let child = exec(cmd)
-
-        // console.log(cmd)
-
-        child.stdout.on("data", (res) => {
-
-            // CREATE ARRAY FROM RESULT
-            let disk_arr = res.split('\n')
-
-            if (res.length > 0) {
-
-                let df = []
-
-                // CREATE OPTIONS OBJECT
-                let options = {
-                    disksize: 0,
-                    usedspace: 0,
-                    availablespace:0,
-                    foldersize:0,
-                    foldercount:0,
-                    filecount:0
-                }
-
-                let res1 = disk_arr[1].split(' ')
-
-                let c = 0;
-                res1.forEach((size, i) => {
-
-                    if (size != '') {
-
-                        console.log('size', size);
-
-                        // 0 DISK
-                        // 6 SIZE OF DISK
-                        // 7 USED SPACE
-                        // 8 AVAILABLE SPACE
-                        // 10 PERCENTAGE USED
-                        // 11 CURRENT DIR
-
-                        switch (c) {
-                            case 1:
-                                // console.log('found 6 ' + res1[i])
-                                options.disksize = get_file_size(parseFloat(size) * 1024)
-                                break;
-                            case 2:
-                                options.usedspace = get_file_size(parseFloat(size) * 1024)
-                                break;
-                            case 3:
-                                options.availablespace = get_file_size(parseFloat(size) * 1024)
-                                break;
-                        }
-
-                        ++c;
-
-                    }
+    get_disk_space(href, (res) => {
+        win.webContents.send('disk_space', res)
+    });
 
 
-
-                })
-
-
-                cmd = 'cd "' + href.href + '"; du -s'
-                du = exec(cmd)
-
-                // console.log('command ' + cmd)
-
-                du.stdout.on('data', function (res) {
-
-                    let size = parseInt(res.replace('.', '') * 1024)
-                    size = get_file_size(size)
-
-                    options.foldersize = size
-
-                    options.foldercount = href.folder_count
-                    options.filecount = href.file_count
-
-                    df.push(options)
-
-                    // SEND DISK SPACE
-                    e.sender.send('disk_space', df)
-
-                })
-
-            }
-
-        })
-
-    // }
 })
 
-
+// GET DISK SPACE SUMMARY
+ipcMain.on('get_diskspace_summary', (e) => {
+    get_diskspace_summary()
+})
 
 // ADD FILES TO COPY ARRAY
 ipcMain.on('add_copy_files', function( e, data) {

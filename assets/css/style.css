@@ -39,11 +39,17 @@ body {
     #header_menu {
         -webkit-user-select: none;
         -webkit-app-region: drag;
-      }
+    }
 
     #header_menu .item {
         -webkit-app-region: no-drag;
-      }
+    }
+
+
+    #chart {
+        width: '100px';
+        height: '100px';
+    }
 
 
     .ui.menu {
@@ -898,6 +904,26 @@ button .button .link {
 
 h5 {
   /* font-size: 14px; */
+}
+
+#main_view {
+
+    position: relative;
+    outline: none;
+    border: none;
+    margin-top: 20px;
+    margin-bottom: 150px;
+    margin-right: 0px;
+    height: 100%;
+    margin-left: 0px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    padding-bottom: 40px;
+    z-index: 0;
+}
+
+#main_view:hover {
+  border:none !important;
 }
 
 #main_view a {

@@ -79,25 +79,7 @@
 }
 
 
-#main_view {
 
-    position: relative;
-    outline: none;
-    border: none;
-    /* margin-top: 160px; */
-    margin-bottom: 150px;
-    margin-right: 0px;
-    height: 100%;
-    margin-left: 0px;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    padding-bottom: 40px;
-    z-index: 0;
-}
-
-#main_view:hover {
-  border:none !important;
-}
 
 #sidebar .header{
     margin-left:15px !important;

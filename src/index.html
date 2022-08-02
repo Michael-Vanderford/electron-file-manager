@@ -228,13 +228,18 @@
                     </div>
 
                     <!-- LIST VIEW -->
-                    <a class="item" id="btn_list_view">
+                    <a class="item" id="btn_list_view" title="List view.">
                         <i class="ui icon list small"></i>
                     </a>
 
                     <!-- GRID VIEW -->
-                    <a class="item" id="btn_grid_view">
+                    <a class="item" id="btn_grid_view" title="Grid view">
                         <i class="ui icon th small"></i>
+                    </a>
+
+                    <!-- DISK SUMMARY VIEW -->
+                    <a class="item" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
+                        <i class="ui icon disk small"></i>
                     </a>
 
                     <div class="item" id="status">
@@ -392,13 +397,13 @@
 
 
                 <!-- DISK USAGE CHART -->
-                <div class="title">
+                <div class="title" id='btn_disk_usage'>
                     <i class="icon bi-bar-chart large"></i>
                     Disk Usage
                 </div>
-                <div class="content">
+                <!-- <div class="content">
                     <canvas id="myChart" width="200" height="200" class="" style=""></canvas>
-                </div>
+                </div> -->
 
                 <!-- LOG -->
                 <div class="title">
