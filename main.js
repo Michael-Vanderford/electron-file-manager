@@ -19,6 +19,13 @@ ipcMain.on('open_file', (e) => {
 
 })
 
+// GET_CURRENT DIRECTOR
+dir = ''
+ipcMain.on('folder', (e, breadcrumb) => {
+    dir = breadcrumb;
+    console.log('dir', dir)
+})
+
 // COPY FILES RECURSIVE
 let recursive = 0
 function copyFileSync(source, target, state, callback) {
@@ -37,19 +44,6 @@ function copyFileSync(source, target, state, callback) {
 
     recursive++
 
-    // if (state == 1) {
-    //     // console.log('adding card state ', state)
-    //     let options = {
-    //         id: 0,
-    //         href: targetFile,
-    //         linktext: path.basename(targetFile),
-    //         grid: ''
-    //     }
-
-    //     console.log('1234213434')
-    //     win.webContents.send('add_card', options)
-    // }
-
     // COPY FILE
     fs.copyFile(source, targetFile, (err) => {
 
@@ -57,20 +51,19 @@ function copyFileSync(source, target, state, callback) {
             console.log('copy file sync err', err)
         } else {
 
-            if (--recursive == 0) {
-
-                if (state == 1) {
-                    // console.log('adding card state ', state)
-                    let options = {
-                        id: 0,
-                        href: targetFile,
-                        linktext: path.basename(targetFile),
-                        grid: ''
-                    }
-
-                    console.log('1234213434')
-                    win.webContents.send('add_card', options)
+            if (dir == path.dirname(target)) {
+                // console.log('adding card state ', state)
+                let options = {
+                    id: 0,
+                    href: targetFile,
+                    linktext: path.basename(targetFile),
+                    grid: ''
                 }
+
+                win.webContents.send('add_card', options)
+            }
+
+            if (--recursive == 0) {
 
                 win.webContents.send('update_cards')
 
@@ -170,7 +163,7 @@ function get_disk_space(href, callback) {
     // RUN DISK FREE COMMAND
     let cmd = 'df "' + href.href + '"'
 
-    console.log('running', cmd)
+    console.log('running get disk space', cmd)
 
     let data = execSync(cmd).toString()
     let data_arr = data.split('\n')
@@ -602,6 +595,16 @@ function copy(copy_files_arr, state) {
 
             if (source == destination_file) {
 
+                // GET SIZE FOR PROGRESS
+                let max = 0;
+                copy_files_arr.forEach(item => {
+                    max += parseInt(item.size);
+                })
+
+                // SHOW PROGRESS
+                win.webContents.send('progress', max);
+
+
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
@@ -633,10 +636,19 @@ function copy(copy_files_arr, state) {
 
                 } else {
 
+                    // GET SIZE FOR PROGRESS
+                    let max = 0;
+                    copy_files_arr.forEach(item => {
+                        max += parseInt(item.size);
+                    })
+
+                    // SHOW PROGRESS
+                    win.webContents.send('progress', max);
+
                     // COPY FOLDERS RECURSIVE
                     copyFolderRecursiveSync(source, destination_file, state, () => {
 
-                        // console.log('running',path.basename(source))
+                        console.log('running',path.basename(source))
 
                         switch (state) {
                             // PASTE
@@ -644,11 +656,12 @@ function copy(copy_files_arr, state) {
 
                                 let options = {
                                     href: destination_file,
-                                    linktext: path.basename(destination_file)
+                                    linktext: path.basename(destination_file),
+                                    is_folder: true
                                 }
 
                                 win.webContents.send('add_card', options)
-                                // win.webContents.send('update_cards')
+                                win.webContents.send('update_cards')
 
                             break;
                         }
@@ -700,13 +713,23 @@ function copy(copy_files_arr, state) {
 
                 } else {
 
+                    // GET SIZE FOR PROGRESS
+                    let max = 0;
+                    copy_files_arr.forEach(item => {
+                        max += parseInt(item.size);
+                    })
+
+                    // SHOW PROGRESS
+                    win.webContents.send('progress', max);
+
+
                     // COPY FILE - done
                     // if state = 2 then change to 1 to add cards
                     // console.log('copy files ', path.basename(destination_file), copy_files_arr.length)
 
-                    if (state == 2) {
-                        state = 1
-                    }
+                    // if (state == 2) {
+                    //     state = 1
+                    // }
 
                     copyFileSync(source, destination_file, state, () => {})
 

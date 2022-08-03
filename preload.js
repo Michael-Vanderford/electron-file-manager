@@ -1,5 +1,5 @@
 
-const {BrowserWindow, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
+const { BrowserWindow, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
 const fs = require('fs');
 const stat = require('fs')
 const watch = require('fs')
@@ -268,10 +268,10 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
         let description = ''
         if (destination_stats.mtime > source_stats.mtime) {
             description = '<p>A newer folder with the same name already exists ' +
-            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+                'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         } else {
             description = '<p>A older folder with the same name already exists in ' +
-            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+                'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Merge Folder:  ' + path.basename(data.source) + '<br /><br />')
@@ -293,16 +293,16 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
             '<br />'
         )
 
-    // FILE
+        // FILE
     } else {
 
         let description
         if (destination_stats.mtime >= source_stats.mtime) {
             description = '<p>A newer file with the same name already exists. ' +
-            'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
+                'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         } else {
             description = '<p>A older file with the same name already exists ' +
-            'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
+                'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Replace File: <span>' + path.basename(data.source) + '</span><br />')
@@ -337,7 +337,7 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
     replace_all.append(br)
     replace_all.append(br1)
 
-    confirm_dialog.append(header,source_data,destination_data,replace_all,footer);
+    confirm_dialog.append(header, source_data, destination_data, replace_all, footer);
 
     let chk_replace = document.getElementById('chk_replace')
     let is_checked = 0
@@ -440,7 +440,7 @@ ipcRenderer.on('overwrite_all', (e, copy_files_arr) => {
 
     copy_files_arr.forEach(item => {
 
-        console.log('item',item)
+        console.log('item', item)
 
         let source_stats = fs.statSync(item.source)
         console.log('data source', item.destination)
@@ -450,7 +450,7 @@ ipcRenderer.on('overwrite_all', (e, copy_files_arr) => {
 
             copyFolderRecursiveSync(item.destination)
 
-        // FILE
+            // FILE
         } else {
 
             // console.log('source', data.source, 'dest', data.destination)
@@ -512,7 +512,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
 
     let confirm_dialog = document.getElementById('confirm')
-    confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),footer)
+    confirm_dialog.append(header, description, source_data, chk_div, add_br(), add_br(), add_br(), footer)
 
 
     chk = document.getElementById('chk_replace')
@@ -564,7 +564,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
 // CONFIRM OVERWRITE MOVE DIALOG
 ipcRenderer.on('confirming_overwrite_move', (e, data) => {
-// function confirming_overwrite(data) {
+    // function confirming_overwrite(data) {
 
     console.log('running confirming move overwrite')
 
@@ -606,10 +606,10 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         let description = ''
         if (destination_stats.mtime > source_stats.mtime) {
             description = '<p>A newer folder with the same name already exists. ' +
-            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+                'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         } else {
             description = '<p>An older folder with the same name already exists. ' +
-            'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
+                'Merging will ask for confirmation before replaceing any files in the folder that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Merge Folder:  ' + path.basename(data.source) + '<br /><br />')
@@ -630,16 +630,16 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
             '<br />'
         )
 
-    // FILE
+        // FILE
     } else {
 
         let description = ''
         if (destination_stats.mtime >= source_stats.mtime) {
             description = '<p>A newer file with the same name already exists. ' +
-            'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
+                'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         } else {
             description = '<p>An older file with the same name already exists. ' +
-            'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
+                'Replacing will ask for confirmation before replaceing any files that conflict with the files being copied</p>'
         }
 
         header = add_header('<br />Replace File: <span>' + path.basename(data.source) + '</span><br /><br />')
@@ -671,7 +671,7 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     replace_all.append(br1)
     replace_all.append(chk_replace_div)
 
-    confirm_dialog.append(header,destination_data,source_data,replace_all,footer)
+    confirm_dialog.append(header, destination_data, source_data, replace_all, footer)
 
     // Handle checkbox
     let chk_replace = document.getElementById('chk_replace')
@@ -738,49 +738,49 @@ ipcRenderer.on('overwrite_move', (e, data) => {
     console.log('overwrite ', source, destination)
 
     if (destination_stats.isDirectory()) {
-        copyFolderRecursiveSync(source,destination)
+        copyFolderRecursiveSync(source, destination)
     } else {
 
         // delete_file(destination).then(data => {
 
-            // HANDLE PROGESS
-            progress.classList.remove('hidden')
-            progress.title = 'Moving ' + source
-            progress.max = source_size
+        // HANDLE PROGESS
+        progress.classList.remove('hidden')
+        progress.title = 'Moving ' + source
+        progress.max = source_size
 
-            let intervalid = setInterval(() => {
+        let intervalid = setInterval(() => {
 
-                progress.value = destination_size
+            progress.value = destination_size
 
-                // console.log('source size', source_size,'destination size', destination_size)
-                if (destination_size >= source_size) {
-                    clearInterval(intervalid)
-                    hide_top_progress()
-                }
+            // console.log('source size', source_size,'destination size', destination_size)
+            if (destination_size >= source_size) {
+                clearInterval(intervalid)
+                hide_top_progress()
+            }
 
-            }, 100)
+        }, 100)
 
-            // COPY FILE
-            fs.copyFile(source, destination, (err) => {
+        // COPY FILE
+        fs.copyFile(source, destination, (err) => {
 
-                console.log('copying file')
+            console.log('copying file')
 
-                let file_grid = document.getElementById('file_grid')
+            let file_grid = document.getElementById('file_grid')
 
-                if (err) {
+            if (err) {
 
-                    console.log(err)
+                console.log(err)
 
-                } else {
+            } else {
 
-                    delete_file(source)
+                delete_file(source)
 
-                }
+            }
 
-                // UPDATE CARDS
-                update_cards(file_grid)
+            // UPDATE CARDS
+            update_cards(file_grid)
 
-            })
+        })
 
         // })
 
@@ -794,9 +794,9 @@ ipcRenderer.on('move_confirmed', (e, data) => {
     let source = data.source
     let destination = data.destination
 
-    console.log(destination,source)
+    console.log(destination, source)
 
-    fs.copyFile(source,destination, (err) => {
+    fs.copyFile(source, destination, (err) => {
 
         if (err) {
             console.log(err)
@@ -828,10 +828,10 @@ ipcRenderer.on('overwrite_move_all', (e, destination) => {
 
 
 
-        // FILE
+            // FILE
         } else {
 
-            fs.copyFile(data.source, path.join(destination, path.basename(source)) , (err) => {
+            fs.copyFile(data.source, path.join(destination, path.basename(source)), (err) => {
                 if (err) {
                     console.log(err)
                 } else {
@@ -1095,7 +1095,8 @@ ipcRenderer.on('gio_devices', (e, res) => {
                             href.dataset.uuid = uuid
                             href.text = gio.volume
                             href.addEventListener('click', (e) => {
-                                get_files(uuid, () => {})
+                                get_view(uuid);
+                                // get_files(uuid, () => {})
                             })
 
                             content.appendChild(href)
@@ -1134,7 +1135,8 @@ ipcRenderer.on('gio_devices', (e, res) => {
                             href.dataset.uuid = uuid
                             href.text = gio.volume
                             href.addEventListener('click', (e) => {
-                                get_files(uuid, () => {})
+                                get_view(uuid)
+                                // get_files(uuid, () => {})
 
                             })
 
@@ -1298,7 +1300,8 @@ ipcRenderer.on('gio_mounted', (e, data) => {
         );
 
         if (path == '') { path = '/run/user/1000/gvfs' }
-        get_files(path, () => {})
+        // get_files(path, () => {})
+        get_view(path)
 
         console.log('path ' + path)
 
@@ -1311,7 +1314,8 @@ ipcRenderer.on('gio_mounted', (e, data) => {
     }
 
     if (data.indexOf('already mounted') > -1) {
-        get_files('/run/user/1000/gvfs', () => {})
+        get_view('/run/user/1000/gvfs');
+        // get_files('/run/user/1000/gvfs', () => {})
     }
 
     let str_arr = data.split(' ')
@@ -1327,8 +1331,9 @@ ipcRenderer.on('gio_mounted', (e, data) => {
                 // let direcotry = item.replace(".","").replace("'","").replace("`","")
 
                 direcotry = item.replace(".", "").replace("'", "").replace("`", "")
-                console.log(direcotry)
-                get_files(direcotry.trim(), () => {})
+                console.log(direcotry);
+                get_view(direcotry.trim());
+                // get_files(direcotry.trim(), () => {})
             }
 
             // console.log(direcotry)
@@ -1480,7 +1485,7 @@ ipcRenderer.on('devices', (e, args) => {
 })
 
 // // PROPERTIES WINDOW
-ipcRenderer.on('file_properties_window', (e,data) => {
+ipcRenderer.on('file_properties_window', (e, data) => {
     get_file_properties(source)
 })
 
@@ -1984,7 +1989,8 @@ async function get_network() {
                     network_grid.appendChild(menu_items)
 
                     href.addEventListener('click', (e) => {
-                        get_files(filename, () => {})
+                        get_view(filename)
+                        // get_files(filename, () => {})
                     })
 
 
@@ -2048,574 +2054,578 @@ async function add_card(options) {
 
     try {
 
-            //
-            let id = options.id
-            let href = options.href
-            let linktext = options.linktext
-            let icon_path = get_icon_path(href) //options.image
-            let is_folder = options.is_folder
+        //
+        let id = options.id
+        let href = options.href
+        let linktext = options.linktext
+        let icon_path = get_icon_path(href) //options.image
+        let is_folder = options.is_folder
 
-            // CHECK IF GVFS
-            // let is_gvfs = 0
-            // let gvfs = href.indexOf('/gvfs') // -1 is false
-            // if (gvfs > -1) {
-            //     is_gvfs = 1
-            // }
+        // CHECK IF GVFS
+        // let is_gvfs = 0
+        // let gvfs = href.indexOf('/gvfs') // -1 is false
+        // if (gvfs > -1) {
+        //     is_gvfs = 1
+        // }
 
-            let size = '' //options.size
-            let grid = options.grid
+        let size = '' //options.size
+        let grid = options.grid
 
-            // CREATE ELEMENTS
-            let col = add_div()
-            let card = add_div()
-            let items = add_div()
-            let item = add_div()
-            let image = add_div()
-            let img = document.createElement('img')
-            let content = add_div()
-            let extra = add_div()
-            let progress = add_div()
-            let progress_bar = add_progress()
-            let header = document.createElement('a')
-            let input = document.createElement('input')
-            let form_field = add_div()
-            let popovermenu = add_div()
+        // CREATE ELEMENTS
+        let col = add_div()
+        let card = add_div()
+        let items = add_div()
+        let item = add_div()
+        let image = add_div()
+        let img = document.createElement('img')
+        let content = add_div()
+        let extra = add_div()
+        let progress = add_div()
+        let progress_bar = add_progress()
+        let header = document.createElement('a')
+        let input = document.createElement('input')
+        let form_field = add_div()
+        let popovermenu = add_div()
 
-            let form_control = add_div()
-            let form = document.createElement('form')
-
-
-            // ADD CSS
-            input.setAttribute('required', 'required')
-            col.classList.add('column', 'three', 'wide')
-
-            popovermenu.classList.add('popup')
-
-            card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav')
-            card.draggable = 'true'
+        let form_control = add_div()
+        let form = document.createElement('form')
 
 
-            card.id = id
-            card.dataset.href = href
-            input.spellcheck = false
+        // ADD CSS
+        input.setAttribute('required', 'required')
+        col.classList.add('column', 'three', 'wide')
 
-            // SET INDEX FOR NAVIGATION
-            if (grid.id == 'folder_grid' || grid.id == 'file_grid') {
-                cardindex += 1
-                card.dataset.id = cardindex
-            }
+        popovermenu.classList.add('popup')
 
-            // CHECK IF IMAGE
-            if (
+        card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav')
+        card.draggable = 'true'
 
-                path.extname(href) === '.png' ||
-                path.extname(href) === '.jpg' ||
-                path.extname(href) === '.svg' ||
-                path.extname(href) === '.gif' ||
-                path.extname(href) === '.webp' ||
-                path.extname(href) === '.jpeg'
 
-            ) {
-                img.classList.add('img')
-                img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf'
-            }
+        card.id = id
+        card.dataset.href = href
+        input.spellcheck = false
 
-            // CREATE ITEMS
-            items.classList.add('ui', 'items')
+        // SET INDEX FOR NAVIGATION
+        if (grid.id == 'folder_grid' || grid.id == 'file_grid') {
+            cardindex += 1
+            card.dataset.id = cardindex
+        }
 
-            // CREATE ITEM
-            item.classList.add('item', 'fluid')
+        // CHECK IF IMAGE
+        if (
 
-            // CREATE IMAGE CLASS
-            image.classList.add('image')
-            // image.style = 'width:36px; height:36px;cursor:pointer'
+            path.extname(href) === '.png' ||
+            path.extname(href) === '.jpg' ||
+            path.extname(href) === '.svg' ||
+            path.extname(href) === '.gif' ||
+            path.extname(href) === '.webp' ||
+            path.extname(href) === '.jpeg'
 
-            // DISABLE IMAGE DRAG
-            img.draggable = false
+        ) {
+            img.classList.add('img')
+            img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf'
+        }
 
-            // SET FOLDER ICON
-            if (grid.id == 'folder_grid') {
+        // CREATE ITEMS
+        items.classList.add('ui', 'items')
 
-                get_folder_icon(icon => {
-                    img.src = icon
-                })
+        // CREATE ITEM
+        item.classList.add('item', 'fluid')
+
+        // CREATE IMAGE CLASS
+        image.classList.add('image')
+        // image.style = 'width:36px; height:36px;cursor:pointer'
+
+        // DISABLE IMAGE DRAG
+        img.draggable = false
+
+        // SET FOLDER ICON
+        if (grid.id == 'folder_grid') {
+
+            get_folder_icon(icon => {
+                img.src = icon
+            })
 
 
             // SEARCH AND WORKSPACE ICONS
-            } else if (grid.id == 'search_results' || grid.id == 'workspace_grid') {
+        } else if (grid.id == 'search_results' || grid.id == 'workspace_grid') {
 
-                card.style.marginLeft = '15px'
-                img.classList.add('workspace_icon')
-                ipcRenderer.send('get_icon_path', href)
+            card.style.marginLeft = '15px'
+            img.classList.add('workspace_icon')
+            ipcRenderer.send('get_icon_path', href)
 
             // FILE ICONS
+        } else {
+
+            // if (cardindex > 1 && id != 0) {
+
+            // console.log('getting file icons')
+
+            // img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
+            // img.dataset.src = icon_path
+            // img.classList.add('lazy')
+
+            if (img.classList.contains('img')) {
+
+                img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
+                img.dataset.src = icon_path
+                img.classList.add('lazy')
+
             } else {
-
-                // if (cardindex > 1 && id != 0) {
-
-                    // console.log('getting file icons')
-
-                    // img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
-                    // img.dataset.src = icon_path
-                    // img.classList.add('lazy')
-
-                    if (img.classList.contains('img')) {
-
-                        img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
-                        img.dataset.src = icon_path
-                        img.classList.add('lazy')
-
-                    } else {
-                        ipcRenderer.send('get_icon_path', href)
-                    }
-
-
-                // } else {
-
-                    // if (!img.classList.contains('img')) {
-                    //     ipcRenderer.send('get_icon_path', href)
-                    // }
-
-                // }
-
+                ipcRenderer.send('get_icon_path', href)
             }
 
-            /////////////////////////////////////////////////////////////
 
-            let cardclick_st = new Date().getTime()
+            // } else {
 
-            // CARD CLICK
-            card.addEventListener('click', function (e) {
+            // if (!img.classList.contains('img')) {
+            //     ipcRenderer.send('get_icon_path', href)
+            // }
 
-                e.preventDefault()
-                e.stopPropagation()
+            // }
 
-                // ADD ITEM TO CLIPBOARD FOR IMAGES THIS WILL NEED TO CHANGE
-                // let clipboard_image = nativeImage.createFromPath(href)
-                // clipboard.writeImage(clipboard_image, "clipboard")
+        }
+
+        /////////////////////////////////////////////////////////////
+
+        let cardclick_st = new Date().getTime()
+
+        // CARD CLICK
+        card.addEventListener('click', function (e) {
+
+            e.preventDefault()
+            e.stopPropagation()
+
+            // ADD ITEM TO CLIPBOARD FOR IMAGES THIS WILL NEED TO CHANGE
+            // let clipboard_image = nativeImage.createFromPath(href)
+            // clipboard.writeImage(clipboard_image, "clipboard")
 
 
-                // CRTRL+SHIFT ADD TO WORKSPACE
-                if (e.ctrlKey == true && e.shiftKey == true) {
+            // CRTRL+SHIFT ADD TO WORKSPACE
+            if (e.ctrlKey == true && e.shiftKey == true) {
 
-                    notification('ctrl + shift clicked')
-                    add_workspace()
+                notification('ctrl + shift clicked')
+                add_workspace()
 
-                    // MULTI SELECT
-                } else if (e.ctrlKey == true) {
+                // MULTI SELECT
+            } else if (e.ctrlKey == true) {
 
-                    notification('ctlr pressed')
+                notification('ctlr pressed')
 
-                    // CHECK IF ALREADY SELECTED
-                    if (this.classList.contains('highlight_select') || this.classList.contains('ds-selected')) {
+                // CHECK IF ALREADY SELECTED
+                if (this.classList.contains('highlight_select') || this.classList.contains('ds-selected')) {
 
-                        // REMOVE HIGHLIGHT
-                        this.classList.remove('highlight_select', 'ds-selected')
+                    // REMOVE HIGHLIGHT
+                    this.classList.remove('highlight_select', 'ds-selected')
 
-                    } else {
+                } else {
 
-                        // ADD HIGHLIGHT
-                        this.classList.add('highlight_select')
+                    // ADD HIGHLIGHT
+                    this.classList.add('highlight_select')
 
-                    }
+                }
 
 
                 // SINGLE SELECT
+            } else {
+
+                clear_selected_files()
+
+                // HIGHLIGHT
+                if (this.classList.contains('highlight_select')) {
+
+                    // remove_selected_file(href)
+                    this.classList.remove('highlight_select')
+
+                    //
                 } else {
 
-                    clear_selected_files()
+                    // NAV COUNTER
+                    nc = parseInt(card.dataset.id)
+                    console.log('counter ' + nc)
 
-                    // HIGHLIGHT
-                    if (this.classList.contains('highlight_select')) {
+                    this.classList.add('highlight_select')
 
-                        // remove_selected_file(href)
-                        this.classList.remove('highlight_select')
+                    if (prev_card) {
 
-                        //
+                        prev_card.classList.remove('highlight_select')
+                        prev_card = this
+
                     } else {
 
-                        // NAV COUNTER
-                        nc = parseInt(card.dataset.id)
-                        console.log('counter ' + nc)
-
-                        this.classList.add('highlight_select')
-
-                        if (prev_card) {
-
-                            prev_card.classList.remove('highlight_select')
-                            prev_card = this
-
-                        } else {
-
-                            prev_card = this
-                        }
-
+                        prev_card = this
                     }
 
                 }
 
-            })
+            }
 
-            let cardclick_et = new Date().getTime() - cardclick_st
+        })
 
-            // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
-            card.addEventListener('contextmenu', function (e) {
+        let cardclick_et = new Date().getTime() - cardclick_st
 
-                // SET GLOBAL CARD_ID
-                console.log('setting global card_id to ' + card.id)
-                card_id = card.id
+        // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
+        card.addEventListener('contextmenu', function (e) {
 
-                // todo: this needs work add selected files here has unintended results
-                // !! DO NOT USE ADD_SELECTED_FILES HERE. YOU MIGHT DELETE SOMETHING IMPORTANT!!!
-                source = href
+            // SET GLOBAL CARD_ID
+            console.log('setting global card_id to ' + card.id)
+            card_id = card.id
 
-                if (is_folder) {
+            // todo: this needs work add selected files here has unintended results
+            // !! DO NOT USE ADD_SELECTED_FILES HERE. YOU MIGHT DELETE SOMETHING IMPORTANT!!!
+            source = href
 
-                    // SHOW FOLDER MENU
-                    card.classList.add('folder_card', 'highlight_select')
+            if (is_folder) {
 
-                } else {
+                // SHOW FOLDER MENU
+                card.classList.add('folder_card', 'highlight_select')
 
-                    // SHOW FILE MENU
-                    card.classList.add('file_card', 'highlight_select')
+            } else {
 
-                }
+                // SHOW FILE MENU
+                card.classList.add('file_card', 'highlight_select')
 
-            })
+            }
 
-            // MOUSE OVER
-            let timeoutid
-            card.addEventListener('mouseover', function (e) {
+        })
 
-                e.preventDefault()
+        // MOUSE OVER
+        let timeoutid
+        card.addEventListener('mouseover', function (e) {
 
-                // SET GLOBAL CARD ID ON HOVER
-                // todo: this needs to be vetted
+            e.preventDefault()
+
+            // SET GLOBAL CARD ID ON HOVER
+            // todo: this needs to be vetted
+            card_id = id
+
+            // HIGHLIGHT CARD timeoutid = setTimeout(() => {
+            card.classList.add("highlight")
+
+            nc = nc2
+            nc2 = parseInt(card.dataset.id)
+
+            active_href = href;
+
+        })
+
+        //  OUT
+        card.addEventListener('mouseout', function (e) {
+
+            let cards = document.getElementsByClassName('card')
+            for (let i = 0; i < cards.length; i++) {
+                cards[i].classList.remove('highlight')
+            }
+
+        })
+
+        // IMG CLICK
+        img.addEventListener('click', function (e) {
+            e.preventDefault()
+
+            if (is_folder) {
+                // get_files(href, () => {})
+                get_view(href)
+            } else {
+                open(href, { wait: false })
+            }
+
+        })
+
+        // CREATE CONTENT
+        content.classList.add('content')
+        content.style = 'overflow-wrap: break-word;'
+
+        // CREATE HEADER
+        header.href = href
+        header.text = linktext
+        header.title = 'open file? ' + href
+        header.id = 'header_' + id
+        header.classList.add('header_link')
+        header.draggable = false
+
+
+        header.addEventListener('click', (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+
+            if (is_folder) {
+
+                get_view(href);
+
+                // get_files(href, () => {
+                //     console.log('shit')
+                // })
+            } else {
+                open(href, { wait: false })
+            }
+
+        })
+
+
+        // HEADER MOUSE OVER
+        header.addEventListener('mouseover', function (e) {
+            if (is_folder) {
                 card_id = id
+            }
+        })
 
-                // HIGHLIGHT CARD timeoutid = setTimeout(() => {
-                card.classList.add("highlight")
+        // HEADER MOUSE OUT
+        // header.addEventListener('mouseout', function (e) {
+        //     // img.src = icon_path
+        // })
 
-                nc = nc2
-                nc2 = parseInt(card.dataset.id)
+        form_field.classList.add('one', 'fields')
 
-                active_href = href;
+        // FOR EDIT MODE
+        input.id = 'edit_' + id
+        input.classList.add('hidden', 'input')
+        input.type = 'text'
+        input.spellcheck = false
+        input.value = linktext
 
-            })
 
-            //  OUT
-            card.addEventListener('mouseout', function (e) {
+        // selrange.moveEnd(href.length - path.extname(href).length)
 
-                let cards = document.getElementsByClassName('card')
-                for (let i = 0; i < cards.length; i++) {
-                    cards[i].classList.remove('highlight')
-                }
 
-            })
+        // CHANGE EVENT
+        input.addEventListener('change', function (e) {
 
-            // IMG CLICK
-            img.addEventListener('click', function (e) {
-                e.preventDefault()
+            e.preventDefault()
 
-                if (is_folder) {
-                    get_files(href, () => {})
-                } else {
-                    open(href, {wait: false})
-                }
+            console.log(this.required)
 
-            })
+            // todo: this needs a lot of input checking
 
-            // CREATE CONTENT
-            content.classList.add('content')
-            content.style = 'overflow-wrap: break-word;'
+            if (this.value == "") {
 
-            // CREATE HEADER
-            header.href = href
-            header.text = linktext
-            header.title = 'open file? ' + href
-            header.id = 'header_' + id
-            header.classList.add('header_link')
-            header.draggable = false
+                alert('enter a name')
 
+            } else {
 
-            header.addEventListener('click', (e) => {
-                e.preventDefault()
-                e.stopPropagation()
+                card.classList.add('highlight_select')
 
-                if (is_folder) {
-                    get_files(href, () => {
-                        console.log('shit')
-                    })
-                } else {
-                    open(href, {wait: false})
-                }
+                // RENAME FILE
+                rename_file(href, this.value.trim())
 
-            })
+                this.classList.add('hidden')
 
+                href = path.dirname(href) + '/' + this.value
+                card.dataset.href = href
 
-            // HEADER MOUSE OVER
-            header.addEventListener('mouseover', function (e) {
-                if (is_folder) {
-                    card_id = id
-                }
-            })
+                header.classList.remove('hidden')
+                header.text = this.value
+                header.href = href
+                header.title = 'open file? ' + path.dirname(href) + '/' + this.value
 
-            // HEADER MOUSE OUT
-            // header.addEventListener('mouseout', function (e) {
-            //     // img.src = icon_path
-            // })
+                source = path.dirname(href) + '/' + this.value.trim()
 
-            form_field.classList.add('one', 'fields')
+                // // header.focus()
 
-            // FOR EDIT MODE
-            input.id = 'edit_' + id
-            input.classList.add('hidden', 'input')
-            input.type = 'text'
-            input.spellcheck = false
-            input.value = linktext
-
-
-            // selrange.moveEnd(href.length - path.extname(href).length)
-
-
-            // CHANGE EVENT
-            input.addEventListener('change', function (e) {
-
-                e.preventDefault()
-
-                console.log(this.required)
-
-                // todo: this needs a lot of input checking
-
-                if (this.value == "") {
-
-                    alert('enter a name')
-
-                } else {
-
-                    card.classList.add('highlight_select')
-
-                    // RENAME FILE
-                    rename_file(href, this.value.trim())
-
-                    this.classList.add('hidden')
-
-                    href = path.dirname(href) + '/' + this.value
-                    card.dataset.href = href
-
-                    header.classList.remove('hidden')
-                    header.text = this.value
-                    header.href = href
-                    header.title = 'open file? ' + path.dirname(href) + '/' + this.value
-
-                    source = path.dirname(href) + '/' + this.value.trim()
-
-                    // // header.focus()
-
-                    // let main_view = document.getElementById('main_view')
-                    update_card(source)
-                    // clear_selected_files()
-
-                }
-
-            })
-
-            // KEYDOWN EVENT
-            input.addEventListener('keydown', function (e) {
-
-                if (e.key === 'Escape' || e.key === 'Tab') {
-
-                    // CLEAR ITEMS
-                    console.log('esc pressed on keydown')
-                    clear_selected_files()
-
-                    // CLEAR COPY ARRAY
-                    copy_files_arr = []
-
-                }
-
-            })
-
-            // INPUT CLICK
-            input.addEventListener('click', function (e) {
-                e.stopPropagation()
-                e.preventDefault()
-            })
-
-
-            form_control = add_div()
-
-            form_field.appendChild(input)
-            form_control.appendChild(form_field)
-            form.appendChild(form_control)
-
-            form.preventDefault = true
-
-            let description = add_div()
-            description.classList.add('description', 'no-wrap')
-            // description.innerHTML = mtime
-            description.draggable = false
-
-
-            extra.classList.add('extra')
-            extra.innerHTML = size
-            extra.draggable = false
-
-            progress.id = 'progress_' + id
-            progress.classList.add('hidden', 'progress')
-
-            progress_bar.id = 'progress_bar_' + id
-            progress_bar.value = '1'
-            progress_bar.max = '100'
-
-            // ON DRAG START
-            card.ondragstart = function (e) {
-
-                // e.preventDefault()
-
-                console.log('on drag start')
-                clear_copy_arr()
-
-                // let datalist = e.dataTransfer.items
-                // let data = fs.readFileSync(href)
-                // let blob = new Blob([data])
-                // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
-                // const fr = new FileReader()
-                // fr.readAsText(file)
-                // e.dataTransfer.setData(path.basename(href), "testing")
-                // console.log('bufer data', file)
-                // datalist.add(file)
-
-                e.dataTransfer.effectAllowed = 'copyMove'
-
-                let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-                console.log('items', items.length)
-
-                if (items.length > 0) {
-
-                    items.forEach((item,idx) => {
-                        let href = item.dataset.href
-                        let id = item.dataset.id
-                        add_copy_file(href, id)
-                        console.log('size', items,length, 'href', href)
-                    })
-
-                }
+                // let main_view = document.getElementById('main_view')
+                update_card(source)
+                // clear_selected_files()
 
             }
 
-            // INITIALIZE COUNTER
-            let dragcounter = 0
+        })
 
-            // ON DRAG ENTER
-            card.ondragenter = function (e) {
+        // KEYDOWN EVENT
+        input.addEventListener('keydown', function (e) {
 
-                e.preventDefault()
-                e.stopPropagation()
+            if (e.key === 'Escape' || e.key === 'Tab') {
 
-                dragcounter++
+                // CLEAR ITEMS
+                console.log('esc pressed on keydown')
+                clear_selected_files()
 
-                let target = e.target
-                notification('running card on dragenter ' + target.id)
-
-                // CARD. NOTE. THIS SEEMS BACKWARDS BUT WORKS AND IS ESSENTIAL FOR SETTING THE CORRECT TARGET PATH. NOT SURE WHY ??
-                if (target.id == "") {
-                    destination = href
-                    // card.classList.add('highlight_select')
-                    // BLANK
-                } else {
-
-                    destination = breadcrumbs.value
-                }
-
-                let main_view = document.getElementById('main_view')
-                main_view.classList.add('selectableunselected')
-                main_view.draggable = false
-
-                if (e.ctrlKey == true) {
-                    e.dataTransfer.dropEffect = "copy";
-                    console.log('ctrl pressed')
-                } else {
-                    e.dataTransfer.dropEffect = "move";
-                }
-
-                return false
+                // CLEAR COPY ARRAY
+                copy_files_arr = []
 
             }
 
-            // DRAG OVER
-            card.ondragover = function (e) {
+        })
 
-                // ADD HIGHLIGHT
+        // INPUT CLICK
+        input.addEventListener('click', function (e) {
+            e.stopPropagation()
+            e.preventDefault()
+        })
+
+
+        form_control = add_div()
+
+        form_field.appendChild(input)
+        form_control.appendChild(form_field)
+        form.appendChild(form_control)
+
+        form.preventDefault = true
+
+        let description = add_div()
+        description.classList.add('description', 'no-wrap')
+        // description.innerHTML = mtime
+        description.draggable = false
+
+
+        extra.classList.add('extra')
+        extra.innerHTML = size
+        extra.draggable = false
+
+        progress.id = 'progress_' + id
+        progress.classList.add('hidden', 'progress')
+
+        progress_bar.id = 'progress_bar_' + id
+        progress_bar.value = '1'
+        progress_bar.max = '100'
+
+        // ON DRAG START
+        card.ondragstart = function (e) {
+
+            // e.preventDefault()
+
+            console.log('on drag start')
+            clear_copy_arr()
+
+            // let datalist = e.dataTransfer.items
+            // let data = fs.readFileSync(href)
+            // let blob = new Blob([data])
+            // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
+            // const fr = new FileReader()
+            // fr.readAsText(file)
+            // e.dataTransfer.setData(path.basename(href), "testing")
+            // console.log('bufer data', file)
+            // datalist.add(file)
+
+            e.dataTransfer.effectAllowed = 'copyMove'
+
+            let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+            console.log('items', items.length)
+
+            if (items.length > 0) {
+
+                items.forEach((item, idx) => {
+                    let href = item.dataset.href
+                    let id = item.dataset.id
+                    add_copy_file(href, id)
+                    console.log('size', items, length, 'href', href)
+                })
+
+            }
+
+        }
+
+        // INITIALIZE COUNTER
+        let dragcounter = 0
+
+        // ON DRAG ENTER
+        card.ondragenter = function (e) {
+
+            e.preventDefault()
+            e.stopPropagation()
+
+            dragcounter++
+
+            let target = e.target
+            notification('running card on dragenter ' + target.id)
+
+            // CARD. NOTE. THIS SEEMS BACKWARDS BUT WORKS AND IS ESSENTIAL FOR SETTING THE CORRECT TARGET PATH. NOT SURE WHY ??
+            if (target.id == "") {
+                destination = href
                 // card.classList.add('highlight_select')
-                card.classList.add('highlight')
+                // BLANK
+            } else {
 
-                if (e.ctrlKey == true) {
-                    e.dataTransfer.dropEffect = "copy";
-                    console.log('ctrl pressed')
-                } else {
-                    e.dataTransfer.dropEffect = "move";
-                }
-
-                e.preventDefault()
-                e.stopPropagation()
-
-                return false
-
+                destination = breadcrumbs.value
             }
 
-            // ON DRAG LEAVE
-            card.ondragleave = function (e) {
+            let main_view = document.getElementById('main_view')
+            main_view.classList.add('selectableunselected')
+            main_view.draggable = false
 
-                dragcounter--
+            if (e.ctrlKey == true) {
+                e.dataTransfer.dropEffect = "copy";
+                console.log('ctrl pressed')
+            } else {
+                e.dataTransfer.dropEffect = "move";
+            }
+
+            return false
+
+        }
+
+        // DRAG OVER
+        card.ondragover = function (e) {
+
+            // ADD HIGHLIGHT
+            // card.classList.add('highlight_select')
+            card.classList.add('highlight')
+
+            if (e.ctrlKey == true) {
+                e.dataTransfer.dropEffect = "copy";
+                console.log('ctrl pressed')
+            } else {
+                e.dataTransfer.dropEffect = "move";
+            }
+
+            e.preventDefault()
+            e.stopPropagation()
+
+            return false
+
+        }
+
+        // ON DRAG LEAVE
+        card.ondragleave = function (e) {
+
+            dragcounter--
+
+            // card.classList.remove('highlight_select')
+            card.classList.remove('highlight')
+
+            if (dragcounter === 0) {
+
+
+                // TURN DRAGGABLE ON MAIN CARD ON
+                notification('setting draggable to true on main view')
 
                 // card.classList.remove('highlight_select')
-                card.classList.remove('highlight')
 
-                if (dragcounter === 0) {
+                let main_view = document.getElementById('main_view')
 
+                // main_view.draggable = true
 
-                    // TURN DRAGGABLE ON MAIN CARD ON
-                    notification('setting draggable to true on main view')
+                notification('running on drag leave card')
 
-                    // card.classList.remove('highlight_select')
-
-                    let main_view = document.getElementById('main_view')
-
-                    // main_view.draggable = true
-
-                    notification('running on drag leave card')
-
-                }
-
-                e.preventDefault()
-                e.stopPropagation()
-
-                return false
             }
 
-            // console.log(card)
+            e.preventDefault()
+            e.stopPropagation()
 
-            card.appendChild(items)
-            items.appendChild(item)
-            item.appendChild(image)
-            image.appendChild(img)
-            item.appendChild(content)
-            item.appendChild(popovermenu)
-            content.appendChild(header)
-            content.appendChild(form_control)
-            content.appendChild(description)
+            return false
+        }
 
-            progress.appendChild(progress_bar)
+        // console.log(card)
 
-            content.appendChild(extra)
-            content.appendChild(progress)
+        card.appendChild(items)
+        items.appendChild(item)
+        item.appendChild(image)
+        image.appendChild(img)
+        item.appendChild(content)
+        item.appendChild(popovermenu)
+        content.appendChild(header)
+        content.appendChild(form_control)
+        content.appendChild(description)
 
-            col.appendChild(card)
-            grid.appendChild(col)
+        progress.appendChild(progress_bar)
+
+        content.appendChild(extra)
+        content.appendChild(progress)
+
+        col.appendChild(card)
+        grid.appendChild(col)
 
 
-            return await col
+        return await col
 
 
 
@@ -2679,7 +2689,8 @@ function add_pager_item(options) {
 
     section.addEventListener('click', function (e) {
         pager.html = ''
-        get_files(options.dir, { sort: localStorage.getItem('sort'), page: options.name })
+        // get_files(options.dir, { sort: localStorage.getItem('sort'), page: options.name })
+        get_view(options.dir)
     })
 
 }
@@ -2943,8 +2954,8 @@ function add_tree_item(options) {
     // HEADER CLICK
     header.addEventListener('click', function (e) {
 
-        e.preventDefault()
-        e.stopPropagation()
+        e.preventDefault();
+        e.stopPropagation();
 
 
         // // CHECK IF THERE ARE SUBDIRECTORIES
@@ -2970,7 +2981,8 @@ function add_tree_item(options) {
 
         // }
 
-        get_files(filepath, () => {})
+        // get_files(filepath, () => {})
+        get_view(filepath);
 
     })
 
@@ -3092,7 +3104,7 @@ function get_templates(file) {
 
 // DISK USAGE CHART
 var chart
-function add_chart(chart_type ,chart_labels, chart_data) {
+function add_chart(chart_type, chart_labels, chart_data) {
 
     console.log('adding chart');
     // console.log(chart_labels);
@@ -3160,7 +3172,7 @@ function add_chart(chart_type ,chart_labels, chart_data) {
                 tooltip: {
                     enabled: true,
                     callbacks: {
-                        label: function(x) {
+                        label: function (x) {
                             console.log('context', x)
                             return get_file_size(x.dataset.data[x.dataIndex] * 1024)
                         }
@@ -3314,7 +3326,7 @@ function get_disk_usage_chart() {
             // notification(chart_data)
             // bar_chart(chart_labels, chart_data)
             grid.append(col)
-            let chart = add_chart('bar',chart_labels, chart_data)
+            let chart = add_chart('bar', chart_labels, chart_data)
             // chart.style = 'height: 100px !important; width: 800px !important'
             col.append(chart);
             info_view.append(grid)
@@ -3449,52 +3461,52 @@ function get_folder_size(href) {
 
     return new Promise(resolve => {
 
-    console.log('running get folder size')
+        console.log('running get folder size')
 
-    let breadcrumbs = document.getElementById('breadcrumbs')
-    if (breadcrumbs.value.indexOf('gvfs') == -1) {
+        let breadcrumbs = document.getElementById('breadcrumbs')
+        if (breadcrumbs.value.indexOf('gvfs') == -1) {
 
-        // cmd = 'cd "' + dir + '"; du -b'
-        // return du = execSync(cmd)
-        const regex = /^\..*/
-        let folder_card = document.getElementsByClassName('folder_card')
+            // cmd = 'cd "' + dir + '"; du -b'
+            // return du = execSync(cmd)
+            const regex = /^\..*/
+            let folder_card = document.getElementsByClassName('folder_card')
 
-        if (folder_card.length > 0) {
-            for (let i = 0; i < folder_card.length; i++) {
+            if (folder_card.length > 0) {
+                for (let i = 0; i < folder_card.length; i++) {
 
-                cmd = 'cd "' + href + '"; du -s'
-                du = exec(cmd)
+                    cmd = 'cd "' + href + '"; du -s'
+                    du = exec(cmd)
 
-                console.log(href)
+                    console.log(href)
 
-                du.stdout.on('data', function (res) {
+                    du.stdout.on('data', function (res) {
 
-                    let extra = folder_card[i].querySelector('.extra')
+                        let extra = folder_card[i].querySelector('.extra')
 
-                    let size = parseInt(res.replace('.', '') * 1024)
-                    if (size > 1000000000) {
-                        extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
-                    } else {
-                        extra.innerHTML = get_file_size(size)
-                    }
+                        let size = parseInt(res.replace('.', '') * 1024)
+                        if (size > 1000000000) {
+                            extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
+                        } else {
+                            extra.innerHTML = get_file_size(size)
+                        }
 
-                    resolve(size)
+                        resolve(size)
 
-                })
+                    })
 
 
+                }
             }
+
+        } else {
+            console.log('gvfs folder. dont scan size')
         }
 
-    } else {
-        console.log('gvfs folder. dont scan size')
-    }
-
-})
+    })
 
 }
 
-function get_folder_size1 (href, callback) {
+function get_folder_size1(href, callback) {
 
     cmd = 'cd "' + href + '"; du -s'
     du = exec(cmd)
@@ -3540,19 +3552,30 @@ async function get_workspace() {
             let item = items[i]
             let href = item
 
+            let is_folder = 0
+            if (fs.statSync(href).isDirectory()) {
+                is_folder = 1
+            } else {
+                is_folder = 0
+            }
+
+            console.log('')
+
             options = {
                 id: 'workspace_' + i,
                 href: href,
                 linktext: path.basename(href),
-                grid: workspace_grid
+                grid: workspace_grid,
+                is_folder: is_folder
             }
 
             workspace_arr.push(options.href)
             add_card(options)
+            update_cards(workspace_grid)
 
         }
 
-        update_cards(workspace_grid)
+
 
     }
 
@@ -3652,11 +3675,13 @@ let view = ''
 let view0 = ''
 async function get_view(dir) {
 
-    let grid_view  = document.getElementById('grid_view')
-    let list_view = document.getElementById('list_view')
-    let info_view = document.getElementById('info_view')
+    ipcRenderer.send('folder', dir);
 
-    view0 = view
+    let grid_view = document.getElementById('grid_view');
+    let list_view = document.getElementById('list_view');
+    let info_view = document.getElementById('info_view');
+
+    view0 = view;
     view = localStorage.getItem('view');
 
     if (view == 'grid') {
@@ -3671,7 +3696,7 @@ async function get_view(dir) {
         info_view.classList.add('hidden')
         info_view.innerHTML = ''
 
-        get_files(dir, () => {});
+        get_files(dir, () => { });
 
     } else if (view == 'list') {
 
@@ -3725,7 +3750,7 @@ async function get_disk_summary_view() {
     // COMMAND
     let disks = execSync('df -l -t ext4').toString().split('\n');
     // disks.shift()
-    disks_arr = disks.filter(a => {return a !== '';})
+    disks_arr = disks.filter(a => { return a !== ''; })
     disks_arr.forEach((disk, i) => {
 
         // GRID FOR DATA
@@ -3778,7 +3803,7 @@ async function get_disk_summary_view() {
                 chart_labels.push(item)
                 content.append(item)
 
-            // ADD CHART DATA
+                // ADD CHART DATA
             } else if (i > 0 && (ii > 0 && ii < 4)) {
                 chart_data.push(parseInt(item))
             }
@@ -3789,7 +3814,7 @@ async function get_disk_summary_view() {
                 header.append(item)
                 content.append(header, add_br(), add_br())
 
-            // ADD DATA
+                // ADD DATA
             } else {
 
                 // IF INTEGER THEN GET FILE SIZE
@@ -3836,7 +3861,7 @@ async function get_disk_summary_view() {
         })
 
         // CREATE CHART
-        if (i > 0)  {
+        if (i > 0) {
 
             let chart = add_chart('doughnut', chart_labels, chart_data)
             chart.style = 'float:left'
@@ -3903,22 +3928,22 @@ async function get_list_view(dir) {
     // DEFINE COLUMNS
     let cols_arr = [
         {
-            name:'Name',
+            name: 'Name',
             sort: 2,
             show: 1
         },
         {
-            name:'Size',
+            name: 'Size',
             sort: 3,
             show: 1
         },
         {
-            name:'Modified',
+            name: 'Modified',
             sort: 1,
             show: 1
         },
         {
-            name:'Type',
+            name: 'Type',
             sort: 4,
             show: 1
         },
@@ -3941,7 +3966,7 @@ async function get_list_view(dir) {
             let tr = document.createElement('tr')
             let tbody = document.createElement('tbody')
 
-            table.classList.add('ui','four', 'small', 'selectable', 'sortable', 'compact', 'celled', 'table')
+            table.classList.add('ui', 'four', 'small', 'selectable', 'sortable', 'compact', 'celled', 'table')
             thead.classList.add('full-width')
             table.style = 'background:transparent !important;'
 
@@ -3963,9 +3988,9 @@ async function get_list_view(dir) {
                     })
 
                     if (col.name == 'Name') {
-                        th.classList.add('eight' , 'wide')
+                        th.classList.add('eight', 'wide')
                     } else {
-                        th.classList.add('two' , 'wide')
+                        th.classList.add('two', 'wide')
                     }
 
                     tr.append(th)
@@ -4050,10 +4075,10 @@ async function get_list_view(dir) {
 
                 // SORT BY SIZE
                 case 3: {
-                    dirents.sort((a,b) => {
+                    dirents.sort((a, b) => {
 
-                        let s1 = parseInt(localStorage.getItem(path.join(dir,a)));
-                        let s2 = parseInt(localStorage.getItem(path.join(dir,b)));
+                        let s1 = parseInt(localStorage.getItem(path.join(dir, a)));
+                        let s2 = parseInt(localStorage.getItem(path.join(dir, b)));
 
                         if (sort_flag == 0) {
                             return s2 - s1;
@@ -4081,7 +4106,7 @@ async function get_list_view(dir) {
                 a_stats = fs.statSync(a_filename)
                 b_stats = fs.statSync(b_filename)
 
-                return (a_stats.isFile() === b_stats.isFile())? 1 : a_stats.isFile()? 0: -1;
+                return (a_stats.isFile() === b_stats.isFile()) ? 1 : a_stats.isFile() ? 0 : -1;
 
             })
 
@@ -4109,7 +4134,7 @@ async function get_list_view(dir) {
                         }
 
                         // CREATE HEADER
-                        let header_link = add_link(filename,file);
+                        let header_link = add_link(filename, file);
                         header_link.classList.add('nav_item;', 'header_link')
                         header_link.style = 'font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important; width: 100%'
 
@@ -4147,7 +4172,7 @@ async function get_list_view(dir) {
                             if (item.show == '1') {
 
                                 // ADD DATA
-                                switch(item.name) {
+                                switch (item.name) {
 
                                     case 'Name': {
 
@@ -4211,7 +4236,7 @@ async function get_list_view(dir) {
                                         td.append(type);
                                         break;
                                     }
-                                    case 'Created' : {
+                                    case 'Created': {
                                         td.append(new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime));
                                         break;
                                     }
@@ -4235,17 +4260,17 @@ async function get_list_view(dir) {
                             // TABLE DATA MOUSEOVER
                             tr.addEventListener('mouseover', (e) => {
 
-                                let title =  {
+                                let title = {
                                     filename: filename,
                                     size: get_file_size(localStorage.getItem(filename)),
                                     modified: get_time_stamp(fs.statSync(filename).mtime)
                                 }
 
                                 e.target.title = title.filename +
-                                                 '\n' +
-                                                 title.size +
-                                                 '\n' +
-                                                 title.modified
+                                    '\n' +
+                                    title.size +
+                                    '\n' +
+                                    title.modified
 
                                 // FOCUS FOR EDIT
                                 td.focus()
@@ -4276,11 +4301,11 @@ async function get_list_view(dir) {
                                 get_list_view(filename)
                             })
 
-                        // FILES
+                            // FILES
                         } else {
 
                             header_link.addEventListener('click', (e) => {
-                                open(filename, {wait: false})
+                                open(filename, { wait: false })
                             })
 
                             // tr.append(td)
@@ -4516,8 +4541,8 @@ async function get_files(dir, callback) {
                 // SORT BY SIZE
                 dirents.sort((a, b) => {
 
-                    let s1 = parseInt(localStorage.getItem(path.join(dir,a)))
-                    let s2 = parseInt(localStorage.getItem(path.join(dir,b)))
+                    let s1 = parseInt(localStorage.getItem(path.join(dir, a)))
+                    let s2 = parseInt(localStorage.getItem(path.join(dir, b)))
 
                     return s2 - s1
 
@@ -4636,7 +4661,7 @@ async function get_files(dir, callback) {
                         add_card(options)
                         ++folder_count
 
-                    // FILES
+                        // FILES
                     } else {
 
                         let filename = path.basename(file)
@@ -4856,7 +4881,7 @@ async function get_files(dir, callback) {
 
             // DISABLE MOVING CONTENT ON ARROW
             document.addEventListener('keydown', (e) => {
-                if (["ArrowUp","ArrowDown"].indexOf(e.code) > -1) {
+                if (["ArrowUp", "ArrowDown"].indexOf(e.code) > -1) {
                     e.preventDefault()
                     console.log('arrow key pressed')
                     return false
@@ -4976,7 +5001,7 @@ async function get_files(dir, callback) {
 
                     console.log('destination ' + destination)
 
-                // MOVE FILE
+                    // MOVE FILE
                 } else {
 
                     // notification('changing state to 0')
@@ -5550,14 +5575,14 @@ async function get_files(dir, callback) {
     Mousetrap.bind('f5', () => {
 
         // get_tree(breadcrumbs.value)
-        let view = localStorage.getItem('view')
-        if (view == 'grid') {
-            get_files(breadcrumbs.value, () => {});
-        } else if (view == 'list') {
-            get_list_view(breadcrumbs.value);
-        }
+        // let view = localStorage.getItem('view')
+        // if (view == 'grid') {
+        //     get_files(breadcrumbs.value, () => {});
+        // } else if (view == 'list') {
+        //     get_list_view(breadcrumbs.value);
+        // }
 
-
+        get_view(breadcrumbs.value)
         localStorage.setItem('folder', breadcrumbs.value)
 
     })
@@ -5796,7 +5821,7 @@ function add_history(dir) {
 
 
 let copy_files_arr = []
-function add_copy_file(source ,card_id) {
+function add_copy_file(source, card_id) {
 
     let c1 = 0;
     let c2 = 0;
@@ -6053,7 +6078,7 @@ function clear_selected_files() {
     let nav_items = document.querySelectorAll('.nav_item')
     nav_items.forEach(item => {
 
-        item.classList.remove('highlight_select','ds-selected')
+        item.classList.remove('highlight_select', 'ds-selected')
         item.classList.remove('highlight')
 
         item.querySelector('input').classList.add('hidden')
@@ -6276,31 +6301,31 @@ async function find_files() {
 
                                 // if (fs.statSync(filename).isDirectory() || fs.statSync(filename).isFile()) {
 
-                                    let options = {
+                                let options = {
 
-                                        id: 'find_' + i,
-                                        linktext: path.basename(filename),
-                                        href: filename,
-                                        grid: search_results,
-                                        is_folder: fs.statSync(filename).isDirectory()
+                                    id: 'find_' + i,
+                                    linktext: path.basename(filename),
+                                    href: filename,
+                                    grid: search_results,
+                                    is_folder: fs.statSync(filename).isDirectory()
 
-                                    }
+                                }
 
-                                    try {
+                                try {
 
-                                        add_card(options).then(card => {
+                                    add_card(options).then(card => {
 
-                                            // search_results.insertBefore(card, search_results.firstChild)
-                                            update_cards(search_results)
+                                        // search_results.insertBefore(card, search_results.firstChild)
+                                        update_cards(search_results)
 
-                                        })
+                                    })
 
-                                    } catch (err) {
+                                } catch (err) {
 
-                                        notification(err)
-                                        info(err)
+                                    notification(err)
+                                    info(err)
 
-                                    }
+                                }
 
                                 // }
 
@@ -6380,8 +6405,8 @@ window.addEventListener('contextmenu', function (e) {
 
                 ipcRenderer.send('show-context-menu-files', associated_apps);
 
-            // EMPTY AREA
-            // todo this needs to be looked
+                // EMPTY AREA
+                // todo this needs to be looked
             } else {
 
                 ipcRenderer.send('show-context-menu');
@@ -6506,7 +6531,7 @@ function paste() {
         cut_files = 0;
         move_to_folder(breadcrumbs.value, state);
 
-    // RUN COPY FUNCTION
+        // RUN COPY FUNCTION
     } else {
         copy_files(breadcrumbs.value, state);
     }
@@ -6645,7 +6670,7 @@ let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme'
 let icon_dir = path.join('/usr/share/icons', icon_theme)
 
 let folder_icon_dir = path.join('/usr/share/icons', icon_theme)
-console.log(icon_dir,fs.existsSync(icon_dir))
+console.log(icon_dir, fs.existsSync(icon_dir))
 
 if (fs.existsSync(icon_dir) == false) {
     console.log(icon_dir)
@@ -6680,7 +6705,7 @@ function get_folder_icon(callback) {
                 // console.log('places', icon);
 
                 if (!fs.existsSync(icon)) {
-                    icon = path.join(__dirname,'/assets/icons/folder.png');
+                    icon = path.join(__dirname, '/assets/icons/folder.png');
                     return true;
                 } else {
                     return false;
@@ -6710,39 +6735,39 @@ function get_icon_path(file) {
         if (stats.isDirectory()) {
 
             // todo: this needs to be reworked to get theme folder icon
-            icon = path.join(__dirname,'/assets/icons/folder.png');
+            icon = path.join(__dirname, '/assets/icons/folder.png');
 
         } else {
 
-            icon_dir = path.join(__dirname,'/assets/icons/korla')
+            icon_dir = path.join(__dirname, '/assets/icons/korla')
             if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
                 icon = file
                 let img_data = get_img_data(file);
                 console.log(img_data)
             } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
-                icon = path.join(icon_dir,'/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
+                icon = path.join(icon_dir, '/apps/scalable/ms-excel.svg') //../assets/icons/korla/apps/scalable/libreoffice-calc.svg'
             } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
-                icon = path.join(icon_dir,'/apps/scalable/libreoffice-writer.svg')
+                icon = path.join(icon_dir, '/apps/scalable/libreoffice-writer.svg')
             } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
-                icon = path.join(icon_dir,'/mimetypes/scalable/audio-wav.svg')
+                icon = path.join(icon_dir, '/mimetypes/scalable/audio-wav.svg')
             } else if (file_ext == '.iso') {
-                icon = path.join(icon_dir,'/apps/scalable/isomaster.svg')
+                icon = path.join(icon_dir, '/apps/scalable/isomaster.svg')
             } else if (file_ext == '.pdf') {
-                icon = path.join(icon_dir,'/apps/scalable/gnome-pdf.svg')
+                icon = path.join(icon_dir, '/apps/scalable/gnome-pdf.svg')
             } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
-                icon = path.join(icon_dir,'/apps/scalable/7zip.svg')
+                icon = path.join(icon_dir, '/apps/scalable/7zip.svg')
             } else if (file_ext == '.deb') {
                 icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
             } else if (file_ext == '.txt') {
-                icon = path.join(icon_dir,'/apps/scalable/text.svg')
+                icon = path.join(icon_dir, '/apps/scalable/text.svg')
             } else if (file_ext == '.sh') {
-                icon = path.join(icon_dir,'/apps/scalable/terminal.svg')
+                icon = path.join(icon_dir, '/apps/scalable/terminal.svg')
             } else if (file_ext == '.js') {
-                icon = path.join(icon_dir,'/apps/scalable/applications-java.svg')
+                icon = path.join(icon_dir, '/apps/scalable/applications-java.svg')
             } else if (file_ext == '.sql') {
-                icon = path.join(icon_dir,'/mimetypes/scalable/application-x-sqlite.svg')
+                icon = path.join(icon_dir, '/mimetypes/scalable/application-x-sqlite.svg')
             } else {
-                icon = path.join(icon_dir,'/mimetypes/scalable/application-document.svg')
+                icon = path.join(icon_dir, '/mimetypes/scalable/application-document.svg')
             }
 
         }
@@ -7105,7 +7130,7 @@ async function copy_files(destination_folder, state) {
     let info_view = document.getElementById('info_view');
     info_view.innerHTML = '';
 
-    console.log('destination', destination,'state', state);
+    console.log('destination', destination, 'state', state);
     console.log('copy files array length', copy_files_arr.length);
 
     // RESET COUNTER. HANDLES SETTING ROOT FOLDER SO THE SIZE CAN BE UPDATED
@@ -7253,7 +7278,7 @@ function copyFolderRecursiveSync(source, destination) {
                                 // ipcRenderer.send('get_folder_size', { href: destination })
 
 
-                            // FILE
+                                // FILE
                             } else if (stats.isFile() == true) {
 
                                 // debugger
@@ -7283,7 +7308,7 @@ function copyFolderRecursiveSync(source, destination) {
 function move_to_folder(destination, state) {
 
     // ADD DESTINATION TO ARRAY
-    copy_files_arr.forEach((item,idx) => {
+    copy_files_arr.forEach((item, idx) => {
         item.destination = destination
     })
 
@@ -7466,7 +7491,7 @@ function delete_confirmed() {
 
                 // notification(delete_folder_count + ' folders deleted.')
 
-            // IF FILE
+                // IF FILE
             } else if (fs.statSync(file.source).isFile()) {
 
                 ++delete_files_count
@@ -7698,9 +7723,9 @@ function navigate(direction) {
     let breadcrumbs = document.getElementById('breadcrumbs');
     let last_index = history_arr.lastIndexOf(breadcrumbs.value);
 
-    console.log('array',history_arr,'last index', last_index)
+    console.log('array', history_arr, 'last index', last_index)
 
-    for(i = 0; i < history_arr.length; i++) {
+    for (i = 0; i < history_arr.length; i++) {
 
         if (history_arr[i] == breadcrumbs.value) {
 
@@ -7776,7 +7801,7 @@ function update_card(href) {
                 mtime
         })
 
-    // FILES
+        // FILES
     } else {
 
         size = get_file_size(stats.size)
@@ -7841,10 +7866,10 @@ function update_cards(view) {
 
             ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
 
-                console.log('dragging', isDragging, isDraggingKeyboard)
+                console.log('dragging', isDragging)
 
-                if(isDragging) {
-                    ds.stop(false,true)
+                if (isDragging) {
+                    ds.stop(false, true)
                     // setTimeout(ds.start)
                 }
             })
@@ -7901,7 +7926,7 @@ function update_cards(view) {
                         mtime
                 })
 
-            // FILES
+                // FILES
             } else {
 
                 ++file_counter
@@ -7994,7 +8019,7 @@ function extract(source) {
     if (fs.existsSync(filename)) {
 
         data = {
-            source:source,
+            source: source,
             destination: filename
         }
 
@@ -8639,7 +8664,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
                 card_id = item.id
                 add_copy_file(source, card_id)
 
-                 if (fs.statSync(source).isDirectory()) {
+                if (fs.statSync(source).isDirectory()) {
                     ++c1;
                 } else {
                     ++c2;

@@ -526,7 +526,7 @@ $(function() {
 
         // window.api.get_tree('/')
         this.classList.add('active')
-        get_files('/')
+        window.api.get_view('/')
 
     })
 
@@ -548,7 +548,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        get_files(home_folder)
+        window.api.get_view(home_folder)
 
     })
 
@@ -557,7 +557,7 @@ $(function() {
     $(document).on('click', '#documents',function(e){
         clear_active()
         this.classList.add('active')
-        get_files(home_folder + '/Documents')
+        window.api.get_view(home_folder + '/Documents')
         // get_data(home_folder + '/Documents')
 
     })
@@ -567,6 +567,7 @@ $(function() {
         e.preventDefault()
         clear_active()
         this.classList.add('active')
+        // get_data(home_folder + '/Documents')
         // get_files(home_folder + '/Downloads')
         window.api.get_view(home_folder + '/Downloads')
 
@@ -580,7 +581,7 @@ $(function() {
         clear_active()
         this.classList.add('active')
         // get_data(home_folder + '/Pictures')
-        get_files(home_folder + '/Pictures')
+        window.api.get_view(home_folder + '/Pictures')
 
     })
 
@@ -589,7 +590,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        get_files(home_folder + '/Videos')
+        window.api.get_view(home_folder + '/Videos')
 
     })
 
@@ -598,7 +599,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        get_files(home_folder + '/Music')
+        window.api.get_view(home_folder + '/Music')
 
     })
 
@@ -607,7 +608,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        get_files('/run/user/1000/gvfs/')
+        window.api.get_view('/run/user/1000/gvfs/')
 
     })
 
@@ -617,7 +618,7 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-        get_files('/media')
+        window.api.get_view('/media')
 
     })
 
@@ -720,7 +721,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir)
+        window.api.get_view(dir)
 
     })
 
@@ -740,7 +741,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir)
+        window.api.get_view(dir)
 
     })
 
@@ -761,7 +762,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir)
+        window.api.get_view(dir)
 
     })
 
@@ -782,7 +783,7 @@ $(function() {
             search: ''
         }
 
-        get_files(dir,options)
+        window.api.get_view(dir,options)
 
     })
 
@@ -886,7 +887,7 @@ breadcrumbs.addEventListener('change',function(e){
     console.log('setting local storage to ' + dir)
 
     clear_active()
-    get_files(dir)
+    window.api.get_view(dir)
 })
 
 
