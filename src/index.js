@@ -327,20 +327,35 @@ $(function() {
     })
 
     // FIND FILES
-    let find_files = $('#find_files')
+    let find_files = document.getElementById('find_files')
     let find_files_options = localStorage.getItem('find_files')
     if (find_files_options == 1) {
-        find_files.attr('checked','checked')
+        find_files.checked = true
     }
+    find_files.addEventListener('change', (e) => {
+        if (find_files.checked) {
 
-    $(document).on('click','#find_files',function(e) {
-
-        if (localStorage.getItem('find_files') == '') {
             localStorage.setItem('find_files', 1)
+            console.log('setting find to 1')
+
         } else {
-            localStorage.setItem('find_files', '')
+
+            localStorage.setItem('find_files', 0)
+            console.log('setting find to 0')
+            
         }
     })
+
+
+
+    // $(document).on('click','#find_files',function(e) {
+
+    //     if (localStorage.getItem('find_files') == '') {
+    //         localStorage.setItem('find_files', 1)
+    //     } else {
+    //         localStorage.setItem('find_files', '')
+    //     }
+    // })
 
 
     // FIND BY SIZE

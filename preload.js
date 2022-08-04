@@ -3730,6 +3730,8 @@ async function get_view(dir) {
         localStorage.setItem('view', view0)
     }
 
+    show_sidebar();
+
 }
 
 // GET DISK SUMMARY VIEW
@@ -3788,10 +3790,6 @@ async function get_disk_summary_view() {
         // LOOP OVER DATA ARRAY
         data_arr.forEach((item, ii) => {
 
-            // // ADD COLUMN TO DATA GRID
-            // let data_grid_col = add_div()
-            // data_grid_col.classList.add('column', 'eight', 'wide')
-
             // GET LABELS
             if (i == 0) {
                 labels.push(item)
@@ -3814,48 +3812,55 @@ async function get_disk_summary_view() {
                 header.append(item)
                 content.append(header, add_br(), add_br())
 
-                // ADD DATA
+            // ADD DATA
             } else {
 
                 // IF INTEGER THEN GET FILE SIZE
                 if (ii > 0 && ii < 4) {
 
-                    // data_grid_col.append(labels[ii])
-                    // data_grid_col.append(get_file_size(parseInt(item) * 1024))
-                    let data_col1 = add_column('six')
+                    let data_col1 = add_column('three')
                     data_col1.append(labels[ii])
                     data_col1.style = 'border: none;'
 
-                    let data_col2 = add_column('eight')
+                    let data_col2 = add_column('twelve')
                     data_col2.append(get_file_size(parseInt(item) * 1024))
                     data_col2.style = 'border: none;'
 
                     data_grid.append(data_col1, data_col2)
 
-                    // content.append(labels[ii], '\t', get_file_size(parseInt(item) * 1024), add_br())
                 } else {
 
-                    let data_col1 = add_column('six')
+                    let data_col1 = add_column('three')
                     data_col1.append(labels[ii])
 
-                    let data_col2 = add_column('eight')
-                    data_col2.append(item)
+                    let data_col2 = add_column('twelve')
+
+                    // ADD LINK TO MOUNTED
+                    if (ii >= data_arr.length -1) {
+
+                        let href = add_link(item, item);
+                        href.addEventListener('click', (e) => {
+                            get_view(item);
+                        })
+
+                        data_col2.append(href);
+                    } else {
+                        data_col2.append(item);
+                    }
 
                     data_grid.append(data_col1, data_col2)
 
-                    // content.append(data_grid)
-
-                    // data_grid.append(data_grid_col)
-                    // content.append(labels[ii], '\t', item, add_br())
                 }
 
             }
 
+            // ADD DATA GRID TO CONTENT
             content.append(data_grid)
-            // data_grid.append(data_grid_col)
 
-
+            // ADD CONTENT TO CARD
             card.append(content)
+
+            // ADD CARD TO COLUMN
             col.append(card)
 
         })
@@ -3873,32 +3878,13 @@ async function get_disk_summary_view() {
             grid.append(col)
 
         }
-
-        // // CREATE CHART
-        // let chart = add_chart('pie', chart_labels, chart_data)
-        // chart.style = 'float:left'
-        // image.append(chart)
-        // card.append(image)
     });
-
-    // GET DISK USAGE CHART
-    // get_disk_usage_chart()
 
     // ADD GRID TO VIEW
     view.append(grid);
 
-    // console.log(disks)
-    // Filesystem      Size  Used Avail Use% Mounted on
-    // VM2719 preload.js:3598 tmpfs           1.6G  3.0M  1.6G   1% /run
-    // VM2719 preload.js:3598 /dev/nvme0n1p2   92G   34G   53G  39% /
-    // VM2719 preload.js:3598 tmpfs           7.8G  347M  7.4G   5% /dev/shm
-    // VM2719 preload.js:3598 tmpfs           5.0M  4.0K  5.0M   1% /run/lock
-    // VM2719 preload.js:3598 /dev/nvme0n1p1   93M  5.3M   88M   6% /boot/efi
-    // VM2719 preload.js:3598 /dev/nvme0n1p3  825G  656G  127G  84% /home
-    // VM2719 preload.js:3598 tmpfs           1.6G  212K  1.6G   1% /run/user/1000
-    // VM2719 preload.js:3598 /dev/sda1       916G  316G  554G  37% /media/michael/backup-drive
-    // VM2719 preload.js:3598 /dev/sdb1       140K   76K   64K  55% /media/michael/SCARLETT
 
+    get_disk_usage_chart()
 
 
 }
@@ -4775,48 +4761,7 @@ async function get_files(dir, callback) {
 
                 }
 
-
             })
-
-            // let cards = document.querySelectorAll('.card')
-            // cards.forEach(item => {
-            //     console.log(item)
-            // })
-
-            // let lazy = [].slice.call(document.querySelectorAll('.file_card'))
-            // if ("IntersectionObserver" in window) {
-
-            //     let lazyObserver = new IntersectionObserver(function(entries, observer) {
-
-            //         notification('Running lazy file card')
-
-            //         entries.forEach(function(entry) {
-            //             if (entry.isIntersecting) {
-            //             let lazy = entry.target;
-
-            //             // THIS NEEDS TO CHANGE TO HANDLE CARD
-            //             lazy.src = lazy.dataset.src;
-            //             lazy.srcset = lazy.dataset.src;
-
-
-            //             lazy.classList.remove("lazy");
-            //             lazyObserver.unobserve(lazy);
-            //             }
-            //         })
-
-            //     })
-
-            //     lazy.forEach(function(lazy) {
-            //         notification('running observe')
-            //         lazyObserver.observe(lazy)
-            //     })
-
-            // } else {
-            //     // Possibly fall back to event handlers here
-            // }
-
-
-
 
             // LAZY LOAD IMAGES
             lazyload()
@@ -5097,27 +5042,14 @@ async function get_files(dir, callback) {
 
             hide_loader()
 
-            // let img = document.createElement('img')
-            // img.src = path.join(__dirname, 'assets/icons/folder.png')
-            // img.width = '48'
-            // img.height = '48'
-
             info_view.append('Folder is empty')
             info_view.style = 'font-size: 23px; height: 100%; position:fixed; left: 50%; top: 50%'
 
             return false
         }
 
-        // info_view.innerHTML = ''
 
     })
-
-
-    // // GET DISK SPACE
-    // get_diskspace(dir)
-
-    // console.log('folder count ' + folder_count + ' file count ' + file_count)
-    // ipcRenderer.send('get_disk_space', { dir: dir, folder_count: folder_count, file_count: file_count } )
 
     ///////////////////////////////////////////////////////////////////////
 
@@ -5130,104 +5062,6 @@ async function get_files(dir, callback) {
     nc2 = 0
     adj = 0
     is_folder_card = true
-
-    // // ALT+E EXTRACT
-    // Mousetrap.bind('shift+e', (e) => {
-
-    //     e.preventDefault()
-    //     console.log('extracting file')
-
-    //     // let selected_items = document.getElementsByClassName('highlight, highlight_select, ds-selected')
-    //     // selected_items.forEach(item => {
-    //     // })
-
-    //     let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-    //     if (items.length > 0) {
-
-    //         // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
-    //         for (let i = 0; i < items.length; i++) {
-
-    //             let item = items[i]
-    //             let href = item.getAttribute('data-href')
-
-    //             extract(href)
-
-    //         }
-    //     }
-
-
-    // })
-
-    // Mousetrap.bind('shift+c', (e) => {
-
-    //     let href = ''
-    //     if (items.length > 0) {
-    //         for (let i = 0; i < items.length; i++) {
-
-    //             let item = items[i]
-
-    //             if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
-    //                 href = item.dataset.href
-    //                 console.log('source ' + href)
-    //                 compress(href)
-    //             }
-    //         }
-    //     }
-
-    // })
-
-
-    // // KEYBOARD SHORTCUTS SECTION
-    // Mousetrap.bind('ctrl+a', (e) => {
-
-    //     e.preventDefault()
-
-    //     let card = document.getElementsByClassName('highlight')
-
-    //     if (card.length > 0) {
-
-    //         let grid = card[0].closest('.grid')
-    //         let cards = grid.getElementsByClassName('card')
-
-    //         for (let i = 0; i < cards.length; i++) {
-    //             cards[i].classList.add('highlight_select')
-    //         }
-
-    //     } else {
-
-    //         let main_view = document.getElementById('main_view')
-    //         let nav_item = main_view.querySelectorAll('.nav_item')
-    //         nav_item.forEach(item => {
-    //             item.classList.add('highlight_select')
-
-    //         })
-    //         info(nav_item.length + ' items selected')
-
-    //     }
-
-    // })
-
-
-    // // CTRL S SHOW SIDEBAR
-    // Mousetrap.bind('ctrl+b', (e) => {
-
-    //     let sidebar = document.getElementById('sidebar')
-
-    //     console.log(sidebar.hidden)
-
-    //     if (sidebar.classList.contains('hidden')) {
-
-    //         show_sidebar()
-    //         localStorage.setItem('sidebar', 1)
-    //         console.log('show side bar')
-
-    //     } else {
-    //         hide_sidebar()
-    //         localStorage.setItem('sidebar', 0)
-    //         console.log('hide side bar')
-    //     }
-
-    // })
 
     let down = 1
     let up = 1
@@ -5467,9 +5301,7 @@ async function get_files(dir, callback) {
     })
 
     // SHOW SIDEBAR
-    if (localStorage.getItem('sidebar') == "1") {
-        show_sidebar()
-    }
+    show_sidebar()
 
     // DEL DELETE KEY
     Mousetrap.bind('del', (e, res) => {
@@ -5573,14 +5405,6 @@ async function get_files(dir, callback) {
 
     // RELOAD
     Mousetrap.bind('f5', () => {
-
-        // get_tree(breadcrumbs.value)
-        // let view = localStorage.getItem('view')
-        // if (view == 'grid') {
-        //     get_files(breadcrumbs.value, () => {});
-        // } else if (view == 'list') {
-        //     get_list_view(breadcrumbs.value);
-        // }
 
         get_view(breadcrumbs.value)
         localStorage.setItem('folder', breadcrumbs.value)
@@ -5703,39 +5527,7 @@ async function get_files(dir, callback) {
 
     })
 
-    // GET DISK SPACE
-    // get_diskspace(dir)
-
-    // ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
-
-    // ipcRenderer.on('diskspace', (df) => {
-    //     console.log(df)
-    // })
-
-    // TESTING GET DEVICE LIST
-    // const filters = [
-    //     {vendorId: 0x1209, productId: 0xa800},
-    //     {vendorId: 0x1209, productId: 0xa850}
-    // ];
-    // navigator.usb.requestDevice({filters: filters})
-    // .then(usbDevice => {
-    //     console.log("Product name: " + usbDevice.productName);
-    // })
-    // .catch(e => {
-    //     console.log("There is no device. " + e);
-    // });
-
-    // UPDATE CARD ID'S
-    // if (dir.indexOf('/gvfs') === -1) {
-    // update_cards(main_view)
-
-    // }
-
     clear_selected_files()
-    // notification('done loading files')
-
-    // let cards = document.querySelectorAll('.card')
-    // return callback = cards
 
 }
 
@@ -6175,6 +5967,8 @@ function preloadImages(array) {
 // FIND FILES
 async function find_files() {
 
+
+
     let filename
     let cmd
 
@@ -6207,6 +6001,8 @@ async function find_files() {
 
         if (e.key === 'Enter') {
 
+            console.log('running find files')
+
             if (find.value > '' || find_size > '' || start_date > '' || end_date > '') {
 
                 search_results.innerHTML = ''
@@ -6223,6 +6019,8 @@ async function find_files() {
 
                 let find_folders = localStorage.getItem('find_folders')
                 let find_files = localStorage.getItem('find_files')
+
+                console.log('storage find files', find_files)
 
                 let options = {
                     d: find_folders,
@@ -6264,7 +6062,7 @@ async function find_files() {
                     options.d = ''
                 }
                 // FILES
-                if (options.f != '' && options.s != '') {
+                if (options.f != 0 && options.s != '') {
                     options.f = ' -type f ' + options.size + ' -iname "' + options.s + '*"'
                 } else {
                     options.f = ''
@@ -6277,6 +6075,8 @@ async function find_files() {
                 } else {
                     options.o = ''
                 }
+
+                console.log(options)
 
                 search_results.innerHTML = 'Searching...'
 
@@ -6968,28 +6768,64 @@ function add_menu_item(options) {
 
 
 // SHOW SIDE BAR
-let sidebar_visible = 0
+let show = parseInt(localStorage.getItem('sidebar'));
+console.log('ahh... running show side bar', show);
 function show_sidebar() {
+
+    // show = parseInt(localStorage.getItem('sidebar'));
 
     // SHOW / HIDE SIDEBAR
     let sidebar = document.getElementById('sidebar')
     let main_view = document.getElementById('main_view')
 
-    sidebar.draggable = false
-    sidebar.classList.remove('hidden')
-    let sidebar_width = 250
+    // SET / GET SIDEBAR WIDTH
+    let sidebar_width = 250;
     if (localStorage.getItem('sidebar_width')) {
-        sidebar_width = localStorage.getItem('sidebar_width')
+        sidebar_width = localStorage.getItem('sidebar_width');
     } else[
         localStorage.setItem('sidebar_width', sidebar_width)
     ]
 
-    sidebar.style.width = sidebar_width + 'px'
-    main_view.style.marginLeft = (parseInt(sidebar_width) + 10) + 'px'
+    if (show) {
 
-    // let accordion = document.getElementById('accordion')
-    // accordion.focus()
-    sidebar_visible = 1
+
+        console.log('what')
+        sidebar.classList.remove('hidden');
+        sidebar.style.width = sidebar_width + 'px';
+
+        // SET MAIN VIEW SIZE
+        main_view.style.marginLeft = (parseInt(sidebar_width) + 10) + 'px';
+
+        localStorage.setItem('sidebar', 1);
+        show = 0;
+
+    } else {
+
+        console.log('running show side bar', show);
+
+        sidebar.classList.add('hidden');
+
+        main_view.style.marginLeft = (parseInt(0) + 30) + 'px';
+
+        console.log('setting sidebar 0')
+        localStorage.setItem('sidebar', 0);
+        show = 1;
+
+    }
+
+    // sidebar.draggable = false
+    // // sidebar.classList.remove('hidden')
+    // let sidebar_width = 250
+    // if (localStorage.getItem('sidebar_width')) {
+    //     sidebar_width = localStorage.getItem('sidebar_width')
+    // } else[
+    //     localStorage.setItem('sidebar_width', sidebar_width)
+    // ]
+
+    // sidebar.style.width = sidebar_width + 'px'
+    // main_view.style.marginLeft = (parseInt(sidebar_width) + 10) + 'px'
+
+    // sidebar_visible = 1
 
 }
 
@@ -8923,24 +8759,31 @@ window.addEventListener('DOMContentLoaded', () => {
     // CTRL S SHOW SIDEBAR
     Mousetrap.bind('ctrl+b', (e) => {
 
-        let sidebar = document.getElementById('sidebar')
+        show_sidebar()
 
+        // let sidebar = document.getElementById('sidebar')
         console.log(sidebar.hidden)
 
-        if (sidebar.classList.contains('hidden')) {
 
-            show_sidebar()
-            localStorage.setItem('sidebar', 1)
-            console.log('show side bar')
+        // if (sidebar.classList.contains('hidden')) {
 
-        } else {
-            hide_sidebar()
-            localStorage.setItem('sidebar', 0)
-            console.log('hide side bar')
-        }
+        //     show_sidebar()
+        //     localStorage.setItem('sidebar', 1)
+        //     console.log('show side bar')
+
+        // } else {
+
+        //     hide_sidebar()
+        //     localStorage.setItem('sidebar', 0)
+        //     console.log('hide side bar')
+
+        // }
 
     })
 
+
+    // SHOW SIDE BAR
+    show_sidebar()
 
 
 })
@@ -9090,3 +8933,39 @@ window.addEventListener('DOMContentLoaded', () => {
             // })
 
 
+// let cards = document.querySelectorAll('.card')
+            // cards.forEach(item => {
+            //     console.log(item)
+            // })
+
+            // let lazy = [].slice.call(document.querySelectorAll('.file_card'))
+            // if ("IntersectionObserver" in window) {
+
+            //     let lazyObserver = new IntersectionObserver(function(entries, observer) {
+
+            //         notification('Running lazy file card')
+
+            //         entries.forEach(function(entry) {
+            //             if (entry.isIntersecting) {
+            //             let lazy = entry.target;
+
+            //             // THIS NEEDS TO CHANGE TO HANDLE CARD
+            //             lazy.src = lazy.dataset.src;
+            //             lazy.srcset = lazy.dataset.src;
+
+
+            //             lazy.classList.remove("lazy");
+            //             lazyObserver.unobserve(lazy);
+            //             }
+            //         })
+
+            //     })
+
+            //     lazy.forEach(function(lazy) {
+            //         notification('running observe')
+            //         lazyObserver.observe(lazy)
+            //     })
+
+            // } else {
+            //     // Possibly fall back to event handlers here
+            // }
