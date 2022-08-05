@@ -429,7 +429,7 @@
             <div id="loader" class="ui centered loader"></div>
 
             <!-- SEARCH / FIND -->
-            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:35px; width:420px; right: 0; z-index: 1000 !important;" id="find_div" class="hidden border">
+            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:100%; width:300px; right: 0; z-index: 1000 !important;" id="find_div" class="hidden">
 
                 <!-- FIND -->
                 <div style="float:left; width:0%; text-align: center;">
@@ -438,11 +438,11 @@
                     </a>
                 </div>
                 <div style="float:left; margin-left: 25px; width: 240px;">
-                    <input style="height:20px !important; " spellcheck="false" type="text" id="find" class="" placeholder="search">
+                    <input style="height:20px !important; background-color:#252525; color: #cfcfcf" type="text" id="find" class="width:100%" placeholder="search">
                 </div>
                 <div style="position:absolute; right: 0;">
                     <a href="">
-                        <i class="ui icon times"></i>
+                        <i class="ui small icon times"></i>
                     </a>
                 </div>
 
@@ -451,22 +451,22 @@
 
                     <div class="content fluid">
                         <div class="description" style="padding-left: 20px !important">
-                            <div class="ui header">
+                            <!-- <div class="ui header">
                                 Search Options
-                            </div>
+                            </div> -->
                             <div class="ui form tiny" style="background-color: transparent !important;">
                                 <div class="fields">
                                     <div class="eight wide field">
                                         <div class="">
                                             <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
-                                            <label style="font-weight: normal;">Folders</label>
+                                            <label for="find_folders" class="label" style="font-weight: normal;">Folders</label>
                                         </div>
                                     </div>
 
                                     <div class="eight wide field">
                                         <div class="">
                                             <input type="checkbox" id="find_files" name="find_files">
-                                            <label style="font-weight: normal;">Files</label>
+                                            <label for="find_files" class="label" style="font-weight: normal;">Files</label>
                                         </div>
                                     </div>
                                 </div>

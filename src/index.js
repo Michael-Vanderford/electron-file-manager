@@ -310,18 +310,18 @@ $(function() {
 
 
     // FIND FOLDERS
-    let find_folders = $('#find_folders')
+    let find_folders = document.getElementById('find_folders')
     let find_folders_option = localStorage.getItem('find_folders')
     if (find_folders_option == 1) {
-        find_folders.attr('checked','checked')
+        find_folders.checked = true
     }
-
-    $(document).on('click','#find_folders',function(e) {
-
-        if (localStorage.getItem('find_folders') == '') {
+    find_folders.addEventListener('change', (e) => {
+        if (find_folders.checked) {
             localStorage.setItem('find_folders', 1)
+            console.log('setting find to 1')
         } else {
-            localStorage.setItem('find_folders', '')
+            localStorage.setItem('find_folders', 0)
+            console.log('setting find to 0')
         }
 
     })
@@ -342,14 +342,13 @@ $(function() {
 
             localStorage.setItem('find_files', 0)
             console.log('setting find to 0')
-            
+
         }
     })
 
 
 
     // $(document).on('click','#find_files',function(e) {
-
     //     if (localStorage.getItem('find_files') == '') {
     //         localStorage.setItem('find_files', 1)
     //     } else {
@@ -376,16 +375,23 @@ $(function() {
 
 
     // FIND BY DATE
-    // $(document).on('change','#start_date',function(e) {
+    // let start_date = document.getElementById('start_date')
+    // let end_date = document.getElementById('end_date')
+    // start_date.addEventListener('change', (e) => {
+
+    // })
+    // end_date.addEventListener('change', (e) => {
+
+    // })
 
 
-    //     find_files()
+        // find_files()
 
-    //     // if (localStorage.getItem('find_by_size') == '') {
-    //     //     localStorage.setItem('find_by_size', 1)
-    //     // } else {
-    //     //     localStorage.setItem('find_by_size', '')
-    //     // }
+        // if (localStorage.getItem('find_by_size') == '') {
+        //     localStorage.setItem('find_by_size', 1)
+        // } else {
+        //     localStorage.setItem('find_by_size', '')
+        // }
     // })
 
 

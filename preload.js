@@ -3537,14 +3537,16 @@ function clear_workspace() {
 // GET WORKSPACE ITEMS
 async function get_workspace() {
 
+    console.log('getting workspace')
+
     if (localStorage.getItem('workspace')) {
 
         let items = JSON.parse(localStorage.getItem('workspace'))
 
         let workspace_content = document.getElementById('workspace_content')
-        let workspace_grid = document.getElementById('workspace_grid')
         workspace_content.classList.add('active')
 
+        let workspace_grid = document.getElementById('workspace_grid')
         workspace_grid.innerHTML = ''
 
         for (let i = 0; i < items.length; i++) {
@@ -3570,8 +3572,17 @@ async function get_workspace() {
             }
 
             workspace_arr.push(options.href)
-            add_card(options)
-            update_cards(workspace_grid)
+            add_card(options).then(res => {
+                update_cards(workspace_grid)
+                let card = workspace_grid.querySelector("[data-href='" + href + "']")
+                console.log(card)
+                card.addEventListener('mouseover', (e) => {
+                    
+                })
+            })
+
+
+
 
         }
 
@@ -3750,7 +3761,8 @@ async function get_disk_summary_view() {
     grid.classList.add('ui', 'grid')
 
     // COMMAND
-    let disks = execSync('df -l -t ext4').toString().split('\n');
+    // let disks = execSync('df -l -t ext4').toString().split('\n');
+    let disks = execSync('df').toString().split('\n');
     // disks.shift()
     disks_arr = disks.filter(a => { return a !== ''; })
     disks_arr.forEach((disk, i) => {
@@ -5816,7 +5828,7 @@ function clear_selected_files() {
 
     // FIND ADVANCED OPTIONS
     let find_options = document.getElementById('find_options')
-    find_options.classList.add('hidden')
+    // find_options.classList.add('hidden')
 
     // FIND RESULTS VIEW
     let search_content = document.getElementById('search_content')
@@ -5967,8 +5979,6 @@ function preloadImages(array) {
 // FIND FILES
 async function find_files() {
 
-
-
     let filename
     let cmd
 
@@ -5982,10 +5992,10 @@ async function find_files() {
     let find = document.getElementById('find')
     let find_options = document.getElementById('find_options')
     let btn_find_options = document.getElementById('btn_find_options')
-    let breadcrumbs = document.getElementById('breadcrumbs').value
-    let find_size = document.getElementById('find_size').value
-    let start_date = document.getElementById('start_date').value
-    let end_date = document.getElementById('end_date').value
+    let breadcrumbs = document.getElementById('breadcrumbs')
+    let find_size = document.getElementById('find_size')
+    let start_date = document.getElementById('start_date')
+    let end_date = document.getElementById('end_date')
 
     find_div.classList.remove('hidden')
     find.focus()
@@ -6001,19 +6011,19 @@ async function find_files() {
 
         if (e.key === 'Enter') {
 
-            console.log('running find files')
+            console.log('running find files', start_date.value, end_date.value)
 
-            if (find.value > '' || find_size > '' || start_date > '' || end_date > '') {
+            if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
                 search_results.innerHTML = ''
-                console.log('running find files')
+                // console.log('running find files')
 
                 // CHECK LOCAL STORAGE
                 if (localStorage.getItem('find_folders') == '') {
                     localStorage.setItem('find_folders', 1)
                 }
 
-                if (localStorage.getItem('find_files') == '') {
+                if (locfalStorage.getItem('find_files') == '') {
                     localStorage.setItem('find_files', 1)
                 }
 
@@ -6025,15 +6035,15 @@ async function find_files() {
                 let options = {
                     d: find_folders,
                     f: find_files,
-                    start_date: start_date,
-                    end_date: end_date,
-                    size: find_size, //localStorage.getItem('find_by_size'),
+                    start_date: start_date.value,
+                    end_date: end_date.value,
+                    size: find_size.value, //localStorage.getItem('find_by_size'),
                     o: ' -o ',
                     s: find.value
                 }
 
                 //  SIZE
-                if (find_size != '') {
+                if (options.size != '') {
                     let size_option = document.querySelector('input[name="size_options"]:checked').value
                     options.size = '-size +' + options.size + size_option
                 }
@@ -6056,13 +6066,13 @@ async function find_files() {
 
 
                 // DIR
-                if (options.d != '' && options.s != '') {
+                if (options.d == 1 && options.s != '') {
                     options.d = ' -type d ' + options.size + ' -iname "' + options.s + '*"'
                 } else {
                     options.d = ''
                 }
                 // FILES
-                if (options.f != 0 && options.s != '') {
+                if (options.f == 1 && options.s != '') {
                     options.f = ' -type f ' + options.size + ' -iname "' + options.s + '*"'
                 } else {
                     options.f = ''
@@ -6081,7 +6091,7 @@ async function find_files() {
                 search_results.innerHTML = 'Searching...'
 
                 //  FIND FILES
-                cmd = ' find "' + breadcrumbs + '" ' + options.start_date + options.end_date + options.size + options.d + options.o + options.f
+                cmd = ' find "' + breadcrumbs.value + '" ' + options.size + options.d + options.start_date + options.end_date + options.o + options.f + + options.start_date + options.end_date
                 console.log(cmd)
                 let child = exec(cmd)
 
@@ -6098,9 +6108,6 @@ async function find_files() {
                             try {
 
                                 let filename = res[i]
-
-                                // if (fs.statSync(filename).isDirectory() || fs.statSync(filename).isFile()) {
-
                                 let options = {
 
                                     id: 'find_' + i,
@@ -6116,7 +6123,7 @@ async function find_files() {
                                     add_card(options).then(card => {
 
                                         // search_results.insertBefore(card, search_results.firstChild)
-                                        update_cards(search_results)
+                                        // update_cards(search_results)
 
                                     })
 
@@ -6126,9 +6133,6 @@ async function find_files() {
                                     info(err)
 
                                 }
-
-                                // }
-
 
                             } catch (err) {
                                 notification(err)
@@ -6140,7 +6144,13 @@ async function find_files() {
 
                 })
 
+                child.stderr.on('data', (err) => {
+                    console.log(err);
+                })
+
                 child.stdout.on('end', (res) => {
+
+                    update_cards(search_results)
 
                     if (search_results.innerHTML == 'Searching...') {
                         search_results.innerHTML = 'No results found......'
@@ -6148,7 +6158,7 @@ async function find_files() {
 
                 })
 
-                show_sidebar()
+                // show_sidebar()
 
             } else {
                 search_content.classList.remove('active')

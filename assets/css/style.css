@@ -728,6 +728,11 @@ progress[value]::-webkit-progress-bar {
     font-weight: bold !important;
 }
 
+#find_div .label {
+    font-weight: normal !important;
+    color: #069 !important;
+}
+
 /* #find input[type="text"] { */
     /* position:fixed; */
     /* background-color: #000000; */
