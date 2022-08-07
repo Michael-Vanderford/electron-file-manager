@@ -14,3 +14,34 @@ Install
 ![Screenshot 1](/screenshots/screenshot1.png?raw=true "Screenshot 1")
 
 ![Screenshot 2](/screenshots/screenshot2.png?raw=true "Screenshot 2")
+
+
+Keboard Shortcuts
+
+F2 - rename
+Del - delete on clicked items
+
+Arrows- card navigation (needs work)
+
+
+Current Feature Status
+
+Cut, Copy, Paste, Move, Delete, Rename
+Inline audio playback (html5 audio controls)
+
+
+Stack
+
+nodejs
+electron
+chart.js
+dragselect
+mousetrap
+open
+mime-types
+webpack
+bootstrap-icons
+bootstrap
+jquery - (legacy)
+
+

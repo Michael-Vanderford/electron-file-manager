@@ -108,7 +108,7 @@
             <div class="column sixteen wide">
 
                 <!-- FILE MENU -->
-                <div class="ui mini fixed menu borderless" id="file_menu" style="background: #3a3a3a !important; margin-top:0px;">
+                <div class="ui mini fixed menu borderless" id="file_menu" style="height:20px; margin-top:0px;">
                     <a class="item" id="home">
                         <!-- <i class="home icon"></i> -->
                         <i class="icon bi-house small"></i>
@@ -140,16 +140,14 @@
                         Music
                     </a>
                     <!-- todo: this needs to be fixed network and media are reversed -->
-                    <a class="item" id="devices" title="/run/user/1000/gvfs" >
-                        <!-- <i class="sitemap alternative icon"></i> -->
+                    <!-- <a class="item" id="devices" title="/run/user/1000/gvfs" >
                         <i class="icon bi-hdd-network small"></i>
                         Network
-                    </a>
-                    <a class="item" id="network" title="/media">
-                        <!-- <i class="mobile alternative icon"></i> -->
+                    </a> -->
+                    <!-- <a class="item" id="network" title="/media">
                         <i class="icon bi-tablet small"></i>
                         Devices
-                    </a>
+                    </a> -->
                     <!-- ----------------------------------------------------- -->
 
                     <a class="item" id="terminal" title="Open a terminal in the current folder">
@@ -175,22 +173,22 @@
                         <!-- </div> -->
                     </a>
 
-                    <a class="item button" id="sort_by_date" title="sort by date">
+                    <a class="item button" id="sort_by_date" title="Sort by Date">
                         <i class="small icon sort amount down"></i>
                         <!-- Sort by date -->
                     </a>
 
-                    <a class="item" id="sort_by_name" title="sort by name">
+                    <a class="item" id="sort_by_name" title="Sort by Name">
                         <i class="icon sort alphabet down small"></i>
                         <!-- Sort by name -->
                     </a>
 
-                    <a class="item" id="sort_by_size" title="sort by size">
+                    <a class="item" id="sort_by_size" title="Sort by Size">
                         <i class="icon sort amount down small"></i>
                         <!-- Sort by size -->
                     </a>
 
-                    <a class="item" id="sort_by_type" title="sort by type">
+                    <a class="item" id="sort_by_type" title="Sort by Type">
                         <i class="icon sort file alternative outline down small"></i>
                         <!-- Sort by type -->
                     </a>
@@ -202,7 +200,7 @@
                 </div>
 
                 <!-- NAVIGATION MENU -->
-                <div id="navigation_menu" class="ui mini menu fixed bottom borderless" style="margin-top: 0px;">
+                <div id="navigation_menu" class="ui mini menu fixed bottom borderless" style="margin-top: -8px;">
 
                     <a class="item" id="left">
                         <!-- <i class="ui icon chevron left" title="go back"></i> -->
@@ -257,7 +255,6 @@
 
         <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
 
-
             <div id="accordion" class="ui accordion" style="">
 
                 <div id="draghandle" class="draghandle"></div>
@@ -288,7 +285,7 @@
                 </div>
                 <div class="grid content" id="search_content">
                     <div class="column sixteen wide" id="search_results_col">
-                        <div class="ui card fluid" id="search_results_card" style="border:none">
+                        <div class="" id="search_results_card" style="border:none">
                             <div class="content" id="search_results">
                             </div>
                         </div>
@@ -418,100 +415,105 @@
 
                 <br />
 
+                <!-- <button style="position: fixed; bottom: 0;" class="" id="toggle-dark-mode">Toggle Dark Mode</button> -->
+                <!-- <button id="reset-to-system">Reset to System Theme</button>
+                <strong id="theme-source">System</strong></p> -->
+
             </div>
 
+
+
         </aside>
+
+         <!-- SEARCH / FIND -->
+         <div id="find_div" class="hidden">
+
+            <!-- FIND -->
+            <div style="float:left; width:0%; text-align: center;">
+                <a href="#" id="btn_find_options" style="color: #cfcfcf; text-decoration: none !important;">
+                    <i class="ui icon chevron right"></i>
+                </a>
+            </div>
+            <div style="float:left; margin-left: 25px; width: 240px;">
+                <input type="text" id="find" class="find_input" placeholder="search">
+            </div>
+            <div style="position:absolute; right: 0;">
+                <a href="">
+                    <i class="ui small icon times"></i>
+                </a>
+            </div>
+
+            <!-- FIND OPTIONS -->
+            <div id="find_options" class="">
+
+                <div class="content fluid">
+                    <div class="description" style="padding-left: 20px !important">
+                        <!-- <div class="ui header">
+                            Search Options
+                        </div> -->
+                        <div class="ui form tiny" style="background-color: transparent !important;">
+                            <div class="fields">
+                                <div class="eight wide field">
+                                    <div class="">
+                                        <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
+                                        <label for="find_folders" class="label" style="font-weight: normal;">Folders</label>
+                                    </div>
+                                </div>
+
+                                <div class="eight wide field">
+                                    <div class="">
+                                        <input type="checkbox" id="find_files" name="find_files">
+                                        <label for="find_files" class="label" style="font-weight: normal;">Files</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="fields small">
+                                <div class="eight wide field">
+                                    <label class="label">Start date</label>
+                                    <input type="date" id="start_date" name="start_date" class="find_input" placeholder="enter start date" title="enter start date" />
+                                </div>
+
+                                <div class="eight wide field small">
+                                    <label class="label">End date</label>
+                                    <input type="date" id="end_date" name="end_date" class="find_input" placeholder="enter end date" title="enter end date" />
+                                </div>
+                            </div>
+
+                            <div class="fields">
+                                <div class="eight wide field small">
+                                    <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
+                                    <input type="text" id="find_size" class="find_input" placeholder="enter size" title="enter size" />
+                                </div>
+                            </div>
+
+                            <div class="fields inline">
+                                <div class="field small">
+                                    <input type="radio" name="size_options" id="size_options" value="k">
+                                    <label for="size_options" class="label" >KB</label>
+                                </div>
+                                <div class="field">
+                                    <input type="radio" name="size_options" id="size_options" checked value="M">
+                                    <label for="size_options" class="label">MB</label>
+                                </div>
+                                <div class="field">
+                                    <input type="radio" name="size_options" id="size_options" value="G">
+                                    <label for="size_options" class="label">GB</label>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
 
         <!-- MAIN VIEW -->
         <div class="" id="main_view">
 
             <!-- LOADER MESSAGE -->
             <div id="loader" class="ui centered loader"></div>
-
-            <!-- SEARCH / FIND -->
-            <div style="top: 75px; font-size:12px; background:rgba(40,40,40,0.95); padding:0px; position:fixed; height:100%; width:300px; right: 0; z-index: 1000 !important;" id="find_div" class="hidden">
-
-                <!-- FIND -->
-                <div style="float:left; width:0%; text-align: center;">
-                    <a href="#" id="btn_find_options" style="color: #cfcfcf; text-decoration: none !important;">
-                        <i class="ui icon chevron right"></i>
-                    </a>
-                </div>
-                <div style="float:left; margin-left: 25px; width: 240px;">
-                    <input style="height:20px !important; background-color:#252525; color: #cfcfcf" type="text" id="find" class="width:100%" placeholder="search">
-                </div>
-                <div style="position:absolute; right: 0;">
-                    <a href="">
-                        <i class="ui small icon times"></i>
-                    </a>
-                </div>
-
-                <!-- FIND OPTIONS -->
-                <div id="find_options" class="" style="background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 35px; width: 100%;">
-
-                    <div class="content fluid">
-                        <div class="description" style="padding-left: 20px !important">
-                            <!-- <div class="ui header">
-                                Search Options
-                            </div> -->
-                            <div class="ui form tiny" style="background-color: transparent !important;">
-                                <div class="fields">
-                                    <div class="eight wide field">
-                                        <div class="">
-                                            <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
-                                            <label for="find_folders" class="label" style="font-weight: normal;">Folders</label>
-                                        </div>
-                                    </div>
-
-                                    <div class="eight wide field">
-                                        <div class="">
-                                            <input type="checkbox" id="find_files" name="find_files">
-                                            <label for="find_files" class="label" style="font-weight: normal;">Files</label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="fields small">
-                                    <div class="eight wide field">
-                                        <label class="label">Start date</label>
-                                        <input style="height: 20px !important;" type="date" id="start_date" name="start_date" class="" placeholder="enter start date" title="enter start date" />
-                                    </div>
-
-                                    <div class="eight wide field small">
-                                        <label class="label">End date</label>
-                                        <input style="height: 20px !important;" type="date" id="end_date" name="end_date" class="" placeholder="enter end date" title="enter end date" />
-                                    </div>
-                                </div>
-
-
-                                <div class="fields">
-                                    <div class="eight wide field small">
-                                        <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
-                                        <input style="height: 20px !important;" type="text" id="find_size" class="" placeholder="enter size" title="enter size" />
-                                    </div>
-                                </div>
-
-                                <div class="fields inline">
-                                    <div class="field small">
-                                        <input type="radio" name="size_options" id="size_options" value="k">
-                                        <label for="size_options">KB</label>
-                                    </div>
-                                    <div class="field">
-                                        <input type="radio" name="size_options" id="size_options" checked value="M">
-                                        <label for="size_options">MB</label>
-                                    </div>
-                                    <div class="field">
-                                        <input type="radio" name="size_options" id="size_options" value="G">
-                                        <label for="size_options">GB</label>
-                                    </div>
-                                </div>
-
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
 
             <!-- INFO VIEW -->
             <div id="info_view"></div>

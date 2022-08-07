@@ -24,30 +24,48 @@
         color:#f7f7f7 !important;
     }
 
+    aside.sidebar-left .draghandle {
+        background-color: #222222;
+    }
+
 }
 
 @media (prefers-color-scheme: light) {
+
     #sidebar {
+        border-right: 1px solid #cfcfcf !important;
         outline: none;
         width: 0;
         position: fixed;
         z-index: 0 !important;
         left: 0px;
         background-color: #f7f7f7 !important;
-        color: #000000 !important;
-        /* top: 40px; */
+        color: #cfcfcf !important;
         height:100%;
         padding-top:10px;
         padding-left: 12px;
         min-width: 200px;
         overflow: scroll;
         scroll-behavior: smooth;
-        /* scrollbar-width: 2px !important; */
-        /* scrollbar-width: thin; */
     }
 
     .ui.accordion .title {
         color:#000000 !important;
+    }
+
+    #sidebar .title {
+        /* color: #2f2f2f !important; */
+        font-weight: normal !important;
+    }
+
+    #sidebar a {
+        color: #2f2f2f !important;
+        font-weight: normal !important;
+    }
+
+    #workspace_grid a {
+        color: #4183c4 !important;
+        font-weight: bold !important;
     }
 
 
@@ -58,7 +76,7 @@
 }
 
 #sidebar .ui.accordion .title {
-    background-color: transparent !important;
+    /* background-color: transparent !important; */
 }
 
 #sidebar::-webkit-scrollbar {
@@ -79,9 +97,13 @@
 }
 
 
+#sidebar .ui.card
+{
+  /* background:#252525 !important; */
+  box-shadow: none !important;
+}
 
-
-#sidebar .header{
+#sidebar .header {
     margin-left:15px !important;
     margin-top: 2px !important;
 }
@@ -133,14 +155,12 @@
     position: absolute;
     z-index: 100;
     width: 4px;
-    /* min-height: 100%; */
-    /* height: auto !important; */
     height:200% !important;
     top: 0;
     right: 0;
     cursor: col-resize;
     float: right;
-    background-color: #222222;
+    /* background-color: #222222; */
   }
 
   .draghandle:hover {
@@ -153,6 +173,8 @@
     vertical-align: middle;
     border-style: none;
   }
+
+
 
   .wrapper {
     min-height: 100vh;

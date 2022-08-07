@@ -27,6 +27,18 @@ let info_view = document.getElementById('info_view')
 
 let home_folder = window.api.get_home()
 
+
+// document.getElementById('toggle-dark-mode').addEventListener('click', async () => {
+//     const isDarkMode = await window.api.toggle()
+//     // document.getElementById('theme-source').innerHTML = isDarkMode ? 'Dark' : 'Light'
+// })
+
+// document.getElementById('reset-to-system').addEventListener('click', async () => {
+//     await window.api.system()
+//     document.getElementById('theme-source').innerHTML = 'System'
+// })
+
+
 if (localStorage.getItem('folder') == '') {
     localStorage.setItem('folder', home_folder)
 }
@@ -574,7 +586,7 @@ $(function() {
     })
 
 
-    // DOCUMENTS
+    /* Documents */
     $(document).on('click', '#documents',function(e){
         clear_active()
         this.classList.add('active')

@@ -1,29 +1,29 @@
 
+/*
+    todo: System and fs calls need to start getting moved into main.js
+    Electron v20. seems to be breaking fs and path
+*/
 const { BrowserWindow, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
-const fs = require('fs');
-const stat = require('fs')
-const watch = require('fs')
-const url = require('url')
-const path = require('path')
-const { exec, execSync, spawn, execFileSync } = require("child_process");
-const Mousetrap = require('mousetrap');
-const os = require('os');
-const { dirname, basename, normalize } = require('path');
-const Chart = require('chart.js')
-const DragSelect = require('dragselect')
-const mime = require('mime-types')
-const open = require('open')
-const readline = require('readline');
+const { exec, execSync, spawn, execFileSync }   = require("child_process");
+const { dirname, basename, normalize }          = require('path');
+const fs                                        = require('fs');
+const stat                                      = require('fs')
+const watch                                     = require('fs')
+const url                                       = require('url')
+const path                                      = require('path')
+const Mousetrap                                 = require('mousetrap');
+const os                                        = require('os');
+const Chart                                     = require('chart.js')
+const DragSelect                                = require('dragselect')
+const open                                      = require('open')
+const readline                                  = require('readline');
+const mime                                      = require('mime-types');
 
-
-// const ds = new DragSelect({})
-
-
-// ARRAYS
-let chart_labels = []
-let chart_data = []
-let directories = []
-let files = []
+/* Arrays */
+let chart_labels    = []
+let chart_data      = []
+let directories     = []
+let files           = []
 
 // HISTORY OBJECT
 class history {
@@ -68,14 +68,15 @@ class card_options {
     is_directory = false
 }
 
+// todo: check if this is being used
 let options = {
-    sort: 1,
+    sort:   1,
     search: ''
 }
 
-// todo: chec if were still using this
+// todo: check if this is being used
 let prev_target = '';
-let target = '';
+let target      = '';
 
 // ACTIVE LINK BEING HOVERED OVER FOR CONTEXT MENU
 // todo: this should replace source and target i think. needs review
@@ -83,65 +84,49 @@ let active_href = '';
 
 // USE VAR GLOBAL
 // USE LET INSIDE FUNCTIONS TO REDECLARE VARIABLE
-let source = '';
-let card_id = 0;
-let mode = 0;
+let source      = '';
+let card_id     = 0;
+let mode        = 0;
 
 // PROGRESS VARS
-let intervalid = 0;
+let intervalid  = 0;
 
 // GLOBAL VARS
 // HISTORY ARRAY
 let history_arr = []
-let files_arr = []
+let files_arr   = []
 
 // SELECTED FILES ARRAY
 let selected_files = []
 let find_files_arr = []
 
 // CUT / COPY
-let state = 0;
-let cut_files = 0;
+let state       = 0;
+let cut_files   = 0;
 
 
 let prev_card
 let destination
 
 // COUNTERS FOR NAVIGATION
-let nc = 1
-let nc2 = 0
-let adj = 0
-let is_folder_card = 1
+let nc              = 1
+let nc2             = 0
+let adj             = 0
+let is_folder_card  = 1
 
 // FOLDER / FILE COUNTERS
-let folder_count = 1
+let folder_count        = 1
 let hidden_folder_count = 1
-let file_count = 1
-let hidden_file_count = 1
+let file_count          = 1
+let hidden_file_count   = 1
 
 // PAGING VARIABLES
-let watch_count = 0
-let pagesize = 1000
-let page = 1
+let pagesize    = 1000
+let page        = 1
 
-let start_path = ''
+let start_path  = ''
 
-
-let main_view = document.getElementById('main_view')
-let progress = document.getElementById('progress')
-
-ipcRenderer.on('updatetheme', (e, theme) => {
-
-    console.log('theme', theme)
-
-    if (theme == 'dark') {
-        body.dataset.theme = 'dark'
-        document.documentElement.dataset.theme('dark');
-    } else if (theme == 'light') {
-        document.documentElement.dataset.theme('light');
-    }
-
-})
+let main_view   = document.getElementById('main_view')
 
 // ON START PATH
 ipcRenderer.on('start_path', (e, res) => {
@@ -150,12 +135,12 @@ ipcRenderer.on('start_path', (e, res) => {
     }
 })
 
-// ON NOTIFICATION
+/* On notification */
 ipcRenderer.on('notification', (e, msg) => {
     notification(msg)
 })
 
-// UPDATE CARD
+/* Update Card */
 ipcRenderer.on('update_card', (e, href) => {
     // console.log('updating card')
     try {
@@ -163,7 +148,6 @@ ipcRenderer.on('update_card', (e, href) => {
     } catch (err) {
 
     }
-
 })
 
 // UPDATE CARDS
@@ -351,7 +335,6 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
 
 })
 
-
 // OVERITE COPY FILES
 ipcRenderer.on('overwrite', (e, data) => {
 
@@ -497,14 +480,32 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
     let header = add_header('<br />Confirm Move:  ' + path.basename(data.source) + '<br /><br />')
 
-    let description = add_p('Move files ' + data.source)
-    let source_data = add_p(
-        add_header('').outerHTML +
-        add_img(get_icon_path(data.source)).outerHTML +
-        'Size:' + get_file_size(localStorage.getItem(data.source)) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
-        '<br />' +
-        '<br />'
+    let description = ''
+    let source_data = ''
+    if (fs.statSync(data.source).isDirectory()) {
+
+        description = add_p('Move Folders ' + data.source)
+        source_data = add_p(
+            add_header('').outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
+            'Size:' + get_file_size(localStorage.getItem(data.source)) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+            '<br />' +
+            '<br />'
+        )
+
+    } else
+    {
+        description = add_p('Move files ' + data.source)
+        source_data = add_p(
+            add_header('').outerHTML +
+            add_img(get_icon_path(data.source)).outerHTML +
+            'Size:' + get_file_size(localStorage.getItem(data.source)) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
+            '<br />' +
+            '<br />'
     )
+    }
+
+
 
     let chk_div = add_div()
     let chk_move_all = add_checkbox('chk_replace', 'Apply this action to all files and folders')
@@ -714,7 +715,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
 })
 
-
 // OVERWRITE MOVE
 ipcRenderer.on('overwrite_move', (e, data) => {
 
@@ -852,7 +852,6 @@ ipcRenderer.on('overwrite_move_all', (e, destination) => {
 
 
 })
-
 
 // ON FILE SIZE
 ipcRenderer.on('file_size', function (e, args) {
@@ -1612,6 +1611,20 @@ ipcRenderer.on('update_progress', (e, step) => {
     update_progress(step)
 })
 
+/* On sort */
+ipcRenderer.on('sort', (e, sort) => {
+    let breadcrumbs = document.getElementById('breadcrumbs')
+    if (sort == 'date') {
+        localStorage.setItem('sort', 1)
+    } else if (sort == 'size') {
+        localStorage.setItem('sort', 3)
+    } else if (sort == 'name') {
+        localStorage.setItem('sort', 2)
+    } else if (sort == 'type') {
+        localStorage.setItem('sort', 4)
+    }
+    get_view(breadcrumbs.value)
+})
 
 // UPDATE PROGRESS
 function update_progress(val) {
@@ -1677,7 +1690,6 @@ function get_progress(max) {
     })
 
 }
-
 
 // function set_progress(options) {
 
@@ -1813,7 +1825,6 @@ function get_mime_type(source) {
 
 }
 
-
 // GET AVAILABLE LAUNCHERS
 function get_available_launchers(filetype, source) {
 
@@ -1930,7 +1941,6 @@ function set_default_launcher(desktop_file, mimetype) {
 
 }
 
-
 // GET NETWORK
 async function get_network() {
 
@@ -2008,7 +2018,6 @@ async function get_network() {
 
 }
 
-
 // GET TRANSFER SPEED
 function get_transfer_speed(source_size, destination_size, elapsed_time) {
 
@@ -2038,12 +2047,13 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 // ON ICON PATH
 ipcRenderer.on('icon_path', (e, data) => {
 
-    console.log('running on icon_path')
-
-    let href = data.href
-    let card = document.querySelector('[data-href="' + href + '"]')
-    let img = card.querySelector('img')
-    img.src = data.icon_path
+    console.log('running on icon_path');
+    let href = data.href;
+    let card = document.querySelector('[data-href="' + href + '"]');
+    if (card) {
+        let img = card.querySelector('img');
+        img.src = data.icon_path;
+    }
 
 })
 
@@ -2054,79 +2064,90 @@ async function add_card(options) {
 
     try {
 
-        //
-        let id = options.id
-        let href = options.href
-        let linktext = options.linktext
-        let icon_path = get_icon_path(href) //options.image
-        let is_folder = options.is_folder
+        /* Options */
+        let id          = options.id
+        let href        = options.href
+        let linktext    = options.linktext
+        let icon_path   = get_icon_path(href) //options.image
+        let is_folder   = options.is_folder
+        let size        = ''
+        let grid        = options.grid
 
-        // CHECK IF GVFS
-        // let is_gvfs = 0
-        // let gvfs = href.indexOf('/gvfs') // -1 is false
-        // if (gvfs > -1) {
-        //     is_gvfs = 1
-        // }
+        /* Create elements */
+        let col             = add_div()
+        let card            = add_div()
+        let items           = add_div()
+        let item            = add_div()
+        let image           = add_div()
+        let img             = document.createElement('img')
+        let audio           = document.createElement('audio')
+        let source          = document.createElement('source')
+        let content         = add_div()
+        let extra           = add_div()
+        let progress        = add_div()
+        let progress_bar    = add_progress()
+        let header          = document.createElement('a')
+        let input           = document.createElement('input')
+        let form_field      = add_div()
+        let popovermenu     = add_div()
 
-        let size = '' //options.size
-        let grid = options.grid
-
-        // CREATE ELEMENTS
-        let col = add_div()
-        let card = add_div()
-        let items = add_div()
-        let item = add_div()
-        let image = add_div()
-        let img = document.createElement('img')
-        let content = add_div()
-        let extra = add_div()
-        let progress = add_div()
-        let progress_bar = add_progress()
-        let header = document.createElement('a')
-        let input = document.createElement('input')
-        let form_field = add_div()
-        let popovermenu = add_div()
-
-        let form_control = add_div()
-        let form = document.createElement('form')
+        let form_control    = add_div()
+        let form            = document.createElement('form')
 
 
-        // ADD CSS
+        /* ADD CSS */
         input.setAttribute('required', 'required')
         col.classList.add('column', 'three', 'wide')
 
         popovermenu.classList.add('popup')
 
+        /* Card */
         card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav')
-        card.draggable = 'true'
+        card.draggable      = 'true'
+        card.id             = id
+        card.dataset.href   = href
+        input.spellcheck    = false
 
-
-        card.id = id
-        card.dataset.href = href
-        input.spellcheck = false
-
-        // SET INDEX FOR NAVIGATION
+        /* Set Index for Navigation */
         if (grid.id == 'folder_grid' || grid.id == 'file_grid') {
             cardindex += 1
             card.dataset.id = cardindex
         }
 
-        // CHECK IF IMAGE
-        if (
+        /* Get Extension Name */
+        let ext = path.extname(href)
 
-            path.extname(href) === '.png' ||
-            path.extname(href) === '.jpg' ||
-            path.extname(href) === '.svg' ||
-            path.extname(href) === '.gif' ||
-            path.extname(href) === '.webp' ||
-            path.extname(href) === '.jpeg'
+        /* Handle Image Files */
+        let is_image = 0;
+        if (
+            ext === '.png' ||
+            ext === '.jpg' ||
+            ext === '.svg' ||
+            ext === '.gif' ||
+            ext === '.webp' ||
+            ext === '.jpeg'
 
         ) {
-            img.classList.add('img')
-            img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf'
+            is_image = 1;
+            img.classList.add('img');
+            img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
         }
 
-        // CREATE ITEMS
+        /* Handle Audio Files */
+        let is_audio = 0;
+        if (
+            ext === '.mp4' ||
+            ext === '.m4a' ||
+            ext === '.mp3' ||
+            ext === '.wav' ||
+            ext === '.ogg'
+        ) {
+            console.log('appending source')
+            is_audio = 1;
+        }
+
+
+        /* Create items */
         items.classList.add('ui', 'items')
 
         // CREATE ITEM
@@ -2139,56 +2160,25 @@ async function add_card(options) {
         // DISABLE IMAGE DRAG
         img.draggable = false
 
-        // SET FOLDER ICON
-        if (grid.id == 'folder_grid') {
-
+        /* Folder */
+        if (is_folder) {
             get_folder_icon(icon => {
                 img.src = icon
             })
 
-
-            // SEARCH AND WORKSPACE ICONS
-        } else if (grid.id == 'search_results' || grid.id == 'workspace_grid') {
-
-            card.style.marginLeft = '15px'
-            img.classList.add('workspace_icon')
-            ipcRenderer.send('get_icon_path', href)
-
-            // FILE ICONS
+        /* File */
         } else {
-
-            // if (cardindex > 1 && id != 0) {
-
-            // console.log('getting file icons')
-
-            // img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
-            // img.dataset.src = icon_path
-            // img.classList.add('lazy')
 
             if (img.classList.contains('img')) {
 
-                img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
+                img.src         = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
                 img.dataset.src = icon_path
                 img.classList.add('lazy')
 
             } else {
                 ipcRenderer.send('get_icon_path', href)
             }
-
-
-            // } else {
-
-            // if (!img.classList.contains('img')) {
-            //     ipcRenderer.send('get_icon_path', href)
-            // }
-
-            // }
-
         }
-
-        /////////////////////////////////////////////////////////////
-
-        let cardclick_st = new Date().getTime()
 
         // CARD CLICK
         card.addEventListener('click', function (e) {
@@ -2262,8 +2252,6 @@ async function add_card(options) {
 
         })
 
-        let cardclick_et = new Date().getTime() - cardclick_st
-
         // LISTEN FOR CONTEXT MENU. LISTEN ONLY DONT SHOW A MENU HERE !!!!!!
         card.addEventListener('contextmenu', function (e) {
 
@@ -2293,6 +2281,8 @@ async function add_card(options) {
         let timeoutid
         card.addEventListener('mouseover', function (e) {
 
+            console.log('running mouseover')
+
             e.preventDefault()
 
             // SET GLOBAL CARD ID ON HOVER
@@ -2307,6 +2297,14 @@ async function add_card(options) {
 
             active_href = href;
 
+            /* Add audio controls on mouse over */
+            if (is_audio) {
+                source.src = href;
+                audio.setAttribute('controls', '')
+                audio.style = 'height: 15px; width: 100%;'
+                audio.append(source)
+            }
+
         })
 
         //  OUT
@@ -2316,6 +2314,8 @@ async function add_card(options) {
             for (let i = 0; i < cards.length; i++) {
                 cards[i].classList.remove('highlight')
             }
+
+            audio.removeAttribute('controls')
 
         })
 
@@ -2361,7 +2361,6 @@ async function add_card(options) {
             }
 
         })
-
 
         // HEADER MOUSE OVER
         header.addEventListener('mouseover', function (e) {
@@ -2433,7 +2432,7 @@ async function add_card(options) {
         // KEYDOWN EVENT
         input.addEventListener('keydown', function (e) {
 
-            if (e.key === 'Escape' || e.key === 'Tab') {
+            if (e.key === 'Escape') {
 
                 // CLEAR ITEMS
                 console.log('esc pressed on keydown')
@@ -2606,37 +2605,33 @@ async function add_card(options) {
 
         // console.log(card)
 
-        card.appendChild(items)
-        items.appendChild(item)
-        item.appendChild(image)
-        image.appendChild(img)
-        item.appendChild(content)
-        item.appendChild(popovermenu)
-        content.appendChild(header)
-        content.appendChild(form_control)
-        content.appendChild(description)
+        card.appendChild(items);
+        items.appendChild(item);
+        item.appendChild(image);
+        image.appendChild(img);
+        item.appendChild(content);
+        item.appendChild(popovermenu);
+        content.appendChild(header);
+        content.appendChild(form_control);
+        content.appendChild(description);
 
-        progress.appendChild(progress_bar)
+        progress.appendChild(progress_bar);
 
-        content.appendChild(extra)
-        content.appendChild(progress)
+        content.appendChild(extra);
+        content.append(audio);
+        content.appendChild(progress);
 
-        col.appendChild(card)
-        grid.appendChild(col)
-
+        col.appendChild(card);
+        grid.appendChild(col);
 
         return await col
-
-
 
     } catch (err) {
         console.log(err)
         return err
     }
 
-
 }
-
 
 // SHOW LOADER
 function show_loader() {
@@ -2694,7 +2689,6 @@ function add_pager_item(options) {
     })
 
 }
-
 
 // ADD LIST ITEM
 function add_list_item(options) {
@@ -3107,12 +3101,6 @@ var chart
 function add_chart(chart_type, chart_labels, chart_data) {
 
     console.log('adding chart');
-    // console.log(chart_labels);
-    // console.log(chart_data);
-    // if (chart != undefined) {
-    //     chart.destroy()
-    // }
-
 
     const ctx = document.createElement('canvas');
     ctx.getContext('2d');
@@ -3265,7 +3253,6 @@ function bar_chart(chart_labels, chart_data) {
 function get_disk_usage_chart() {
 
     console.log('get disk usage chart')
-
     let info_view = document.getElementById('info_view');
 
     let grid = add_div();
@@ -3542,6 +3529,7 @@ async function get_workspace() {
     if (localStorage.getItem('workspace')) {
 
         let items = JSON.parse(localStorage.getItem('workspace'))
+        console.log(items)
 
         let workspace_content = document.getElementById('workspace_content')
         workspace_content.classList.add('active')
@@ -3561,8 +3549,6 @@ async function get_workspace() {
                 is_folder = 0
             }
 
-            console.log('')
-
             options = {
                 id: 'workspace_' + i,
                 href: href,
@@ -3573,20 +3559,39 @@ async function get_workspace() {
 
             workspace_arr.push(options.href)
             add_card(options).then(res => {
-                update_cards(workspace_grid)
-                let card = workspace_grid.querySelector("[data-href='" + href + "']")
-                console.log(card)
-                card.addEventListener('mouseover', (e) => {
-                    
-                })
+                update_card(href)
             })
 
+            let icon = add_icon('times')
+            icon.classList.add('small')
+            icon.style = 'float:right; height:23px; width:23px; cursor: pointer;'
+
+            let card = document.querySelector('[data-href="' + href + '"]')
+            card.style = 'margin-right: 20px'
+
+            let content = card.querySelector('.content')
+            content.prepend(icon)
+
+            /* Remove card */
+            icon.addEventListener('click', (e) => {
+                card.remove();
+                items.splice(i)
+                localStorage.setItem('workspace',JSON.stringify(items))
+            })
+
+            /* Card mouse over */
+            card.addEventListener('mouseover', (e) => {
+                e.preventDefault();
+            })
+
+            /* Card mouse out */
+            card.addEventListener('mouseout', (e) => {
+                e.preventDefault();
 
 
+            })
 
         }
-
-
 
     }
 
@@ -3597,7 +3602,6 @@ let workspace_arr = []
 function add_workspace() {
 
     let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-
     console.log('items length', items.length)
 
     if (items.length > 0) {
@@ -3639,10 +3643,30 @@ function add_workspace() {
                 console.log('is folder', is_folder)
 
                 workspace_arr.push(options.href)
-                add_card(options)
+                add_card(options).then(() => {
+                    update_card(href)
+                })
 
-                update_cards(workspace_grid)
                 localStorage.setItem('workspace', JSON.stringify(workspace_arr))
+
+                /* Create remove icon */
+                let icon = add_icon('times')
+                icon.classList.add('small')
+                icon.style = 'float:right; height:23px; width:23px; cursor: pointer;'
+
+                /* Add card */
+                let card = document.querySelector('[data-href="' + href + '"]')
+                card.style = 'margin-right: 20px'
+
+                let content = card.querySelector('.content')
+                content.prepend(icon)
+
+                /* Remove card */
+                icon.addEventListener('click', (e) => {
+                    card.remove();
+                    items.splice(i)
+                    localStorage.setItem('workspace',JSON.stringify(items))
+                })
 
             }
 
@@ -3686,8 +3710,14 @@ let view = ''
 let view0 = ''
 async function get_view(dir) {
 
+    /* Set active on file menu */
+    let file_menu = document.getElementById('file_menu');
+    let file_menu_items = file_menu.querySelectorAll('.item')
+
+    /* Update active directory in main.js */
     ipcRenderer.send('folder', dir);
 
+    /* Get reference to grids */
     let grid_view = document.getElementById('grid_view');
     let list_view = document.getElementById('list_view');
     let info_view = document.getElementById('info_view');
@@ -3695,10 +3725,21 @@ async function get_view(dir) {
     view0 = view;
     view = localStorage.getItem('view');
 
+    /* Grid View */
     if (view == 'grid') {
 
-        console.log('grid view')
+        file_menu_items.forEach(item => {
+            if (item.innerText == path.basename(dir)) {
+                item.classList.add('active')
+            } else {
+                item.classList.remove('active')
+            }
+        })
 
+        let btn_grid_view = document.getElementById('btn_grid_view');
+        btn_grid_view.classList.add('active')
+
+        console.log('grid view')
         grid_view.classList.remove('hidden')
 
         list_view.classList.add('hidden')
@@ -3709,39 +3750,52 @@ async function get_view(dir) {
 
         get_files(dir, () => { });
 
+        show_sidebar();
+
+    /* List View */
     } else if (view == 'list') {
 
-        console.log('list view')
+        file_menu_items.forEach(item => {
+            if (item.innerText == path.basename(dir)) {
+                item.classList.add('active')
+            } else {
+                item.classList.remove('active')
+            }
+        })
 
+        let btn_list_view = document.getElementById('btn_list_view');
+        btn_list_view.classList.add('active')
+
+        console.log('list view')
         list_view.classList.remove('hidden');
-        // list_view.innerHTML = ''
+        list_view.innerHTML = ''
 
         info_view.classList.add('hidden')
-        // info_view.innerHTML = ''
+        info_view.innerHTML = ''
 
         grid_view.classList.add('hidden');
 
         get_list_view(dir);
 
+        show_sidebar();
+
+    /* Disk Summary */
     } else if (view == 'disk_summary') {
 
         console.log('sumarry view')
-
         info_view.classList.remove('hidden')
         info_view.innerHTML = ''
 
         list_view.classList.add('hidden')
         grid_view.classList.add('hidden')
 
+        localStorage.setItem('view', view0)
+
         get_disk_summary_view()
 
     }
 
-    if (view == 'disk_summary') {
-        localStorage.setItem('view', view0)
-    }
 
-    show_sidebar();
 
 }
 
@@ -3895,7 +3949,6 @@ async function get_disk_summary_view() {
     // ADD GRID TO VIEW
     view.append(grid);
 
-
     get_disk_usage_chart()
 
 
@@ -3905,13 +3958,13 @@ async function get_disk_summary_view() {
 let sort_flag = 0;
 async function get_list_view(dir) {
 
-    let grid_view = document.getElementById('grid_view')
+    // let grid_view = document.getElementById('grid_view')
     let list_view = document.getElementById('list_view')
 
     list_view.innerHTML = ''
 
-    grid_view.classList.add('hidden')
-    list_view.classList.remove('hidden')
+    // grid_view.classList.add('hidden')
+    // list_view.classList.remove('hidden')
 
     let sort = parseInt(localStorage.getItem('sort'))
 
@@ -4028,37 +4081,27 @@ async function get_list_view(dir) {
 
             // SORT
             switch (parseInt(sort)) {
-
                 // SORT BY DATE
                 case 1: {
-
                     // SORT BY DATE DESC
                     dirents.sort((a, b) => {
-
                         try {
-
                             s1 = fs.statSync(path.join(dir, a)).mtime;
                             s2 = fs.statSync(path.join(dir, b)).mtime;
-
                             // SORT FLAG
                             if (sort_flag == 0) {
                                 return s2 - s1
                             } else {
                                 return s1 - s2
                             }
-
                         } catch (err) {
                             console.log(err)
                         }
-
                     })
-
                     break
                 }
-
                 // SORT BY NAME
                 case 2: {
-
                     console.log('sort flag', sort_flag)
                     dirents.sort((a, b) => {
                         if (sort_flag == 0) {
@@ -4403,8 +4446,6 @@ async function get_files(dir, callback) {
     // SET FOLDER TO LOCAL STORAGE
     localStorage.setItem('folder', dir)
 
-
-
     file_grid.innerHTML = '';
     folder_grid.innerHTML = '';
 
@@ -4466,7 +4507,7 @@ async function get_files(dir, callback) {
         btn_show_hidden.classList.remove('active')
     }
 
-    //
+    /* Sort */
     let sort = parseInt(localStorage.getItem('sort'))
     switch (sort) {
         case 1:
@@ -4492,89 +4533,168 @@ async function get_files(dir, callback) {
         }
         if (dirents.length > 0) {
 
+            // SET SORT DIRECTION
+            if (sort_flag == 0) {
+                sort_flag = 1
+            } else {
+                sort_flag = 0
+            }
+
+            /* Sort */
+            switch (parseInt(sort)) {
+                // SORT BY DATE
+                case 1: {
+                    // SORT BY DATE DESC
+                    dirents.sort((a, b) => {
+                        try {
+                            s1 = fs.statSync(path.join(dir, a)).mtime;
+                            s2 = fs.statSync(path.join(dir, b)).mtime;
+                            // SORT FLAG
+                            if (sort_flag == 0) {
+                                return s2 - s1
+                            } else {
+                                return s1 - s2
+                            }
+                        } catch (err) {
+                            console.log(err)
+                        }
+                    })
+                    break
+                }
+                // SORT BY NAME
+                case 2: {
+                    console.log('sort flag', sort_flag)
+                    dirents.sort((a, b) => {
+                        if (sort_flag == 0) {
+                            return a.toLocaleLowerCase().localeCompare(b.toLocaleLowerCase());
+                        } else {
+                            return b.toLocaleLowerCase().localeCompare(a.toLocaleLowerCase());
+                        }
+                    })
+                    break;
+                }
+
+                // SORT BY SIZE
+                case 3: {
+                    dirents.sort((a, b) => {
+                        let s1 = parseInt(localStorage.getItem(path.join(dir, a)));
+                        let s2 = parseInt(localStorage.getItem(path.join(dir, b)));
+                        if (sort_flag == 0) {
+                            return s2 - s1;
+                        } else {
+                            s1 - s2;
+                        }
+                    })
+                    break;
+                }
+
+                // SORT BY TYPE
+                case 4: {
+                    dirents.sort((a, b) => {
+                        try {
+
+                            let s1 = stat.statSync(dir + '/' + a)
+                            let s2 = stat.statSync(dir + '/' + b)
+
+                            let ext1 = path.extname(path.basename(a))
+                            let ext2 = path.extname(path.basename(b))
+
+                            if (ext1 < ext2) return -1
+                            if (ext1 > ext2) return 1
+
+                            if (s1.mtime < s2.mtime) return -1
+                            if (s1.mtime > s2.mtime) return 1
+
+                        } catch {
+                            console.log(err)
+                        }
+                    })
+                }
+            }
+
             // CLEAR INFO VIEW
             // info_view.innerHTMl = ''
 
-            // SORT BY DATE
-            if (sort == 1) {
+            // // SORT BY DATE
+            // if (sort == 1) {
 
-                // SORT START TIME
-                sort_st = new Date().getTime()
+            //     // SORT START TIME
+            //     sort_st = new Date().getTime()
 
-                // SORT BY DATE
-                dirents.sort((a, b) => {
+            //     // SORT BY DATE
+            //     dirents.sort((a, b) => {
 
-                    try {
-                        let s1 = stat.statSync(path.join(dir, a))
-                        let s2 = stat.statSync(path.join(dir, b))
+            //         try {
+            //             let s1 = stat.statSync(path.join(dir, a))
+            //             let s2 = stat.statSync(path.join(dir, b))
 
-                        return s2.mtime - s1.mtime
+            //             return s2.mtime - s1.mtime
 
-                    } catch (err) {
-                        console.log(err)
-                    }
+            //         } catch (err) {
+            //             console.log(err)
+            //         }
 
-                })
-            }
+            //     })
+            // }
 
-            // SORT BY NAME
-            if (sort == 2) {
+            // // SORT BY NAME
+            // if (sort == 2) {
 
-                // SORT Y NAME
-                dirents = dirents.sort((a, b) => {
-                    if (a.toLocaleLowerCase() < b.toLocaleLowerCase()) {
-                        return -1;
-                    }
-                    if (a.toLocaleLowerCase() > b.toLocaleLowerCase()) {
-                        return 1;
-                    }
-                    return 0;
-                })
+            //     // SORT Y NAME
+            //     dirents = dirents.sort((a, b) => {
+            //         if (a.toLocaleLowerCase() < b.toLocaleLowerCase()) {
+            //             return -1;
+            //         }
+            //         if (a.toLocaleLowerCase() > b.toLocaleLowerCase()) {
+            //             return 1;
+            //         }
+            //         return 0;
+            //     })
 
-            }
+            // }
 
-            // SORT BY SIZE
-            if (sort == 3) {
+            // // SORT BY SIZE
+            // if (sort == 3) {
 
-                // SORT BY SIZE
-                dirents.sort((a, b) => {
+            //     // SORT BY SIZE
+            //     dirents.sort((a, b) => {
 
-                    let s1 = parseInt(localStorage.getItem(path.join(dir, a)))
-                    let s2 = parseInt(localStorage.getItem(path.join(dir, b)))
+            //         let s1 = parseInt(localStorage.getItem(path.join(dir, a)))
+            //         let s2 = parseInt(localStorage.getItem(path.join(dir, b)))
 
-                    return s2 - s1
+            //         return s2 - s1
 
-                })
+            //     })
 
-            }
+            // }
 
-            // SORT BY TYPE
-            if (sort == 4) {
+            // // SORT BY TYPE
+            // if (sort == 4) {
 
 
-                dirents.sort((a, b) => {
+            //     dirents.sort((a, b) => {
 
-                    try {
+            //         try {
 
-                        let s1 = stat.statSync(dir + '/' + a)
-                        let s2 = stat.statSync(dir + '/' + b)
+            //             let s1 = stat.statSync(dir + '/' + a)
+            //             let s2 = stat.statSync(dir + '/' + b)
 
-                        let ext1 = path.extname(path.basename(a))
-                        let ext2 = path.extname(path.basename(b))
+            //             let ext1 = path.extname(path.basename(a))
+            //             let ext2 = path.extname(path.basename(b))
 
-                        if (ext1 < ext2) return -1
-                        if (ext1 > ext2) return 1
+            //             if (ext1 < ext2) return -1
+            //             if (ext1 > ext2) return 1
 
-                        if (s1.mtime < s2.mtime) return -1
-                        if (s1.mtime > s2.mtime) return 1
+            //             if (s1.mtime < s2.mtime) return -1
+            //             if (s1.mtime > s2.mtime) return 1
 
-                    } catch {
-                        console.log(err)
-                    }
+            //         } catch {
+            //             console.log(err)
+            //         }
 
-                })
+            //     })
 
-            }
+            // }
 
             // REGEX FOR HIDDEN FILE
             const regex = /^\..*/
@@ -4794,7 +4914,7 @@ async function get_files(dir, callback) {
             // KEYBOARD NAVIGATION
             main_view.addEventListener('keypress', function (e) {
 
-                console.log('pressing key ', e.key)
+                // console.log('pressing key ', e.key)
 
                 // PEVENT KEYPRESS FROM BEING FIRED ON QUICK SEARCH AND FIND
                 e.stopPropagation()
@@ -4981,72 +5101,62 @@ async function get_files(dir, callback) {
             // workspace_arr = []
             // get_workspace()
 
+            /* Clear workspace */
             let clearworkspace = document.getElementById('clear_workspace')
             clearworkspace.addEventListener('click', function (e) {
                 clear_workspace()
             })
 
+            /* Workspace */
             let workspace = document.getElementById('workspace')
 
             // workspace.draggable = true
 
-            // WORKSPACE ON DRAG ENETER
+            /* Workspace on drag enter */
             workspace.ondragenter = function (e) {
                 e.preventDefault()
-
                 notification('om drag enter workspace')
                 workspace_content.classList.add('active')
-                // workspace.style = 'height:140px;'
-
                 return false
-
             }
 
+            /* Workspace on drag over */
             workspace.ondragover = (e) => {
                 console.log('workspace on drag over')
                 return false
             }
 
-            workspace.ondragleave = function (e) {
+            /* Workspace on drag leave */
+            workspace.ondragleave = (e) => {
                 e.preventDefault()
                 return false
             }
 
-            workspace.ondrop = (e) => {
-                // e.preventDefault()
-                console.log('workspace on drop')
-                add_workspace()
-
-            }
-
-            // navigator.clipboard.write([
-            //     new ClipboardItem({
-            //         'image/png': pngImageBlob
-            //     })
-            // ]);
-
-
-            // WORKSPACE CONTENT
+            /*
+                Workspace content
+                note: this is not the same as workspace
+            */
             let workspace_content = document.getElementById('workspace_content')
             workspace_content.height = '40px'
 
-
-            workspace_content.ondragenter = function (e) {
+            /* Workspace on drag enter */
+            workspace_content.ondragenter = (e) => {
                 notification('running on drag enter workspace content')
                 e.preventDefault()
             }
 
-            workspace_content.ondragover = function (e) {
+            /* Workspace content on drag over */
+            workspace_content.ondragover = (e) => {
                 e.preventDefault()
             }
 
-            workspace_content.ondrop = function (e) {
-
-                notification('running workspace on drop ')
-
+            /* Workspace content on drop */
+            workspace_content.ondrop = (e) => {
+                console.log('running workspace on drop ')
+                add_workspace()
             }
 
-            // RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED
+            /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
             cardindex = 0
             notice(' (' + directories.length + ') directories and (' + files.length + ') files')
 
@@ -5380,7 +5490,6 @@ async function get_files(dir, callback) {
     // NEW FOLDER
     Mousetrap.bind('ctrl+shift+n', () => {
         create_folder(breadcrumbs.value + '/Untitled Folder')
-
     })
 
 
@@ -5392,9 +5501,7 @@ async function get_files(dir, callback) {
         let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
         if (cards.length > 0) {
             cards.forEach(card => {
-
                 if (card) {
-
                     let header = card.querySelector('a')
                     header.classList.add('hidden')
 
@@ -5404,10 +5511,7 @@ async function get_files(dir, callback) {
                     input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
                     input.focus()
 
-
                     console.log('running focus')
-
-
                 }
 
             })
@@ -5548,7 +5652,6 @@ function get_home() {
     return os.homedir()
 }
 
-
 // CONTEXT BRIDGE
 contextBridge.exposeInMainWorld('api', {
 
@@ -5599,10 +5702,18 @@ contextBridge.exposeInMainWorld('api', {
     },
     get_terminal: () => {
         get_terminal()
-    }
+    },
+    toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
+    // system: () => ipcRenderer.invoke('dark-mode:system')
 
 })
 
+// contextBridge.exposeInMainWorld('darkMode', {
+//     toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
+//     system: () => ipcRenderer.invoke('dark-mode:system')
+// })
+
+/* Add location to history array */
 function add_history(dir) {
 
     if (history_arr.length > 0) {
@@ -5622,7 +5733,6 @@ function add_history(dir) {
 
     }
 }
-
 
 let copy_files_arr = []
 function add_copy_file(source, card_id) {
@@ -5668,126 +5778,6 @@ function add_copy_file(source, card_id) {
     }
 
     console.log('copy files array', copy_files_arr.length)
-
-}
-
-// REMOVE COPY FILE
-function remove_copy_file(href) {
-
-    copy_files_arr.forEach((item, idx) => {
-
-        if (item.source == href) {
-            copy_files_arr.splice(idx)
-        }
-
-    });
-}
-
-// ADD TO SELECTED FILES ARRAY
-function add_selected_file(source, card_id) {
-
-    //
-
-    if (source == '' || card_id == '') {
-        console.log('error line #2955: empty source or card_id')
-    } else {
-
-        if (selected_files.length > 0) {
-
-            if (selected_files.every(x => x.source != source)) {
-
-                console.log('adding selected file ' + source)
-                console.log('card id is ' + card_id)
-
-                let file = {
-                    card_id: card_id,
-                    source: source
-                }
-
-                // selected_files.push(file)
-                console.log('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
-                notification('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
-
-            }
-
-        } else {
-
-            let file = {
-                card_id: card_id,
-                source: source
-            }
-
-            selected_files.push(file)
-            console.log('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
-            notification('Added source ' + file.source + ' card_id ' + file.card_id + ' to the selected files array')
-
-        }
-
-    }
-
-}
-
-// REMOVE FILE FROM SELECTED FILES ARRAY
-function remove_selected_file(source) {
-
-    console.log('removing')
-
-    // let card = document.getElementById(card_id)
-    // card.classList.add('highlight_select')
-
-    // let file_idx = selected_files.indexOf()
-    // selected_files.splice(file_idx,1)
-
-
-    //   let selected_files_list = document.getElementById('selected_files_list')
-    //   selected_files_list.innerHTML = ''
-
-    // LOOP OVER SELECTED FILES ARRAY
-    // selected_files.forEach((file, idx) => {
-
-    //     if (file.source == source) {
-    //         console.log('removed selected file ' + source)
-    //         notification('removed selected file ' + source)
-    //         console.log('length ' + selected_files.length)
-
-    //         // selected_files.pop()
-
-    //         console.log('length ' + selected_files.length)
-
-    //     }
-
-    //     // console.log('running ' + idx)
-
-    //     // // CREATE ITEM
-    //     // let item = add_div()
-
-    //     // // ADD NAME TO ITEM
-    //     // item.innerText = file
-
-    //     // // APPEND TO SELECTED FILES LIST
-    //     // selected_files_list.appendChild(item)
-
-    // })
-
-}
-
-function clear_highlight() {
-
-    let cards = document.querySelectorAll('.card')
-    cards.forEach((card, idx) => {
-        if (card.classList.contains('highlight')) {
-            card.classList.remove('highlight')
-        }
-    })
-
-}
-
-function clear_highlight_select() {
-
-    let cards = document.querySelectorAll('.card')
-    cards.forEach((card, idx) => {
-        card.classList.remove('highlight_select')
-    })
 
 }
 
@@ -6023,7 +6013,7 @@ async function find_files() {
                     localStorage.setItem('find_folders', 1)
                 }
 
-                if (locfalStorage.getItem('find_files') == '') {
+                if (localStorage.getItem('find_files') == '') {
                     localStorage.setItem('find_files', 1)
                 }
 
@@ -6073,7 +6063,7 @@ async function find_files() {
                 }
                 // FILES
                 if (options.f == 1 && options.s != '') {
-                    options.f = ' -type f ' + options.size + ' -iname "' + options.s + '*"'
+                    options.f = ' -type f ' + options.size + ' -iname "' + options.s + '"'
                 } else {
                     options.f = ''
                 }
@@ -6091,7 +6081,7 @@ async function find_files() {
                 search_results.innerHTML = 'Searching...'
 
                 //  FIND FILES
-                cmd = ' find "' + breadcrumbs.value + '" ' + options.size + options.d + options.start_date + options.end_date + options.o + options.f + + options.start_date + options.end_date
+                cmd = ' find "' + breadcrumbs.value + '" ' + options.size + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
                 console.log(cmd)
                 let child = exec(cmd)
 
@@ -6120,22 +6110,16 @@ async function find_files() {
 
                                 try {
 
-                                    add_card(options).then(card => {
-
-                                        // search_results.insertBefore(card, search_results.firstChild)
-                                        // update_cards(search_results)
-
+                                    add_card(options).then(() => {
                                     })
 
                                 } catch (err) {
-
-                                    notification(err)
-                                    info(err)
-
+                                    // notification(err)
+                                    // info(err)
                                 }
 
                             } catch (err) {
-                                notification(err)
+                                // notification(err)
                             }
 
                         }
@@ -6145,13 +6129,12 @@ async function find_files() {
                 })
 
                 child.stderr.on('data', (err) => {
-                    console.log(err);
+                    // console.log(err);
                 })
 
                 child.stdout.on('end', (res) => {
 
                     update_cards(search_results)
-
                     if (search_results.innerHTML == 'Searching...') {
                         search_results.innerHTML = 'No results found......'
                     }
@@ -6624,137 +6607,6 @@ function add_header(text) {
     return header;
 }
 
-function logKey(e) {
-    console.log(e.code);
-}
-
-// RENDER FILES
-function get_folder_files(dir, options) {
-
-    // // CLEAR SELECTED FILES ARRAY
-    // selected_files.length = 0
-    // console.log('clearing array')
-
-    // REF TO DOM ELEMENTS ON PAGE
-    let files_card = document.getElementById('files_card')
-    let file_grid = document.getElementById('file_grid')
-    let file_grid_hidden = document.getElementById('file_grid_hidden')
-
-    file_grid.innerHTML = ''
-    file_grid_hidden.innerHTML = ''
-
-    // CREATE GRID
-    let grid = add_div()
-    grid.classList.add('ui', 'grid')
-
-    // CREATE COLUMN
-    let column = add_div()
-    column.classList.add('column', 'sixteen', 'wide')
-
-    // ADD COLUMN TO GRID
-    grid.appendChild(column)
-
-    // CREATE SECOND GRID
-    let grid1 = add_div()
-    grid1.classList.add('ui', 'grid')
-
-    let size = 0
-    let prev_size = 0
-
-    get_files(dir, options, function ({ files }) {
-
-
-        // FILES FILTER
-        let filter = files.filter(file => !file.is_dir)
-        // console.log('files ' + files.is_dir + ' length ' + filter.length)
-
-        // HIDE FILES CARD IF NO FILES FOUND
-        files_card.classList.remove('hidden')
-        if (filter.length == 0) {
-            // console.log('adding hidden to files_card')
-            files_card.classList.add('hidden')
-        }
-
-        // FILTER EXTENSION
-        let exts = Array.from(new Set(filter.map(ext => ext.extension)))
-
-        // LOOP OVER EXTENSION
-        exts.forEach((ext, idx) => {
-
-            // CREATE HEADER LABEL
-            let label = document.createElement('h5')
-            // label.setAttribute('draggable',true)
-            label.innerText = ext
-
-            // CREATE HEADER COLUMN
-            let header_col = add_div()
-            header_col.classList.add('column', 'sixteen', 'wide')
-            header_col.appendChild(label)
-
-            // ADD HEADER COLUMN TO GRID 1
-            grid1.appendChild(header_col)
-
-            // ADD GRID 1 TO FILE GRID
-            file_grid.appendChild(grid1)
-
-            // ADD SECOND FILTER HERE
-            let filter1 = []
-            filter1 = filter.filter(file_ext => file_ext.extension == ext)
-
-            // LOOP OVER EACH FILE IN FILES
-            // filter1.forEach((file,idx1) => {
-            for (let i = 0; i < filter1.length; i++) {
-
-                let options = new item_options()
-
-                // CREATE COLUMN 1
-                let column1 = add_div()
-                column1.classList.add('column', 'three', 'wide')
-
-                // CREATE OPTIONS FOR ITEM
-                options.id = 'file_card_' + idx + i
-
-                options.href = filter[i].dir
-
-                options.linktext = filter[i].name
-                options.image = get_icon_path(filter[i].dir)
-                options.description = filter[i].mtime
-                options.is_directory = filter[i].is_dir
-
-                // ADD FILE CARD
-                let file_card = add_card(options, i)
-                console.log('adding file card')
-
-                // ADD FILE STATS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                // prev_size = size
-                // size = prev_size + filter[i].size
-
-                // ADD CARD 1 TO COLUMN 1
-                column1.appendChild(file_card)
-
-                // ADD COLUMN1 TO GRID 1
-                grid1.appendChild(column1)
-
-            }
-
-            // REMOVE HIIDEN FROM FILE GRID
-            file_grid.classList.remove('hidden')
-
-        })
-
-    })
-
-    grid.appendChild(grid1)
-
-    // ADD GRID TO FILE GRID
-    file_grid.appendChild(grid1)
-
-    // console.log('removing')
-
-}
-
-
-
 // ADD HEADER MENU ITEM
 function add_menu_item(options) {
 
@@ -6776,28 +6628,28 @@ function add_menu_item(options) {
 
 }
 
-
-// SHOW SIDE BAR
+/* SHOW SIDE BAR */
 let show = parseInt(localStorage.getItem('sidebar'));
 console.log('ahh... running show side bar', show);
 function show_sidebar() {
 
+    console.log('runing sidebar')
+
     // show = parseInt(localStorage.getItem('sidebar'));
 
     // SHOW / HIDE SIDEBAR
-    let sidebar = document.getElementById('sidebar')
-    let main_view = document.getElementById('main_view')
+    let sidebar         = document.getElementById('sidebar')
+    let main_view       = document.getElementById('main_view')
 
     // SET / GET SIDEBAR WIDTH
-    let sidebar_width = 250;
+    let sidebar_width   = 250;
     if (localStorage.getItem('sidebar_width')) {
-        sidebar_width = localStorage.getItem('sidebar_width');
+        sidebar_width   = localStorage.getItem('sidebar_width');
     } else[
         localStorage.setItem('sidebar_width', sidebar_width)
     ]
 
     if (show) {
-
 
         console.log('what')
         sidebar.classList.remove('hidden');
@@ -6814,7 +6666,6 @@ function show_sidebar() {
         console.log('running show side bar', show);
 
         sidebar.classList.add('hidden');
-
         main_view.style.marginLeft = (parseInt(0) + 30) + 'px';
 
         console.log('setting sidebar 0')
@@ -6823,7 +6674,7 @@ function show_sidebar() {
 
     }
 
-    // sidebar.draggable = false
+    sidebar.draggable = false
     // // sidebar.classList.remove('hidden')
     // let sidebar_width = 250
     // if (localStorage.getItem('sidebar_width')) {
@@ -6839,7 +6690,7 @@ function show_sidebar() {
 
 }
 
-// // HIDE SIDE BAR
+/* HIDE SIDE BAR */
 function hide_sidebar() {
 
     // SHOW / HIDE SIDEBAR
@@ -6855,7 +6706,7 @@ function hide_sidebar() {
 
 }
 
-// NOTIFICATION
+/* NOTIFICATION */
 window.notification = function notification(msg) {
 
     let notification = document.getElementById('notification')
@@ -6866,8 +6717,7 @@ window.notification = function notification(msg) {
     }, 3000);
 }
 
-
-// CREATE FOLDER
+/* CREATE FOLDER */
 function create_folder(folder) {
 
     fs.mkdir(folder, {}, (err) => {
@@ -6917,7 +6767,9 @@ function create_folder(folder) {
                     input.focus()
                     input.select()
 
-                    update_cards(folder_grid)
+                    update_card(options.href)
+
+                    // update_cards(document.getElementById('main_view'))
 
                 })
 
@@ -6943,7 +6795,6 @@ function create_folder(folder) {
 
             // let header = document.getElementById('header_' + card_id)
             // header.classList.add('hidden')
-
             console.log('Created ' + path.dirname(folder));
 
         }
@@ -6954,23 +6805,7 @@ function create_folder(folder) {
 
 }
 
-// RENAME FOLDER
-function rename_folder(directory, new_directory) {
-
-    fs.rename(directory, new_directory, function (err) {
-        if (err) {
-            notification(err)
-            console.log(err)
-        } else {
-            notification('Folder renamed successfully')
-            console.log('Folder renamed successfully!');
-        }
-    })
-
-
-}
-
-// COPY FILES
+/* COPY FILES */
 async function copy_files(destination_folder, state) {
 
     let info_view = document.getElementById('info_view');
@@ -6991,7 +6826,6 @@ async function copy_files(destination_folder, state) {
     clear_copy_arr();
 
 }
-
 
 // todo: need to figure out when this is done
 
@@ -7542,7 +7376,6 @@ function get_raw_file_size(fileSizeInBytes) {
     return Math.max(fileSizeInBytes, 0.1).toFixed(1);
 
 };
-
 
 // OPEN TERMINAL
 function get_terminal() {
@@ -8406,8 +8239,6 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     if (command === 'new_window') {
         ipcRenderer.send('new_window')
     }
-
-    // todo: these need input checking
 
     // CREATE NEW FOLDER
     if (command === 'new_folder') {

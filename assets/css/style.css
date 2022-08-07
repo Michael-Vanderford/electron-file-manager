@@ -1,14 +1,8 @@
 body {
   padding-left: 5px;
   font: 12px "Lucida Grande", Helvetica, Arial, sans-serif !important;
-  /* background-color:#e4e6e8; */
   height:100%;
 }
-
-
-
-
-
 
 /* DARK THEME */
 @media (prefers-color-scheme: dark) {
@@ -23,9 +17,7 @@ body {
         padding-bottom: 40px;
         height:100% !important;
         overflow: hidden !important;
-
     }
-
 
     html {
         /* height:100%; */
@@ -34,7 +26,6 @@ body {
     label {
       color:#cfcfcf !important;
     }
-
 
     #header_menu {
         -webkit-user-select: none;
@@ -95,33 +86,33 @@ body {
     } */
 
 
-  /* .tree_icon {
-    background-image: url("../icons/korla/places/scalable/gnome-folder.svg");
-    width:18px;
-    height: 18px;
-    float:left;
-  } */
+    /* .tree_icon {
+        background-image: url("../icons/korla/places/scalable/gnome-folder.svg");
+        width:18px;
+        height: 18px;
+        float:left;
+    } */
 
 
-  .list {
-      color:#ffffff !important;
-  }
+    .list {
+        color:#ffffff !important;
+    }
 
-  .header {
-      color:#ffffff !important;
-  }
+    .header {
+        color:#ffffff !important;
+    }
 
-  .ui.modal>.header {
+    .ui.modal>.header {
 
-    color:#ffffff !important;
-    background-color: #343a40 !important;
+        color:#ffffff !important;
+        background-color: #343a40 !important;
 
-  }
+    }
 
-  .ui.modal>.content {
-    color:#ffffff !important;
-    background-color: #343a40 !important;
-  }
+    .ui.modal>.content {
+        color:#ffffff !important;
+        background-color: #343a40 !important;
+    }
 
 
     .ui.card .description {
@@ -135,30 +126,21 @@ body {
         font-weight: normal !important;
     }
 
+    .ui.card {
+        background: #2c2c2c !important;
+        box-shadow: none !important;
+    }
 
-  .ui.card {
+    .ui.card:first-child {
+        margin-top: 5px;
+    }
 
-    background: #2c2c2c !important;
-    box-shadow: none !important;
-
-  }
-
-  #sidebar .ui.card
-  {
-    background:#252525 !important;
-    box-shadow: none !important;
-  }
-
-  .ui.card:first-child {
-      margin-top: 5px;
-  }
-
-  .ui.highlight {
-    /* background:rgba(255, 255, 255, 0.2) !important; */
-    background:#425261 !important;
-    /* border-color: #000000; */
-    /* color: #ffffff !important; */
-  }
+    .ui.card .highlight {
+        /* background:rgba(255, 255, 255, 0.2) !important; */
+        background:#425261 !important;
+        /* border-color: #000000; */
+        /* color: #ffffff !important; */
+    }
 
     .ui.card .highlight_select {
 
@@ -174,42 +156,37 @@ body {
 
     /* DRAG SELECT */
     .ui.card .ds-selected {
-
         background:#425261 !important;
-        /* outline: 3px solid black; */
-        /* outline-offset: 3px; */
-        /* color: black; */
-        /* font-weight: bold; */
     }
 
 
-  /* #selected_files_list {
-      background-color: #000;
-      color:#ffffff;
-      border:none;
-  } */
+    /* #selected_files_list {
+        background-color: #000;
+        color:#ffffff;
+        border:none;
+    } */
 
-  .description {
-      color:#ffffff !important;
-  }
+    .description {
+        color:#ffffff !important;
+    }
 
-  .extra {
-      color:#ffffff !important;
-  }
-
-
-
-  .stats
-  {
-      /* background:transparent !important; */
-      background-color: blacks;
-      color:#ffffff
-  }
+    .extra {
+        color:#ffffff !important;
+    }
 
 
-  #tree_results_card {
+
+    .stats
+    {
+        /* background:transparent !important; */
+        background-color: blacks;
+        color:#ffffff
+    }
+
+
+    #tree_results_card {
     background-color: #3a3a3a !important;
-  }
+    }
 
 
     #files_card#folders_card { border:1px solid #444444; /* height: auto; overflow: auto; */ }
@@ -221,12 +198,40 @@ body {
 
 
     .inlinesearch {
-      margin: auto !important;
-      /* margin-right: auto; */
-      position:fixed;
-      bottom: 0px;
-      width: 300px;
+        margin: auto !important;
+        /* margin-right: auto; */
+        position:fixed;
+        bottom: 0px;
+        width: 300px;
     }
+
+
+    /* Find */
+    #find_div {
+        top: 60px; font-size:12px; background:rgba(40,40,40,1); padding:10px; position:fixed; right:0; height:100%; width:300px; z-index: 1000 !important;
+    }
+
+    #find_options {
+        background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 35px; width: 100%;
+    }
+
+
+    #find_div .label {
+        font-weight: normal !important;
+        color: #cfcfcf !important;
+    }
+
+
+    .find_input {
+        height:20px !important; width: 100% !important; background-color:#252525 !important; color: #cfcfcf !important;
+    }
+
+
+    .active {
+        border-radius: 12px;
+    }
+
+
 }
 
 
@@ -276,11 +281,11 @@ body {
     }
 
     #file_menu {
-        background-color: #cfcfcf !important;
+        background-color: #ebebeb !important;
     }
 
     #navigation_menu {
-        background-color: #cfcfcf !important;
+        background-color: #ebebeb !important;
         border: none !important;
     }
 
@@ -414,6 +419,29 @@ body {
 
     input[type="text"] .search {
         height: 20px;
+    }
+
+
+    /* Find */
+    #find_div {
+        top: 60px; font-size:12px; background:#ebebeb; padding:10px; position:fixed; right:0; height:100%; width:300px; z-index: 1000 !important;
+    }
+
+    /* Find labels */
+    #find_div .label {
+        font-weight: normal !important;
+        color: #069 !important;
+    }
+
+    /* Find input */
+    .find_input {
+        height:20px !important; width: 100% !important;
+    }
+
+
+    /* DRAG SELECT */
+    .ui.card .ds-selected {
+        background:#cfcfcf !important;
     }
 
 }
@@ -569,12 +597,11 @@ body .ui.card .none{
   /* margin-bottom: 1px !important; */
 }
 
-a.header_link {
+a {
     display:block;
     text-decoration: none !important;
+    font-weight: normal !important;
 }
-
-
 
 .ui.table thead tr:first-child > th {
     color: #cfcfcf;
@@ -725,12 +752,12 @@ progress[value]::-webkit-progress-bar {
 
 #breadcrumbs {
     font-size: 12px;
-    font-weight: bold !important;
+    font-weight: normal !important;
+    border: none !important;
 }
 
-#find_div .label {
-    font-weight: normal !important;
-    color: #069 !important;
+#breadcrumbs:focus {
+    -moz-outline-style: none;
 }
 
 /* #find input[type="text"] { */
@@ -932,9 +959,9 @@ h5 {
   border:none !important;
 }
 
-#main_view a {
+/* #main_view a {
     text-decoration: underline !important;
-}
+} */
 
 #info_view {
     margin-right: 110px !important;
@@ -1111,7 +1138,7 @@ a:link, .bold {
 }
 
 .container {
-  padding-top: 70px !important;
+  padding-top: 60px !important;
   height: 100% !important;
 }
 

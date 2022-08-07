@@ -6,13 +6,8 @@ const ipcMain = require('electron').ipcMain
 const nativeTheme = require('electron').nativeTheme
 const nativeImage = require('electron')
 const shell = require('electron').shell
-const usb = require('usb');
-
 const move_windows = new Set()
 const windows = new Set()
-const mime = require('mime-types')
-
-
 
 
 ipcMain.on('open_file', (e) => {
@@ -66,8 +61,6 @@ function copyFileSync(source, target, state, callback) {
             if (--recursive == 0) {
 
                 win.webContents.send('update_cards')
-
-                // const result = 1
                 callback(1)
 
             }
@@ -120,12 +113,7 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
                             // DIRECTORY
                             if (stats.isDirectory() == true) {
 
-                                // console.log('running copy folder sync')
-
-                                copyFolderRecursiveSync(cursource, curdestination, state, () => {
-                                    win.webContents.send('update_cards')
-
-                                })
+                                copyFolderRecursiveSync(cursource, curdestination, state, () => {});
 
                             // COPY FILES
                             } else if (stats.isFile() == true) {
@@ -156,6 +144,7 @@ function copyFolderRecursiveSync(source, destination, state, callback) {
 
 }
 
+/* Get disk space */
 function get_disk_space(href, callback) {
 
     df = []
@@ -253,9 +242,6 @@ function get_disk_space(href, callback) {
     callback(options)
 
 // })
-
-
-
 
     // let child = exec(cmd)
 
@@ -463,13 +449,24 @@ function createWindow() {
         },
     }
 
-
-    win = new BrowserWindow(options)
-
-    win.webContents.openDevTools()
+    win = new BrowserWindow(options);
+    win.webContents.openDevTools();
 
     // LOAD INDEX FILE
     win.loadFile('src/index.html')
+
+    ipcMain.handle('dark-mode:toggle', () => {
+        if (nativeTheme.shouldUseDarkColors) {
+            nativeTheme.themeSource = 'light'
+        } else {
+            nativeTheme.themeSource = 'dark'
+        }
+        return nativeTheme.shouldUseDarkColors
+    })
+
+    ipcMain.handle('dark-mode:system', () => {
+        nativeTheme.themeSource = 'system'
+    })
 
     // RELOAD WINDOW
     ipcMain.on('reload',function(e){
@@ -509,26 +506,7 @@ function createWindow() {
 
 }
 
-// THEME
-nativeTheme.on('updated', () => {
 
-    console.log('changed theme', nativeTheme.shouldUseDarkColors)
-
-    if (nativeTheme.shouldUseDarkColors == true) {
-        // console.log('what')
-        // app.relaunch()
-        // win.webContents.send('updatetheme', 'dark')
-        // nativeTheme.themeSource = 'dark'
-        // // win.loadFile('src/index.html')
-    } else {
-        // console.log('where')
-        // nativeTheme.themeSource = 'light'
-        // win.loadFile('src/index.html')
-        // app.relaunch()
-
-    }
-
-})
 
 // GET ICON PATH
 ipcMain.on('get_icon_path', (e, href) => {
@@ -722,21 +700,12 @@ function copy(copy_files_arr, state) {
                     // SHOW PROGRESS
                     win.webContents.send('progress', max);
 
+                    copyFileSync(source, destination_file, state, () => {});
 
-                    // COPY FILE - done
-                    // if state = 2 then change to 1 to add cards
-                    // console.log('copy files ', path.basename(destination_file), copy_files_arr.length)
-
-                    // if (state == 2) {
-                    //     state = 1
-                    // }
-
-                    copyFileSync(source, destination_file, state, () => {})
-
-                    copy_files_arr.shift()
+                    copy_files_arr.shift();
                     copy(copy_files_arr, state);
 
-                    return false
+                    return false;
 
                 }
 
@@ -774,7 +743,6 @@ function createConfirmDialog(data, copy_files_arr) {
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
     let y = bounds.y + ((bounds.height - 400) / 2);
-
 
     const confirm = new BrowserWindow({
         parent:win,
@@ -973,7 +941,6 @@ ipcMain.on('overwrite_canceled', (e, copy_files_arr) => {
 
 })
 
-
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
 
@@ -1129,8 +1096,6 @@ function createMoveDialog(data, copy_files_arr) {
     // MOVE CANCELED - done
     ipcMain.on('move_canceled', (e) => {
         confirm.hide()
-        // REMOVE ITEM FROM ARRAY
-        copy_files_arr.shift()
         if (copy_files_arr.length > 0) {
             data = {
                 state: 0,
@@ -1142,7 +1107,11 @@ function createMoveDialog(data, copy_files_arr) {
             } else {
                 createMoveDialog(data, copy_files_arr);
             }
+
+            // REMOVE ITEM FROM ARRAY
+            copy_files_arr.shift()
         }
+
     })
 
     // MOVE CONFIRMED ALL
@@ -1347,7 +1316,6 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
 })
 
-
 // CONFIRM OVERWRITE FOR MOVE DIALOG
 // let confirm = ''
 function createOverwriteMoveDialog(data, copy_files_arr) {
@@ -1376,7 +1344,6 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 
     // LOAD FILE
     confirm.loadFile('src/overwritemove.html')
-
 
     // SHOE OVERWRITE MOVE DIALOG
     confirm.once('ready-to-show', () => {
@@ -1413,9 +1380,6 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
                 // DELETE SOURCE FILE
                 delete_file(data.source, () => {})
 
-                // REMOVE ITEM FROM ARRAY
-                copy_files_arr.shift()
-
                 // CHECK ARRAY LENGTH
                 if (copy_files_arr.length > 0) {
 
@@ -1435,6 +1399,9 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
                     } else {
                         createMoveDialog(data, copy_files_arr);
                     }
+
+                    // REMOVE ITEM FROM ARRAY
+                    copy_files_arr.shift()
 
                 }
 
@@ -1532,9 +1499,6 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
         console.log('overwrite move skip')
         confirm.hide()
 
-        // REMOVE ITEM FROM ARRAY
-        copy_files_arr.shift()
-
         if (copy_files_arr.length > 0) {
 
             data = {
@@ -1551,11 +1515,8 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
                 createMoveDialog(data, copy_files_arr);
             }
 
-            // if (data.source == destination) {
-
-            // }
-
-            // createMoveDialog(data, copy_files_arr);
+            // REMOVE ITEM FROM ARRAY
+            copy_files_arr.shift()
 
         }
 
@@ -1674,13 +1635,10 @@ function createPropertiesWindow(filename) {
     windows.add(win)
 }
 
-
 // GET FILE PROPERTIES
 ipcMain.on('get_file_properties', (e, filename) => {
     createPropertiesWindow(filename)
 })
-
-
 
 // GET DEVICES USING GIO COMMAND LINE UTILITY
 ipcMain.on('get_gio_devices', (e) => {
@@ -1719,7 +1677,6 @@ ipcMain.on('get_gio_devices', (e) => {
 
 
 })
-
 
 // MOUNT GIO DEVICE
 ipcMain.on('mount_gio', (e, data) => {
@@ -1811,7 +1768,6 @@ ipcMain.on('get_uncompressed_size', (e, filename) => {
 
 })
 
-
 // GET FILES
 ipcMain.on('get_files', (e, dir) => {
 
@@ -1824,7 +1780,6 @@ ipcMain.on('get_files', (e, dir) => {
         e.sender.send('files', dirents)
     })
 })
-
 
 // GNOME-DISKS
 ipcMain.on('gnome_disks', (e, args) => {
@@ -1873,10 +1828,6 @@ ipcMain.on('get_folder_size', (e , args) => {
 
 })
 
-
-
-
-
 // GET DISK SPACE
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
@@ -1899,7 +1850,6 @@ ipcMain.on('add_copy_files', function( e, data) {
     copy_files_arr = data
 
 })
-
 
 // SEND COPY FILES ARRAY
 ipcMain.on('get_copy_files', (e, destination_folder) => {
@@ -1992,9 +1942,6 @@ app.whenReady().then(() => {
 
     // });
 
-    // webusb.addEventListener('connect', showDevices);
-    // webusb.addEventListener('disconnect', showDevices);
-
     createWindow()
 
     // ACTIVATE EVENTS GO HERE?
@@ -2079,6 +2026,83 @@ process.on('uncaughtException', function (err) {
   console.log(err);
 })
 
+/* Header Menu */
+const template = [
+    {
+        label: 'File',
+        submenu : [
+            {
+                role: 'Close'
+            }
+    ]},
+    {
+        label: 'Edit',
+        submenu : [
+            {
+                role: 'copy'
+            }
+        ]
+    },
+    {
+        label: 'View',
+        submenu: [
+            {role: 'toggleDevTools'},
+            {type: 'separator'},
+            {role: 'reload'},
+            {type: 'separator'},
+            {
+                label: 'Sort',
+                submenu: [
+                    {
+                        label: 'Date',
+                        accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+D' : 'CTRL+SHIFT+D',
+                        click: () => {win.webContents.send('sort', 'date')}
+                    },
+                    {
+                        label: 'Name',
+                        click: () => {win.webContents.send('sort', 'size')}
+                    },
+                    {
+                        label: 'Size',
+                        click: () => {win.webContents.send('sort', 'name')}
+                    },
+                    {
+                        label: 'Type',
+                        click: () => {win.webContents.send('sort', 'type')}
+                    },
+                ]
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Toggle theme',
+                click: () => {
+                    if (nativeTheme.shouldUseDarkColors) {
+                        nativeTheme.themeSource = 'light'
+                    } else {
+                        nativeTheme.themeSource = 'dark'
+                    }
+                }
+            },
+
+        ]
+    },
+    {
+        label: 'Help',
+        submenu : [
+            {
+                label: 'About'
+            }
+        ]
+    }
+
+]
+
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);
+
 // TEMPLATE MENU
 function add_templates_menu(menu, e, args){
 
@@ -2144,13 +2168,37 @@ ipcMain.on('show-context-menu', (e, options) => {
         {
             label: 'Open Templates Folder',
             click: () => {
-                e.sender.send('context-menu-command', 'open_templates_folder'
-            ),
-            {
-                type: 'separator'
+                e.sender.send('context-menu-command', 'open_templates_folder'),
+                {
+                    type: 'separator'
+                }
             }
-        }
         }],
+    },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'Sort',
+        submenu: [
+            {
+                label: 'Date',
+                click: () => {win.webContents.send('sort', 'date')}
+            },
+            {
+                label: 'Name',
+                click: () => {win.webContents.send('sort', 'name')}
+            },
+            {
+                label: 'Size',
+                click: () => {win.webContents.send('sort', 'size')}
+            },
+            {
+                label: 'Type',
+                click: () => {win.webContents.send('sort', 'type')}
+            }
+
+        ]
     },
     {
         type: 'separator'
@@ -2217,115 +2265,144 @@ ipcMain.on('show-context-menu', (e, options) => {
 ipcMain.on('show-context-menu-directory', (e, args) => {
 
     const template1 = [
-      {
-        label: 'Open with Code',
-        click: () => {
-          e.sender.send('context-menu-command', 'vscode')
-        }
-      },
-      {
-          type: 'separator'
-      },
-      {
-          label: 'Open',
-          click: () => {
-              e.sender.send('open')
-          }
-      },
-      {
-        label: 'Open in new window',
-        click: () => {
-          e.sender.send('context-menu-command', 'open_in_new_window')
-        }
-      },
-      {
-          id: 'launchers',
-          label: 'Open with',
-          submenu: []
-      },
-      {
-          type: 'separator'
-      },
-      {
-          id: 'templates',
-          label: 'New Document',
-          submenu: [
-          {
-              label: 'Open Templates Folder',
-              click: () => {
-                  e.sender.send('context-menu-command', 'open_templates_folder'
-              ),
-              {
-                  type: 'separator'
-              }
-          }
-      },],
-      },
-      {
-          label: 'New Folder',
-          accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
-          click: () => {
-              e.sender.send('context-menu-command', 'new_folder')
-          }
-      },
-      {
-        type: 'separator'
-      },
-      {
-          label: 'Add to workspace',
-          click: () => {
-              e.sender.send('open')
-          }
-      },
-      {
-          type: 'separator'
-      },
-      {
-        label: 'Cut',
-        click: () => {
-          e.sender.send('context-menu-command', 'cut')
-        }
-      },
-      {
-        label: 'Copy',
-        accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
-        click: () => {
-          e.sender.send('context-menu-command', 'copy')
-        }
-      },
-      {
-          label: 'Paste',
-          accelerator: process.platform === 'darwin' ? 'CTRL+V' : 'CTRL+V',
-          click: () => {
-            e.sender.send('context-menu-command', 'paste')
-          }
-      },
-      {
-        label: 'Paste file into folder',
-        click: () => {
-          e.sender.send('context-menu-command', 'paste_file')
-        }
-      },
-      {
-        label: '&Rename',
-        accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
-        click: () => {
-          e.sender.send('context-menu-command', 'rename')
-        }
-      },
-      {
-          type: 'separator'
-      },
-      {
-        label: 'Compress',
-        click: () => {
-          e.sender.send('context-menu-command', 'compress_folder')
-        }
-      },
-      {
-          type: 'separator'
-      },
-      {
+        {
+            label: 'Open with Code',
+            click: () => {
+            e.sender.send('context-menu-command', 'vscode')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Open',
+            click: () => {
+                e.sender.send('open')
+            }
+        },
+        {
+            label: 'Open in new window',
+            click: () => {
+            e.sender.send('context-menu-command', 'open_in_new_window')
+            }
+        },
+        {
+            id: 'launchers',
+            label: 'Open with',
+            submenu: []
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Sort',
+            submenu: [
+                {
+                    label: 'Date',
+                    click: () => {win.webContents.send('sort', 'date')}
+                },
+                {
+                    label: 'Name',
+                    click: () => {win.webContents.send('sort', 'name')}
+                },
+                {
+                    label: 'Size',
+                    click: () => {win.webContents.send('sort', 'size')}
+                },
+                {
+                    label: 'Type',
+                    click: () => {win.webContents.send('sort', 'type')}
+                }
+
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Folder',
+            accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
+            click: () => {
+                e.sender.send('context-menu-command', 'new_folder')
+            }
+        },
+        {
+            id: 'templates',
+            label: 'New Document',
+            submenu: [
+            {
+                label: 'Open Templates Folder',
+                click: () => {
+                    e.sender.send('context-menu-command', 'open_templates_folder'
+                ),
+                {
+                    type: 'separator'
+                }
+            }
+        },],
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Add to workspace',
+            click: () => {
+                e.sender.send('open')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Cut',
+            accelerator: process.platform === 'darwin' ? 'CTRL+X' : 'CTRL+X',
+            click: () => {
+            e.sender.send('context-menu-command', 'cut')
+            }
+        },
+        {
+            label: 'Copy',
+            accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
+            click: () => {
+            e.sender.send('context-menu-command', 'copy')
+            }
+        },
+        {
+            label: 'Paste',
+            accelerator: process.platform === 'darwin' ? 'CTRL+V' : 'CTRL+V',
+            click: () => {
+                e.sender.send('context-menu-command', 'paste')
+            }
+        },
+        {
+            label: 'Paste file into folder',
+            click: () => {
+            e.sender.send('context-menu-command', 'paste_file')
+            }
+        },
+        {
+            label: '&Rename',
+            accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
+            click: () => {
+            e.sender.send('context-menu-command', 'rename')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Compress',
+            click: () => {
+            e.sender.send('context-menu-command', 'compress_folder')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
           label: 'Delete',
           click: () => {
             // e.sender.send('context-menu-command', 'delete_folder')
@@ -2334,32 +2411,32 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         },
         {
           type: 'separator'
-      },
-      {
-        label: 'Open in terminal',
-        click: () => {
-          e.sender.send('context-menu-command', 'open_folder_in_terminal')
+        },
+        {
+            label: 'Open in terminal',
+            click: () => {
+            e.sender.send('context-menu-command', 'open_folder_in_terminal')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Properties',
+            click:()=>{
+                // createPropertiesWindow()
+                e.sender.send('context-menu-command', 'props')
+            }
+        },
+        {
+            type: 'separator'
         }
-      },
-      {
-          type: 'separator'
-      },
-      {
-          label: 'Properties',
-          click:()=>{
-              // createPropertiesWindow()
-              e.sender.send('context-menu-command', 'props')
-          }
-      },
-      {
-          type: 'separator'
-      }
-      // {
-      //   label: 'Move to trash',
-      //   click: () => {
-      //     e.sender.send('context-menu-command', 'move_to_trash')
-      //   }
-      // },
+        // {
+        //   label: 'Move to trash',
+        //   click: () => {
+        //     e.sender.send('context-menu-command', 'move_to_trash')
+        //   }
+        // },
     ]
 
       const menu1 = Menu.buildFromTemplate(template1)
@@ -2400,6 +2477,34 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             type: 'separator'
         },
         {
+            label: 'Sort',
+            submenu: [
+                {
+                    label: 'Date',
+                    click: () => {win.webContents.send('sort', 'date')}
+                },
+                {
+                    label: 'Name',
+                    click: () => {win.webContents.send('sort', 'name')}
+                },
+                {
+                    label: 'Size',
+                    click: () => {win.webContents.send('sort', 'size')}
+                },
+                {
+                    label: 'Type',
+                    click: () => {win.webContents.send('sort', 'type')}
+                }
+
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
             label: '&New Folder',
             accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
             click: () => {
@@ -2408,6 +2513,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         },
         {
             label: 'Cut',
+            accelerator: process.platform === 'darwin' ? 'CTRL+X' : 'CTRL+X',
             click: () => {
             e.sender.send('context-menu-command', 'cut')
             }
@@ -2437,7 +2543,6 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             }
         }],
         },
-
         {
         label: '&Rename',
         accelerator: process.platform === 'darwin' ? 'F2' : 'F2',

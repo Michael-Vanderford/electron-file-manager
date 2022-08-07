@@ -23,22 +23,17 @@
     "start": "electron ."
   },
   "dependencies": {
-    "7zip-bin": "^5.1.1",
     "bootstrap": "^5.0.1",
     "bootstrap-icons": "^1.8.2",
     "chart.js": "^3.5.1",
     "dragselect": "^2.3.1",
-    "drivelist": "^9.2.4",
     "jquery": "^3.6.0",
-    "material-design-icons": "^3.0.1",
     "mime-types": "^2.1.35",
     "mousetrap": "^1.6.5",
-    "node-sqlite": "^0.0.2-security",
     "open": "^8.4.0",
-    "usb": "^2.1.2",
     "webpack": "^5.66.0"
   },
   "devDependencies": {
-    "electron": "^19.0.7"
+    "electron": "^19.0.11"
   }
 }
