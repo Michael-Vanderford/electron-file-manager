@@ -15,8 +15,7 @@ Install
 
 ![Screenshot 2](/screenshots/screenshot2.png?raw=true "Screenshot 2")
 
-
-Keboard Shortcuts
+<!-- Keboard Shortcuts
 
 F2 - rename
 Del - delete on clicked items
@@ -27,21 +26,22 @@ Arrows- card navigation (needs work)
 Current Feature Status
 
 Cut, Copy, Paste, Move, Delete, Rename
-Inline audio playback (html5 audio controls)
+Inline audio playback (html5 audio controls) -->
 
 
 Stack
-
-nodejs
-electron
-chart.js
-dragselect
-mousetrap
-open
-mime-types
-webpack
-bootstrap-icons
-bootstrap
-jquery - (legacy)
+<ul>
+    <li>nodejs</li>
+    <li>electron</li>
+    <li>chart.js</li>
+    <li>dragselect</li>
+    <li>mousetrap</li>
+    <li>open</li>
+    <li>mime-types</li>
+    <li>webpack</li>
+    <li>bootstrap-icons</li>
+    <li>bootstrap</li>
+    <li>jquery - (legacy)</li>
+</ul>
 
 
