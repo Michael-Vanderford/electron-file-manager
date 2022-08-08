@@ -506,8 +506,6 @@ function createWindow() {
 
 }
 
-
-
 // GET ICON PATH
 ipcMain.on('get_icon_path', (e, href) => {
     get_icon_path(href)
@@ -2234,13 +2232,13 @@ ipcMain.on('show-context-menu', (e, options) => {
     {
       type: 'separator'
     },
-    {
-      label: 'Properties',
-      click:()=>{
-        // createPropertiesWindow()
-        e.sender.send('context-menu-command', 'props')
-      }
-    },
+    // {
+    //   label: 'Properties',
+    //   click:()=>{
+    //     // createPropertiesWindow()
+    //     e.sender.send('context-menu-command', 'props')
+    //   }
+    // },
     {
         type: 'separator'
     },

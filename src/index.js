@@ -262,13 +262,13 @@ btn_disk_view.addEventListener('click', (e) => {
     this.classList.add('active')
 })
 
-// DISK SUMMARY VIEW
-btn_disk_usage.addEventListener('click', (e) => {
+// // DISK SUMMARY VIEW
+// btn_disk_usage.addEventListener('click', (e) => {
 
-    localStorage.setItem('view', 'disk_summary')
-    window.api.get_view('/')
+//     localStorage.setItem('view', 'disk_summary')
+//     window.api.get_view('/')
 
-})
+// })
 
 
 $(function() {

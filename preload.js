@@ -3749,6 +3749,8 @@ async function get_view(dir) {
 
         let btn_grid_view = document.getElementById('btn_grid_view');
         btn_grid_view.classList.add('active')
+        btn_list_view.classList.remove('active')
+        btn_disk_view.classList.remove('active')
 
         console.log('grid view')
         grid_view.classList.remove('hidden')
@@ -3775,6 +3777,8 @@ async function get_view(dir) {
 
         let btn_list_view = document.getElementById('btn_list_view');
         btn_list_view.classList.add('active')
+        btn_grid_view.classList.remove('active')
+        btn_disk_view.classList.remove('active')
 
         console.log('list view')
         list_view.classList.remove('hidden');
@@ -3793,12 +3797,15 @@ async function get_view(dir) {
 
         let btn_disk_view = document.getElementById('btn_disk_view')
         btn_disk_view.classList.add('active')
+        btn_list_view.classList.remove('active')
+        btn_grid_view.classList.remove('active')
 
         console.log('sumarry view')
         info_view.classList.remove('hidden')
         info_view.innerHTML = ''
 
         list_view.classList.add('hidden')
+
         grid_view.classList.add('hidden')
 
         localStorage.setItem('view', view0)
@@ -7402,11 +7409,10 @@ let is_navigate = false;
 // NAVIGATE FUNCTION LEFT RIGHT UP
 function navigate(direction) {
 
-    is_navigate = true;
-    let dir = get_home();
-
+    is_navigate     = true;
+    let dir         = get_home();
     let breadcrumbs = document.getElementById('breadcrumbs');
-    let last_index = history_arr.lastIndexOf(breadcrumbs.value);
+    let last_index  = history_arr.lastIndexOf(breadcrumbs.value);
 
     console.log('array', history_arr, 'last index', last_index)
 
