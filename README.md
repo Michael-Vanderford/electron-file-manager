@@ -32,7 +32,7 @@ Inline audio playback (html5 audio controls) -->
 Stack
 <ul>
     <li>nodejs</li>
-    <li>electron</li>
+    <li>electronjs</li>
     <li>chart.js</li>
     <li>dragselect</li>
     <li>mousetrap</li>
