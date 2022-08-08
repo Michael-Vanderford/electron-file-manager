@@ -3722,17 +3722,28 @@ async function get_view(dir) {
     let list_view = document.getElementById('list_view');
     let info_view = document.getElementById('info_view');
 
+    /* Initialize sort */
+    let sort = localStorage.getItem('sort');
+    if (sort == '') {
+        localStorage.setItem('sort', 1);
+    }
+
+    /* Initialize view */
     view0 = view;
     view = localStorage.getItem('view');
+    if (view == '') {
+        view == 'grid';
+    }
+
 
     /* Grid View */
     if (view == 'grid') {
 
         file_menu_items.forEach(item => {
             if (item.innerText == path.basename(dir)) {
-                item.classList.add('active')
+                item.classList.add('active');
             } else {
-                item.classList.remove('active')
+                item.classList.remove('active');
             }
         })
 
@@ -3750,7 +3761,6 @@ async function get_view(dir) {
 
         get_files(dir, () => { });
 
-        show_sidebar();
 
     /* List View */
     } else if (view == 'list') {
@@ -3777,10 +3787,12 @@ async function get_view(dir) {
 
         get_list_view(dir);
 
-        show_sidebar();
 
     /* Disk Summary */
     } else if (view == 'disk_summary') {
+
+        let btn_disk_view = document.getElementById('btn_disk_view')
+        btn_disk_view.classList.add('active')
 
         console.log('sumarry view')
         info_view.classList.remove('hidden')
@@ -3794,8 +3806,6 @@ async function get_view(dir) {
         get_disk_summary_view()
 
     }
-
-
 
 }
 
@@ -6629,15 +6639,11 @@ function add_menu_item(options) {
 }
 
 /* SHOW SIDE BAR */
-let show = parseInt(localStorage.getItem('sidebar'));
-console.log('ahh... running show side bar', show);
+// let show = parseInt(localStorage.getItem('sidebar'));
 function show_sidebar() {
 
     console.log('runing sidebar')
-
-    // show = parseInt(localStorage.getItem('sidebar'));
-
-    // SHOW / HIDE SIDEBAR
+    let show            = parseInt(localStorage.getItem('sidebar'));
     let sidebar         = document.getElementById('sidebar')
     let main_view       = document.getElementById('main_view')
 
@@ -8600,25 +8606,23 @@ window.addEventListener('DOMContentLoaded', () => {
     // CTRL S SHOW SIDEBAR
     Mousetrap.bind('ctrl+b', (e) => {
 
-        show_sidebar()
+        // show_sidebar()
 
         // let sidebar = document.getElementById('sidebar')
         console.log(sidebar.hidden)
 
 
-        // if (sidebar.classList.contains('hidden')) {
+        if (sidebar.classList.contains('hidden')) {
+            localStorage.setItem('sidebar', 1)
+            show_sidebar()
+            console.log('show side bar')
+        } else {
 
-        //     show_sidebar()
-        //     localStorage.setItem('sidebar', 1)
-        //     console.log('show side bar')
+            localStorage.setItem('sidebar', 0)
+            show_sidebar()
+            console.log('hide side bar')
 
-        // } else {
-
-        //     hide_sidebar()
-        //     localStorage.setItem('sidebar', 0)
-        //     console.log('hide side bar')
-
-        // }
+        }
 
     })
 

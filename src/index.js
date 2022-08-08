@@ -19,6 +19,7 @@ let btn_disk_usage = document.getElementById('btn_disk_usage')
 // TOGGLE VIEWS
 let btn_list_view = document.getElementById('btn_list_view')
 let btn_grid_view = document.getElementById('btn_grid_view')
+let btn_disk_view = document.getElementById('btn_disk_view')
 
 // VIEWS
 let list_view = document.getElementById('list_view')
@@ -63,16 +64,19 @@ function clear_active() {
 // LOAD FILES FROM PREELOAD.JS
 function get_files(dir) {
 
-    // GRID VIEW
-    if (localStorage.getItem('view') == 'grid' || localStorage.getItem('view') == '') {
-        window.api.get_files(dir, () => {})
-        btn_grid_view.classList.add('active')
+    // // GRID VIEW
+    // if (localStorage.getItem('view') == 'grid' || localStorage.getItem('view') == '') {
+    //     window.api.get_files(dir, () => {})
+    //     btn_grid_view.classList.add('active')
 
-    // LIST VIEW
-    } else {
-        window.api.get_list_view(dir)
-        btn_list_view.classList.add('active')
-    }
+    // // LIST VIEW
+    // } else if (localStorage.getItem('view') == 'list') {
+    //     window.api.get_list_view(dir)
+    //     btn_list_view.classList.add('active')
+    // } else if (localStorage.getItem('view') == 'disk_summary') {
+    //     window.api.get_list_view(dir)
+    // }
+
 
 }
 
@@ -249,6 +253,13 @@ btn_grid_view.addEventListener('click', (e) => {
 
 
 
+})
+
+btn_disk_view.addEventListener('click', (e) => {
+    e.preventDefault()
+    localStorage.setItem('view', 'disk_summary');
+    window.api.get_view(localStorage.getItem('folder'));
+    this.classList.add('active')
 })
 
 // DISK SUMMARY VIEW

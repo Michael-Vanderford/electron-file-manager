@@ -450,7 +450,7 @@ function createWindow() {
     }
 
     win = new BrowserWindow(options);
-    win.webContents.openDevTools();
+    // win.webContents.openDevTools();
 
     // LOAD INDEX FILE
     win.loadFile('src/index.html')
@@ -648,12 +648,8 @@ function copy(copy_files_arr, state) {
                         copy(copy_files_arr,state)
 
                     })
-
-
                     return false;
-
                 }
-
             }
 
         // FILES
@@ -1096,11 +1092,13 @@ function createMoveDialog(data, copy_files_arr) {
     // MOVE CANCELED - done
     ipcMain.on('move_canceled', (e) => {
         confirm.hide()
+        // REMOVE ITEM FROM ARRAY
+        copy_files_arr.shift()
         if (copy_files_arr.length > 0) {
             data = {
-                state: 0,
-                source: copy_files_arr[0].source,
-                destination: copy_files_arr[0].destination
+                state:          0,
+                source:         copy_files_arr[0].source,
+                destination:    copy_files_arr[0].destination
             }
             if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
                 createOverwriteMoveDialog(data,copy_files_arr);
@@ -1108,8 +1106,7 @@ function createMoveDialog(data, copy_files_arr) {
                 createMoveDialog(data, copy_files_arr);
             }
 
-            // REMOVE ITEM FROM ARRAY
-            copy_files_arr.shift()
+
         }
 
     })
@@ -2046,10 +2043,6 @@ const template = [
     {
         label: 'View',
         submenu: [
-            {role: 'toggleDevTools'},
-            {type: 'separator'},
-            {role: 'reload'},
-            {type: 'separator'},
             {
                 label: 'Sort',
                 submenu: [
@@ -2072,6 +2065,14 @@ const template = [
                     },
                 ]
             },
+            // {type: 'separator'},
+            // {
+            //     label: 'Side Menu',
+            //     type: "checkbox",
+            //     click: () => {
+
+            //     }
+            // },
             {
                 type: 'separator'
             },
@@ -2085,6 +2086,9 @@ const template = [
                     }
                 }
             },
+            {role: 'toggleDevTools'},
+            {type: 'separator'},
+            {role: 'reload'}
 
         ]
     },
