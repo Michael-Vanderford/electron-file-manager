@@ -33,6 +33,7 @@ Stack
 <ul>
     <li>nodejs</li>
     <li>electronjs</li>
+    <li>semanticui</li>
     <li>chart.js</li>
     <li>dragselect</li>
     <li>mousetrap</li>

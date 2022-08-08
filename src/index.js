@@ -752,20 +752,22 @@ $(function() {
     // SORT BY DATE
     $(document).on('click', '#sort_by_date', function(e){
 
-        e.preventDefault()
+        e.preventDefault();
+        clear_active();
+        this.classList.add('active');
 
-        clear_active()
-        this.classList.add('active')
+        dir = breadcrumbs.value;
+        localStorage.setItem('sort', 1);
 
-        dir = breadcrumbs.value
-        localStorage.setItem('sort', 1)
-
-        let options = {
-            sort: 1,
-            search: ''
+        let sort_direction = localStorage.getItem('sort_direction');
+        console.log('sort_direction', sort_direction)
+        if (sort_direction === 'desc') {;
+            localStorage.setItem('sort_direction', 'asc');
+        } else {
+            localStorage.setItem('sort_direction', 'desc');
         }
 
-        window.api.get_view(dir)
+        window.api.get_view(dir);
 
     })
 
@@ -780,9 +782,11 @@ $(function() {
         dir = breadcrumbs.value
         localStorage.setItem('sort', 2)
 
-        let options = {
-            sort: 2,
-            search: ''
+        let sort_direction = localStorage.getItem('sort_direction');
+        if (sort_direction === 'desc') {;
+            localStorage.setItem('sort_direction', 'asc');
+        } else {
+            localStorage.setItem('sort_direction', 'desc');
         }
 
         window.api.get_view(dir)
@@ -801,9 +805,11 @@ $(function() {
         dir = breadcrumbs.value
         localStorage.setItem('sort', 3)
 
-        let options = {
-            sort: 3,
-            search: ''
+        let sort_direction = localStorage.getItem('sort_direction');
+        if (sort_direction === 'desc') {;
+            localStorage.setItem('sort_direction', 'asc');
+        } else {
+            localStorage.setItem('sort_direction', 'desc');
         }
 
         window.api.get_view(dir)
@@ -822,12 +828,14 @@ $(function() {
         dir = breadcrumbs.value
         localStorage.setItem('sort', 4)
 
-        let options = {
-            sort: 4,
-            search: ''
+        let sort_direction = localStorage.getItem('sort_direction');
+        if (sort_direction === 'desc') {;
+            localStorage.setItem('sort_direction', 'asc');
+        } else {
+            localStorage.setItem('sort_direction', 'desc');
         }
 
-        window.api.get_view(dir,options)
+        window.api.get_view(dir)
 
     })
 

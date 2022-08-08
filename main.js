@@ -431,8 +431,8 @@ function createWindow() {
 
     // WINDOW OPTIONS
     let options = {
-        minWidth:1024,
-        minHeight:600,
+        minWidth: 1024,
+        minHeight: 600,
         width: 1600,
         height: 768,
         backgroundColor: '#2e2c29',
@@ -444,7 +444,7 @@ function createWindow() {
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
-            // nativeWindowOpen: false,
+            nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
         },
     }
@@ -1285,9 +1285,7 @@ ipcMain.on('move', (e, copy_files_arr, state) => {
                         destination: destination_file
                     }
 
-                    console.log('data', data, copy_files_arr)
-
-
+                    // console.log('data', data, copy_files_arr)
                     createMoveDialog(data,copy_files_arr)
                     return false
 

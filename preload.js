@@ -3708,7 +3708,13 @@ function get_time_stamp(date) {
 // LOAD VIEW
 let view = ''
 let view0 = ''
+
+/**
+*   Get view - Run all calls to files should run through this.
+*/
 async function get_view(dir) {
+
+    console.log('running get view');
 
     /* Set active on file menu */
     let file_menu = document.getElementById('file_menu');
@@ -3724,16 +3730,16 @@ async function get_view(dir) {
 
     /* Initialize sort */
     let sort = localStorage.getItem('sort');
-    if (sort == '') {
-        localStorage.setItem('sort', 1);
-    }
+    if (sort == null || sort == '') {localStorage.setItem('sort', 1);}
+
+    /* Initialize sort direction */
+    let sort_direction = localStorage.getItem('sort_direction');
+    if (sort_direction == null || sort_direction == '') {localStorage.setItem('sort_direction', 'desc');}
 
     /* Initialize view */
     view0 = view;
     view = localStorage.getItem('view');
-    if (view == '') {
-        view == 'grid';
-    }
+    if (view == null || view == '') {view == 'grid';}
 
 
     /* Grid View */
@@ -3972,7 +3978,6 @@ async function get_disk_summary_view() {
 }
 
 // GET LIST VIEW
-let sort_flag = 0;
 async function get_list_view(dir) {
 
     // let grid_view = document.getElementById('grid_view')
@@ -4428,8 +4433,8 @@ async function get_files(dir, callback) {
     let file_grid = document.getElementById('file_grid');
     let hidden_file_grid = document.getElementById('hidden_file_grid');
     let pager = document.getElementById('pager');
-    let grid_view = document.getElementById('grid_view')
-    let list_view = document.getElementById('list_view')
+    let grid_view = document.getElementById('grid_view');
+    let list_view = document.getElementById('list_view');
 
     grid_view.classList.remove('hidden')
     list_view.classList.add('hidden')
@@ -4551,10 +4556,10 @@ async function get_files(dir, callback) {
         if (dirents.length > 0) {
 
             // SET SORT DIRECTION
-            if (sort_flag == 0) {
-                sort_flag = 1
-            } else {
-                sort_flag = 0
+            let sort_direction = localStorage.getItem('sort_direction')
+            let sort_flag = 0;
+            if (sort_direction == 'asc') {
+                sort_flag = 1;
             }
 
             /* Sort */
