@@ -1611,6 +1611,18 @@ ipcRenderer.on('update_progress', (e, step) => {
     update_progress(step)
 })
 
+/* On icon view */
+ipcRenderer.on('icon_path', (e, data) => {
+    let href = data.href;
+    let card = document.querySelectorAll('[data-href="' + href + '"]');
+    if (card) {
+        card.forEach(item => {
+            let img     = item.querySelector('img');
+            img.src     = data.icon_path;
+        })
+    }
+})
+
 /* On sort */
 ipcRenderer.on('sort', (e, sort) => {
     let breadcrumbs = document.getElementById('breadcrumbs')
@@ -2044,18 +2056,7 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 
 }
 
-// ON ICON PATH
-ipcRenderer.on('icon_path', (e, data) => {
 
-    console.log('running on icon_path');
-    let href = data.href;
-    let card = document.querySelector('[data-href="' + href + '"]');
-    if (card) {
-        let img = card.querySelector('img');
-        img.src = data.icon_path;
-    }
-
-})
 
 var cardindex = 0
 
@@ -2065,13 +2066,13 @@ async function add_card(options) {
     try {
 
         /* Options */
-        let id          = options.id
-        let href        = options.href
-        let linktext    = options.linktext
-        let icon_path   = get_icon_path(href) //options.image
-        let is_folder   = options.is_folder
-        let size        = ''
-        let grid        = options.grid
+        let id              = options.id
+        let href            = options.href
+        let linktext        = options.linktext
+        let icon_path       = '' //get_icon_path(href) //options.image
+        let is_folder       = options.is_folder
+        let size            = ''
+        let grid            = options.grid
 
         /* Create elements */
         let col             = add_div()
@@ -2090,27 +2091,27 @@ async function add_card(options) {
         let input           = document.createElement('input')
         let form_field      = add_div()
         let popovermenu     = add_div()
-
         let form_control    = add_div()
         let form            = document.createElement('form')
 
-
         /* ADD CSS */
-        input.setAttribute('required', 'required')
-        col.classList.add('column', 'three', 'wide')
-
-        popovermenu.classList.add('popup')
+        input.setAttribute          ('required', 'required')
+        col.classList.add           ('column', 'three', 'wide')
+        popovermenu.classList.add   ('popup')
 
         /* Card */
-        card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav')
+        card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav')
         card.draggable      = 'true'
         card.id             = id
         card.dataset.href   = href
         input.spellcheck    = false
 
         /* Set Index for Navigation */
-        if (grid.id == 'folder_grid' || grid.id == 'file_grid') {
-            cardindex += 1
+        if (
+            grid.id == 'folder_grid' ||
+            grid.id == 'file_grid'
+            ) {
+            cardindex       += 1
             card.dataset.id = cardindex
         }
 
@@ -2120,10 +2121,10 @@ async function add_card(options) {
         /* Handle Image Files */
         let is_image = 0;
         if (
-            ext === '.png' ||
-            ext === '.jpg' ||
-            ext === '.svg' ||
-            ext === '.gif' ||
+            ext === '.png'  ||
+            ext === '.jpg'  ||
+            ext === '.svg'  ||
+            ext === '.gif'  ||
             ext === '.webp' ||
             ext === '.jpeg'
 
@@ -2162,6 +2163,7 @@ async function add_card(options) {
 
         /* Folder */
         if (is_folder) {
+            console.log('im a folder')
             get_folder_icon(icon => {
                 img.src = icon
             })
@@ -2172,11 +2174,11 @@ async function add_card(options) {
             if (img.classList.contains('img')) {
 
                 img.src         = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
-                img.dataset.src = icon_path
+                img.dataset.src = get_icon_path(href)
                 img.classList.add('lazy')
 
             } else {
-                ipcRenderer.send('get_icon_path', href)
+                ipcRenderer.send('get_icon_path', href);
             }
         }
 
@@ -2225,6 +2227,7 @@ async function add_card(options) {
                 if (this.classList.contains('highlight_select')) {
 
                     // remove_selected_file(href)
+                    console.log('removing highlight select')
                     this.classList.remove('highlight_select')
 
                     //
@@ -2234,15 +2237,13 @@ async function add_card(options) {
                     nc = parseInt(card.dataset.id)
                     console.log('counter ' + nc)
 
+                    console.log('adding highlight select')
                     this.classList.add('highlight_select')
 
                     if (prev_card) {
-
                         prev_card.classList.remove('highlight_select')
                         prev_card = this
-
                     } else {
-
                         prev_card = this
                     }
 
@@ -2576,30 +2577,27 @@ async function add_card(options) {
         // ON DRAG LEAVE
         card.ondragleave = function (e) {
 
+            e.preventDefault()
+            e.stopPropagation()
+
             dragcounter--
 
+            // todo: this is breaking drag and drop on workspace
             // card.classList.remove('highlight_select')
             card.classList.remove('highlight')
 
             if (dragcounter === 0) {
 
-
                 // TURN DRAGGABLE ON MAIN CARD ON
-                notification('setting draggable to true on main view')
-
+                // notification('setting draggable to true on main view')
                 // card.classList.remove('highlight_select')
 
                 let main_view = document.getElementById('main_view')
 
                 // main_view.draggable = true
-
-                notification('running on drag leave card')
+                // notification('running on drag leave card')
 
             }
-
-            e.preventDefault()
-            e.stopPropagation()
-
             return false
         }
 
@@ -3559,7 +3557,7 @@ async function get_workspace() {
 
             workspace_arr.push(options.href)
             add_card(options).then(res => {
-                update_card(href)
+                // update_card(href)
             })
 
             let icon = add_icon('times')
@@ -3575,8 +3573,8 @@ async function get_workspace() {
             /* Remove card */
             icon.addEventListener('click', (e) => {
                 card.remove();
-                items.splice(i)
-                localStorage.setItem('workspace',JSON.stringify(items))
+                workspace_arr.splice(i, 1)
+                localStorage.setItem('workspace',JSON.stringify(workspace_arr))
             })
 
             /* Card mouse over */
@@ -3601,21 +3599,20 @@ async function get_workspace() {
 let workspace_arr = []
 function add_workspace() {
 
-    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-    console.log('items length', items.length)
+    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+    console.log('items length', items.length);
 
     if (items.length > 0) {
 
-        let workspace_content = document.getElementById('workspace_content')
-        let workspace = document.getElementById('workspace')
-        let workspace_grid = document.getElementById('workspace_grid')
-        workspace_content.classList.add('active')
+        let workspace_content = document.getElementById('workspace_content');
+        let workspace_grid = document.getElementById('workspace_grid');
+        workspace_content.classList.add('active');
 
-        let file_exists = 0
+        let file_exists = 0;
         for (let i = 0; i < items.length; i++) {
 
-            let stats = fs.statSync(items[i].dataset.href)
-            let is_folder = stats.isDirectory()
+            let stats = fs.statSync(items[i].dataset.href);
+            let is_folder = stats.isDirectory();
 
             if (localStorage.getItem('workspace')) {
                 let local_items = JSON.parse(localStorage.getItem('workspace'))
@@ -3633,30 +3630,32 @@ function add_workspace() {
                 let href = item.dataset.href
 
                 options = {
-                    id: 'workspace_' + i,
-                    href: href,
-                    linktext: path.basename(href),
-                    grid: workspace_grid,
-                    is_folder: is_folder
+                    id:         'workspace_' + i,
+                    href:       href,
+                    linktext:   path.basename(href),
+                    grid:       workspace_grid,
+                    is_folder:  is_folder
                 }
 
-                console.log('is folder', is_folder)
+                console.log('is folder', is_folder);
 
-                workspace_arr.push(options.href)
+                workspace_arr.push(options.href);
                 add_card(options).then(() => {
-                    update_card(href)
+                    // update_card(href);
+                    // update_cards(workspace_grid)
+                    ds.start()
                 })
 
                 localStorage.setItem('workspace', JSON.stringify(workspace_arr))
 
                 /* Create remove icon */
-                let icon = add_icon('times')
+                let icon    = add_icon('times')
                 icon.classList.add('small')
-                icon.style = 'float:right; height:23px; width:23px; cursor: pointer;'
+                icon.style  = 'float:right; height:23px; width:23px; cursor: pointer;'
 
                 /* Add card */
-                let card = document.querySelector('[data-href="' + href + '"]')
-                card.style = 'margin-right: 20px'
+                let card    = document.querySelector('[data-href="' + href + '"]')
+                card.style  = 'margin-right: 20px'
 
                 let content = card.querySelector('.content')
                 content.prepend(icon)
@@ -3664,8 +3663,8 @@ function add_workspace() {
                 /* Remove card */
                 icon.addEventListener('click', (e) => {
                     card.remove();
-                    items.splice(i)
-                    localStorage.setItem('workspace',JSON.stringify(items))
+                    workspace_arr.splice(i, 1);
+                    console.log('workspace array', workspace_arr)
                 })
 
             }
@@ -4094,11 +4093,11 @@ async function get_list_view(dir) {
                 dirents = dirents_arr;
             }
 
-            // SET SORT DIRECTION
-            if (sort_flag == 0) {
-                sort_flag = 1
-            } else {
-                sort_flag = 0
+            /* Get sort direction */
+            let sort_direction = localStorage.getItem('sort_direction')
+            let sort_flag = 0;
+            if (sort_direction == 'asc') {
+                sort_flag = 1;
             }
 
             // SORT
@@ -4555,7 +4554,7 @@ async function get_files(dir, callback) {
         }
         if (dirents.length > 0) {
 
-            // SET SORT DIRECTION
+            /* Get sort direction */
             let sort_direction = localStorage.getItem('sort_direction')
             let sort_flag = 0;
             if (sort_direction == 'asc') {
@@ -5118,7 +5117,7 @@ async function get_files(dir, callback) {
 
             document.getElementById('main_view').focus()
 
-            // // WORSPACE
+            // WORSPACE
             // // POPULATE WORKSPACE
             // workspace_arr = []
             // get_workspace()
@@ -5137,50 +5136,59 @@ async function get_files(dir, callback) {
             /* Workspace on drag enter */
             workspace.ondragenter = function (e) {
                 e.preventDefault()
-                notification('om drag enter workspace')
-                workspace_content.classList.add('active')
-                return false
+                console.log('om drag enter workspace');
+                workspace_content.classList.add('active');
+                return false;
             }
 
             /* Workspace on drag over */
             workspace.ondragover = (e) => {
-                console.log('workspace on drag over')
-                return false
+                console.log('workspace on drag over');
+                return false;
             }
 
             /* Workspace on drag leave */
             workspace.ondragleave = (e) => {
-                e.preventDefault()
-                return false
+                e.preventDefault();
+                return false;
             }
 
             /*
                 Workspace content
                 note: this is not the same as workspace
             */
-            let workspace_content = document.getElementById('workspace_content')
-            workspace_content.height = '40px'
+            let workspace_content = document.getElementById('workspace_content');
+            workspace_content.height = '40px';
+
+            /* Workspace on drag start */
+            workspace_content.ondragstart = (e) => {
+                e.preventDefault();
+            }
 
             /* Workspace on drag enter */
             workspace_content.ondragenter = (e) => {
-                notification('running on drag enter workspace content')
-                e.preventDefault()
+                // notification('running on drag enter workspace content')
+                e.preventDefault();
+                return false;
+
             }
 
             /* Workspace content on drag over */
             workspace_content.ondragover = (e) => {
-                e.preventDefault()
+                e.preventDefault();
             }
 
             /* Workspace content on drop */
             workspace_content.ondrop = (e) => {
-                console.log('running workspace on drop ')
-                add_workspace()
+                console.log('running workspace on drop ');
+                let items = document.querySelectorAll('ds-selected')
+                console.log('items', items)
+                add_workspace();
             }
 
             /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
-            cardindex = 0
-            notice(' (' + directories.length + ') directories and (' + files.length + ') files')
+            cardindex = 0;
+            notice(' (' + directories.length + ') directories and (' + files.length + ') files');
 
         } else {
 
@@ -6724,7 +6732,7 @@ function hide_sidebar() {
 
 }
 
-/* NOTIFICATION */
+/** NOTIFICATION */
 window.notification = function notification(msg) {
 
     let notification = document.getElementById('notification')
@@ -6735,7 +6743,7 @@ window.notification = function notification(msg) {
     }, 3000);
 }
 
-/* CREATE FOLDER */
+/** Create Folder */
 function create_folder(folder) {
 
     fs.mkdir(folder, {}, (err) => {
@@ -6761,18 +6769,17 @@ function create_folder(folder) {
 
             // CREATE CARD OPTIONS
             let options = {
-
-                id: card_id,
-                href: folder,
-                linktext: path.basename(folder),
-                grid: folder_grid
-
+                id:         card_id,
+                href:       folder,
+                linktext:   path.basename(folder),
+                grid:       folder_grid,
+                is_folder:  true
             }
 
             try {
 
+                /* Add Card */
                 add_card(options).then(card => {
-
                     folder_grid.insertBefore(card, folder_grid.firstChild)
 
                     let header = document.getElementById('header_' + card_id)
@@ -6780,15 +6787,10 @@ function create_folder(folder) {
 
                     let input = card.querySelector('input')
                     input.classList.remove('hidden')
-
-                    //
                     input.focus()
                     input.select()
 
-                    update_card(options.href)
-
-                    // update_cards(document.getElementById('main_view'))
-
+                    update_cards(document.getElementById('main_view'))
                 })
 
             } catch (err) {

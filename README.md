@@ -32,9 +32,9 @@ Inline audio playback (html5 audio controls) -->
 Stack
 <ul>
     <li>nodejs</li>
-    <li>electronjs</li>
-    <li>semanticui</li>
-    <li>chart.js</li>
+    <li>(https://github.com/electron/electron "electronjs")</li>
+    <li>(https://semantic-ui.com "semantic-ui")</li>
+    <li>(https://www.chartjs.org/ "chart.js"</li>
     <li>dragselect</li>
     <li>mousetrap</li>
     <li>open</li>
