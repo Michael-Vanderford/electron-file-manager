@@ -18,7 +18,7 @@ ipcMain.on('open_file', (e) => {
 dir = ''
 ipcMain.on('folder', (e, breadcrumb) => {
     dir = breadcrumb;
-    console.log('dir', dir)
+    console.log('setting current directory', dir)
 })
 
 // COPY FILES RECURSIVE
@@ -46,8 +46,11 @@ function copyFileSync(source, target, state, callback) {
             console.log('copy file sync err', err)
         } else {
 
-            if (dir == path.dirname(target)) {
-                // console.log('adding card state ', state)
+            if (dir == path.dirname(targetFile)) {
+
+                console.log('directory', dir, 'target', path.dirname(targetFile))
+
+                console.log('adding card state ', state)
                 let options = {
                     id: 0,
                     href: targetFile,
@@ -56,6 +59,7 @@ function copyFileSync(source, target, state, callback) {
                 }
 
                 win.webContents.send('add_card', options)
+
             }
 
             if (--recursive == 0) {
@@ -1060,9 +1064,9 @@ function createMoveDialog(data, copy_files_arr) {
 
                         if (copy_files_arr.length > 0) {
 
-                            if (data.state == 2) {
-                                data.state = 1;
-                            }
+                            // if (data.state == 2) {
+                            //     data.state = 1;
+                            // }
 
                             data = {
                                 state: data.state,
@@ -1090,8 +1094,6 @@ function createMoveDialog(data, copy_files_arr) {
     // MOVE CANCELED - done
     ipcMain.on('move_canceled', (e) => {
         confirm.hide()
-        // REMOVE ITEM FROM ARRAY
-        copy_files_arr.shift()
         if (copy_files_arr.length > 0) {
             data = {
                 state:          0,
@@ -1104,7 +1106,8 @@ function createMoveDialog(data, copy_files_arr) {
                 createMoveDialog(data, copy_files_arr);
             }
 
-
+            // REMOVE ITEM FROM ARRAY
+            copy_files_arr.shift()
         }
 
     })

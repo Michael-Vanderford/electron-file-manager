@@ -49,7 +49,7 @@ body {
     }
 
     .active {
-        background-color:#252525 !important;
+        background-color: #444444 !important;
     }
 
     .item {
@@ -474,6 +474,8 @@ body {
 }
 
 #feedback { font-size: 1.4em; }
+
+
 #main_view .ui-selecting {
     right:2px;
     background: #252525;
@@ -747,9 +749,6 @@ progress[value]::-webkit-progress-bar {
     background-color: #069;
 } */
 
-
-
-
 #breadcrumbs {
     font-size: 12px;
     font-weight: normal !important;
@@ -940,17 +939,19 @@ h5 {
 
 #main_view {
 
+    /* background-image: url('../backgrounds/bg1.jpg'); */
+    background-size: 100% 100%;
+    /* background-color: rgba(0, 0, 0, 0.1); */
     position: relative;
     outline: none;
     border: none;
-    /* margin-top: 20px; */
     margin-bottom: 150px;
     margin-right: 0px;
     height: 100%;
     margin-left: 0px;
     overflow-x: hidden;
     overflow-y: scroll;
-    /* padding: 10px; */
+    padding: 10px;
     padding-bottom: 40px;
     z-index: 0;
 }
@@ -959,13 +960,18 @@ h5 {
   border:none !important;
 }
 
-/* #main_view a {
-    text-decoration: underline !important;
-} */
 
 #info_view {
     margin-right: 110px !important;
     margin-top: 20px;
+}
+
+#folders_card {
+    background-color: transparent !important;
+}
+
+#files_card {
+    background-color: transparent !important;
 }
 
 .card:focus {
@@ -993,6 +999,7 @@ input:focus {
 .ui.card .folder_card,
 .ui.card .file_card {
   padding-left: 5px;
+  /* background-color: transparent !important; */
 }
 
 .card .content {
@@ -1352,6 +1359,62 @@ textarea {
     position: fixed;
     bottom: 0;
     width: 100%;
+}
+
+
+
+
+* {
+        -webkit-user-select: none;  /* Chrome all / Safari all */
+        -moz-user-select: none;     /* Firefox all */
+        -ms-user-select: none;      /* IE 10+ */
+        user-select: none;          /* Likely future */
+  }
+  .boxes {
+    display: flex;
+  }
+  .column {
+        display: flex;
+        flex-direction: column;
+  }
+  .box {
+        display: inline-block;
+        background: red;
+        margin: 4px;
+  }
+  .selected.box {
+        background: green;
+  }
+  .tiny.box {
+        width: 20px;
+        height: 20px;
+  }
+  .small.box {
+        width: 50px;
+        height: 50px;
+  }
+  .normal.box {
+        width: 100px;
+        height: 100px;
+  }
+  .big.box {
+        width: 150px;
+        height: 150px;
+  }
+  .huge.box {
+        width: 200px;
+        height: 150px;
+  }
+  .overlay {
+        position:relative;
+  }
+.selection-rect {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: yellow !important;
+    opacity: 0;
+    pointer-events: none;
 }
 
 

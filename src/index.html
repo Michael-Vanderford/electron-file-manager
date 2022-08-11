@@ -217,7 +217,7 @@
                     </a>
 
                     <div class="item" style="width:400px; height:20px">
-                        <div class="" style="width:100%;">
+                        <div class="autocomplete" style="width:100%;">
                             <div class="breadcrumbs buttons">
                                 <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
                             </div>
@@ -277,21 +277,6 @@
                     </div>
                 </div>
 
-
-                <!-- SEARCH / FIND -->
-                <div class="title" title="press ctrl+f to start a search">
-                    <i class="icon bi-search large"></i>
-                    Search Results
-                </div>
-                <div class="grid content" id="search_content">
-                    <div class="column sixteen wide" id="search_results_col">
-                        <div class="" id="search_results_card" style="border:none">
-                            <div class="content" id="search_results">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- WORKSPACE -->
                 <div class="title" id="workspace"
                     title="ctrl+shift+click on a file or directory to add it to your workspace">
@@ -308,6 +293,19 @@
 
                 </div>
 
+                <!-- SEARCH / FIND -->
+                <div class="title" title="press ctrl+f to start a search">
+                    <i class="icon bi-search large"></i>
+                    Search Results
+                </div>
+                <div class="grid content" id="search_content">
+                    <div class="column sixteen wide" id="search_results_col">
+                        <div class="" id="search_results_card" style="border:none">
+                            <div class="content" id="search_results">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- DEVICES -->
                 <div class="title" title="connected devices">
@@ -511,6 +509,8 @@
 
         <!-- MAIN VIEW -->
         <div class="" id="main_view">
+
+            <div class="selection-rect"></div>
 
             <!-- LOADER MESSAGE -->
             <div id="loader" class="ui centered loader"></div>
