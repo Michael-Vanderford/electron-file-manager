@@ -3718,32 +3718,53 @@ let view0 = ''
 */
 async function get_view(dir) {
 
-    console.log('running get view');
+    console.log('running get view', dir);
+
+    let stats = fs.statSync(dir);
+    if (stats) {
+
+        console.log('setting folder')
+
+        /* Set local storage */
+        localStorage.setItem('folder', dir);
+
+        /* Update active directory in main.js */
+        ipcRenderer.send('folder', dir);
+
+    }
+
 
     /* Set active on file menu */
     let file_menu = document.getElementById('file_menu');
     let file_menu_items = file_menu.querySelectorAll('.item')
-
-    /* Update active directory in main.js */
-    ipcRenderer.send('folder', dir);
 
     /* Get reference to grids */
     let grid_view = document.getElementById('grid_view');
     let list_view = document.getElementById('list_view');
     let info_view = document.getElementById('info_view');
 
-    /* Initialize sort */
-    let sort = localStorage.getItem('sort');
-    if (sort == null || sort == '') {localStorage.setItem('sort', 1);}
+    // /* Initialize sort */
+    // let sort = localStorage.getItem('sort');
+    // if (sort == null || sort == '') {
+    //     console.log('setting sort');
+    //     localStorage.setItem('sort', 1);
+    // }
 
-    /* Initialize sort direction */
-    let sort_direction = localStorage.getItem('sort_direction');
-    if (sort_direction == null || sort_direction == '') {localStorage.setItem('sort_direction', 'desc');}
+    // /* Initialize sort direction */
+    // let sort_direction = localStorage.getItem('sort_direction');
+    // if (sort_direction == null || sort_direction == '') {
+    //     console.log('setting sort direction')
+    //     localStorage.setItem('sort_direction', 'desc');
+    // }
 
-    /* Initialize view */
+    // /* Initialize view */
     view0 = view;
     view = localStorage.getItem('view');
-    if (view == null || view == '') {view == 'grid';}
+    // if (view == null || view == '') {
+    //     console.log('setting view');
+    //     localStorage.setItem('view', 'grid');
+    //     view = 'grid';
+    // }
 
 
     /* Grid View */
@@ -3823,6 +3844,8 @@ async function get_view(dir) {
         get_disk_summary_view()
 
     }
+
+    autocomplete()
 
 }
 
@@ -6239,12 +6262,45 @@ function rectangleSelect(inputElements, selectionRectangle) {
 function autocomplete() {
 
     let breadcrumbs = document.getElementById('breadcrumbs')
-    breadcrumbs.addEventListener('change', (e) => {
-        let folders = fs.readdirSync(path.dirname(breadcrumbs.value))
-        folder.forEach(dir => {
-            console.log(dir)
+    let folders = fs.readdirSync(breadcrumbs.value)
+    let folders_arr = folders.filter(a => fs.statSync(path.join(breadcrumbs.value, a)).isDirectory())
+
+    breadcrumbs.addEventListener('keyup', (e) => {
+
+        if (e.key == 'Backspace') {
+            console.log('backspace')
+            return false;
+        }
+
+        let search = e.target.value.substring(path.dirname(breadcrumbs.value).length + 1, e.target.value.length)
+        console.log(search)
+        let search_results = []
+        folders_arr.forEach(item => {
+            if (item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) > -1) {
+                search_results.push(path.join(path.dirname(breadcrumbs.value) ,  item))
+            }
         })
+
+        if (search_results.length > 0) {
+            if (search_results.length == 1) {
+                breadcrumbs.value = search_results[0];
+            }
+        }
+
+        // folders_arr = []
+        // search_results = []
+
+        // if (folders_arr.indexOf(search) > -1) {
+        //     console.log('dir arr', '1231231231313123123123123')
+        // } else {
+        //     console.log('nope')
+        // }
+
     })
+
+
+
+
 }
 
 
@@ -7691,6 +7747,7 @@ function update_cards(view) {
             // ADD DATA TO CARD
             let stats = fs.statSync(href)
             let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
+            let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
 
             // card.tabIndex = idx
             card.dataset.id = idx + 1
@@ -7750,11 +7807,13 @@ function update_cards(view) {
                 card.addEventListener('mouseover', (e) => {
                     size = get_file_size(localStorage.getItem(href))
                     card.title =
-                        href +
+                        'Name: ' + href +
                         '\n' +
-                        size +
+                        'Size: ' + size +
                         '\n' +
-                        mtime
+                        'Create: ' + ctime +
+                        '\n' +
+                        'Modified: ' + mtime
                 })
 
             }
@@ -8616,6 +8675,36 @@ ipcRenderer.on('clear_selected_files', (e, res) => {
 // ON DOCUMENT LOAD
 window.addEventListener('DOMContentLoaded', () => {
 
+    /* Initialize sort */
+    let sort = localStorage.getItem('sort');
+    if (sort == null || sort == '') {
+        console.log('setting sort');
+        localStorage.setItem('sort', 1);
+    }
+
+    /* Initialize sort direction */
+    let sort_direction = localStorage.getItem('sort_direction');
+    if (sort_direction == null || sort_direction == '') {
+        console.log('setting sort direction')
+        localStorage.setItem('sort_direction', 'desc');
+    }
+
+    /* Initialize view */
+    view = localStorage.getItem('view');
+    if (view == null || view == '') {
+        console.log('setting view');
+        localStorage.setItem('view', 'grid');
+        view = 'grid';
+    }
+
+    /* Initialize side bara */
+    sidebar = localStorage.getItem('sidebar')
+    if (sidebar == null || sidebar == '') {
+        console.log('setting sidebar to 1')
+        localStorage.setItem('sidebar', 1);
+    }
+
+
     // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
     let main_view = document.getElementById('main_view')
     main_view.addEventListener('contextmenu', function (e) {
@@ -8801,9 +8890,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // SHOW SIDE BAR
     show_sidebar()
-
-
-    // autocomplete()
 
 })
 

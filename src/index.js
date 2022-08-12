@@ -932,13 +932,8 @@ $(function() {
 breadcrumbs.addEventListener('change',function(e){
 
     e.preventDefault()
-
-    dir = breadcrumbs.value
-    localStorage.setItem('folder', dir)
-
-    console.log('setting local storage to ' + dir)
-
     clear_active()
+    dir = breadcrumbs.value
     window.api.get_view(dir)
 })
 
