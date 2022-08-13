@@ -32,17 +32,17 @@ Inline audio playback (html5 audio controls) -->
 Stack
 <ul>
     <li>nodejs</li>
-    <li>(https://github.com/electron/electron "electronjs")</li>
-    <li>(https://semantic-ui.com "semantic-ui")</li>
-    <li>(https://www.chartjs.org/ "chart.js"</li>
-    <li>dragselect</li>
-    <li>mousetrap</li>
-    <li>open</li>
-    <li>mime-types</li>
-    <li>webpack</li>
-    <li>bootstrap-icons</li>
-    <li>bootstrap</li>
-    <li>jquery - (legacy)</li>
+    <li>[electronjs](https://github.com/electron/electron)</li>
+    <li>[semantic-ui](https://semantic-ui.com)</li>
+    <li>[chart.js](https://www.chartjs.org/)</li>
+    <li>[dragselect](https://dragselect.com/)</li>
+    <li>[mousetrap](https://craig.is/killing/mice)</li>
+    <li>[open](https://www.npmjs.com/package/open)</li>
+    <li>[mime-types](https://www.npmjs.com/package/mime-types)</li>
+    <li>[webpack](https://webpack.js.org/)</li>
+    <li>[bootstrap-icons](https://icons.getbootstrap.com/)</li>
+    <li>[bootstrap](https://getbootstrap.com/)</li>
+    <li>[jquery (legacy))](https://jquery.com/)</li>
 </ul>
 
 

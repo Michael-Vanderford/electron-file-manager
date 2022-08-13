@@ -20,6 +20,14 @@
         /* scrollbar-width: thin; */
     }
 
+    #sidebar .title {
+        color: #cfcfcf !important;
+    }
+
+    #sidebar a {
+        color: #808080 !important;
+    }
+
     .ui.accordion .title:not(.ui) {
         color:#f7f7f7 !important;
     }
