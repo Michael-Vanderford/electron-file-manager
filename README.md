@@ -31,18 +31,18 @@ Inline audio playback (html5 audio controls) -->
 
 Stack
 <ul>
-    <li>nodejs</li>
-    <li>[electronjs](https://github.com/electron/electron)</li>
-    <li>[semantic-ui](https://semantic-ui.com)</li>
-    <li>[chart.js](https://www.chartjs.org/)</li>
-    <li>[dragselect](https://dragselect.com/)</li>
-    <li>[mousetrap](https://craig.is/killing/mice)</li>
-    <li>[open](https://www.npmjs.com/package/open)</li>
-    <li>[mime-types](https://www.npmjs.com/package/mime-types)</li>
-    <li>[webpack](https://webpack.js.org/)</li>
-    <li>[bootstrap-icons](https://icons.getbootstrap.com/)</li>
-    <li>[bootstrap](https://getbootstrap.com/)</li>
-    <li>[jquery (legacy))](https://jquery.com/)</li>
+    <li><a href="https://nodejs.org/en/">nodejs</a></li>
+    <li><a href="https://github.com/electron/electron">electron</li>
+    <li><a href="https://semantic-ui.com">semantic-ui</a></li>
+    <li><a href="https://www.chartjs.org/">chartjs</a></li>
+    <li><a href="https://dragselect.com/">dragselect</a></li>
+    <li><a href="https://craig.is/killing/mice">mousetrap</a></li>
+    <li><a href="https://www.npmjs.com/package/open">open</a></li>
+    <li><a href="https://www.npmjs.com/package/mime-types">mime-types</a></li>
+    <li><a href="https://webpack.js.org/">webpack</a></li>
+    <li><a href="https://icons.getbootstrap.com/">bootstrap-icons</a></li>
+    <li><a href="https://getbootstrap.com/">bootstrap</a></li>
+    <li><a href="https://jquery.com/">jquery - legacy</a></li>
 </ul>
 
 
