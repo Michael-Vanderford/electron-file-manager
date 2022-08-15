@@ -14,7 +14,7 @@ body {
         background-repeat: no-repeat;
         background-size: cover;
         color: #cfcfcf;
-        padding-bottom: 40px;
+        padding-bottom: 20px;
         height:100% !important;
         overflow: hidden !important;
     }
@@ -34,6 +34,12 @@ body {
 
     #header_menu .item {
         -webkit-app-region: no-drag;
+    }
+
+
+    #navigation_menu {
+        border: none !important;
+        /* display: none; */
     }
 
 
@@ -174,8 +180,6 @@ body {
         color:#ffffff !important;
     }
 
-
-
     .stats
     {
         /* background:transparent !important; */
@@ -183,19 +187,15 @@ body {
         color:#ffffff
     }
 
-
     #tree_results_card {
     background-color: #3a3a3a !important;
     }
 
-
     #files_card#folders_card { border:1px solid #444444; /* height: auto; overflow: auto; */ }
-
 
     #info {
         background-color: rgba(0, 0, 0, 1) !important;
     }
-
 
     .inlinesearch {
         margin: auto !important;
@@ -204,7 +204,6 @@ body {
         bottom: 0px;
         width: 300px;
     }
-
 
     /* Find */
     #find_div {
@@ -215,20 +214,23 @@ body {
         background-color:rgba(40,40,40,0.95) !important; position: absolute; top: 35px; width: 100%;
     }
 
-
     #find_div .label {
         font-weight: normal !important;
         color: #cfcfcf !important;
     }
 
-
     .find_input {
         height:20px !important; width: 100% !important; background-color:#252525 !important; color: #cfcfcf !important;
     }
 
-
     .active {
         border-radius: 4px;
+    }
+
+    #file_properties .ui.table {
+
+        color: #cfcfcf;
+
     }
 
 
@@ -238,7 +240,6 @@ body {
 @media (prefers-color-scheme: light) {
 
     body {
-
         background-color: #fff !important;
         background-repeat: no-repeat;
         background-size: cover;
@@ -246,9 +247,7 @@ body {
         padding-bottom: 20px;
         height:100% !important;
         overflow:hidden !important;
-
     }
-
 
     html {
         /* height:100%; */
@@ -258,11 +257,9 @@ body {
       color:#000000 !important;
     }
 
-
     #info {
         background-color: rgba(0, 0, 0, 0.1);
     }
-
 
     #header_menu {
         background-color: #cfcfcf !important;
@@ -282,6 +279,7 @@ body {
 
     #file_menu {
         background-color: #ebebeb !important;
+        border: none !important;
     }
 
     #navigation_menu {
@@ -465,11 +463,11 @@ body {
 }
 
 #navigation_menu {
-    box-shadow: none !important;
+    /* box-shadow: none !important; */
     /* margin:0px !important; */
-    padding: 5px;
     top: 38px !important;
     height:24px;
+    padding: 5px;
     z-index: 2;
 }
 
@@ -583,6 +581,20 @@ body .ui.card .none{
 .ui.card:last-child {
   padding: 1px !important;
   /* padding-bottom:5px !important; */
+}
+
+.ui.card .folder_card,
+.ui.card .file_card {
+  padding-left: 5px;
+  /* background-color: transparent !important; */
+}
+
+.card .content {
+  padding-left: 1px !important;
+}
+
+.card.shadow{
+  box-shadow: 10px 10px 5px grey;
 }
 
 .nav-item {
@@ -893,13 +905,6 @@ body {
     border-color: #ffeeba; */
 }
 
-
-.transparent {
-    background-color: red !important;
-}
-
-
-
 button .button .link {
   background: none!important;
   border: none;
@@ -996,24 +1001,10 @@ input:focus {
     -moz-outline-style: none;
 }
 
-.ui.card .folder_card,
-.ui.card .file_card {
-  padding-left: 5px;
-  /* background-color: transparent !important; */
-}
-
-.card .content {
-  padding-left: 1px !important;
-}
-
 a:active, a:focus {
   outline: 0;
   border: none;
   -moz-outline-style: none;
-}
-
-.card.shadow{
-  box-shadow: 10px 10px 5px grey;
 }
 
 .border {
@@ -1023,8 +1014,6 @@ a:active, a:focus {
 .border-none {
     border: none !important
 }
-
-
 
 .background-transparent-light {
   color:#ffffff;
@@ -1097,14 +1086,9 @@ a:link, .bold {
   border:1px solid #cfcfcf;
 }
 
-
-
-
-
 .border-none {
   border:none !important;
 }
-
 
 /* LIST VIEW HIGHLIGHT */
 .highlight {
@@ -1127,12 +1111,9 @@ a:link, .bold {
   padding-bottom: 2px;
 }
 
-
 /* * {
   box-sizing: border-box;
 } */
-
-
 
 .btn-sm {
   /* font-size: 12px !important; */
@@ -1141,7 +1122,6 @@ a:link, .bold {
 /* bootrap overrides */
 .navbar {
   padding: .5rem 1rem;
-
 }
 
 .container {
@@ -1253,12 +1233,7 @@ textarea {
       left: -9999px;
   }
 
-
 }
-
-
-
-
 
 @media only screen and (min-width: 1280px) {
 
@@ -1276,7 +1251,6 @@ textarea {
   }
 
 }
-
 
 @media only screen and (max-width: 1280px) {
 
@@ -1360,9 +1334,6 @@ textarea {
     bottom: 0;
     width: 100%;
 }
-
-
-
 
 * {
         -webkit-user-select: none;  /* Chrome all / Safari all */

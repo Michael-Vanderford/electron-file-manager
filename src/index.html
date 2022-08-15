@@ -11,7 +11,6 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="../assets/css/semantic.min.css" />
     <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
-    <!-- <link rel='stylesheet' href='../assets/css/popup.min.css' /> -->
     <link rel="stylesheet" href="../assets/css/style.css" />
     <link rel="stylesheet" href="../assets/css/sidebar.css" />
     <script type="" src="../node_modules/chart.js/dist/chart.min.js"></script>
@@ -254,6 +253,12 @@
         </div>
 
         <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
+
+            <div style="display: flex;">
+                <div id="file_properties" class="hidden">
+                </div>
+                <!-- <i class="ui icon small times" style="width:23px; height:23px"></i> -->
+            </div>
 
             <div id="accordion" class="ui accordion" style="">
 
@@ -575,7 +580,11 @@
 
             <!-- PROGRESS BAR -->
             <div id="progress_div" class="hidden">
-                <progress id="progress" class="hidden"></progress>
+                <div style="display: flex;">
+                    <progress id="progress" class="hidden"></progress>
+                    <i style="width:23px; height:23px;" class="ui icon times"></i>
+                </div>
+
             </div>
 
 

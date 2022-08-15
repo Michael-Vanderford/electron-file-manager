@@ -39,8 +39,9 @@ function copyfile(source, target, state, callback) {
 
     recursive++
     let file_exists = fs.existsSync(targetFile)
-        /* Add card if copying into the current direcoty unless one exists */
-        if (dir == path.dirname(targetFile) && !file_exists) {
+
+    /* Add card if copying into the current direcoty unless one exists */
+    if (dir == path.dirname(targetFile)) {
 
         let options = {
             id: 0,
@@ -59,20 +60,6 @@ function copyfile(source, target, state, callback) {
         if (err) {
             console.log('copy file sync err', err)
         } else {
-
-            // /* Add card if copying into the current direcoty unless one exists */
-            // if (dir == path.dirname(targetFile) && !file_exists) {
-
-            //     let options = {
-            //         id: 0,
-            //         href: targetFile,
-            //         linktext: path.basename(targetFile),
-            //         grid: ''
-            //     }
-
-            //     win.webContents.send('add_card', options)
-
-            // }
 
             /* Update cards */
             if (--recursive == 0) {
@@ -157,6 +144,44 @@ function copyfolder(source, destination, state, callback) {
 
     })
 
+}
+
+/* Get files properties */
+function get_file_properties(filename) {
+
+    let stats       = fs.statSync(filename)
+    let cmd         = "xdg-mime query filetype '" + filename + "'"
+    let exec_mime   = execSync(cmd).toString()
+
+    // BUILD PROPERTIES
+    let name            = path.basename(filename);
+    let parent_folder   = path.basename(path.dirname(filename));
+    let type            = exec_mime;
+    let contents        = '0 items, totalling 0 MB';
+    let size            = '';
+    let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime);
+    let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
+    let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime);
+
+    if (type == true) {
+        size = ''
+    } else {
+        size = get_file_size(stats.size)
+    }
+
+    let file_properties = {
+        Name: name,
+        Parent: parent_folder,
+        Type: type,
+        // Contents: contents,
+        Size: size,
+        Accessed: accessed,
+        Modified: modified,
+        Created: created
+    }
+
+    console.log('send file properties')
+    win.send('file_properties', file_properties)
 }
 
 /* Get disk space */
@@ -595,7 +620,6 @@ function copy(copy_files_arr, state) {
                 // SHOW PROGRESS
                 win.webContents.send('progress', max);
 
-
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
 
@@ -634,7 +658,7 @@ function copy(copy_files_arr, state) {
                     })
 
                     // SHOW PROGRESS
-                    win.webContents.send('progress', max);
+                    win.webContents.send('progress', max, destination_file);
 
                     // COPY FOLDERS RECURSIVE
                     copyfolder(source, destination_file, state, () => {
@@ -707,7 +731,7 @@ function copy(copy_files_arr, state) {
                     })
 
                     // SHOW PROGRESS
-                    win.webContents.send('progress', max);
+                    win.webContents.send('progress', max, destination_file);
 
                     copyfile(source, destination_file, state, () => {});
 
@@ -1000,28 +1024,51 @@ function createMoveDialog(data, copy_files_arr) {
 
     })
 
-    // MOVE CANCELED - done
-    ipcMain.on('move_canceled', (e) => {
-        confirm.hide()
-        if (copy_files_arr.length > 0) {
-            data = {
-                state:          0,
-                source:         copy_files_arr[0].source,
-                destination:    copy_files_arr[0].destination
-            }
-            if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
-                createOverwriteMoveDialog(data,copy_files_arr);
-            } else {
-                createMoveDialog(data, copy_files_arr);
-            }
+    // // MOVE CANCELED - done
+    // ipcMain.on('move_canceled', (e) => {
+    //     confirm.hide()
+    //     if (copy_files_arr.length > 0) {
+    //         data = {
+    //             state:          0,
+    //             source:         copy_files_arr[0].source,
+    //             destination:    copy_files_arr[0].destination
+    //         }
+    //         if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
+    //             createOverwriteMoveDialog(data,copy_files_arr);
+    //         } else {
+    //             createMoveDialog(data, copy_files_arr);
+    //         }
 
-            // REMOVE ITEM FROM ARRAY
-            copy_files_arr.shift()
-        }
+    //         // REMOVE ITEM FROM ARRAY
+    //         copy_files_arr.shift()
+    //     }
 
-    })
+    // })
 
 }
+
+// MOVE CANCELED - done
+ipcMain.on('move_canceled', (e) => {
+
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+    if (copy_files_arr.length > 0) {
+        data = {
+            state:          0,
+            source:         copy_files_arr[0].source,
+            destination:    copy_files_arr[0].destination
+        }
+        if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
+            createOverwriteMoveDialog(data,copy_files_arr);
+        } else {
+            createMoveDialog(data, copy_files_arr);
+        }
+
+        // REMOVE ITEM FROM ARRAY
+        copy_files_arr.shift()
+    }
+
+})
 
 // MOVE CONFIRMED ALL - done
 ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
@@ -1556,7 +1603,7 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 }
 
 // FILE PROPERTIES WINDOW
-function createPropertiesWindow(filename) {
+function create_properties_window(filename) {
 
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
@@ -1574,7 +1621,6 @@ function createPropertiesWindow(filename) {
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
-            // nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
         },
     })
@@ -1582,57 +1628,59 @@ function createPropertiesWindow(filename) {
     // LOAD INDEX FILE
     win.loadFile('src/properties.html')
 
-
     win.once('ready-to-show', () => {
 
-        win.title = path.basename(filename)
-        win.removeMenu()
-        win.show()
+            win.title = path.basename(filename)
+            // win.removeMenu()
+            win.show()
 
-        let stats = fs.statSync(filename)
+            let stats = fs.statSync(filename)
 
-        cmd = "xdg-mime query filetype '" + filename + "'"
-        let exec_mime = execSync(cmd).toString()
+            cmd = "xdg-mime query filetype '" + filename + "'"
+            let exec_mime = execSync(cmd).toString()
 
-        // BUILD PROPERTIES
-        let name = path.basename(filename)
-        let parent_folder = path.basename(path.dirname(filename))
-        let type = exec_mime
-        let contents = '0 items, totalling 0 MB'
-        let size = ''
-        let accessed = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
-        let modified = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-        let created = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
+            // BUILD PROPERTIES
+            let name = path.basename(filename)
+            let parent_folder = path.basename(path.dirname(filename))
+            let type = exec_mime
+            let contents = '0 items, totalling 0 MB'
+            let size = ''
+            let accessed = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
+            let modified = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
+            let created = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
 
-        if (type == true) {
+            if (type == true) {
 
-            // type = 'Folder'
-            size = ''
+                // type = 'Folder'
+                size = ''
 
-        } else {
+            } else {
 
-            // type = 'File'
-            size = get_file_size(stats.size)
+                // type = 'File'
+                size = get_file_size(stats.size)
 
-        }
+            }
 
-        let file_properties = {
-            name: name,
-            parent_folder: parent_folder,
-            type: type,
-            contents: contents,
-            size: size,
-            accessed: accessed,
-            modified: modified,
-            created: created
-        }
+            let file_properties = {
+                Name: name,
+                Parent: parent_folder,
+                Type: type,
+                Contents: contents,
+                Size: size,
+                Accessed: accessed,
+                Modified: modified,
+                Created: created
+            }
 
-        console.log('send file properties')
-        win.send('file_properties', file_properties)
+            console.log('send file properties')
+            win.send('file_properties', file_properties)
 
-        // win.webContents.openDevTools()
+            // win.webContents.openDevTools()
 
-        console.log(file_properties)
+            console.log(file_properties)
+
+
+
 
     })
 
@@ -1647,8 +1695,13 @@ function createPropertiesWindow(filename) {
 }
 
 // GET FILE PROPERTIES
-ipcMain.on('get_file_properties', (e, filename) => {
-    createPropertiesWindow(filename)
+ipcMain.on('get_file_properties', (e, file_properties_arr) => {
+
+    file_properties_arr.forEach(filename => {
+        get_file_properties(filename)
+        // create_properties_window(filename);
+    })
+
 })
 
 // GET DEVICES USING GIO COMMAND LINE UTILITY
@@ -2231,7 +2284,7 @@ ipcMain.on('show-context-menu', (e, options) => {
     {
         label: 'Select all',
         click: () => {
-          e.sender.send('context-menu-command', 'select_all')
+            e.sender.send('select_all');
         }
     },
     {
@@ -2368,8 +2421,8 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         {
             label: 'Add to workspace',
             click: () => {
-                e.sender.send('open')
-            }
+                e.sender.send('add_workspace')
+            },
         },
         {
             type: 'separator'
@@ -2385,7 +2438,7 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
             label: 'Copy',
             accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
             click: () => {
-            e.sender.send('context-menu-command', 'copy')
+                e.sender.send('context-menu-command', 'copy')
             }
         },
         {
@@ -2495,7 +2548,10 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             type: 'separator'
         },
         {
-            label: 'Add to workspace'
+            label: 'Add to workspace',
+            click: () => {
+                e.sender.send('add_workspace')
+            }
         },
         {
             type: 'separator'
@@ -2526,16 +2582,6 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             type: 'separator'
         },
         {
-            type: 'separator'
-        },
-        {
-            label: '&New Folder',
-            accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
-            click: () => {
-            e.sender.send('context-menu-command', 'new_folder')
-            }
-        },
-        {
             label: 'Cut',
             accelerator: process.platform === 'darwin' ? 'CTRL+X' : 'CTRL+X',
             click: () => {
@@ -2546,8 +2592,13 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             label: 'Copy',
             accelerator: process.platform === 'darwin' ? 'CTRL+C' : 'CTRL+C',
             click: () => {
-            e.sender.send('context-menu-command', 'copy')
+                e.sender.send('context-menu-command', 'copy')
             }
+        },
+        {
+            label: '&Rename',
+            accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
+            click: () => { e.sender.send('context-menu-command', 'rename') }
         },
         {
             type: 'separator'
@@ -2568,9 +2619,11 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         }],
         },
         {
-        label: '&Rename',
-        accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
-        click: () => { e.sender.send('context-menu-command', 'rename') }
+            label: '&New Folder',
+            accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+N' : 'CTRL+SHIFT+N',
+            click: () => {
+            e.sender.send('context-menu-command', 'new_folder')
+            }
         },
         {
             type: 'separator'
