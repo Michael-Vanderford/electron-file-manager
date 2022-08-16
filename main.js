@@ -149,19 +149,28 @@ function copyfolder(source, destination, state, callback) {
 /* Get files properties */
 function get_file_properties(filename) {
 
-    let stats       = fs.statSync(filename)
-    let cmd         = "xdg-mime query filetype '" + filename + "'"
-    let exec_mime   = execSync(cmd).toString()
+    let stats           = fs.statSync(filename)
+    let cmd             = "xdg-mime query filetype '" + filename + "'"
+    let exec_mime       = execSync(cmd).toString()
 
     // BUILD PROPERTIES
     let name            = path.basename(filename);
     let parent_folder   = path.basename(path.dirname(filename));
     let type            = exec_mime;
-    let contents        = '0 items, totalling 0 MB';
     let size            = '';
     let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime);
     let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
     let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime);
+    let contents        = '0 items, totalling 0 MB';
+
+    if (stats.isDirectory()) {
+
+        // let folders = fs.readdirSync(filename)
+        // let folders_arr = folders.filter(item => fs.statSync(path.join(path.dirname(filename),item)).isDirectory())
+        // console.log(folders_arr.length)
+
+    }
+
 
     if (type == true) {
         size = ''
@@ -170,14 +179,15 @@ function get_file_properties(filename) {
     }
 
     let file_properties = {
-        Name: name,
-        Parent: parent_folder,
-        Type: type,
+        Name:       name,
+        Parent:     parent_folder,
+        Size:       size,
         // Contents: contents,
-        Size: size,
-        Accessed: accessed,
-        Modified: modified,
-        Created: created
+        Accessed:   accessed,
+        Modified:   modified,
+        Created:    created,
+        Type:       type
+
     }
 
     console.log('send file properties')
@@ -2103,7 +2113,10 @@ const template = [
         label: 'Edit',
         submenu : [
             {
-                role: 'copy'
+                role: 'copy',
+                click: () => {
+                    win.sender.send('copy')
+                }
             }
         ]
     },

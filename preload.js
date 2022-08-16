@@ -941,332 +941,332 @@ ipcRenderer.on('gio_volumes', (e, res) => {
 // ON GIO DEVICE
 ipcRenderer.on('gio_devices', (e, res) => {
 
-    let device_grid = document.getElementById('device_grid')
-    let menu_items = add_div();
+    // let device_grid = document.getElementById('device_grid')
+    // let menu_items = add_div();
 
-    let data = res.split('\n')
-    // console.log('running gio devices')
+    // let data = res.split('\n')
+    // // console.log('running gio devices')
 
-    // GET REFERENCE TO DEVICE GRID
+    // // GET REFERENCE TO DEVICE GRID
 
-    device_grid.innerHTML = ''
-    menu_items.classList.add('ui', 'items')
+    // device_grid.innerHTML = ''
+    // menu_items.classList.add('ui', 'items')
 
-    // CREATE VOLUMES ARRAY
-    let volumes_arr = []
-    data.forEach((item, idx) => {
+    // // CREATE VOLUMES ARRAY
+    // let volumes_arr = []
+    // data.forEach((item, idx) => {
 
-        // CREATE VOLLUMES ARRAY
-        if (item.indexOf('Volume(0):') > -1) {
+    //     // CREATE VOLLUMES ARRAY
+    //     if (item.indexOf('Volume(0):') > -1) {
 
-            let split_item = item.split('->')
-            // console.log(item)
-            let volume_obj = {
-                idx: idx,
-                volume: split_item[0]
-            }
+    //         let split_item = item.split('->')
+    //         // console.log(item)
+    //         let volume_obj = {
+    //             idx: idx,
+    //             volume: split_item[0]
+    //         }
 
-            volumes_arr.push(volume_obj)
+    //         volumes_arr.push(volume_obj)
 
-        }
+    //     }
 
-    })
+    // })
 
 
-    // LOOP OVER VOLUMES ARRAY
-    // volumes_arr.forEach((item, idx) => {
+    // // LOOP OVER VOLUMES ARRAY
+    // // volumes_arr.forEach((item, idx) => {
 
-    // GIO OBJECT
-    let gio = {}
-    let subitem_counter = 0
-    let is_activationroot = 0
-    // LOOP OVER VOLUMES
-    for (let i = 0; i < volumes_arr.length; i++) {
+    // // GIO OBJECT
+    // let gio = {}
+    // let subitem_counter = 0
+    // let is_activationroot = 0
+    // // LOOP OVER VOLUMES
+    // for (let i = 0; i < volumes_arr.length; i++) {
 
-        let volume = volumes_arr[i].volume
-        gio.volume = volume.replace('Volume(0):', '').trim()
+    //     let volume = volumes_arr[i].volume
+    //     gio.volume = volume.replace('Volume(0):', '').trim()
 
-        // LOOP OVER GIO DATA AND GET SUB ITEMS
-        data.forEach((subitem, subidx) => {
+    //     // LOOP OVER GIO DATA AND GET SUB ITEMS
+    //     data.forEach((subitem, subidx) => {
 
-            // console.log('running ' + volumes_arr[i + 1].idx)
-            let volumeidx = volumes_arr[i].idx
-            let volumeidx2 = data.length
+    //         // console.log('running ' + volumes_arr[i + 1].idx)
+    //         let volumeidx = volumes_arr[i].idx
+    //         let volumeidx2 = data.length
 
-            // IF MORE THAN 1 VOLUME IS FOUND GET ITS INDEX TO USE AS FILTER
-            if (i < volumes_arr.length - 1) {
-                volumeidx2 = volumes_arr[i + 1].idx
-            }
+    //         // IF MORE THAN 1 VOLUME IS FOUND GET ITS INDEX TO USE AS FILTER
+    //         if (i < volumes_arr.length - 1) {
+    //             volumeidx2 = volumes_arr[i + 1].idx
+    //         }
 
-            let uuid = ''
+    //         let uuid = ''
 
-            // IF ARRAY COUNTER IS BETWEEN 1ST AND SECOND
-            if (subidx >= volumeidx && subidx <= volumeidx2) {
+    //         // IF ARRAY COUNTER IS BETWEEN 1ST AND SECOND
+    //         if (subidx >= volumeidx && subidx <= volumeidx2) {
 
-                // console.log('sub item', subitem)
+    //             // console.log('sub item', subitem)
 
-                if (subitem.indexOf('activation_root=') > -1) {
+    //             if (subitem.indexOf('activation_root=') > -1) {
 
-                    uuid = subitem.replace('activation_root=', '').trim()
-                    gio.uuid = uuid
-                    // CREATE HREF ELEMENT
-                    let href = document.createElement('a')
-                    let icon = document.createElement('i')
-                    let icon_phone = document.createElement('i')
-                    let menu_item = add_div()
-                    let content = add_div()
+    //                 uuid = subitem.replace('activation_root=', '').trim()
+    //                 gio.uuid = uuid
+    //                 // CREATE HREF ELEMENT
+    //                 let href = document.createElement('a')
+    //                 let icon = document.createElement('i')
+    //                 let icon_phone = document.createElement('i')
+    //                 let menu_item = add_div()
+    //                 let content = add_div()
 
-                    href.href = '#'
+    //                 href.href = '#'
 
-                    href.classList.add('block')
-                    icon.classList.add('icon', 'bi-hdd')
-                    icon.style.marginLeft = '15px'
-                    icon_phone.classList.add('icon', 'mobile', 'alternate')
-                    menu_item.classList.add('item')
-                    content.classList.add('item')
+    //                 href.classList.add('block')
+    //                 icon.classList.add('icon', 'bi-hdd')
+    //                 icon.style.marginLeft = '15px'
+    //                 icon_phone.classList.add('icon', 'mobile', 'alternate')
+    //                 menu_item.classList.add('item')
+    //                 content.classList.add('item')
 
-                    // ADD DATA
-                    // let uuid_path = uuid
-                    href.dataset.uuid = uuid
-                    href.text = gio.volume
-                    href.addEventListener('click', (e) => {
-                        ipcRenderer.send('mount_gio', gio)
-                    })
+    //                 // ADD DATA
+    //                 // let uuid_path = uuid
+    //                 href.dataset.uuid = uuid
+    //                 href.text = gio.volume
+    //                 href.addEventListener('click', (e) => {
+    //                     ipcRenderer.send('mount_gio', gio)
+    //                 })
 
-                    menu_item.appendChild(icon_phone)
-                    content.appendChild(href)
-                    menu_item.appendChild(content)
-                    menu_items.appendChild(menu_item)
-                    device_grid.appendChild(menu_items)
+    //                 menu_item.appendChild(icon_phone)
+    //                 content.appendChild(href)
+    //                 menu_item.appendChild(content)
+    //                 menu_items.appendChild(menu_item)
+    //                 device_grid.appendChild(menu_items)
 
-                    // if (subitem.indexOf('default_location=') > -1) {
+    //                 // if (subitem.indexOf('default_location=') > -1) {
 
-                    //     uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-                    //     // gio.uuid = uuid
-                    //     console.log('uuid')
+    //                 //     uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
+    //                 //     // gio.uuid = uuid
+    //                 //     console.log('uuid')
 
-                    // }
+    //                 // }
 
-                    is_activationroot = 1
-                    console.log('activation uuid', uuid)
-                }
+    //                 is_activationroot = 1
+    //                 console.log('activation uuid', uuid)
+    //             }
 
-                if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
+    //             if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
 
-                    uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
+    //                 uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
 
-                    if (uuid.indexOf('sftp') === -1) {
+    //                 if (uuid.indexOf('sftp') === -1) {
 
-                        // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
-                        if (uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
+    //                     // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
+    //                     if (uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
 
-                            // CREATE HREF ELEMENT
-                            let href = document.createElement('a')
-                            let icon = document.createElement('i')
-                            let icon_phone = document.createElement('i')
-                            let menu_item = add_div()
-                            let content = add_div()
+    //                         // CREATE HREF ELEMENT
+    //                         let href = document.createElement('a')
+    //                         let icon = document.createElement('i')
+    //                         let icon_phone = document.createElement('i')
+    //                         let menu_item = add_div()
+    //                         let content = add_div()
 
-                            href.href = '#'
+    //                         href.href = '#'
 
-                            href.classList.add('block')
-                            icon.classList.add('icon', 'bi-hdd')
-                            icon.style.marginLeft = '15px'
-                            icon_phone.classList.add('icon', 'mobile', 'alternate')
-                            menu_item.classList.add('item')
-                            content.classList.add('item')
+    //                         href.classList.add('block')
+    //                         icon.classList.add('icon', 'bi-hdd')
+    //                         icon.style.marginLeft = '15px'
+    //                         icon_phone.classList.add('icon', 'mobile', 'alternate')
+    //                         menu_item.classList.add('item')
+    //                         content.classList.add('item')
 
-                            // ADD DATA
-                            uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-                            href.dataset.uuid = uuid
-                            href.text = gio.volume
-                            href.addEventListener('click', (e) => {
-                                get_view(uuid);
-                                // get_files(uuid, () => {})
-                            })
+    //                         // ADD DATA
+    //                         uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
+    //                         href.dataset.uuid = uuid
+    //                         href.text = gio.volume
+    //                         href.addEventListener('click', (e) => {
+    //                             get_view(uuid);
+    //                             // get_files(uuid, () => {})
+    //                         })
 
-                            content.appendChild(href)
-                            menu_item.appendChild(icon_phone)
-                            menu_item.appendChild(content)
-                            menu_items.appendChild(menu_item)
+    //                         content.appendChild(href)
+    //                         menu_item.appendChild(icon_phone)
+    //                         menu_item.appendChild(content)
+    //                         menu_items.appendChild(menu_item)
 
-                            device_grid.appendChild(menu_items)
+    //                         device_grid.appendChild(menu_items)
 
-                            subitem_counter = 1
+    //                         subitem_counter = 1
 
-                        }
+    //                     }
 
-                        // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
-                        if (uuid.indexOf('default_location=') === -1) {
+    //                     // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
+    //                     if (uuid.indexOf('default_location=') === -1) {
 
-                            // CREATE HREF ELEMENT
-                            let href = document.createElement('a')
-                            let icon = document.createElement('i')
-                            let icon_phone = document.createElement('i')
-                            let menu_item = add_div()
-                            let content = add_div()
+    //                         // CREATE HREF ELEMENT
+    //                         let href = document.createElement('a')
+    //                         let icon = document.createElement('i')
+    //                         let icon_phone = document.createElement('i')
+    //                         let menu_item = add_div()
+    //                         let content = add_div()
 
-                            href.href = '#'
+    //                         href.href = '#'
 
-                            href.classList.add('block')
-                            icon.classList.add('icon', 'bi-hdd')
-                            icon.style.marginLeft = '15px'
+    //                         href.classList.add('block')
+    //                         icon.classList.add('icon', 'bi-hdd')
+    //                         icon.style.marginLeft = '15px'
 
-                            icon_phone.classList.add('icon', 'mobile', 'alternate')
-                            menu_item.classList.add('item')
-                            content.classList.add('item')
+    //                         icon_phone.classList.add('icon', 'mobile', 'alternate')
+    //                         menu_item.classList.add('item')
+    //                         content.classList.add('item')
 
-                            // ADD DATA
-                            uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-                            href.dataset.uuid = uuid
-                            href.text = gio.volume
-                            href.addEventListener('click', (e) => {
-                                get_view(uuid)
-                                // get_files(uuid, () => {})
+    //                         // ADD DATA
+    //                         uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
+    //                         href.dataset.uuid = uuid
+    //                         href.text = gio.volume
+    //                         href.addEventListener('click', (e) => {
+    //                             get_view(uuid)
+    //                             // get_files(uuid, () => {})
 
-                            })
+    //                         })
 
-                            menu_item.appendChild(icon)
-                            content.appendChild(href)
-                            menu_item.appendChild(content)
-                            menu_items.appendChild(menu_item)
+    //                         menu_item.appendChild(icon)
+    //                         content.appendChild(href)
+    //                         menu_item.appendChild(content)
+    //                         menu_items.appendChild(menu_item)
 
-                            device_grid.appendChild(menu_items)
+    //                         device_grid.appendChild(menu_items)
 
-                        }
+    //                     }
 
-                        // console.log('index ', subidx, 'uuid', uuid)
-                        // console.log('default loc uuid', uuid)
-                    }
+    //                     // console.log('index ', subidx, 'uuid', uuid)
+    //                     // console.log('default loc uuid', uuid)
+    //                 }
 
-                }
+    //             }
 
-                // // IF ACTIVATION ROOT THEN ANDROID
-                // if (subitem.indexOf('activation_root=') > -1) {
+    //             // // IF ACTIVATION ROOT THEN ANDROID
+    //             // if (subitem.indexOf('activation_root=') > -1) {
 
-                //     // console.log(subitem + ' ' + subidx)
-                //     uuid = subitem.replace('activation_root=', '').trim()
-                //     gio.uuid = uuid
+    //             //     // console.log(subitem + ' ' + subidx)
+    //             //     uuid = subitem.replace('activation_root=', '').trim()
+    //             //     gio.uuid = uuid
 
-                //     // CREATE HREF ELEMENT
-                //     let href = document.createElement('a')
-                //     let icon = document.createElement('i')
-                //     let icon_phone = document.createElement('i')
-                //     let menu_item = add_div()
-                //     let content = add_div()
+    //             //     // CREATE HREF ELEMENT
+    //             //     let href = document.createElement('a')
+    //             //     let icon = document.createElement('i')
+    //             //     let icon_phone = document.createElement('i')
+    //             //     let menu_item = add_div()
+    //             //     let content = add_div()
 
-                //     href.href = '#'
+    //             //     href.href = '#'
 
-                //     href.classList.add('block')
-                //     icon.classList.add('icon', 'hdd')
-                //     icon_phone.classList.add('icon', 'mobile', 'alternate')
-                //     menu_item.classList.add('item')
-                //     content.classList.add('item')
+    //             //     href.classList.add('block')
+    //             //     icon.classList.add('icon', 'hdd')
+    //             //     icon_phone.classList.add('icon', 'mobile', 'alternate')
+    //             //     menu_item.classList.add('item')
+    //             //     content.classList.add('item')
 
-                //     is_activationroot = 1
+    //             //     is_activationroot = 1
 
-                //     // ADD DATA
-                //     let uuid_path = gio.uuid
-                //     href.dataset.uuid = uuid_path
-                //     href.text = gio.volume
-                //     href.addEventListener('click', (e) => {
-                //         ipcRenderer.send('mount_gio', gio)
-                //     })
+    //             //     // ADD DATA
+    //             //     let uuid_path = gio.uuid
+    //             //     href.dataset.uuid = uuid_path
+    //             //     href.text = gio.volume
+    //             //     href.addEventListener('click', (e) => {
+    //             //         ipcRenderer.send('mount_gio', gio)
+    //             //     })
 
-                //     menu_item.appendChild(icon_phone)
-                //     content.appendChild(href)
-                //     menu_item.appendChild(content)
-                //     menu_items.appendChild(menu_item)
-                //     device_grid.appendChild(menu_items)
+    //             //     menu_item.appendChild(icon_phone)
+    //             //     content.appendChild(href)
+    //             //     menu_item.appendChild(content)
+    //             //     menu_items.appendChild(menu_item)
+    //             //     device_grid.appendChild(menu_items)
 
-                //     if (subitem.indexOf('default_location=') > -1) {
+    //             //     if (subitem.indexOf('default_location=') > -1) {
 
-                //         let uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-                //         gio.uuid = uuid
-                //         console.log('uuid')
+    //             //         let uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
+    //             //         gio.uuid = uuid
+    //             //         console.log('uuid')
 
-                //     }
+    //             //     }
 
-                // }
+    //             // }
 
-                // if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
+    //             // if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
 
-                //     // CREATE HREF ELEMENT
-                //     let href = document.createElement('a')
-                //     let icon = document.createElement('i')
-                //     let icon_phone = document.createElement('i')
-                //     let menu_item = add_div()
-                //     let content = add_div()
+    //             //     // CREATE HREF ELEMENT
+    //             //     let href = document.createElement('a')
+    //             //     let icon = document.createElement('i')
+    //             //     let icon_phone = document.createElement('i')
+    //             //     let menu_item = add_div()
+    //             //     let content = add_div()
 
-                //     href.href = '#'
+    //             //     href.href = '#'
 
-                //     href.classList.add('block')
-                //     icon.classList.add('icon', 'hdd')
-                //     icon_phone.classList.add('icon', 'mobile', 'alternate')
-                //     menu_item.classList.add('item')
-                //     content.classList.add('item')
+    //             //     href.classList.add('block')
+    //             //     icon.classList.add('icon', 'hdd')
+    //             //     icon_phone.classList.add('icon', 'mobile', 'alternate')
+    //             //     menu_item.classList.add('item')
+    //             //     content.classList.add('item')
 
 
-                //     if (uuid.indexOf('sftp') === -1) {
-                //         console.log('default loc uuid', uuid)
+    //             //     if (uuid.indexOf('sftp') === -1) {
+    //             //         console.log('default loc uuid', uuid)
 
-                //         uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-                //         gio.uuid = uuid
+    //             //         uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
+    //             //         gio.uuid = uuid
 
 
-                //         // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
-                //         if (gio.uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
+    //             //         // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
+    //             //         if (gio.uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
 
-                //             // ADD DATA
-                //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-                //             // let uuid_path = gio.uuid
-                //             href.dataset.uuid = uuid_path
-                //             href.text = gio.volume
-                //             href.addEventListener('click', (e) => {
-                //                 get_files(uuid_path)
-                //             })
+    //             //             // ADD DATA
+    //             //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
+    //             //             // let uuid_path = gio.uuid
+    //             //             href.dataset.uuid = uuid_path
+    //             //             href.text = gio.volume
+    //             //             href.addEventListener('click', (e) => {
+    //             //                 get_files(uuid_path)
+    //             //             })
 
-                //             menu_item.appendChild(icon_phone)
-                //             content.appendChild(href)
-                //             menu_item.appendChild(content)
-                //             menu_items.appendChild(menu_item)
+    //             //             menu_item.appendChild(icon_phone)
+    //             //             content.appendChild(href)
+    //             //             menu_item.appendChild(content)
+    //             //             menu_items.appendChild(menu_item)
 
-                //             subitem_counter = 1
+    //             //             subitem_counter = 1
 
-                //         }
+    //             //         }
 
-                //         // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
-                //         if (gio.uuid.indexOf('default_location=') === -1) {
+    //             //         // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
+    //             //         if (gio.uuid.indexOf('default_location=') === -1) {
 
-                //             // ADD DATA
-                //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-                //             href.dataset.uuid = gio.uuid
-                //             href.text = gio.volume
-                //             href.addEventListener('click', (e) => {
-                //                 get_files(uuid_path)
+    //             //             // ADD DATA
+    //             //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
+    //             //             href.dataset.uuid = gio.uuid
+    //             //             href.text = gio.volume
+    //             //             href.addEventListener('click', (e) => {
+    //             //                 get_files(uuid_path)
 
-                //             })
+    //             //             })
 
-                //             menu_item.appendChild(icon)
-                //             content.appendChild(href)
-                //             menu_item.appendChild(content)
-                //             menu_items.appendChild(menu_item)
+    //             //             menu_item.appendChild(icon)
+    //             //             content.appendChild(href)
+    //             //             menu_item.appendChild(content)
+    //             //             menu_items.appendChild(menu_item)
 
-                //         }
+    //             //         }
 
-                //         console.log('index ', subidx, 'uuid', gio.uuid)
-                //         device_grid.appendChild(menu_items)
+    //             //         console.log('index ', subidx, 'uuid', gio.uuid)
+    //             //         device_grid.appendChild(menu_items)
 
-                //     }
+    //             //     }
 
 
-                // }
+    //             // }
 
-            }
+    //         }
 
-        })
+    //     })
 
-    }
+    // }
 
 
 
@@ -1565,9 +1565,10 @@ async function get_file_properties(file_properties_obj) {
 
     file_properties.classList.remove('hidden');
     table.classList.add('ui', 'small', 'compact', 'table', 'fluid');
-    table.style = 'background:transparent !important;';
     icon.classList.add('small');
-    icon.style = 'display:block; width: 23px; cursor: pointer';
+
+    table.style = 'background:transparent !important;';
+    icon.style  = 'display:block; width: 23px; cursor: pointer';
 
     icon.addEventListener('click', (e) => {
         div.remove();
@@ -1577,18 +1578,32 @@ async function get_file_properties(file_properties_obj) {
 
         // CREATE TABLE ROW
         let tr = document.createElement('tr');
-
         let td1 = document.createElement('td');
-        td1.append(prop);
+        let td2 = document.createElement('td');
+
         td1.style = 'font-weight: bold;';
 
-        let td2 = document.createElement('td');
-        td2.append(`${file_properties_obj[prop]}`);
+        if (prop === 'Name') {
 
+            let link = add_link(path.join(breadcrumbs.value, file_properties_obj[prop]), file_properties_obj[prop]);
+            link.addEventListener('click', (e) => {
+                if (fs.statSync(path.join(breadcrumbs.value, file_properties_obj[prop])).isDirectory()) {
+                    get_view(path.join(breadcrumbs.value, file_properties_obj[prop]));
+                } else {
+                    open(path.join(breadcrumbs.value, file_properties_obj[prop]))
+                }
+            })
+
+            td2.append(link);
+        } else {
+            td2.append(`${file_properties_obj[prop]}`);
+        }
+
+        td1.append(prop);
         tr.append(td1);
         tr.append(td2);
-
         tbody.append(tr);
+
 
     }
 
@@ -4910,37 +4925,9 @@ async function get_files(dir, callback) {
 
             let filename0 = ''
             fs.watch(dir, (e, filename) => {
-
                 if (filename0 != filename) {
-
                     filename0 = filename
-
-                    // console.log('filename', filename)
-
-                    //         let href = path.join(dir, filename)
-                    //         if (fs.existsSync(path.join(dir, filename))) {
-                    //             if (e == 'change') {
-
-                    //                 options = {
-                    //                     id: 'file_card_0',
-                    //                     href: href,
-                    //                     linktext: filename,
-                    //                     grid: file_grid
-                    //                 }
-                    //                 console.log('adding card', options)
-                    //                 add_card(options)
-                    //                 // update_cards(main_view)
-                    //                 pfile = filename
-
-
-                    //             }
-                    //         }
-
-                    //         console.log(e)
-                    //         console.log(filename)
-
                 }
-
             })
 
             // LAZY LOAD IMAGES
@@ -6080,21 +6067,54 @@ function get_devices() {
     let devices = []
     let device_grid = document.getElementById('device_grid')
 
+    device_grid.innerHTML = ''
+
+    let mnt = fs.readdirSync('/mnt/');
+    mnt.forEach(item => {
+        console.log(item);
+        devices.push({name: item, href: path.join('/mnt', item)});
+    })
+
     let media = fs.readdirSync('/media/michael/');
     media.forEach(item => {
         console.log(item);
         devices.push({name: item, href: path.join('/media/michael', item)});
     })
 
-    let gvfs = fs.readdirSync('/run/user/1000/gvfs/');
+    let uid = execSync('id -u').toString().replace('\n','');
+    let gvfs_path = '/run/user/' + uid + '/gvfs/'
+
+    let gvfs = fs.readdirSync(gvfs_path);
     gvfs.forEach(item => {
         console.log(item);
-        devices.push({name: item, href: path.join('/run/user/1000/gvfs/', item)});
+        devices.push({name: item, href: path.join(gvfs_path, item)});
     })
 
     devices.forEach(item => {
-        device_grid.append(item.name, item.href);
+        let link = add_link( item.href, item.name)
+        link.addEventListener('click', (e) => {
+            e.preventDefault()
+            get_view(item.href)
+        })
+
+        device_grid.append(link, add_br());
+
     })
+
+
+    fs.watch('/media/michael/', (e, filename) => {
+        console.log('getting devices')
+        get_devices()
+    })
+
+
+
+    fs.watch(gvfs_path, (e) => {
+        console.log('getting devices')
+        get_devices()
+    })
+
+
 
     console.log('devices', devices);
 }
@@ -6612,6 +6632,7 @@ function add_link(href, text) {
     let link = document.createElement('a')
     link.href = href
     link.text = text
+    link.title = href
     link.classList.add('header_link')
     return link
 }
@@ -6667,8 +6688,7 @@ function show_sidebar() {
     let show            = parseInt(localStorage.getItem('sidebar'));
     let sidebar         = document.getElementById('sidebar')
     let main_view       = document.getElementById('main_view')
-    let file_menu       = document.getElementById('file_menu')
-    let navigation_menu = document.getElementById('navigation_menu')
+    let draghandle      = document.getElementById('draghandle')
 
     // SET / GET SIDEBAR WIDTH
     let sidebar_width   = 250;
@@ -6682,6 +6702,7 @@ function show_sidebar() {
 
         sidebar.classList.remove('hidden');
         sidebar.style.width = sidebar_width + 'px';
+        draghandle.style.height = parseInt(main_view.clientHeight + 40) + 'px';
 
         // SET MAIN VIEW SIZE
         main_view.style.marginLeft = (parseInt(sidebar_width) + 10) + 'px';
@@ -8823,6 +8844,8 @@ window.addEventListener('DOMContentLoaded', () => {
         get_view(breadcrumbs.value)
         localStorage.setItem('folder', breadcrumbs.value)
 
+        get_devices()
+
     })
 
     // FIND
@@ -8858,7 +8881,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-    // get_devices();
+
+    get_devices();
 
     /* Toggle sidebar */
     show_sidebar();
