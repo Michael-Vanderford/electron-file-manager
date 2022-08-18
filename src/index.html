@@ -224,6 +224,11 @@
                         </div>
                     </div>
 
+
+                    <div class="item" id="status">
+                        <!-- status information can go here -->
+                    </div>
+
                     <!-- LIST VIEW -->
                     <a class="item" id="btn_list_view" title="List view.">
                         <i class="ui icon list small"></i>
@@ -239,10 +244,6 @@
                         <i class="ui icon disk small"></i>
                     </a>
 
-                    <div class="item" id="status">
-                        <!-- status information can go here -->
-                    </div>
-
                     <div class="items menu horizontal alighed right">
                     </div>
 
@@ -252,13 +253,47 @@
 
         </div>
 
+        <div id="minibar" class="">
+
+            <div class="ui items vertical">
+
+                <br>
+                <a class="item" title="Home (Ctrl+B)">
+                    <i class="icon bi-house large"></i>
+                </a>
+                <br>
+                <a class="item" title="Workspace">
+                    <i class="icon bi-clipboard large"></i>
+                </a>
+                <br>
+                <a class="item" title="Find">
+                    <i class="icon bi-search large"></i>
+                </a>
+                <br>
+                <a class="item" title="File System">
+                    <i class="icon bi-hdd large"></i>
+                </a>
+                <br>
+                <a class="item" title="Devices">
+                    <i class="icon bi-tablet large"></i>
+                </a>
+                <br>
+                <a class="item" title="Log">
+                    <i class="icon bi-chat large"></i>
+                </a>
+
+            </div>
+
+        </div>
+
         <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
 
             <div style="display: flex;">
-                <div id="file_properties" class="hidden">
+                <div id="file_properties" class="">
                 </div>
                 <!-- <i class="ui icon small times" style="width:23px; height:23px"></i> -->
             </div>
+
 
             <div id="accordion" class="ui accordion" style="">
 
@@ -282,6 +317,22 @@
                     </div>
                 </div>
 
+
+
+                <!-- SEARCH / FIND -->
+                <div class="title" title="press ctrl+f to start a search">
+                    <i class="icon bi-search large"></i>
+                    Search Results
+                </div>
+                <div class="grid content" id="search_content">
+                    <div class="column sixteen wide" id="search_results_col">
+                        <div class="" id="search_results_card" style="border:none">
+                            <div class="content" id="search_results">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- WORKSPACE -->
                 <div class="title" id="workspace"
                     title="ctrl+shift+click on a file or directory to add it to your workspace">
@@ -296,20 +347,6 @@
                         clear workspace
                     </a>
 
-                </div>
-
-                <!-- SEARCH / FIND -->
-                <div class="title" title="press ctrl+f to start a search">
-                    <i class="icon bi-search large"></i>
-                    Search Results
-                </div>
-                <div class="grid content" id="search_content">
-                    <div class="column sixteen wide" id="search_results_col">
-                        <div class="" id="search_results_card" style="border:none">
-                            <div class="content" id="search_results">
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <!-- ROOT DIRECTORIES -->

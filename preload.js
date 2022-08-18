@@ -84,35 +84,35 @@ let active_href = '';
 
 // USE VAR GLOBAL
 // USE LET INSIDE FUNCTIONS TO REDECLARE VARIABLE
-let source      = '';
-let card_id     = 0;
-let mode        = 0;
+let source              = '';
+let card_id             = 0;
+let mode                = 0;
 
 // PROGRESS VARS
-let intervalid  = 0;
+let intervalid          = 0;
 
 // GLOBAL VARS
 // HISTORY ARRAY
-let history_arr = []
-let files_arr   = []
+let history_arr         = []
+let files_arr           = []
 
 // SELECTED FILES ARRAY
-let selected_files = []
-let find_files_arr = []
+let selected_files      = []
+let find_files_arr      = []
 
 // CUT / COPY
-let state       = 0;
-let cut_files   = 0;
+let state               = 0;
+let cut_files           = 0;
 
 
 let prev_card
 let destination
 
 // COUNTERS FOR NAVIGATION
-let nc              = 1
-let nc2             = 0
-let adj             = 0
-let is_folder_card  = 1
+let nc                  = 1
+let nc2                 = 0
+let adj                 = 0
+let is_folder_card      = 1
 
 // FOLDER / FILE COUNTERS
 let folder_count        = 1
@@ -121,12 +121,11 @@ let file_count          = 1
 let hidden_file_count   = 1
 
 // PAGING VARIABLES
-let pagesize    = 1000
-let page        = 1
+let pagesize            = 1000
+let page                = 1
 
-let start_path  = ''
-
-let main_view   = document.getElementById('main_view')
+let start_path          = ''
+// let main_view           = document.getElementById('main_view')
 
 // ON START PATH
 ipcRenderer.on('start_path', (e, res) => {
@@ -2563,7 +2562,7 @@ async function add_card(options) {
             dragcounter++
 
             let target = e.target
-            notification('running card on dragenter ' + target.id)
+            console.log('running card on dragenter ' + target.id)
 
             // CARD. NOTE. THIS SEEMS BACKWARDS BUT WORKS AND IS ESSENTIAL FOR SETTING THE CORRECT TARGET PATH. NOT SURE WHY ??
             if (target.id == "") {
@@ -3566,8 +3565,8 @@ async function get_workspace() {
         console.log(items)
 
         let workspace_content = document.getElementById('workspace_content')
-
         let workspace_grid = document.getElementById('workspace_grid')
+
         workspace_grid.innerHTML = ''
 
         if (items.length > 0) {
@@ -3643,6 +3642,17 @@ function add_workspace() {
     let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
     console.log('items length', items.length);
 
+    items.forEach(item => {
+
+        workspace_arr.forEach(workspace_item => {
+            if (item == workspace_item) {
+
+            }
+        })
+
+    })
+
+
     if (items.length > 0) {
 
         let workspace_grid = document.getElementById('workspace_grid');
@@ -3679,31 +3689,33 @@ function add_workspace() {
                 console.log('is folder', is_folder);
 
                 workspace_arr.push(options.href);
-                add_card(options).then(() => {
-                    update_cards(workspace_grid)
-                })
+                // add_card(options).then(() => {
+                //     update_cards(workspace_grid)
+                // })
 
                 localStorage.setItem('workspace', JSON.stringify(workspace_arr))
 
-                /* Create remove icon */
-                let icon    = add_icon('times')
-                icon.classList.add('small')
-                icon.style  = 'float:right; height:23px; width:23px; cursor: pointer;'
+                workspace_arr = []
+                // /* Create remove icon */
+                // let icon    = add_icon('times')
+                // icon.classList.add('small')
+                // icon.style  = 'float:right; height:23px; width:23px; cursor: pointer;'
 
-                /* Add card */
-                let card    = document.querySelector('[data-href="' + href + '"]')
-                // card.style  = 'margin-right: 20px'
+                // /* Add card */
+                // // let card    = document.querySelector('[data-href="' + href + '"]')
+                // // card.style  = 'margin-right: 20px'
 
-                let content = card.querySelector('.content')
-                content.prepend(icon)
+                // let content = card.querySelector('.content')
+                // content.prepend(icon)
+                // content.classList.add('active')
 
-                /* Remove card */
-                icon.addEventListener('click', (e) => {
-                    card.remove();
-                    workspace_arr.splice(i, 1)
-                    localStorage.setItem('workspace',JSON.stringify(workspace_arr))
-                    // get_workspace()
-                })
+                // /* Remove card */
+                // icon.addEventListener('click', (e) => {
+                //     card.remove();
+                //     workspace_arr.splice(i, 1)
+                //     localStorage.setItem('workspace',JSON.stringify(workspace_arr))
+                //     // get_workspace()
+                // })
 
             }
 
@@ -3711,8 +3723,9 @@ function add_workspace() {
 
     }
 
-    update_cards(workspace_grid)
+    // update_cards(workspace_grid)
     clear_selected_files()
+    get_workspace()
 
 }
 
@@ -3780,29 +3793,8 @@ async function get_view(dir) {
     let list_view = document.getElementById('list_view');
     let info_view = document.getElementById('info_view');
 
-    // /* Initialize sort */
-    // let sort = localStorage.getItem('sort');
-    // if (sort == null || sort == '') {
-    //     console.log('setting sort');
-    //     localStorage.setItem('sort', 1);
-    // }
-
-    // /* Initialize sort direction */
-    // let sort_direction = localStorage.getItem('sort_direction');
-    // if (sort_direction == null || sort_direction == '') {
-    //     console.log('setting sort direction')
-    //     localStorage.setItem('sort_direction', 'desc');
-    // }
-
-    // /* Initialize view */
     view0 = view;
     view = localStorage.getItem('view');
-    // if (view == null || view == '') {
-    //     console.log('setting view');
-    //     localStorage.setItem('view', 'grid');
-    //     view = 'grid';
-    // }
-
 
     /* Grid View */
     if (view == 'grid') {
@@ -4693,90 +4685,6 @@ async function get_files(dir, callback) {
                 }
             }
 
-            // CLEAR INFO VIEW
-            // info_view.innerHTMl = ''
-
-            // // SORT BY DATE
-            // if (sort == 1) {
-
-            //     // SORT START TIME
-            //     sort_st = new Date().getTime()
-
-            //     // SORT BY DATE
-            //     dirents.sort((a, b) => {
-
-            //         try {
-            //             let s1 = stat.statSync(path.join(dir, a))
-            //             let s2 = stat.statSync(path.join(dir, b))
-
-            //             return s2.mtime - s1.mtime
-
-            //         } catch (err) {
-            //             console.log(err)
-            //         }
-
-            //     })
-            // }
-
-            // // SORT BY NAME
-            // if (sort == 2) {
-
-            //     // SORT Y NAME
-            //     dirents = dirents.sort((a, b) => {
-            //         if (a.toLocaleLowerCase() < b.toLocaleLowerCase()) {
-            //             return -1;
-            //         }
-            //         if (a.toLocaleLowerCase() > b.toLocaleLowerCase()) {
-            //             return 1;
-            //         }
-            //         return 0;
-            //     })
-
-            // }
-
-            // // SORT BY SIZE
-            // if (sort == 3) {
-
-            //     // SORT BY SIZE
-            //     dirents.sort((a, b) => {
-
-            //         let s1 = parseInt(localStorage.getItem(path.join(dir, a)))
-            //         let s2 = parseInt(localStorage.getItem(path.join(dir, b)))
-
-            //         return s2 - s1
-
-            //     })
-
-            // }
-
-            // // SORT BY TYPE
-            // if (sort == 4) {
-
-
-            //     dirents.sort((a, b) => {
-
-            //         try {
-
-            //             let s1 = stat.statSync(dir + '/' + a)
-            //             let s2 = stat.statSync(dir + '/' + b)
-
-            //             let ext1 = path.extname(path.basename(a))
-            //             let ext2 = path.extname(path.basename(b))
-
-            //             if (ext1 < ext2) return -1
-            //             if (ext1 > ext2) return 1
-
-            //             if (s1.mtime < s2.mtime) return -1
-            //             if (s1.mtime > s2.mtime) return 1
-
-            //         } catch {
-            //             console.log(err)
-            //         }
-
-            //     })
-
-            // }
-
             // REGEX FOR HIDDEN FILE
             const regex = /^\..*/
 
@@ -4908,6 +4816,13 @@ async function get_files(dir, callback) {
                 }
 
             })
+
+            if (folder_count == 0) {
+                folders_card.classList.add('hidden')
+            } else {
+                folders_card.classList.remove('hidden')
+            }
+
 
             hide_loader()
 
@@ -5693,6 +5608,7 @@ function clear_selected_files() {
     /* Clear arrays */
     delete_arr      = [];
     selected_files  = [];
+    // workspace_arr   = [];
 
     /* Clear elements */
     pager.innerHTML             = '';
@@ -6102,12 +6018,16 @@ function get_devices() {
     })
 
 
-    fs.watch('/media/michael/', (e, filename) => {
+    fs.watch('/mnt/', (e, filename) => {
         console.log('getting devices')
         get_devices()
     })
 
 
+    fs.watch('/media/michael/', (e, filename) => {
+        console.log('getting devices')
+        get_devices()
+    })
 
     fs.watch(gvfs_path, (e) => {
         console.log('getting devices')
@@ -8457,19 +8377,22 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     // OPEN WITH
     if (command === 'open_with_application') {
 
-        // ipcRenderer.on('open_with_application', (e, res) => {
-        let cmd = args
-        console.log('cmd args', args)
-        // let filename = path.basename(source)
-        // let filepath = path.dirname(source)
+        let cards = document.querySelectorAll('.highlight_select, .highlight, .ds-selected')
+        cards.forEach(item => {
+            let cmd = args
+            console.log('cmd args', args)
+            // let filename = path.basename(source)
+            // let filepath = path.dirname(source)
 
-        cmd = cmd.replace('%U', "'" + source + "'")
-        cmd = cmd.replace('%F', "'" + source + "'")
-        cmd = cmd.replace('%u', "'" + source + "'")
-        cmd = cmd.replace('%f', "'" + source + "'")
+            cmd = cmd.replace('%U', "'" + item.dataset.href + "'")
+            cmd = cmd.replace('%F', "'" + item.dataset.href + "'")
+            cmd = cmd.replace('%u', "'" + item.dataset.href + "'")
+            cmd = cmd.replace('%f', "'" + item.dataset.href + "'")
 
-        console.log('cmd ' + cmd)
-        exec(cmd)
+            console.log('cmd ' + cmd)
+            exec(cmd)
+        });
+
         clear_selected_files()
 
     }
