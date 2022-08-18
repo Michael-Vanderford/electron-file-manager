@@ -2145,14 +2145,14 @@ const template = [
                     },
                 ]
             },
-            // {type: 'separator'},
-            // {
-            //     label: 'Side Menu',
-            //     type: "checkbox",
-            //     click: () => {
-
-            //     }
-            // },
+            {type: 'separator'},
+            {
+                label: 'Show Sidebar',
+                accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+B' : 'CTRL+B',
+                click: () => {
+                    win.webContents.send('sidebar');
+                }
+            },
             {
                 type: 'separator'
             },

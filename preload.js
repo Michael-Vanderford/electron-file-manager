@@ -1469,6 +1469,17 @@ ipcRenderer.on('devices', (e, args) => {
     console.log('what the ' + args)
 })
 
+ipcRenderer.on('sidebar', (e) => {
+    let sidebar = document.getElementById('sidebar')
+    if (sidebar.classList.contains('hidden')) {
+        localStorage.setItem('sidebar', 1)
+        show_sidebar()
+    } else {
+        localStorage.setItem('sidebar', 0)
+        show_sidebar()
+    }
+})
+
 // // PROPERTIES WINDOW
 ipcRenderer.on('file_properties_window', (e, data) => {
     get_file_properties(source)
@@ -4823,6 +4834,9 @@ async function get_files(dir, callback) {
                 folders_card.classList.remove('hidden')
             }
 
+            if (folder_count == 0 && file_count == 0) {
+                main_view.append('Folder is empty')
+            }
 
             hide_loader()
 
@@ -5039,6 +5053,7 @@ async function get_files(dir, callback) {
 
             hide_loader()
 
+            info_view.classList.remove('hidden')
             info_view.append('Folder is empty')
             info_view.style = 'font-size: 23px; height: 100%; position:fixed; left: 50%; top: 50%'
 
@@ -5737,6 +5752,8 @@ async function find_files() {
     find_div.classList.remove('hidden')
     find.focus()
 
+    find_arr = []
+
     // CANCEL SEARCH
     find.addEventListener('keyup', function (e) {
 
@@ -5844,26 +5861,28 @@ async function find_files() {
 
                             try {
 
-                                let filename = res[i]
-                                let options = {
+                                files_arr.push(res[i]);
 
-                                    id: 'find_' + i,
-                                    linktext: path.basename(filename),
-                                    href: filename,
-                                    grid: search_results,
-                                    is_folder: fs.statSync(filename).isDirectory()
+                                // let filename = res[i]
+                                // let options = {
 
-                                }
+                                //     id: 'find_' + i,
+                                //     linktext: path.basename(filename),
+                                //     href: filename,
+                                //     grid: search_results,
+                                //     is_folder: fs.statSync(filename).isDirectory()
 
-                                try {
+                                // }
 
-                                    add_card(options).then(() => {
-                                    })
+                                // try {
 
-                                } catch (err) {
-                                    // notification(err)
-                                    // info(err)
-                                }
+                                //     add_card(options).then(() => {
+                                //     })
+
+                                // } catch (err) {
+                                //     // notification(err)
+                                //     // info(err)
+                                // }
 
                             } catch (err) {
                                 // notification(err)
@@ -5881,10 +5900,39 @@ async function find_files() {
 
                 child.stdout.on('end', (res) => {
 
-                    update_cards(search_results)
-                    if (search_results.innerHTML == 'Searching...') {
+                    search_content.classList.add('active')
+                    if (files_arr.length > 0) {
+
+                        files_arr.forEach((item, idx) => {
+                            console.log(item)
+
+                            let options = {
+
+                                id: 'find_' + idx,
+                                linktext: path.basename(item),
+                                href: item,
+                                grid: search_results,
+                                is_folder: fs.statSync(item).isDirectory()
+                            }
+
+                            add_card(options)
+
+                        })
+
+                        update_cards(search_results)
+                        files_arr = []
+
+
+                    } else {
                         search_results.innerHTML = 'No results found......'
                     }
+
+
+
+                    // update_cards(search_results)
+                    // if (search_results.innerHTML == 'Searching...') {
+                    //     search_results.innerHTML = 'No results found......'
+                    // }
 
                 })
 
@@ -5980,8 +6028,10 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 /* Get devices */
 function get_devices() {
+
     let devices = []
     let device_grid = document.getElementById('device_grid')
+    let device_content = document.getElementById('device_content')
 
     device_grid.innerHTML = ''
 
@@ -6008,14 +6058,23 @@ function get_devices() {
 
     devices.forEach(item => {
         let link = add_link( item.href, item.name)
+        let icon = add_icon('hdd')
+
+        link.classList.add('nowrap')
+
+        link.prepend(icon)
         link.addEventListener('click', (e) => {
             e.preventDefault()
             get_view(item.href)
         })
-
         device_grid.append(link, add_br());
-
     })
+
+    if (devices.length == 0) {
+        device_content.classList.remove('active')
+    } else {
+        device_content.classList.add('active')
+    }
 
 
     fs.watch('/mnt/', (e, filename) => {
@@ -7142,14 +7201,12 @@ function delete_confirmed() {
         delete_arr = []
         clear_selected_files()
 
-
         // UPDATE CARDS
-        update_cards(main_view)
-
-
+        update_cards(main_view);
 
     } else {
-        console.log('nothing to delete')
+        console.log('nothing to delete');
+        notification('Nothing to delete');
         // indexOf('Nothing to delete.')
     }
 
@@ -8511,7 +8568,13 @@ window.addEventListener('DOMContentLoaded', () => {
 
     /* Workspace */
     let workspace = document.getElementById('workspace')
+    let workspace_content = document.getElementById('workspace_content');
+    let minibar = document.getElementById('minibar')
 
+    minibar.addEventListener('click', (e) => {
+        localStorage.setItem('sidebar', 1)
+        show_sidebar()
+    })
     // workspace.draggable = true
 
     /* Workspace on drag enter */
@@ -8547,7 +8610,7 @@ window.addEventListener('DOMContentLoaded', () => {
         Workspace content
         note: this is not the same as workspace
     */
-    let workspace_content = document.getElementById('workspace_content');
+
 
     /* Workspace on drag start */
     workspace_content.ondragstart = (e) => {
@@ -8656,16 +8719,16 @@ window.addEventListener('DOMContentLoaded', () => {
     /**
      * ctrl+b toggle sidebar
      */
-    Mousetrap.bind('ctrl+b', (e) => {
-        let sidebar = document.getElementById('sidebar')
-        if (sidebar.classList.contains('hidden')) {
-            localStorage.setItem('sidebar', 1)
-            show_sidebar()
-        } else {
-            localStorage.setItem('sidebar', 0)
-            show_sidebar()
-        }
-    })
+    // Mousetrap.bind('ctrl+b', (e) => {
+    //     let sidebar = document.getElementById('sidebar')
+    //     if (sidebar.classList.contains('hidden')) {
+    //         localStorage.setItem('sidebar', 1)
+    //         show_sidebar()
+    //     } else {
+    //         localStorage.setItem('sidebar', 0)
+    //         show_sidebar()
+    //     }
+    // })
 
     // DEL DELETE KEY
     Mousetrap.bind('del', (e, res) => {

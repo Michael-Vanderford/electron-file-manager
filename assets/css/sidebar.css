@@ -21,9 +21,9 @@
     }
 
     #minibar {
-        margin-left: -2px;
-        padding: 10px;
-        width: 50px;
+        margin-left: -4px;
+        padding: 8px;
+        width: 38px;
         float:left;
         background-color: #222222;
         height:110%
@@ -35,6 +35,16 @@
 
     #sidebar a {
         color: rgb(65, 131, 196, 0.8) !important;
+    }
+
+    #file_properties {
+        width: 100% !important;
+        /* border: 1px solid black; */
+    }
+
+    #file_properties .ui.table {
+        width: 100% !important;
+        /* border: 1px solid black; */
     }
 
     .ui.accordion .title:not(.ui) {
@@ -67,12 +77,16 @@
     }
 
     #minibar {
-        margin-left: -2px;
+        margin-left: -4px;
         padding: 10px;
-        width: 50px;
+        width: 48px;
         float:left;
         background-color: #cfcfcf;
-        height:100%
+        height:110%
+    }
+
+    #file_properties .ui.table {
+        width: 100% !important;
     }
 
     .ui.accordion .title {

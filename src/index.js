@@ -3,30 +3,31 @@ let options = {
     search: ''
 }
 
-let find = document.getElementById('find')
-let breadcrumbs = document.getElementById('breadcrumbs')
-let home = document.getElementById('home')
-let documents = document.getElementById('documents')
-let downloads = document.getElementById('downloads')
-let pictures = document.getElementById('pictures')
-let videos = document.getElementById('videos')
-let music = document.getElementById('music')
-let devices = document.getElementById('devices')
-let network = document.getElementById('network')
-let footer = document.getElementById('footer')
-let btn_disk_usage = document.getElementById('btn_disk_usage')
+let find            = document.getElementById('find')
+let breadcrumbs     = document.getElementById('breadcrumbs')
+let home            = document.getElementById('home')
+let documents       = document.getElementById('documents')
+let downloads       = document.getElementById('downloads')
+let pictures        = document.getElementById('pictures')
+let videos          = document.getElementById('videos')
+let music           = document.getElementById('music')
+let devices         = document.getElementById('devices')
+let network         = document.getElementById('network')
+let footer          = document.getElementById('footer')
+let btn_disk_usage  = document.getElementById('btn_disk_usage')
+let minibar         = document.getElementById('minibar')
 
 // TOGGLE VIEWS
-let btn_list_view = document.getElementById('btn_list_view')
-let btn_grid_view = document.getElementById('btn_grid_view')
-let btn_disk_view = document.getElementById('btn_disk_view')
+let btn_list_view   = document.getElementById('btn_list_view')
+let btn_grid_view   = document.getElementById('btn_grid_view')
+let btn_disk_view   = document.getElementById('btn_disk_view')
 
 // VIEWS
-let list_view = document.getElementById('list_view')
-let grid_view = document.getElementById('grid_view')
-let info_view = document.getElementById('info_view')
+let list_view       = document.getElementById('list_view')
+let grid_view       = document.getElementById('grid_view')
+let info_view       = document.getElementById('info_view')
 
-let home_folder = window.api.get_home()
+let home_folder     = window.api.get_home()
 
 
 // document.getElementById('toggle-dark-mode').addEventListener('click', async () => {
@@ -251,8 +252,6 @@ btn_grid_view.addEventListener('click', (e) => {
     btn_list_view.classList.remove('active')
     btn_grid_view.classList.add('active')
 
-
-
 })
 
 btn_disk_view.addEventListener('click', (e) => {
@@ -261,6 +260,8 @@ btn_disk_view.addEventListener('click', (e) => {
     window.api.get_view(localStorage.getItem('folder'));
     this.classList.add('active')
 })
+
+
 
 // // DISK SUMMARY VIEW
 // btn_disk_usage.addEventListener('click', (e) => {
