@@ -16,6 +16,8 @@ let network         = document.getElementById('network')
 let footer          = document.getElementById('footer')
 let btn_disk_usage  = document.getElementById('btn_disk_usage')
 let minibar         = document.getElementById('minibar')
+let minibar_items    = minibar.querySelectorAll('.item')
+
 
 // TOGGLE VIEWS
 let btn_list_view   = document.getElementById('btn_list_view')
@@ -28,18 +30,6 @@ let grid_view       = document.getElementById('grid_view')
 let info_view       = document.getElementById('info_view')
 
 let home_folder     = window.api.get_home()
-
-
-// document.getElementById('toggle-dark-mode').addEventListener('click', async () => {
-//     const isDarkMode = await window.api.toggle()
-//     // document.getElementById('theme-source').innerHTML = isDarkMode ? 'Dark' : 'Light'
-// })
-
-// document.getElementById('reset-to-system').addEventListener('click', async () => {
-//     await window.api.system()
-//     document.getElementById('theme-source').innerHTML = 'System'
-// })
-
 
 if (localStorage.getItem('folder') == '') {
     localStorage.setItem('folder', home_folder)
@@ -81,16 +71,12 @@ function get_files(dir) {
 
 }
 
-
 // function get_data(dir) {
 
 //     // todo: reminder this is intended for chart js
 //     let breadcrumbs = $('#breadcrumbs')
 //     breadcrumbs.val(dir)
-
 //     setitem('folder', dir)
-
-
 //     // GET FILES
 //     let dirents = window.api.get_folders1(dir)
 
@@ -140,7 +126,6 @@ function add_div() {
     return div
 }
 
-
 function add_progress(){
     let progress = document.createElement('progress')
     progress.value = 1
@@ -148,14 +133,10 @@ function add_progress(){
     return progress
 }
 
-
 let element = document.getElementById('sidebar');
 let main_view = document.getElementById('main_view');
 
-
-
 let sidebar_width = '250'
-
 if (localStorage.getItem('sidebar_width')) {
     sidebar_width = localStorage.getItem('sidebar_width')
     main_view.style = 'margin-left:' + sidebar_width
@@ -163,9 +144,6 @@ if (localStorage.getItem('sidebar_width')) {
     element.width = sidebar_width
     main_view.style = 'margin-left:' + sidebar_width
 }
-
-
-// console.log('sidebar width ' + sidebar_width)
 
 //
 if (element) {
@@ -182,9 +160,7 @@ if (element) {
 
 }
 
-
-
-// INIT RESIZE
+/* Init resize sidebar */
 function initResize(e) {
 
     window.addEventListener('mousemove', Resize, false);
@@ -195,29 +171,92 @@ function initResize(e) {
 
 }
 
-// RESIZE
+/* Resize sidebar */
 function Resize(e) {
     element.style.width = (e.clientX - element.offsetLeft) + 'px';
-    $('#main_view').css('margin-left', (e.clientX - element.offsetLeft) + 'px');
+    $('#main_view').css('margin-left', (e.clientX - (element.offsetLeft - 40)) + 'px');
     // $('#sidebar').css('margin-left', (element.offsetLeft) + 'px');
 
 }
 
-// STOP RESIZE
+/* Stop resize of sidebar */
 function stopResize(e) {
-
     console.log('running')
-
     window.removeEventListener('mousemove', Resize, false);
     window.removeEventListener('mouseup', stopResize, false);
-    // $('#sidebar').css('margin-left', element.offsetLeft + 'px');
-
-    // console.log('setting width ' + element.clientWidth)
     localStorage.setItem('sidebar_width', element.clientWidth)
 }
 
+/* Clear minibar highlight */
+function clear_minibar() {
+    minibar_items.forEach(item => {
+        item.style = '';
+    })
+}
 
-// LIST VIEW
+/* Update sidebar_items */
+minibar_items.forEach(item => {
+    item.addEventListener('click', (e) => {
+        clear_minibar();
+        item.style = 'color: #ffffff !important; font-weight:bold;';
+        localStorage.setItem('minibar_item', item.id)
+        switch (item.id) {
+            case 'mb_home':
+                window.api.get_tree(window.api.get_home());
+                break;
+            case 'mb_workspace':
+                window.api.get_workspace();
+                break;
+            case 'mb_find':
+                window.api.find_files()
+                break;
+            case 'mb_fs':
+                window.api.get_tree('/');
+                break;
+            case 'mb_devices':
+                window.api.get_devices();
+                break;
+            case 'mb_log':
+                window.api.getlog();
+                break;
+
+        }
+    })
+});
+
+let active_minibar_item = localStorage.getItem('minibar_item')
+if (active_minibar_item == null) {
+    localStorage.setItem('minibar_item', 'mb_home')
+    document.querySelector('#mb_home').style = 'color: #ffffff !important; font-weight:bold;';
+} else {
+    document.querySelector('#' + active_minibar_item).style = 'color: #ffffff !important; font-weight:bold;';
+
+    console.log(active_minibar_item)
+
+    switch (active_minibar_item) {
+        case 'mb_home':
+            window.api.get_tree(window.api.get_home());
+            break;
+        case 'mb_workspace':
+            window.api.get_workspace();
+            break;
+        case 'mb_find':
+            window.api.find_files()
+            break;
+        case 'mb_fs':
+            window.api.get_tree('/');
+            break;
+        case 'mb_devices':
+            window.api.get_devices();
+            break;
+        case 'mb_log':
+            window.api.getlog();
+            break;
+
+    }
+}
+
+/* List view */
 btn_list_view.addEventListener('click', (e) => {
 
     e.preventDefault()
@@ -261,55 +300,16 @@ btn_disk_view.addEventListener('click', (e) => {
     this.classList.add('active')
 })
 
-
-
-// // DISK SUMMARY VIEW
-// btn_disk_usage.addEventListener('click', (e) => {
-
-//     localStorage.setItem('view', 'disk_summary')
-//     window.api.get_view('/')
-
-// })
-
-
 $(function() {
 
-    $('.ui.dropdown')
-    .dropdown({
-        on:'hover'
-    })
-
     // $('.ui.dropdown')
     // .dropdown({
-    //     // clearable: true
+    //     on:'hover'
     // })
 
-    // $('.ui.dropdown')
-    // .dropdown({
-    //     clearable: true,
-    //     placeholder: 'any'
+    // $('.ui.accordion').on({
+    //     exclusive:false
     // })
-
-
-    // START OF GET DEVICE LIST DOESNT WORK
-    // async function testIt() {
-
-    //     const filters = [
-    //         {vendorId: '1235:8211', productId: 004}
-    //     ];
-    //     const device = await navigator.usb.requestDevice({
-    //         filters: filters
-
-    //     })
-    //     document.getElementById('device-name').innerHTML = device.name || `ID: ${device.id}`
-    //   }
-
-    //   document.getElementById('clickme').addEventListener('click',testIt)
-
-
-    $('.ui.accordion').on({
-        exclusive:false
-    })
 
 
     //////////////////////////////////////////////////
@@ -334,68 +334,68 @@ $(function() {
 
 
     // FIND FOLDERS
-    let find_folders = document.getElementById('find_folders')
-    let find_folders_option = localStorage.getItem('find_folders')
-    if (find_folders_option == 1) {
-        find_folders.checked = true
-    }
-    find_folders.addEventListener('change', (e) => {
-        if (find_folders.checked) {
-            localStorage.setItem('find_folders', 1)
-            console.log('setting find to 1')
-        } else {
-            localStorage.setItem('find_folders', 0)
-            console.log('setting find to 0')
-        }
-
-    })
-
-    // FIND FILES
-    let find_files = document.getElementById('find_files')
-    let find_files_options = localStorage.getItem('find_files')
-    if (find_files_options == 1) {
-        find_files.checked = true
-    }
-    find_files.addEventListener('change', (e) => {
-        if (find_files.checked) {
-
-            localStorage.setItem('find_files', 1)
-            console.log('setting find to 1')
-
-        } else {
-
-            localStorage.setItem('find_files', 0)
-            console.log('setting find to 0')
-
-        }
-    })
-
-
-
-    // $(document).on('click','#find_files',function(e) {
-    //     if (localStorage.getItem('find_files') == '') {
-    //         localStorage.setItem('find_files', 1)
+    // let find_folders = document.getElementById('find_folders')
+    // let find_folders_option = localStorage.getItem('find_folders')
+    // if (find_folders_option == 1) {
+    //     // find_folders.checkzed = true
+    // }
+    // find_folders.addEventListener('change', (e) => {
+    //     if (find_folders.checked) {
+    //         localStorage.setItem('find_folders', 1)
+    //         console.log('setting find to 1')
     //     } else {
-    //         localStorage.setItem('find_files', '')
+    //         localStorage.setItem('find_folders', 0)
+    //         console.log('setting find to 0')
+    //     }
+
+    // })
+
+    // // FIND FILES
+    // let find_files = document.getElementById('find_files')
+    // let find_files_options = localStorage.getItem('find_files')
+    // if (find_files_options == 1) {
+    //     find_files.checked = true
+    // }
+    // find_files.addEventListener('change', (e) => {
+    //     if (find_files.checked) {
+
+    //         localStorage.setItem('find_files', 1)
+    //         console.log('setting find to 1')
+
+    //     } else {
+
+    //         localStorage.setItem('find_files', 0)
+    //         console.log('setting find to 0')
+
     //     }
     // })
 
 
-    // FIND BY SIZE
-    let find_by_size = $('#find_by_size')
-    let find_by_size_options = localStorage.getItem('find_by_size')
-    if (find_by_size_options == 1) {
-        find_by_size.attr('checked','checked')
-    }
 
-    $(document).on('click','#find_by_size',function(e) {
+    // // $(document).on('click','#find_files',function(e) {
+    // //     if (localStorage.getItem('find_files') == '') {
+    // //         localStorage.setItem('find_files', 1)
+    // //     } else {
+    // //         localStorage.setItem('find_files', '')
+    // //     }
+    // // })
 
-        if (localStorage.getItem('find_by_size') == '') {
-            localStorage.setItem('find_by_size', 1)
-        } else {
-            localStorage.setItem('find_by_size', '')
-        }
-    })
+
+    // // FIND BY SIZE
+    // let find_by_size = $('#find_by_size')
+    // let find_by_size_options = localStorage.getItem('find_by_size')
+    // if (find_by_size_options == 1) {
+    //     find_by_size.attr('checked','checked')
+    // }
+
+    // $(document).on('click','#find_by_size',function(e) {
+
+    //     if (localStorage.getItem('find_by_size') == '') {
+    //         localStorage.setItem('find_by_size', 1)
+    //     } else {
+    //         localStorage.setItem('find_by_size', '')
+    //     }
+    // })
 
 
     // FIND BY DATE
@@ -521,7 +521,7 @@ $(function() {
     // window.api.get_tree(home_folder)
 
     // LOAD INITIAL TREE VIEW
-    window.api.get_tree(home_folder)
+    // window.api.get_tree(home_folder)
 
     // LOAD INITIAL FILES / FOLDER VIEW
     // let st = Date.now()
@@ -843,7 +843,6 @@ $(function() {
 
 })
 
-
 // ON LOAD
 // window.api.get_files(dir,options)
 
@@ -937,7 +936,6 @@ breadcrumbs.addEventListener('change',function(e){
     dir = breadcrumbs.value
     window.api.get_view(dir)
 })
-
 
 // HOME
 // home.addEventListener('click', function(e){
@@ -1075,30 +1073,11 @@ document.getElementById('right')
     window.api.navigate('right')
 })
 
-
-// ENABLE / DISABLE DARK
-// document.getElementById('dark_mode')
-// .addEventListener('click',function(e){
-//     let body = document.getElementById('body')
-//     if(body.getAttribute('data-theme') == 'dark'){
-//         body.setAttribute('data-theme', '')
-//     }else{
-//         body.setAttribute('data-theme', 'dark')
-//     }
-
-// })
-
-
-
-
-
 $("#main_view").on("selectableselected selectableunselected", function(){
     console.log(running)
     $(".inside").removeClass("yes").addClass("no");
     $(".ui-selected > .inside").removeClass("no").addClass("yes");
 });
-
-
 
 //
 function httpGet(theUrl) {
@@ -1107,8 +1086,6 @@ function httpGet(theUrl) {
     xmlHttp.send( null );
     return xmlHttp.responseText;
 }
-
-
 
 // let btn = document.getElementById('btn')
 // btn.addEventListener('click',function(e){

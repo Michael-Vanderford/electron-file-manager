@@ -2168,7 +2168,9 @@ const template = [
             },
             {role: 'toggleDevTools'},
             {type: 'separator'},
-            {role: 'reload'}
+            {role: 'reload'},
+            {type: 'separator'},
+            {role: 'viewMenu'}
 
         ]
     },

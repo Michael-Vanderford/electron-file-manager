@@ -1,0 +1,104 @@
+<!-- SEARCH / FIND -->
+<div id="find_div" style="">
+
+    <!-- FIND -->
+    <div style="float:left; width:10px; height: 100%; text-align: center;">
+        <a href="#" id="btn_find_options" style="color: #cfcfcf; text-decoration: none !important;">
+            <i class="ui icon chevron right" style="color: #555;"></i>
+        </a>
+    </div>
+    <div class="" style="margin-left: 20px;">
+        <input type="text" id="find" spellcheck="false" class="find_input" placeholder="search" style="border:none">
+    </div>
+
+    <br>
+
+
+    <!-- FIND OPTIONS -->
+    <div id="find_options" class="hidden">
+
+        <!--
+        <div class="" style="width: 30%; display: flex; float: left;">
+            <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
+            <label class="">Folders</label>
+        </div>
+
+        <div class="" style="width: 30%; display: flex;">
+            <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
+            <label class="">Files</label>
+        </div> -->
+
+
+        <div class="content fluid">
+            <div class="description" style="padding-left: 20px !important">
+                <!-- <div class="ui header">
+                    Search Options
+                </div> -->
+                <div class="ui form tiny" style="background-color: transparent !important;">
+                    <div class="fields">
+                        <div class="eight wide field">
+                            <div class="">
+                                <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
+                                <label for="find_folders" class="label" style="font-weight: normal;">Folders</label>
+                            </div>
+                        </div>
+
+                        <div class="eight wide field">
+                            <div class="">
+                                <input type="checkbox" id="find_files" name="find_files">
+                                <label for="find_files" class="label" style="font-weight: normal;">Files</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="fields small">
+                        <div class="eight wide field">
+                            <label class="label">Start date</label>
+                            <input type="date" id="start_date" name="start_date" class="find_input" placeholder="enter start date" title="enter start date" />
+                        </div>
+
+                        <div class="eight wide field small">
+                            <label class="label">End date</label>
+                            <input type="date" id="end_date" name="end_date" class="find_input" placeholder="enter end date" title="enter end date" />
+                        </div>
+                    </div>
+
+                    <div class="fields">
+                        <div class="eight wide field small">
+                            <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
+                            <input type="text" id="find_size" class="find_input" placeholder="enter size" title="enter size" />
+                        </div>
+                    </div>
+
+                    <div class="fields inline">
+                        <div class="field small">
+                            <input type="radio" name="size_options" id="size_options" value="k">
+                            <label for="size_options" class="label" >KB</label>
+                        </div>
+                        <div class="field">
+                            <input type="radio" name="size_options" id="size_options" checked value="M">
+                            <label for="size_options" class="label">MB</label>
+                        </div>
+                        <div class="field">
+                            <input type="radio" name="size_options" id="size_options" value="G">
+                            <label for="size_options" class="label">GB</label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="grid content" id="search_content"  style="height:100%; overflow: scroll">
+    <div class="column sixteen wide" id="search_results_col">
+        <div class="" id="search_results_card" style="border:none">
+            <div class="content" id="search_results">
+            </div>
+        </div>
+    </div>
+</div>
+
+

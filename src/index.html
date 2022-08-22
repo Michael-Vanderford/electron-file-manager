@@ -216,11 +216,12 @@
                     </a>
 
                     <div class="item" style="width:400px; height:20px">
-                        <div class="autocomplete" style="width:100%;">
+                        <div id="autocomplete" class="autocomplete" style="width:100%;">
                             <div class="breadcrumbs buttons">
                                 <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
                             </div>
                             <input spellcheck="false" type="text" id="breadcrumbs" value="" />
+                            <div id="breadcrumb_items" class="hidden"></div>
                         </div>
                     </div>
 
@@ -255,30 +256,30 @@
 
         <div id="minibar" class="">
 
-            <div class="ui items vertical">
+            <div class="items">
 
-                <br>
-                <a class="item" title="Home (Ctrl+B)">
+
+                <a class="item" id="mb_home" title="Home (Ctrl+B)">
                     <i class="icon bi-house large"></i>
                 </a>
                 <br>
-                <a class="item" title="Workspace">
+                <a class="item" id="mb_workspace" title="Workspace">
                     <i class="icon bi-clipboard large"></i>
                 </a>
                 <br>
-                <a class="item" title="Find">
+                <a class="item" id="mb_find" title="Find">
                     <i class="icon bi-search large"></i>
                 </a>
                 <br>
-                <a class="item" title="File System">
+                <a class="item" id="mb_fs" title="File System">
                     <i class="icon bi-hdd large"></i>
                 </a>
                 <br>
-                <a class="item" title="Devices">
+                <a class="item" id="mb_devices" title="Devices">
                     <i class="icon bi-tablet large"></i>
                 </a>
                 <br>
-                <a class="item" title="Log">
+                <a class="item" id="mb_log" title="Log">
                     <i class="icon bi-chat large"></i>
                 </a>
 
@@ -288,6 +289,11 @@
 
         <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1">
 
+            <div id="sidebar_items" class="items" style="height: 100%">
+
+
+            </div>
+
             <div style="display: flex;">
                 <div id="file_properties" class="">
                 </div>
@@ -295,7 +301,8 @@
             </div>
 
 
-            <div id="accordion" class="ui accordion" style="">
+
+            <div id="accordion" class="ui accordion hidden" style="">
 
                 <div id="draghandle" class="draghandle"></div>
 
@@ -304,7 +311,7 @@
                     <!-- <i class="dropdown icon"></i> -->
                     <span id="tree_home" class="" title="change to home directory">
                         <!-- <i class="icon large home"></i> -->
-                        <i class="icon bi-house large"></i>
+                        <!-- <i class="icon bi-house large"></i> -->
                         Home
                     </span>
                 </div>
@@ -320,30 +327,29 @@
 
 
                 <!-- SEARCH / FIND -->
-                <div class="title" title="press ctrl+f to start a search">
-                    <i class="icon bi-search large"></i>
-                    Search Results
-                </div>
-                <div class="grid content" id="search_content">
+                <!-- <div class="title" title="press ctrl+f to start a search"> -->
+                    <!-- <i class="icon bi-search large"></i> -->
+                    <!-- Search Results
+                </div> -->
+                <!-- <div class="grid content" id="search_content">
                     <div class="column sixteen wide" id="search_results_col">
                         <div class="" id="search_results_card" style="border:none">
                             <div class="content" id="search_results">
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
 
                 <!-- WORKSPACE -->
                 <div class="title" id="workspace"
                     title="ctrl+shift+click on a file or directory to add it to your workspace">
-                    <i class="icon bi-clipboard large"></i>
+                    <!-- <i class="icon bi-clipboard large"></i> -->
                     Workspace
                 </div>
                 <div class="content" id="workspace_content">
-
                     <div class="navigate" id="workspace_grid"></div>
                     <a href="#" id="clear_workspace">
-                        <i class="icon eraser"></i>
+                        <!-- <i class="icon eraser"></i> -->
                         clear workspace
                     </a>
 
@@ -351,7 +357,7 @@
 
                 <!-- ROOT DIRECTORIES -->
                 <div class="title" id="btn_getroot">
-                    <i class="icon bi-hdd large"></i>
+                    <!-- <i class="icon bi-hdd large"></i> -->
                     File System
                 </div>
                 <div class="content">
@@ -362,7 +368,7 @@
                 <!-- DEVICES -->
                 <div class="title" title="connected devices">
                     <span id="btn_getdrives" class="" title="">
-                        <i class="icon bi-tablet large"></i>
+                        <!-- <i class="icon bi-tablet large"></i> -->
                         Devices
                     </span>
                 </div>
@@ -444,7 +450,7 @@
 
                 <!-- LOG -->
                 <div class="title">
-                    <i class="icon bi-chat large"></i>
+                    <!-- <i class="icon bi-chat large"></i> -->
                     Log
                 </div>
                 <div class="content centered">
@@ -466,10 +472,10 @@
         </aside>
 
          <!-- SEARCH / FIND -->
-         <div id="find_div" class="hidden">
+         <!-- <div id="find_div" class="hidden"> -->
 
             <!-- FIND -->
-            <div style="float:left; width:0%; text-align: center;">
+            <!-- <div style="float:left; width:0%; text-align: center;">
                 <a href="#" id="btn_find_options" style="color: #cfcfcf; text-decoration: none !important;">
                     <i class="ui icon chevron right"></i>
                 </a>
@@ -481,17 +487,17 @@
                 <a href="">
                     <i class="ui small icon times"></i>
                 </a>
-            </div>
+            </div> -->
 
             <!-- FIND OPTIONS -->
-            <div id="find_options" class="">
+            <!-- <div id="find_options" class=""> -->
 
-                <div class="content fluid">
-                    <div class="description" style="padding-left: 20px !important">
+                <!-- <div class="content fluid"> -->
+                    <!-- <div class="description" style="padding-left: 20px !important"> -->
                         <!-- <div class="ui header">
                             Search Options
                         </div> -->
-                        <div class="ui form tiny" style="background-color: transparent !important;">
+                        <!-- <div class="ui form tiny" style="background-color: transparent !important;">
                             <div class="fields">
                                 <div class="eight wide field">
                                     <div class="">
@@ -547,7 +553,7 @@
                 </div>
             </div>
 
-        </div>
+        </div> -->
 
         <!-- MAIN VIEW -->
         <div class="" id="main_view">
@@ -564,7 +570,7 @@
             <div id="list_view" style="margin-top: 5px"></div>
 
             <!-- ICON VIEW -->
-            <div id="grid_view" style="margin-top: 20px">
+            <div id="grid_view" style="margin-top: 10px">
 
                 <!-- FOLDERS -->
                 <div class="ui card fluid folders_card border-none" id="folders_card" style="">
