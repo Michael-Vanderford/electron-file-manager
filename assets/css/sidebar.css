@@ -31,6 +31,8 @@
 
     #sidebar_items .header {
         /* background-color: #3a3a3a; */
+        font-size: 1.1em;
+        margin-bottom: 10px;
         border-radius: 4px;
         padding: 4px;
 

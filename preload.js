@@ -846,7 +846,7 @@ ipcRenderer.on('overwrite_move_all', (e, destination) => {
     })
 
     clear_copy_arr()
-    clear_selected_files()
+    clear_items()
 
 
 })
@@ -1384,7 +1384,8 @@ ipcRenderer.on('gio_files', (e, data) => {
                 console.log(card)
                 folder_grid.insertBefore(card, folder_grid.firstChild)
 
-
+                let col = add_column('three');
+                col.append(card)
 
                 // let header = document.getElementById('header_' + card_id)
                 // header.classList.add('hidden')
@@ -1430,8 +1431,12 @@ ipcRenderer.on('add_card', (e, options) => {
 
         add_card(options).then(card => {
 
+            let col = add_column('three');
+            col.append(card)
+
+
             console.log(card)
-            options.grid.insertBefore(card, options.grid.firstChild)
+            options.grid.insertBefore(col, options.grid.firstChild)
 
             // update_cards(document.getElementById('main_view'))
             // let item = card.querySelector('[data-href="' + options.href + '"]')
@@ -1566,6 +1571,7 @@ function clear_cache() {
 // FILE PROPERTIES WINDOW
 async function get_file_properties(file_properties_obj) {
 
+    let sb_items        = document.getElementById('sidebar_items');
     let file_properties = document.getElementById('file_properties');
     let div             = add_div();
     let icon            = add_icon('times');
@@ -1620,6 +1626,8 @@ async function get_file_properties(file_properties_obj) {
     div.append(icon, table, document.createElement('hr'));
     file_properties.append(div);
 
+    sb_items.innerHTML = ''
+    sb_items.append(file_properties);
 
     localStorage.setItem('sidebar', 1);
     show_sidebar()
@@ -2270,7 +2278,7 @@ async function add_card(options) {
                 // SINGLE SELECT
             } else {
 
-                clear_selected_files()
+                clear_items()
 
                 // HIGHLIGHT
                 if (this.classList.contains('highlight_select')) {
@@ -2483,7 +2491,7 @@ async function add_card(options) {
 
                 // CLEAR ITEMS
                 console.log('esc pressed on keydown')
-                clear_selected_files()
+                clear_items()
 
                 // CLEAR COPY ARRAY
                 copy_files_arr = []
@@ -3548,14 +3556,80 @@ function get_folder_size1(href, callback) {
 
 // CLEAR WORKSPACE
 function clear_workspace() {
-    workspace_arr = []
-    if (localStorage.getItem('workspace')) {
-        localStorage.setItem('workspace', '')
-        let workspace_grid = document.getElementById('workspace_grid')
-        let workspace_content = document.getElementById('workspace_content')
-        workspace_content.classList.remove('active')
-        workspace_grid.innerHTML = ''
+
+    console.log('clearing workspace');
+    localStorage.setItem('workspace', '[]');
+
+    let workspace = document.getElementById('workspace');
+    workspace.innerHTML = '';
+
+}
+
+// ADD ITEM TO WORKSPACE
+function add_workspace() {
+
+    let file_exists     = 0;
+    let local_items     = JSON.parse(localStorage.getItem('workspace'));
+    let workspace       = document.getElementById('workspace')
+    let items           = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+    let sb_items        = document.getElementById('sidebar_items');
+    let workspace_msg   = document.getElementById('workspace_msg');
+    let workspace_arr   = [];
+
+    workspace_msg.innerHTML = ''
+
+    local_items.forEach(item => {
+        workspace_arr.push(item);
+    })
+
+    if (items.length > 0) {
+
+        items.forEach((item, idx) => {
+
+            console.log('href', item.dataset.href)
+            console.log('local', local_items)
+
+            local_items.forEach(local_item => {
+                if (local_item.indexOf(item.dataset.href) > -1) {
+                    notification(item.dataset.href + ' is alreay in workspace')
+                    file_exists = 1;
+                }
+            })
+
+            if (!file_exists) {
+
+                let card = item.cloneNode(true)
+                workspace.append(card);
+
+                let icon = add_icon('times');
+                icon.classList.add('small');
+                icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
+
+                let content = card.querySelector('.content');
+                content.prepend(icon);
+
+                /* Remove card */
+                icon.addEventListener('click', (e) => {
+                    card.remove();
+                    workspace_arr.splice(idx, 1);
+                    localStorage.setItem('workspace',JSON.stringify(workspace_arr));
+                })
+
+                workspace_arr.push(item.dataset.href);
+
+            }
+
+        })
+
+    } else {
+        workspace_msg.append('There are no items in your workspace. (Ctrl+Shift+Click)');
+        sb_items.append(workspace_msg);
     }
+
+    localStorage.setItem('workspace', JSON.stringify(workspace_arr));
+    sb_items.append(workspace);
+
+    clear_items();
 
 }
 
@@ -3565,175 +3639,140 @@ function clear_workspace() {
 async function get_workspace() {
 
     console.log('getting workspace')
-    if (localStorage.getItem('workspace')) {
 
-        let items                   = JSON.parse(localStorage.getItem('workspace'))
-        let sidebar_items           = document.getElementById('sidebar_items')
-        sidebar_items.innerHTML     = ''
+    let items               = JSON.parse(localStorage.getItem('workspace'))
+    let sb_items            = document.getElementById('sidebar_items')
+    let workspace           = add_div();
+    let workspace_msg       = add_div();
+    let btn_clear_workspace = add_item('Clear workspace');
 
-        sidebar_items.append(add_header('Workspace'))
+    sb_items.innerHTML      = '';
+    sb_items.innerHTML      = '';
+    workspace.id            = 'workspace';
+    workspace_msg.id        = 'workspace_msg'
 
-        if (items.length > 0) {
-
-            for (let i = 0; i < items.length; i++) {
-
-                let href            = items[i]
-                let is_folder       = 0
-
-                if (fs.statSync(href).isDirectory()) {
-                    is_folder = 1
-                } else {
-                    is_folder = 0
-                }
-
-                options = {
-                    id: 'workspace_' + i,
-                    href: href,
-                    linktext: path.basename(href),
-                    grid: workspace_grid,
-                    is_folder: is_folder
-                }
-
-                workspace_arr.push(options.href)
-
-                add_card(options).then(card => {
-
-                    card.style = 'font-size: .9em;'
-
-                    sidebar_items.append(card)
-                    update_card(href);
-
-                    let icon = add_icon('times');
-                    icon.classList.add('small');
-                    icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
-
-                    let content = card.querySelector('.content');
-                    content.prepend(icon);
-
-                    /* Remove card */
-                    icon.addEventListener('click', (e) => {
-                        card.remove();
-                        items.splice(i, 1);
-                        localStorage.setItem('workspace',JSON.stringify(items));
-                        get_workspace();
-                    })
-
-                    /* Card mouse over */
-                    card.addEventListener('mouseover', (e) => {
-                        e.preventDefault();
-                    })
-
-                    /* Card mouse out */
-                    card.addEventListener('mouseout', (e) => {
-                        e.preventDefault();
-                    })
-
-                })
-            }
-
-        } else {
-            msg = "Right click or press Ctrl+Shift+click to add a file or folder to the workspace"
-            sidebar_items.append(add_header(msg))
-        }
-
-    }
-
-    clear_selected_files()
-}
-
-// ADD ITEM TO WORKSPACE
-let workspace_arr = []
-function add_workspace() {
-
-    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-    console.log('items length', items.length);
-
-    items.forEach(item => {
-
-        workspace_arr.forEach(workspace_item => {
-            if (item == workspace_item) {
-
-            }
-        })
-
-    })
-
+    sb_items.append(add_header('Workspace'));
 
     if (items.length > 0) {
 
-        let workspace_grid = document.getElementById('workspace_grid');
+        items.forEach((item, idx) => {
 
-        let file_exists = 0;
-        for (let i = 0; i < items.length; i++) {
-
-            let stats = fs.statSync(items[i].dataset.href);
-            let is_folder = stats.isDirectory();
-
-            if (localStorage.getItem('workspace')) {
-                let local_items = JSON.parse(localStorage.getItem('workspace'))
-                for (let ii = 0; ii < local_items.length; ii++) {
-                    if (items[i].dataset.href == local_items[0]) {
-                        file_exists = 1
-                        return
-                    }
-                }
+            /* Add card */
+            options = {
+                id: idx,
+                href: item,
+                linktext: path.basename(item),
+                grid: workspace_grid
             }
 
-            if (!file_exists) {
+            add_card(options).then(card => {
 
-                let item = items[i]
-                let href = item.dataset.href
+                workspace.append(card);
+                update_card(card.dataset.href);
 
-                options = {
-                    id: 'workspace_' + i,
-                    href: href,
-                    linktext: path.basename(href),
-                    grid: workspace_grid,
-                    is_folder: is_folder
-                }
+                let icon = add_icon('times');
+                icon.classList.add('small');
+                icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
 
-                console.log('is folder', is_folder);
+                let content = card.querySelector('.content');
+                content.prepend(icon);
 
-                workspace_arr.push(options.href);
-                add_card(options).then(() => {
-                    update_cards(workspace_grid)
+                /* Remove card */
+                icon.addEventListener('click', (e) => {
+                    card.remove();
+                    items.splice(idx, 1);
+                    localStorage.setItem('workspace',JSON.stringify(items));
+                    get_workspace();
                 })
 
-                localStorage.setItem('workspace', JSON.stringify(workspace_arr))
 
-                workspace_arr = []
-                // /* Create remove icon */
-                // let icon    = add_icon('times')
-                // icon.classList.add('small')
-                // icon.style  = 'float:right; height:23px; width:23px; cursor: pointer;'
+            })
 
-                // /* Add card */
-                // // let card    = document.querySelector('[data-href="' + href + '"]')
-                // // card.style  = 'margin-right: 20px'
+        })
 
-                // let content = card.querySelector('.content')
-                // content.prepend(icon)
-                // content.classList.add('active')
-
-                // /* Remove card */
-                // icon.addEventListener('click', (e) => {
-                //     card.remove();
-                //     workspace_arr.splice(i, 1)
-                //     localStorage.setItem('workspace',JSON.stringify(workspace_arr))
-                //     // get_workspace()
-                // })
-
-            }
-
-        }
-
+    } else {
+        workspace_msg.append('There are no items in your workspace. (Ctrl+Shift+Click)');
+        sb_items.append(workspace_msg);
     }
 
-    // update_cards(workspace_grid)
-    clear_selected_files()
-    get_workspace()
+    console.log(items);
 
+    sb_items.append(workspace_msg)
+    sb_items.append(workspace)
+    workspace.append(btn_clear_workspace)
+    btn_clear_workspace.addEventListener('click', (e) => {
+        clear_workspace()
+    })
+
+    // if (items.length > 0) {
+
+    //     for (let i = 0; i < items.length; i++) {
+
+    //         let href        = items[i]
+    //         let is_folder   = 0
+
+    //         if (fs.statSync(href).isDirectory()) {
+    //             is_folder = 1
+    //         } else {
+    //             is_folder = 0
+    //         }
+
+    //         options = {
+    //             id: 'workspace_' + i,
+    //             href: href,
+    //             linktext: path.basename(href),
+    //             grid: workspace_grid,
+    //             is_folder: is_folder
+    //         }
+
+    //         workspace_arr.push(options.href)
+
+    //         add_card(options).then(card => {
+
+    //             card.style = 'font-size: .9em;'
+
+    //             sidebar_items.append(card)
+    //             update_card(href);
+
+    //             let icon = add_icon('times');
+    //             icon.classList.add('small');
+    //             icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
+
+    //             let content = card.querySelector('.content');
+    //             content.prepend(icon);
+
+    //             /* Remove card */
+    //             icon.addEventListener('click', (e) => {
+    //                 card.remove();
+    //                 items.splice(i, 1);
+    //                 localStorage.setItem('workspace',JSON.stringify(items));
+    //                 get_workspace();
+    //             })
+
+    //             /* Card mouse over */
+    //             card.addEventListener('mouseover', (e) => {
+    //                 e.preventDefault();
+    //             })
+
+    //             /* Card mouse out */
+    //             card.addEventListener('mouseout', (e) => {
+    //                 e.preventDefault();
+    //             })
+
+    //         })
+    //     }
+
+    // } else {
+    //     msg = "Right click or press Ctrl+Shift+click to add a file or folder to the workspace"
+    //     sidebar_items.append(add_header(msg))
+    // }
+
+
+
+    clear_items()
 }
+
+
 
 // QUICK SEARCH
 function quick_search() {
@@ -4935,7 +4974,7 @@ async function get_files(dir, callback) {
                     // CLEAR ITEMS
                     console.log('esc pressed on keydown')
 
-                    clear_selected_files()
+                    clear_items()
                     // CLEAR COPY ARRAY
                     // copy_files_arr = []
 
@@ -5019,7 +5058,7 @@ async function get_files(dir, callback) {
 
                     move_to_folder(destination, state)
 
-                    clear_selected_files()
+                    clear_items()
                     clear_copy_arr()
 
                 }
@@ -5037,12 +5076,6 @@ async function get_files(dir, callback) {
             // // POPULATE WORKSPACE
             // workspace_arr = []
             // get_workspace()
-
-            /* Clear workspace */
-            let clearworkspace = document.getElementById('clear_workspace')
-            clearworkspace.addEventListener('click', function (e) {
-                clear_workspace()
-            })
 
             /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
             cardindex = 0;
@@ -5460,7 +5493,7 @@ async function get_files(dir, callback) {
 
     // })
 
-    clear_selected_files()
+    clear_items()
 
 }
 
@@ -5605,7 +5638,7 @@ function add_copy_file(source, card_id) {
 }
 
 // CLEAR SELECTED FILES ARRAY
-function clear_selected_files() {
+function clear_items() {
 
     console.log('clearing selected files')
 
@@ -5832,7 +5865,7 @@ async function find_files() {
             // CLEAR ON ESCAPE
             if (e.key === 'Escape') {
                 console.log('esc pressed on find')
-                clear_selected_files()
+                clear_items()
             }
 
             if (e.key === 'Enter') {
@@ -6006,6 +6039,7 @@ async function find_files() {
 
                                     add_card(options).then((card) => {
                                         card.style = 'font-size: .9em;'
+                                        card.tabIndex = idx;
                                         update_card(item)
                                     })
 
@@ -6514,7 +6548,7 @@ function paste() {
     }
 
     // CLEAN UP
-    clear_selected_files();
+    clear_items();
 
 }
 
@@ -6819,7 +6853,7 @@ function add_p(text) {
 function add_header(text) {
     let header = add_div() //document.createElement('h5');
     header.classList.add('header');
-    header.style = 'font-size: .9em; margin-bottom: 10px;';
+    header.title = text
     // header.style = 'font-weight:bold; font-size: 14px; padding: 5px; position: fixed;';
     header.append(text);
     return header;
@@ -6953,6 +6987,7 @@ function create_folder(folder) {
             // GET REFERENCE TO FOLDER GRID
             let folder_grid = document.getElementById('folder_grid')
 
+
             let items = document.getElementsByClassName('folder_card')
             let card_id = 'folder_card_' + items.length
 
@@ -6970,7 +7005,10 @@ function create_folder(folder) {
                 /* Add Card */
                 add_card(options).then(card => {
 
-                    folder_grid.insertBefore(card, folder_grid.firstChild)
+                    let col = add_column('three');
+                    col.append(card)
+
+                    folder_grid.insertBefore(col, folder_grid.firstChild)
 
                     let header = document.getElementById('header_' + card_id)
                     header.classList.add('hidden')
@@ -6992,7 +7030,7 @@ function create_folder(folder) {
 
     })
 
-    clear_selected_files()
+    clear_items()
 
 }
 
@@ -7232,11 +7270,14 @@ function create_file_from_template(filename) {
 
                 add_card(options).then(card => {
 
+                    let col = add_column('three');
+                    col.append(card)
+
                     let files_card = document.getElementById('files_card')
                     files_card.classList.remove('hidden')
 
                     let file_grid = document.getElementById('file_grid')
-                    file_grid.insertBefore(card, file_grid.firstChild)
+                    file_grid.insertBefore(col, file_grid.firstChild)
 
 
                     let input = card.getElementsByTagName('input')
@@ -7262,7 +7303,7 @@ function create_file_from_template(filename) {
 
     }
 
-    clear_selected_files()
+    clear_items()
 
 }
 
@@ -7386,7 +7427,7 @@ function delete_confirmed() {
 
         // CLEAR DELETE ARRAY
         delete_arr = []
-        clear_selected_files()
+        clear_items()
 
         // UPDATE CARDS
         update_cards(main_view);
@@ -7417,7 +7458,7 @@ async function delete_file(file) {
 
                 if (err) {
 
-                    clear_selected_files()
+                    clear_items()
 
                     notification('Error deleting file: ' + source + ' \n' + err)
                     console.log('Error deleting file: ' + source + ' \n' + err)
@@ -8003,7 +8044,7 @@ function extract(source) {
 
             }
 
-            clear_selected_files()
+            clear_items()
             notification('extracted ' + source)
 
         }
@@ -8136,7 +8177,7 @@ function compress(source) {
                 }
 
                 // hide_progress(card_id)
-                clear_selected_files()
+                clear_items()
 
 
             } else {
@@ -8245,7 +8286,7 @@ function compress(source) {
         }, 1000);
 
 
-        clear_selected_files()
+        clear_items()
 
     }
 }
@@ -8258,41 +8299,39 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // OPEN TEMPLATES FOLDER
     if (command == 'open_templates_folder') {
-        get_files(path.join(__dirname, 'assets/templates'), { sort: localStorage.getItem('sort') })
+        get_files(path.join(__dirname, 'assets/templates'), { sort: localStorage.getItem('sort') });
     }
 
     // EXTRACT HERE
     if (command === 'extract_here') {
-
-        extract(source)
-
+        extract(source);
     }
 
     // COMPRESS HERE
     if (command === 'compress_folder') {
 
-        notification('compressing ' + source + ' to dest ' + breadcrumbs.value)
+        notification('compressing ' + source + ' to dest ' + breadcrumbs.value);
 
-        let filename = path.basename(source) + '.tar.gz'
-        let filepath = breadcrumbs.value
+        let filename = path.basename(source) + '.tar.gz';
+        let filepath = breadcrumbs.value;
 
-        let file_exists = fs.existsSync(path.join(filepath, filename))
+        let file_exists = fs.existsSync(path.join(filepath, filename));
 
         if (file_exists == true) {
 
-            let msg = 'confirm overwrite'
-            ipcRenderer.send('confirm_overwrite', msg)
+            let msg = 'confirm overwrite';
+            ipcRenderer.send('confirm_overwrite', msg);
 
             ipcRenderer.on('overwrite_canceled', (e, res) => {
-                hide_progress()
+                hide_progress();
             })
 
         } else {
 
 
             // BUILD COMPRESS COMMAND
-            let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"'
-            console.log('cmd ' + cmd)
+            let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"';
+            console.log('cmd ' + cmd);
 
             exec(cmd, (err, stdout, stderr) => {
 
@@ -8333,7 +8372,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
                     }
 
                     // hide_progress(card_id)
-                    clear_selected_files()
+                    clear_items()
 
 
                 } else {
@@ -8341,8 +8380,6 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
                 }
 
             })
-
-
 
             let c = 0
             let stats
@@ -8448,7 +8485,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
             }, 1000);
 
 
-            clear_selected_files()
+            clear_items()
 
         }
 
@@ -8658,7 +8695,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
             exec(cmd)
         });
 
-        clear_selected_files()
+        clear_items()
 
     }
 
@@ -8684,7 +8721,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 // RUN ON CONTEXT MENU CLOSE
 ipcRenderer.on('clear_selected_files', (e, res) => {
 
-    clear_selected_files()
+    clear_items()
 
 })
 
@@ -8943,14 +8980,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         console.log('running del')
 
-        // delete_arr = []
-
         items = []
         items = document.querySelectorAll('.highlight_select, .ds-selected')
-        // let items = document.getElementsByClassName('ds-selected')
-
-
-        console.log(items.length)
 
         let source = ''
         if (items.length > 0) {
@@ -9038,8 +9069,6 @@ window.addEventListener('DOMContentLoaded', () => {
         get_view(breadcrumbs.value)
         localStorage.setItem('folder', breadcrumbs.value)
 
-        get_devices()
-
     })
 
     // FIND
@@ -9062,7 +9091,7 @@ window.addEventListener('DOMContentLoaded', () => {
     Mousetrap.bind('esc', () => {
 
         clear_copy_arr()
-        clear_selected_files()
+        clear_items()
         console.log('esc pressed')
 
     })

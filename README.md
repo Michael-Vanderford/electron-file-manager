@@ -11,11 +11,11 @@ Install
 4. npm start
 
 
-![Screenshot 1](/screenshots/screenshot1.png?raw=true "Find")
+![Screenshot 1](/screenshots/screenshot1.png?raw=true "Workspace")
 
-![Screenshot 2](/screenshots/screenshot2.png?raw=true "Disk Summary")
+![Screenshot 2](/screenshots/screenshot2.png?raw=true "Filesystem")
 
-![Screenshot 3](/screenshots/screenshot3.png?raw=true "Properties")
+![Screenshot 3](/screenshots/screenshot3.png?raw=true "Find")
 
 <!-- Keboard Shortcuts
 
