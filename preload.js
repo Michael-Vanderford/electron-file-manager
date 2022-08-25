@@ -463,8 +463,6 @@ ipcRenderer.on('copy-complete', function (e) {
 // CONFIRM MOVE
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
-    console.log('confirming move array', copy_files_arr)
-
     let btn_cancel = add_button('btn_cancel', 'Cancel')
     let btn_ok = add_button('btn_ok', 'Move')
     btn_ok.classList.add('primary')
@@ -1416,27 +1414,29 @@ ipcRenderer.on('gio_files', (e, data) => {
 // ADD CARD VIA IPC
 ipcRenderer.on('add_card', (e, options) => {
 
-    console.log('on adding card', options)
+    console.log('on adding card', options);
 
     try {
 
-        let stats = fs.statSync(options.href)
+        let stats = fs.statSync(options.href);
         if (stats.isDirectory()) {
-            options.grid = document.getElementById('folder_grid')
+            options.grid = document.getElementById('folder_grid');
         } else {
-            options.grid = document.getElementById('file_grid')
+            options.grid = document.getElementById('file_grid');
         }
 
-        console.log('running add_card', options)
+        console.log('running add_card', options);
 
         add_card(options).then(card => {
 
             let col = add_column('three');
-            col.append(card)
+            col.append(card);
 
 
-            console.log(card)
-            options.grid.insertBefore(col, options.grid.firstChild)
+            console.log(card);
+            options.grid.insertBefore(col, options.grid.firstChild);
+
+            update_card(card.dataset.href);
 
             // update_cards(document.getElementById('main_view'))
             // let item = card.querySelector('[data-href="' + options.href + '"]')
@@ -1444,12 +1444,12 @@ ipcRenderer.on('add_card', (e, options) => {
 
         })
 
-        update_cards(document.getElementById('main_view'))
+        // update_cards(document.getElementById('main_view'))
         // ui card fluid nav_item nav file_card
         // ui card fluid nav_item nav file_card ds-selectable
 
     } catch (err) {
-        console.log(err)
+        console.log(err);
     }
 
 })
@@ -2180,6 +2180,8 @@ async function add_card(options) {
             is_image = 1;
             img.classList.add('img');
             img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
+        } else {
+            img.classList.add('icon');
         }
 
         /* Handle Audio Files */
@@ -2211,9 +2213,9 @@ async function add_card(options) {
 
         /* Folder */
         if (is_folder) {
-            get_folder_icon(icon => {
-                img.src = icon
-            })
+            // get_folder_icon(icon => {
+                img.src = folder_icon
+            // })
 
         /* File */
         } else {
@@ -2244,7 +2246,10 @@ async function add_card(options) {
             if (e.ctrlKey == true && e.shiftKey == true) {
 
                 notification('ctrl + shift clicked')
+
+                get_workspace()
                 add_workspace()
+
 
                 // MULTI SELECT
             } else if (e.ctrlKey == true) {
@@ -3554,6 +3559,16 @@ function get_folder_size1(href, callback) {
     })
 }
 
+/* Clear minibar highlight */
+function clear_minibar() {
+    let minibar_item = document.getElementById('minibar')
+    minibar_items = minibar_item.querySelectorAll('.item')
+    console.log(minibar_items)
+    minibar_items.forEach(item => {
+        item.style = '';
+    })
+}
+
 // CLEAR WORKSPACE
 function clear_workspace() {
 
@@ -3574,9 +3589,19 @@ function add_workspace() {
     let items           = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
     let sb_items        = document.getElementById('sidebar_items');
     let workspace_msg   = document.getElementById('workspace_msg');
+    let mb_icon    = document.getElementById('mb_workspace')
     let workspace_arr   = [];
 
     workspace_msg.innerHTML = ''
+    local_items.innerHTML   = ''
+
+    clear_minibar();
+    mb_icon.style = 'color: #ffffff !important'
+
+    localStorage.setItem('sidebar', 1);
+    show_sidebar()
+
+
 
     local_items.forEach(item => {
         workspace_arr.push(item);
@@ -3629,6 +3654,8 @@ function add_workspace() {
     localStorage.setItem('workspace', JSON.stringify(workspace_arr));
     sb_items.append(workspace);
 
+
+
     clear_items();
 
 }
@@ -3647,9 +3674,10 @@ async function get_workspace() {
     let btn_clear_workspace = add_item('Clear workspace');
 
     sb_items.innerHTML      = '';
-    sb_items.innerHTML      = '';
     workspace.id            = 'workspace';
     workspace_msg.id        = 'workspace_msg'
+
+    workspace.style.height = '100%'
 
     sb_items.append(add_header('Workspace'));
 
@@ -3657,12 +3685,15 @@ async function get_workspace() {
 
         items.forEach((item, idx) => {
 
+            let stats = fs.statSync(item);
+
             /* Add card */
             options = {
                 id: idx,
                 href: item,
                 linktext: path.basename(item),
-                grid: workspace_grid
+                grid: workspace,
+                is_folder: stats.isDirectory()
             }
 
             add_card(options).then(card => {
@@ -3691,7 +3722,7 @@ async function get_workspace() {
         })
 
     } else {
-        workspace_msg.append('There are no items in your workspace. (Ctrl+Shift+Click)');
+        workspace_msg.append('There are no items in your workspace. (Ctrl+Shift+Click). You can also drag and drop items here.');
         sb_items.append(workspace_msg);
     }
 
@@ -3699,76 +3730,70 @@ async function get_workspace() {
 
     sb_items.append(workspace_msg)
     sb_items.append(workspace)
+
     workspace.append(btn_clear_workspace)
     btn_clear_workspace.addEventListener('click', (e) => {
         clear_workspace()
     })
 
-    // if (items.length > 0) {
 
-    //     for (let i = 0; i < items.length; i++) {
+    /* Workspace on drag enter */
+    workspace.ondragenter = function (e) {
+        e.preventDefault()
+        // workspace_content.classList.add('active');
+        // workspace.style = 'height: 40px !important;'
+        console.log('on drag enter workspace');
+        return false;
+    }
 
-    //         let href        = items[i]
-    //         let is_folder   = 0
+    /* Workspace on drag over */
+    workspace.ondragover = (e) => {
+        console.log('workspace on drag over');
+        return false;
+    }
 
-    //         if (fs.statSync(href).isDirectory()) {
-    //             is_folder = 1
-    //         } else {
-    //             is_folder = 0
-    //         }
+    /* Workspace on drag leave */
+    workspace.ondragleave = (e) => {
+        e.preventDefault();
+        return false;
+    }
 
-    //         options = {
-    //             id: 'workspace_' + i,
-    //             href: href,
-    //             linktext: path.basename(href),
-    //             grid: workspace_grid,
-    //             is_folder: is_folder
-    //         }
+    /* Workspace content on drop */
+    workspace.ondrop = (e) => {
+        // console.log('running workspace on drop ');
+        // let items = document.querySelectorAll('.highlight_select')
+        console.log('items', items)
+        add_workspace();
+    }
 
-    //         workspace_arr.push(options.href)
-
-    //         add_card(options).then(card => {
-
-    //             card.style = 'font-size: .9em;'
-
-    //             sidebar_items.append(card)
-    //             update_card(href);
-
-    //             let icon = add_icon('times');
-    //             icon.classList.add('small');
-    //             icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
-
-    //             let content = card.querySelector('.content');
-    //             content.prepend(icon);
-
-    //             /* Remove card */
-    //             icon.addEventListener('click', (e) => {
-    //                 card.remove();
-    //                 items.splice(i, 1);
-    //                 localStorage.setItem('workspace',JSON.stringify(items));
-    //                 get_workspace();
-    //             })
-
-    //             /* Card mouse over */
-    //             card.addEventListener('mouseover', (e) => {
-    //                 e.preventDefault();
-    //             })
-
-    //             /* Card mouse out */
-    //             card.addEventListener('mouseout', (e) => {
-    //                 e.preventDefault();
-    //             })
-
-    //         })
-    //     }
-
-    // } else {
-    //     msg = "Right click or press Ctrl+Shift+click to add a file or folder to the workspace"
-    //     sidebar_items.append(add_header(msg))
+    // /* Workspace on drag start */
+    // workspace_content.ondragstart = (e) => {
+    //     e.preventDefault();
     // }
 
+    // /* Workspace on drag enter */
+    // workspace_content.ondragenter = (e) => {
+    //     // notification('running on drag enter workspace content')
+    //     // e.preventDefault();
+    //     // return false;
 
+    // }
 
+    // /* Workspace content on drag over */
+    // workspace_content.ondragover = (e) => {
+    //     e.preventDefault();
+    //     return false;
+    // }
+
+    // /* Workspace content on drop */
+    // workspace_content.ondrop = (e) => {
+    //     console.log('running workspace on drop ');
+    //     let items = document.querySelectorAll('.highlight_select')
+    //     console.log('items', items)
+    //     add_workspace();
+    // }
+
+    // update_cards(workspace)
     clear_items()
 }
 
@@ -5728,7 +5753,7 @@ function clear_items() {
     main_view.focus();
 
     /* Restart dragselect module */
-    ds.start();
+    // ds.start();
 
 }
 
@@ -5806,30 +5831,41 @@ async function find_files() {
         let end_date                = document.getElementById('end_date');
         let grid                    = add_grid();
         let input                   = add_input('text', 'sb_find_input');
+        let mb_find                 = document.getElementById('mb_find');
 
+        let show_options            = localStorage.getItem('find_options');
 
-        let show_folders            = localStorage.getItem('find_folders')
-        let show_files              = localStorage.getItem('find_files')
+        let show_folders            = localStorage.getItem('find_folders');
+        let show_files              = localStorage.getItem('find_files');
+
+        clear_minibar();
+        mb_find.style = 'color: #ffffff !important'
+
+        if (show_options == null) {
+            localStorage.setItem('find_options', 0);
+        }
 
         if (show_folders == null) {
-            localStorage.setItem('find_folders', 1)
+            localStorage.setItem('find_folders', 1);
         }
 
         if (show_files == null) {
-            localStorage.setItem('find_files', 1)
+            localStorage.setItem('find_files', 1);
         }
 
-        find_folders.checked        = show_folders
-        find_files.checked          = show_files
+        if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
+
+        find_folders.checked        = show_folders;
+        find_files.checked          = show_files;
 
         // FIND FOLDERS
         find_folders.addEventListener('change', (e) => {
             if (find_folders.checked) {
-                localStorage.setItem('find_folders', 1)
-                console.log('setting find to 1')
+                localStorage.setItem('find_folders', 1);
+                console.log('setting find to 1');
             } else {
-                localStorage.setItem('find_folders', 0)
-                console.log('setting find to 0')
+                localStorage.setItem('find_folders', 0);
+                console.log('setting find to 0');
             }
         })
 
@@ -5837,13 +5873,13 @@ async function find_files() {
         find_files.addEventListener('change', (e) => {
             if (find_files.checked) {
 
-                localStorage.setItem('find_files', 1)
-                console.log('setting find to 1')
+                localStorage.setItem('find_files', 1);
+                console.log('setting find to 1');
 
             } else {
 
-                localStorage.setItem('find_files', 0)
-                console.log('setting find to 0')
+                localStorage.setItem('find_files', 0);
+                console.log('setting find to 0');
 
             }
         })
@@ -6084,22 +6120,31 @@ async function find_files() {
 
             let chevron = btn_find_options.querySelector('i');
 
+            /* Remove hidden */
             if (find_options.classList.contains('hidden')) {
                 find_options.classList.remove('hidden')
 
                 chevron.classList.add('down')
                 chevron.classList.remove('right')
 
+                localStorage.setItem('find_options', 1);
+
+            /* Add hidden */
             } else {
                 find_options.classList.add('hidden')
 
                 chevron.classList.add('right')
                 chevron.classList.remove('down')
+
+                localStorage.setItem('find_options', 0);
             }
 
         })
 
     })
+
+    localStorage.setItem('sidebar', 1);
+    show_sidebar();
 
 }
 
@@ -6726,6 +6771,7 @@ if (!fs.existsSync(folder_icon_dir)) {
 }
 
 // GET FOLDER_ICON
+let folder_icon = '';
 function get_folder_icon(callback) {
 
     let theme = readline.createInterface({
@@ -6753,15 +6799,13 @@ function get_folder_icon(callback) {
 
             });
 
-            // console.log('search folder', icon);
-            callback(icon);
-
+            folder_icon = icon
             return false;
 
         }
     })
-
 }
+get_folder_icon();
 
 function get_icon_path(file) {
 
@@ -6855,7 +6899,8 @@ function add_header(text) {
     header.classList.add('header');
     header.title = text
     // header.style = 'font-weight:bold; font-size: 14px; padding: 5px; position: fixed;';
-    header.append(text);
+    // header.append(text);
+    header.innerHTML = text
     return header;
 }
 
@@ -7666,7 +7711,8 @@ function update_card(href) {
 
         console.log(card)
 
-        let img = card.querySelector('.image')
+        let image   = card.querySelector('.image').getElementsByTagName('img')
+        let icon    = card.querySelector('icon')
 
         // DETAILS
         let extra = card.querySelector('.extra')
@@ -7683,14 +7729,14 @@ function update_card(href) {
         // HANDLE DIRECTORY
         if (stats.isDirectory()) {
 
-            img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
-            img.height = '24px'
-            img.width = '24px'
+            // img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
 
-            // get_folder_size1(href, size => {
-            //     extra.innerHTML = get_file_size(size)
-            //     localStorage.setItem(href, size)
-            // })
+            console.log(folder_icon)
+
+            // icon.src    = folder_icon
+            // img.src     = folder_icon
+            // img.height  = '24px'
+            // img.width   = '24px'
 
             // CARD ON MOUSE OVER
             card.addEventListener('mouseover', (e) => {
@@ -7728,6 +7774,7 @@ function update_card(href) {
                     '\n' +
                     'Created: ' + ctime
             })
+
         }
 
 
@@ -8811,79 +8858,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-    /* Workspace */
-    let workspace = document.getElementById('workspace')
-    let workspace_content = document.getElementById('workspace_content');
     let minibar = document.getElementById('minibar')
 
     minibar.addEventListener('click', (e) => {
         localStorage.setItem('sidebar', 1)
         show_sidebar()
     })
-    // workspace.draggable = true
-
-    /* Workspace on drag enter */
-    workspace.ondragenter = function (e) {
-        e.preventDefault()
-        workspace_content.classList.add('active');
-        workspace.style = 'height: 40px !important;'
-        console.log('on drag enter workspace');
-        return false;
-    }
-
-    /* Workspace on drag over */
-    workspace.ondragover = (e) => {
-        console.log('workspace on drag over');
-        return false;
-    }
-
-    /* Workspace on drag leave */
-    workspace.ondragleave = (e) => {
-        e.preventDefault();
-        return false;
-    }
-
-    /* Workspace content on drop */
-    workspace.ondrop = (e) => {
-        console.log('running workspace on drop ');
-        let items = document.querySelectorAll('.highlight_select')
-        console.log('items', items)
-        add_workspace();
-    }
-
-    /*
-        Workspace content
-        note: this is not the same as workspace
-    */
-
-
-    /* Workspace on drag start */
-    workspace_content.ondragstart = (e) => {
-        e.preventDefault();
-    }
-
-    /* Workspace on drag enter */
-    workspace_content.ondragenter = (e) => {
-        // notification('running on drag enter workspace content')
-        // e.preventDefault();
-        // return false;
-
-    }
-
-    /* Workspace content on drag over */
-    workspace_content.ondragover = (e) => {
-        e.preventDefault();
-        return false;
-    }
-
-    /* Workspace content on drop */
-    workspace_content.ondrop = (e) => {
-        console.log('running workspace on drop ');
-        let items = document.querySelectorAll('.highlight_select')
-        console.log('items', items)
-        add_workspace();
-    }
-
 
     // CHECK WHAT THIS IS
     // ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))

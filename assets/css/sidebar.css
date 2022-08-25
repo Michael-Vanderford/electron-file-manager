@@ -65,6 +65,23 @@
         font-size: .75em !important;
     }
 
+    /* Find labels */
+    #find_div .label {
+        font-weight: normal !important;
+        color: #069 !important;
+    }
+
+    /* Find input */
+    .find_input {
+        height:20px !important; width: 100% !important;
+    }
+
+
+    #find_div .label {
+        font-weight: normal !important;
+        color: #cfcfcf !important;
+    }
+
     #minibar {
         margin-left: -4px;
         padding: 8px;
@@ -128,6 +145,28 @@
         min-width: 200px;
         overflow: scroll;
         scroll-behavior: smooth;
+    }
+
+    #sidebar_items .header {
+        background: transparent !important;
+    }
+
+    /* Find labels */
+    #find_div .label {
+        font-weight: normal !important;
+        color: #069 !important;
+    }
+
+    /* Find input */
+    .find_input {
+        height:20px !important;
+        width: 100% !important;
+    }
+
+
+    #find_div .label {
+        font-weight: normal !important;
+        color: #cfcfcf !important;
     }
 
     #minibar {

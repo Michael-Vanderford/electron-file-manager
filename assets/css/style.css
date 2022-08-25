@@ -444,24 +444,6 @@ body {
         height: 20px;
     }
 
-
-    /* Find */
-    #find_div {
-        top: 60px; font-size:12px; background:#ebebeb; padding:10px; position:fixed; right:0; height:100%; width:300px; z-index: 1000 !important;
-    }
-
-    /* Find labels */
-    #find_div .label {
-        font-weight: normal !important;
-        color: #069 !important;
-    }
-
-    /* Find input */
-    .find_input {
-        height:20px !important; width: 100% !important;
-    }
-
-
     /* DRAG SELECT */
     .ui.card .ds-selected {
         background:#cfcfcf !important;

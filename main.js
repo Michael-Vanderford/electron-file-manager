@@ -496,10 +496,13 @@ function createWindow() {
             nodeIntegrationInWorker: false,
             nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
+            sandbox: false
         },
     }
 
     win = new BrowserWindow(options);
+
+    // win.removeMenu()
     // win.webContents.openDevTools();
 
     // LOAD INDEX FILE
@@ -616,6 +619,7 @@ function copy(copy_files_arr, state) {
                 id: 0,
                 href: destination_file,
                 linktext: path.basename(destination_file),
+                is_folder: 1,
                 grid: ''
             }
 
