@@ -508,56 +508,57 @@ function createWindow() {
     // LOAD INDEX FILE
     win.loadFile('src/index.html')
 
-    ipcMain.handle('dark-mode:toggle', () => {
-        if (nativeTheme.shouldUseDarkColors) {
-            nativeTheme.themeSource = 'light'
-        } else {
-            nativeTheme.themeSource = 'dark'
-        }
-        return nativeTheme.shouldUseDarkColors
-    })
-
-    ipcMain.handle('dark-mode:system', () => {
-        nativeTheme.themeSource = 'system'
-    })
-
-    // RELOAD WINDOW
-    ipcMain.on('reload',function(e){
-        win.loadFile('src/index.html')
-    })
-
-    // MAXAMIZE WINDOW
-    ipcMain.on('maximize', () => {
-        win.maximize()
-    })
-
-    // MINIMIZE WINDOW
-    ipcMain.on('minimize', () => {
-        win.minimize()
-    })
-
-    // CLOSE WINDOW
-    ipcMain.on('close', () => {
-        var window = BrowserWindow.getFocusedWindow();
-        window.hide()
-    })
-
-    // GO BACK
-    ipcMain.on('go_back', function(e, msg) {
-        console.log('running go back from main ')
-        win.webContents.goBack()
-    })
-
-    ipcMain.on('go_foward', (e) => {
-        win.webContents.goFoward()
-    })
-
-    // showDevices()
-    // win.webContents.on('get_devices', (e, devicelist, callback) => {
-    //     console.log('device lengh list ' + devicelist.length)
-    // })
 
 }
+
+ipcMain.handle('dark-mode:toggle', () => {
+    if (nativeTheme.shouldUseDarkColors) {
+        nativeTheme.themeSource = 'light'
+    } else {
+        nativeTheme.themeSource = 'dark'
+    }
+    return nativeTheme.shouldUseDarkColors
+})
+
+ipcMain.handle('dark-mode:system', () => {
+    nativeTheme.themeSource = 'system'
+})
+
+// RELOAD WINDOW
+ipcMain.on('reload',function(e){
+    win.loadFile('src/index.html')
+})
+
+// MAXAMIZE WINDOW
+ipcMain.on('maximize', () => {
+    win.maximize()
+})
+
+// MINIMIZE WINDOW
+ipcMain.on('minimize', () => {
+    win.minimize()
+})
+
+// CLOSE WINDOW
+ipcMain.on('close', () => {
+    var window = BrowserWindow.getFocusedWindow();
+    window.hide()
+})
+
+// GO BACK
+ipcMain.on('go_back', function(e, msg) {
+    console.log('running go back from main ')
+    win.webContents.goBack()
+})
+
+ipcMain.on('go_foward', (e) => {
+    win.webContents.goFoward()
+})
+
+// showDevices()
+// win.webContents.on('get_devices', (e, devicelist, callback) => {
+//     console.log('device lengh list ' + devicelist.length)
+// })
 
 // GET ICON PATH
 ipcMain.on('get_icon_path', (e, href) => {
@@ -1002,7 +1003,7 @@ function createMoveDialog(data, copy_files_arr) {
         parent:win,
         modal:true,
         width: 550,
-        height: 300,
+        height: 275,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,

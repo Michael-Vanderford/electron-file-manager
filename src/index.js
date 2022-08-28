@@ -199,10 +199,10 @@ minibar_items.forEach(item => {
     item.addEventListener('click', (e) => {
         clear_minibar();
         item.style = 'color: #ffffff !important; font-weight:bold;';
-        localStorage.setItem('minibar_item', item.id)
+        localStorage.setItem('minibar', item.id)
         switch (item.id) {
             case 'mb_home':
-                window.api.get_tree(window.api.get_home());
+                window.api.get_sidebar_files(window.api.get_home());
                 break;
             case 'mb_workspace':
                 window.api.get_workspace();
@@ -211,23 +211,24 @@ minibar_items.forEach(item => {
                 window.api.find_files()
                 break;
             case 'mb_fs':
-                window.api.get_tree('/');
+                window.api.get_sidebar_files('/');
                 break;
             case 'mb_devices':
                 window.api.get_devices();
                 break;
-            case 'mb_log':
-                window.api.getlog();
+            case 'mb_info':
+                window.api.get_info();
                 break;
 
         }
     })
 });
 
-let active_minibar_item = localStorage.getItem('minibar_item')
+let active_minibar_item = localStorage.getItem('minibar')
 if (active_minibar_item == null) {
-    localStorage.setItem('minibar_item', 'mb_home')
+    localStorage.setItem('minibar', 'mb_home')
     document.querySelector('#mb_home').style = 'color: #ffffff !important; font-weight:bold;';
+    window.api.get_sidebar_files(window.api.get_home());
 } else {
     document.querySelector('#' + active_minibar_item).style = 'color: #ffffff !important; font-weight:bold;';
 
@@ -235,22 +236,23 @@ if (active_minibar_item == null) {
 
     switch (active_minibar_item) {
         case 'mb_home':
-            window.api.get_tree(window.api.get_home());
+            window.api.get_sidebar_files(window.api.get_home());
             break;
         case 'mb_workspace':
+            // window.api.get_workspace();
             window.api.get_workspace();
             break;
         case 'mb_find':
             window.api.find_files()
             break;
         case 'mb_fs':
-            window.api.get_tree('/');
+            window.api.get_sidebar_files('/');
             break;
         case 'mb_devices':
             window.api.get_devices();
             break;
-        case 'mb_log':
-            window.api.getlog();
+        case 'mb_info':
+            window.api.get_info();
             break;
 
     }
@@ -732,7 +734,7 @@ $(function() {
 
             localStorage.setItem('show_hidden', 1)
 
-            window.api.get_tree(breadcrumbs.value)
+            // window.api.get_tree(breadcrumbs.value)
 
         }else {
 
@@ -743,7 +745,7 @@ $(function() {
 
             localStorage.setItem('show_hidden', 0)
 
-            window.api.get_tree(breadcrumbs.value)
+            // window.api.get_tree(breadcrumbs.value)
         }
 
 

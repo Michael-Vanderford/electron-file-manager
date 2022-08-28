@@ -44,14 +44,44 @@
     }
 
     #sidebar_items .item:hover {
-        width: 100%;
+
+        /* width: 100%; */
+
         background-color: #425261;
         border-radius: 5px;
         cursor: pointer;
+
     }
 
-    #sidebar_items a {
+    /* #sidebar_items .icon { */
+        /* height: 23px; */
+        /* width: 23px; */
+    /* } */
+
+    #sidebar_items .icon:hover {
+        cursor: pointer;
+    }
+
+    #sidebar_items .nav_header {
+        font-size: 1.1em;
+        display: inline-block;
+    }
+
+    #sidebar_items .item .nav_header a {
+        display: inline-block;
+    }
+
+    #sidebar #workspace {
+        font-size: 0.8em;
+    }
+
+    #sidebar_items .item a {
+        /* display: inline-block; */
         color: #cfcfcf !important;
+    }
+
+    #sidebar_items .tree_item a {
+        display: inline-block;
     }
 
     #sidebar_items input {
@@ -62,7 +92,11 @@
     }
 
     #sidebar_items label {
-        font-size: .75em !important;
+        font-size: 1em !important;
+    }
+
+    #sidebar_items hr {
+        border-color: #3a3a3a !important;
     }
 
     /* Find labels */
@@ -203,8 +237,22 @@
 
     }
 
+    #sidebar_items .nav_header {
+        display: inline-block;
+    }
+
     #sidebar_items .item {
         padding: 8px;
+    }
+
+    #sidebar_items .item:hover {
+
+        /* width: 100%; */
+
+        background-color: #cfcfcf !important;
+        border-radius: 5px;
+        cursor: pointer;
+
     }
 
     #workspace_grid a {

@@ -3276,108 +3276,108 @@ function get_folder_size(href) {
 
 }
 
-// CLEAR WORKSPACE
-function clear_workspace() {
-    workspace_arr = []
-    if (localStorage.getItem('workspace')) {
-        localStorage.setItem('workspace', '')
-        let workspace_grid = document.getElementById('workspace_grid')
-        let workspace_content = document.getElementById('workspace_content')
-        workspace_content.classList.remove('active')
-        workspace_grid.innerHTML = ''
-    }
+// // CLEAR WORKSPACE
+// function clear_workspace() {
+//     workspace_arr = []
+//     if (localStorage.getItem('workspace')) {
+//         localStorage.setItem('workspace', '')
+//         let workspace_grid = document.getElementById('workspace_grid')
+//         let workspace_content = document.getElementById('workspace_content')
+//         workspace_content.classList.remove('active')
+//         workspace_grid.innerHTML = ''
+//     }
 
-}
+// }
 
-// GET WORKSPACE ITEMS
-async function get_workspace() {
+// // GET WORKSPACE ITEMS
+// async function get_workspace() {
 
-    if (localStorage.getItem('workspace')) {
+//     if (localStorage.getItem('workspace')) {
 
-        let items = JSON.parse(localStorage.getItem('workspace'))
+//         let items = JSON.parse(localStorage.getItem('workspace'))
 
-        let workspace_content = document.getElementById('workspace_content')
-        let workspace_grid = document.getElementById('workspace_grid')
-        workspace_content.classList.add('active')
+//         let workspace_content = document.getElementById('workspace_content')
+//         let workspace_grid = document.getElementById('workspace_grid')
+//         workspace_content.classList.add('active')
 
-        workspace_grid.innerHTML = ''
+//         workspace_grid.innerHTML = ''
 
-        for (let i = 0; i < items.length; i++) {
+//         for (let i = 0; i < items.length; i++) {
 
-            let item = items[i]
-            let href = item
+//             let item = items[i]
+//             let href = item
 
-            options = {
-                id: 'workspace_' + i,
-                href: href,
-                linktext: path.basename(href),
-                grid: workspace_grid
-            }
+//             options = {
+//                 id: 'workspace_' + i,
+//                 href: href,
+//                 linktext: path.basename(href),
+//                 grid: workspace_grid
+//             }
 
-            workspace_arr.push(options.href)
+//             workspace_arr.push(options.href)
 
-            add_card(options)
+//             add_card(options)
 
-        }
+//         }
 
-        update_cards(workspace_grid)
+//         update_cards(workspace_grid)
 
-    }
+//     }
 
-}
+// }
 
-// ADD ITEM TO WORKSPACE
-let workspace_arr = []
-function add_workspace() {
+// // ADD ITEM TO WORKSPACE
+// let workspace_arr = []
+// function add_workspace() {
 
-    let items = document.querySelectorAll('.highlight, .highlight_select')
-    if (items.length > 0) {
+//     let items = document.querySelectorAll('.highlight, .highlight_select')
+//     if (items.length > 0) {
 
-        let workspace_content = document.getElementById('workspace_content')
-        let workspace_grid = document.getElementById('workspace_grid')
-        workspace_content.classList.add('active')
+//         let workspace_content = document.getElementById('workspace_content')
+//         let workspace_grid = document.getElementById('workspace_grid')
+//         workspace_content.classList.add('active')
 
-        let file_exists = 0
-        for (let i = 0; i < items.length; i++) {
+//         let file_exists = 0
+//         for (let i = 0; i < items.length; i++) {
 
-            if (localStorage.getItem('workspace')) {
-                let local_items = JSON.parse(localStorage.getItem('workspace'))
-                for (let ii = 0; ii < local_items.length; ii++) {
+//             if (localStorage.getItem('workspace')) {
+//                 let local_items = JSON.parse(localStorage.getItem('workspace'))
+//                 for (let ii = 0; ii < local_items.length; ii++) {
 
-                    if (items[i].dataset.href == local_items[0]) {
-                        file_exists = 1
-                        return
-                    }
+//                     if (items[i].dataset.href == local_items[0]) {
+//                         file_exists = 1
+//                         return
+//                     }
 
-                }
-            }
+//                 }
+//             }
 
-            if (!file_exists) {
+//             if (!file_exists) {
 
-                let item = items[i]
-                let href = item.dataset.href
+//                 let item = items[i]
+//                 let href = item.dataset.href
 
-                options = {
-                    id: 'workspace_' + i,
-                    href: href,
-                    linktext: path.basename(href),
-                    grid: workspace_grid
-                }
+//                 options = {
+//                     id: 'workspace_' + i,
+//                     href: href,
+//                     linktext: path.basename(href),
+//                     grid: workspace_grid
+//                 }
 
-                workspace_arr.push(options.href)
-                add_card(options)
+//                 workspace_arr.push(options.href)
+//                 add_card(options)
 
-                localStorage.setItem('workspace', JSON.stringify(workspace_arr))
+//                 localStorage.setItem('workspace', JSON.stringify(workspace_arr))
 
-            }
+//             }
 
-        }
+//         }
 
 
 
-    }
+//     }
 
-}
+// }
 
 // QUICK SEARCH
 function quick_search() {
@@ -4248,29 +4248,29 @@ async function get_files(dir) {
             // WORSPACE
 
             // POPULATE WORKSPACE
-            workspace_arr = []
-            get_workspace()
+            // workspace_arr = []
+            // get_workspace()
 
-            let clearworkspace = document.getElementById('clear_workspace')
-            clearworkspace.addEventListener('click', function (e) {
-                clear_workspace()
-            })
+            // let clearworkspace = document.getElementById('clear_workspace')
+            // clearworkspace.addEventListener('click', function (e) {
+            //     clear_workspace()
+            // })
 
-            let workspace = document.getElementById('workspace')
+            // let workspace = document.getElementById('workspace')
 
-            // WORKSPACE ON DRAG ENETER
-            workspace.ondragenter = function (e) {
-                notification('running')
-                workspace_content.classList.add('active')
+            // // WORKSPACE ON DRAG ENETER
+            // workspace.ondragenter = function (e) {
+            //     notification('running')
+            //     workspace_content.classList.add('active')
 
-                e.preventDefault()
-            }
+            //     e.preventDefault()
+            // }
 
-            workspace.ondragleave = function (e) {
+            // workspace.ondragleave = function (e) {
 
-                e.preventDefault()
+            //     e.preventDefault()
 
-            }
+            // }
 
             // navigator.clipboard.write([
             //     new ClipboardItem({
@@ -4279,25 +4279,25 @@ async function get_files(dir) {
             // ]);
 
 
-            // WORKSPACE CONTENT
-            let workspace_content = document.getElementById('workspace_content')
+            // // WORKSPACE CONTENT
+            // let workspace_content = document.getElementById('workspace_content')
 
-            workspace_content.ondragenter = function (e) {
-                notification('running on drag enter workspace content')
-                e.preventDefault()
-            }
+            // workspace_content.ondragenter = function (e) {
+            //     notification('running on drag enter workspace content')
+            //     e.preventDefault()
+            // }
 
-            workspace_content.ondragover = function (e) {
-                e.preventDefault()
-            }
+            // workspace_content.ondragover = function (e) {
+            //     e.preventDefault()
+            // }
 
-            workspace_content.ondrop = function (e) {
+            // workspace_content.ondrop = function (e) {
 
-                notification('running workspace on drop ')
+            //     notification('running workspace on drop ')
 
-                add_workspace()
+            //     add_workspace()
 
-            }
+            // }
 
             // // WATCH DIRECTORY FOR CHANGES
             // fs.watch(dir, "", (eventtype, filename) => {
