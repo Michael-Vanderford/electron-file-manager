@@ -80,6 +80,16 @@
         color: #cfcfcf !important;
     }
 
+    #sidebar_items .eject {
+        position: absolute;
+        right: 0px;
+        border-radius: 5px;
+        height: 23px;
+        width: 23px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 2px !important;
+    }
+
     #sidebar_items .tree_item a {
         display: inline-block;
     }

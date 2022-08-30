@@ -133,9 +133,23 @@ ipcRenderer.on('start_path', (e, res) => {
     }
 })
 
+/**
+ * Load view from main
+ */
+ipcRenderer.on('view', (e, view) => {
+    get_view(view)
+})
+
 /* On notification */
 ipcRenderer.on('notification', (e, msg) => {
     notification(msg)
+})
+
+ipcRenderer.on('get_copy_files_arr' , (e, copy_files_arr) => {
+
+    console.log('on get_copy_files_arr', copy_files_arr)
+    // copy_files()
+
 })
 
 /* Update Card */
@@ -2365,6 +2379,10 @@ async function add_card(options) {
             nc2 = parseInt(card.dataset.id)
 
             active_href = href;
+            // console.log('active href', active_href)
+            if (is_folder) {
+                ipcRenderer.send('active_folder', href);
+            }
 
             /* Add audio controls on mouse over */
             if (is_audio) {
@@ -2551,15 +2569,15 @@ async function add_card(options) {
             console.log('on drag start')
             clear_copy_arr()
 
-            // let datalist = e.dataTransfer.items
-            // let data = fs.readFileSync(href)
-            // let blob = new Blob([data])
-            // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
-            // const fr = new FileReader()
-            // fr.readAsText(file)
+            let datalist = e.dataTransfer.items
+            let data = fs.readFileSync(href)
+            let blob = new Blob([data])
+            let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
+            const fr = new FileReader()
+            fr.readAsText(file)
             // e.dataTransfer.setData(path.basename(href), "testing")
-            // console.log('bufer data', file)
-            // datalist.add(file)
+            console.log('bufer data', file)
+            datalist.add(file)
 
             e.dataTransfer.effectAllowed = 'copyMove'
 
@@ -2602,6 +2620,8 @@ async function add_card(options) {
 
                 destination = breadcrumbs.value
             }
+
+            ipcRenderer.send('active_folder', destination)
 
             let main_view = document.getElementById('main_view')
             main_view.classList.add('selectableunselected')
@@ -3531,7 +3551,7 @@ async function get_dir_size(dir) {
 }
 
 // GET FOLDER SIZE
-function get_folder_size(href) {
+function get_flder_size(href) {
 
     return new Promise(resolve => {
 
@@ -3933,7 +3953,7 @@ async function get_view(dir) {
             localStorage.setItem('folder', dir);
 
             /* Update active directory in main.js */
-            ipcRenderer.send('folder', dir);
+            ipcRenderer.send('active_folder', dir);
 
         }
     } catch (err) {
@@ -5093,26 +5113,29 @@ async function get_files(dir, callback) {
             })
 
             // ON DRAG ENTER
-            main_view.ondragenter = function (e) {
+            main_view.ondragenter = (e) => {
 
                 // dragging++
+                console.log(copy_files_arr)
+                console.log('main view on drag enter', breadcrumbs.value)
 
                 destination = breadcrumbs.value
                 target = e.target
 
-                e.preventDefault()
-                e.stopPropagation()
+                ipcRenderer.send('active_folder', destination)
 
-                return false
+                // e.preventDefault()
+                // e.stopPropagation()
+
+                // return false
             };
 
             // DRAG OVER
-            main_view.ondragover = function (e) {
+            main_view.ondragover = (e) => {
 
-                e.stopPropagation()
-                e.preventDefault()
-
-                return false
+                e.preventDefault();
+                e.stopPropagation();
+                // return false
 
             }
 
@@ -5125,10 +5148,17 @@ async function get_files(dir, callback) {
             }
 
             // ON DROP
+            /* ref: https://www.geeksforgeeks.org/drag-and-drop-files-in-electronjs/ */
             let state = 0
             main_view.ondrop = function (e) {
 
                 e.preventDefault();
+                e.stopPropagation();
+
+                for (const f of e.dataTransfer.files) {
+                    // Using the path attribute to get absolute file path
+                    console.log('File Path of dragged files: ', f.path)
+                }
 
                 const file_data = e.dataTransfer.files
 
@@ -5141,11 +5171,6 @@ async function get_files(dir, callback) {
 
                 // COPY FILES
                 if (e.ctrlKey == true) {
-
-                    // alert('test')
-                    // notification('running copy files on main_view ' + destination)
-
-                    // if the place you copy to is breadcrumbs then 2 else 1
 
                     console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
                     if (breadcrumbs.value == destination) {
@@ -5168,7 +5193,7 @@ async function get_files(dir, callback) {
 
                     move_to_folder(destination, state)
 
-                    clear_items()
+                    // clear_items()
                     clear_copy_arr()
 
                 }
@@ -5176,7 +5201,8 @@ async function get_files(dir, callback) {
                 // ipcRenderer.send('active_folder', document.getElementById('breadcrumbs').value)
 
                 // clear_selected_files()
-                return false
+                clear_items();
+                return false;
 
             }
 
@@ -5701,57 +5727,10 @@ function add_history(dir) {
         if (fs.existsSync(dir)) {
             history_arr.push(dir)
         }
-
-
     }
 }
 
-let copy_files_arr = []
-function add_copy_file(source, card_id) {
 
-    let c1 = 0;
-    let c2 = 0;
-    if (source == '' || card_id == '') {
-
-    } else {
-
-        if (copy_files_arr.length > 0) {
-
-            if (copy_files_arr.every(x => x.source != source)) {
-
-                console.log('adding selected file ' + source)
-                console.log('card id is ' + card_id)
-
-                let file = {
-                    card_id: card_id,
-                    source: source,
-                    size: localStorage.getItem(source),
-                    destination: ''
-                }
-
-                copy_files_arr.push(file)
-
-                // ADDING MAIN COPY FILES ARRAY
-                ipcRenderer.send('add_copy_files', copy_files_arr)
-            }
-
-        } else {
-
-            let file = {
-                card_id: card_id,
-                source: source,
-                size: localStorage.getItem(source),
-            }
-
-            copy_files_arr.push(file)
-            ipcRenderer.send('add_copy_files', copy_files_arr)
-
-        }
-    }
-
-    console.log('add copy files array', copy_files_arr)
-
-}
 
 // CLEAR SELECTED FILES ARRAY
 function clear_items() {
@@ -5781,7 +5760,7 @@ function clear_items() {
     /* Clear elements */
     pager.innerHTML             = '';
     txt_search.value            = '';
-    file_properties.innerHTML   = '';
+    // file_properties.innerHTML   = '';
 
     /* Hidden elements */
     txt_search.classList.add          ('hidden');
@@ -5852,6 +5831,8 @@ function clear_items() {
 
 // CLEAR COPY CACHE
 function clear_copy_arr() {
+
+    console.log('clearing copy arr')
 
     if (copy_files_arr.length > 0) {
         notification('Cleared copied items');
@@ -6370,19 +6351,18 @@ async function get_devices() {
 
             device.style = 'display: flex';
             umount.title = "Unmount '" + item.href + "'"
-            umount.style = 'padding-right: 15px;'
-            device.append(add_item(link), umount)
+            // umount.style = 'position: absolute; right: 5px;'
+            device.append(icon, add_item(link), umount)
 
             umount.addEventListener('click', (e) => {
                 execSync("umount '" + item.href + "'")
             })
 
             // link.style = 'float:left;';
+            // link.classList.add('nowrap');
 
-            link.classList.add('nowrap');
 
-
-            link.prepend(icon);
+            // link.prepend(icon);
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 get_view(item.href);
@@ -7208,14 +7188,74 @@ function create_folder(folder) {
 
 }
 
+/* Add copy files array */
+let copy_files_arr = []
+function add_copy_file(source, card_id) {
+
+    console.log('running add_copy_files')
+
+    let c1 = 0;
+    let c2 = 0;
+    if (source == '' || card_id == '') {
+
+    } else {
+
+        if (copy_files_arr.length > 0) {
+
+            if (copy_files_arr.every(x => x.source != source)) {
+
+                console.log('adding selected file ' + source)
+                console.log('card id is ' + card_id)
+
+                let file = {
+                    card_id: card_id,
+                    source: source,
+                    size: localStorage.getItem(source),
+                    destination: ''
+                }
+
+                copy_files_arr.push(file)
+
+                // ADDING MAIN COPY FILES ARRAY
+                ipcRenderer.send('add_copy_files', copy_files_arr)
+                // ipcRenderer.send('copy_to_clipboard', JSON.stringify(copy_files_arr));
+
+            }
+
+        } else {
+
+            let file = {
+                card_id: card_id,
+                source: source,
+                size: localStorage.getItem(source),
+            }
+
+            copy_files_arr.push(file)
+            ipcRenderer.send('add_copy_files', copy_files_arr)
+            // ipcRenderer.send('copy_to_clipboard', JSON.stringify(copy_files_arr));
+
+
+
+        }
+    }
+
+    console.log('add copy files array', copy_files_arr)
+
+}
+
 /* COPY FILES */
 async function copy_files(destination_folder, state) {
+
+    console.log('running send get copy files')
+    ipcRenderer.send('get_copy_files')
+
+    console.log('copy_files array is here' , copy_files_arr)
 
     let info_view = document.getElementById('info_view');
     info_view.innerHTML = '';
 
     console.log('destination', destination, 'state', state);
-    console.log('copy files array length', copy_files_arr.length);
+    console.log('running copy files array length', copy_files_arr.length);
 
     // RESET COUNTER. HANDLES SETTING ROOT FOLDER SO THE SIZE CAN BE UPDATED
     // copy_folder_counter = 0
@@ -7225,7 +7265,7 @@ async function copy_files(destination_folder, state) {
         item.destination = destination_folder;
     })
 
-    ipcRenderer.send('copy', copy_files_arr, state);
+    ipcRenderer.send('copy', state);
     clear_copy_arr();
 
 }

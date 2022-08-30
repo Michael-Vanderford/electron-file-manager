@@ -7,7 +7,9 @@ const nativeTheme = require('electron').nativeTheme
 const nativeImage = require('electron')
 const shell = require('electron').shell
 const move_windows = new Set()
+const window = require('electron').BrowserWindow;
 const windows = new Set()
+const { clipboard } = require('electron')
 
 
 ipcMain.on('open_file', (e) => {
@@ -16,7 +18,7 @@ ipcMain.on('open_file', (e) => {
 
 // GET_CURRENT DIRECTOR
 dir = ''
-ipcMain.on('folder', (e, breadcrumb) => {
+ipcMain.on('active_folder', (e, breadcrumb) => {
     dir = breadcrumb;
     console.log('setting current directory', dir)
 })
@@ -24,6 +26,8 @@ ipcMain.on('folder', (e, breadcrumb) => {
 // COPY FILES RECURSIVE
 let recursive = 0
 function copyfile(source, target, state, callback) {
+
+    let win = window.getFocusedWindow();
 
     // TARGET
     var targetFile = target
@@ -270,6 +274,8 @@ function get_disk_space(href, callback) {
 
         du.stdout.on('data', function (res) {
 
+            let win = window.getFocusedWindow();
+
             let size = parseInt(res.replace('.', '') * 1024)
             size = get_file_size(size)
 
@@ -453,9 +459,94 @@ function get_file_size(fileSizeInBytes) {
 
 }
 
+/**
+ * Copy string to the clipboard
+ * @param {string} data
+ */
+function CopyToClipboard(data) {
+    clipboard.writeText(data);
+    console.log(clipboard.readText());
+}
+
+/**
+ * Read clipboard
+ * Return Clopboard
+ */
+function ReadClipboard () {
+    return clipboard.readText();
+}
+
+/**
+ * Clear Clipboard
+ */
+function ClearClipboard() {
+    clipboard.clear();
+}
+
+
+
 // CREATE MAIN WINDOW
-let win = null
-function createWindow() {
+// let win;
+// function createWindow() {
+
+//     let displayToUse = 0
+//     let lastActive = 0
+//     let displays = screen.getAllDisplays()
+
+//     // Single Display
+//     if (displays.length === 1) {
+//         displayToUse = displays[0]
+//     }
+
+//     // Multi Display
+//     else {
+//         // if we have a last active window, use that display for the new window
+//         if (!displayToUse && lastActive) {
+//             displayToUse = screen.getDisplayMatching(lastActive.getBounds());
+//         }
+
+//         // fallback to primary display or first display
+//         if (!displayToUse) {
+//             displayToUse = screen.getPrimaryDisplay() || displays[3];
+//         }
+//     }
+
+//     // WINDOW OPTIONS
+//     let options = {
+//         minWidth: 1024,
+//         minHeight: 600,
+//         width: 1600,
+//         height: 768,
+//         backgroundColor: '#2e2c29',
+//         x:displayToUse.bounds.x + 50,
+//         y:displayToUse.bounds.y + 50,
+//         frame: true,
+//         webPreferences: {
+//             nodeIntegration: false, // is default value after Electron v5
+//             contextIsolation: true, // protect against prototype pollution
+//             enableRemoteModule: false, // turn off remote
+//             nodeIntegrationInWorker: false,
+//             nativeWindowOpen: false,
+//             preload: path.join(__dirname, 'preload.js'),
+//             sandbox: false
+//         },
+//     }
+
+//     win = new BrowserWindow(options);
+
+//     // win.removeMenu()
+//     // win.webContents.openDevTools();
+
+//     // LOAD INDEX FILE
+//     win.loadFile('src/index.html')
+
+//     win.once('ready-to-show', () => {
+//         win.show();
+//     });
+// }
+
+
+const createWindow = exports.createWindow = () => {
 
     let displayToUse = 0
     let lastActive = 0
@@ -464,10 +555,9 @@ function createWindow() {
     // Single Display
     if (displays.length === 1) {
         displayToUse = displays[0]
-    }
 
     // Multi Display
-    else {
+    } else {
         // if we have a last active window, use that display for the new window
         if (!displayToUse && lastActive) {
             displayToUse = screen.getDisplayMatching(lastActive.getBounds());
@@ -500,16 +590,44 @@ function createWindow() {
         },
     }
 
-    win = new BrowserWindow(options);
+    let newWindow = new BrowserWindow(options);
 
-    // win.removeMenu()
-    // win.webContents.openDevTools();
+    newWindow.loadFile('src/index.html');
 
-    // LOAD INDEX FILE
-    win.loadFile('src/index.html')
+    newWindow.once('ready-to-show', () => {
+    newWindow.show();
+    });
+
+    newWindow.on('closed', () => {
+    windows.delete(newWindow);
+    newWindow = null;
+    });
+
+    windows.add(newWindow);
+    return newWindow;
+};
 
 
-}
+app.whenReady().then(() => {
+
+    // globalShortcut.register('Escape', (e) => {
+    //     console.log('Escape is pressed');
+    //     let active_window = BrowserWindow.getFocusedWindow()
+    //     active_window.hide()
+
+    // });
+
+    createWindow()
+
+    // ACTIVATE EVENTS GO HERE?
+    // app.on('activate', function () {
+    //     // On macOS it's common to re-create a window in the app when the
+    //     // dock icon is clicked and there are no other windows open.
+    //     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    // })
+
+})
+
 
 ipcMain.handle('dark-mode:toggle', () => {
     if (nativeTheme.shouldUseDarkColors) {
@@ -522,6 +640,20 @@ ipcMain.handle('dark-mode:toggle', () => {
 
 ipcMain.handle('dark-mode:system', () => {
     nativeTheme.themeSource = 'system'
+})
+
+ipcMain.on('copy_to_clipboard', (a, data) => {
+    console.log('copying to clipboard', data)
+    CopyToClipboard(data);
+});
+
+ipcMain.on('read_clipboard', (a) => {
+    ReadClipboard(data);
+    // win.webContents
+})
+
+ipcMain.on('clear_clipboard', (a, data) => {
+
 })
 
 // RELOAD WINDOW
@@ -570,13 +702,16 @@ function get_icon_path(href) {
 
     app.getFileIcon(href).then(icon => {
 
+        let win = window.getFocusedWindow();
+
         icon_path = icon.toDataURL()
         let data = {
             href: href,
             icon_path: icon_path
         }
 
-        win.webContents.send('icon_path',data)
+        win.webContents.send('icon_path',data);
+
     })
 }
 
@@ -596,15 +731,41 @@ ipcMain.on('ondragstart', (e, href) => {
     })
 })
 
-// COPY
-function copy(copy_files_arr, state) {
 
-    // console.log('arr length', copy_files_arr.length)
+// ADD FILES TO COPY ARRAY
+let copy_files_arr = [];
+ipcMain.on('add_copy_files', function( e, data) {
+
+    console.log('on add copy files', data)
+    copy_files_arr = data
+
+})
+
+
+// COPY
+// ipcMain.on('copy', (e, copy_files_arr, state) => {
+
+//     console.log('on copy', copy_files_arr);
+//     copy(copy_files_arr, state);
+
+// })
+
+ipcMain.on('copy', (e, copy_files_arr, state = 0) => {
+
+    console.log('on copy', copy_files_arr);
+    copy(copy_files_arr, state);
+
+})
+
+// COPY
+function copy(state) {
+
+    console.log('copy arr length', copy_files_arr.length)
 
     copy_files_arr.every((item, idx) => {
 
-        let source = item.source
-        let destination = item.destination
+        let source = item.source;
+        let destination = dir; //item.destination
 
         let source_stats = fs.statSync(source)
         let destination_stats = fs.statSync(destination)
@@ -746,6 +907,7 @@ function copy(copy_files_arr, state) {
                     })
 
                     // SHOW PROGRESS
+                    let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
 
                     copyfile(source, destination_file, state, () => {});
@@ -766,12 +928,7 @@ function copy(copy_files_arr, state) {
     return true
 }
 
-// COPY
-ipcMain.on('copy', (e, copy_files_arr, state) => {
 
-    copy(copy_files_arr, state);
-
-})
 
 // SHOW COPY CONFIRM OVERWRITE DIALOG
 ipcMain.on('show_confirm_dialog', (e, data) => {
@@ -788,15 +945,17 @@ ipcMain.on('show_confirm_dialog', (e, data) => {
 // let confirm = null
 function createConfirmDialog(data, copy_files_arr) {
 
+    let win = window.getFocusedWindow();
+
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
     let y = bounds.y + ((bounds.height - 400) / 2);
 
     const confirm = new BrowserWindow({
-        parent:win,
+        parent: win,
         modal:true,
         width: 550,
-        height: 415,
+        height: 350,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -1000,7 +1159,8 @@ function createMoveDialog(data, copy_files_arr) {
 
     // DIALOG SETTINGS
     let confirm = new BrowserWindow({
-        parent:win,
+
+        parent: window.getFocusedWindow(),
         modal:true,
         width: 550,
         height: 275,
@@ -1067,7 +1227,9 @@ ipcMain.on('move_canceled', (e) => {
 
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
+
     if (copy_files_arr.length > 0) {
+
         data = {
             state:          0,
             source:         copy_files_arr[0].source,
@@ -1177,6 +1339,7 @@ ipcMain.on('move_confirmed', (e, data, copy_files_arr) => {
     })
 
     // SHOW PROGRESS
+    let win = window.getFocusedWindow();
     win.webContents.send('progress', max);
 
     // SET STATE TO 1 IF PASTE
@@ -1398,10 +1561,10 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
     let y = bounds.y + ((bounds.height - 400) / 2);
 
     let confirm = new BrowserWindow({
-        parent:win,
+        parent: window.getFocusedWindow(),
         modal:true,
         width: 550,
-        height: 450,
+        height: 350,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -1894,22 +2057,23 @@ ipcMain.on('get_folder_size', (e , args) => {
             du = exec(cmd)
             du.stdout.on('data', function (res) {
 
+                let win = window.getFocusedWindow();
+
                 // SEND FOLDER SIZE TO RENDERER
                 let size = parseInt(res.replace('.', '') * 1024)
-                e.sender.send('folder_size', {href: args.href, size: size})
+                win.webContents.send('folder_size', {href: args.href, size: size})
 
             })
-
         }
-
     }
-
 
 })
 
 // GET DISK SPACE
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
+
+    let win = window.getFocusedWindow();
 
     get_disk_space(href, (res) => {
         win.webContents.send('disk_space', res)
@@ -1923,22 +2087,21 @@ ipcMain.on('get_diskspace_summary', (e) => {
     get_diskspace_summary()
 })
 
-// ADD FILES TO COPY ARRAY
-ipcMain.on('add_copy_files', function( e, data) {
 
-    copy_files_arr = data
 
-})
+// // SEND COPY FILES ARRAY
+// ipcMain.on('get_copy_files_arr', (e, destination_folder) => {
 
-// SEND COPY FILES ARRAY
-ipcMain.on('get_copy_files', (e, destination_folder) => {
+//     console.log('on get_copy_files arr', copy_files_arr)
 
-    e.sender.send('copy_files', {copy_files_arr : copy_files_arr, destination_folder: destination_folder})
+//     let win = window.getFocusedWindow();
+//     win.webContents.send('copy_files_arr', copy_files_arr);
+//     // win.webContents.send('copy_files', {copy_files_arr : copy_files_arr, destination_folder: destination_folder})
 
-    // CLEAR COPY FILES ARRAY
-    copy_files_arr = []
+//     // CLEAR COPY FILES ARRAY
+//     copy_files_arr = []
 
-})
+// })
 
 // CREATE CHILD WINDOW
 function createChildWindow() {
@@ -2012,25 +2175,7 @@ function createChildWindow() {
 //     win = null;
 //   });
 
-app.whenReady().then(() => {
 
-    // globalShortcut.register('Escape', (e) => {
-    //     console.log('Escape is pressed');
-    //     let active_window = BrowserWindow.getFocusedWindow()
-    //     active_window.hide()
-
-    // });
-
-    createWindow()
-
-    // ACTIVATE EVENTS GO HERE?
-    app.on('activate', function () {
-        // On macOS it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
-        if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
-
-})
 
 //   windows.add(win);
 
@@ -2129,6 +2274,14 @@ const template = [
         label: 'View',
         submenu: [
             {
+                label: 'Disk Usage Summary',
+                click: () => {
+                    // win.webContents.send('view', get
+                    get_diskspace_summary();
+                }
+            },
+            {type: 'separator'},
+            {
                 label: 'Sort',
                 submenu: [
                     {
@@ -2155,6 +2308,7 @@ const template = [
                 label: 'Show Sidebar',
                 accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+B' : 'CTRL+B',
                 click: () => {
+                    let win = window.getFocusedWindow();
                     win.webContents.send('sidebar');
                 }
             },
@@ -2173,9 +2327,13 @@ const template = [
             },
             {role: 'toggleDevTools'},
             {type: 'separator'},
-            {role: 'reload'},
             {type: 'separator'},
-            {role: 'viewMenu'}
+            {
+                label: 'Appearance',
+                role: 'viewMenu'
+            },
+            {type: 'separator'},
+            {role: 'reload'},
 
         ]
     },
