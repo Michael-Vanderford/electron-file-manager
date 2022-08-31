@@ -12,6 +12,10 @@ const windows = new Set()
 const { clipboard } = require('electron')
 
 
+ipcMain.on('delete_file', (e, file) => {
+    delete_file(file, () => {});
+})
+
 ipcMain.on('open_file', (e) => {
 
 })
@@ -26,8 +30,6 @@ ipcMain.on('active_folder', (e, breadcrumb) => {
 // COPY FILES RECURSIVE
 let recursive = 0
 function copyfile(source, target, state, callback) {
-
-    let win = window.getFocusedWindow();
 
     // TARGET
     var targetFile = target
@@ -54,7 +56,10 @@ function copyfile(source, target, state, callback) {
             grid: ''
         }
 
-        win.webContents.send('add_card', options)
+        windows.forEach(win => {
+            win.webContents.send('add_card', options)
+        })
+
 
     }
 
@@ -68,8 +73,10 @@ function copyfile(source, target, state, callback) {
             /* Update cards */
             if (--recursive == 0) {
 
-                win.webContents.send('update_cards')
-                callback(1)
+                windows.forEach(win => {
+                    win.webContents.send('update_cards');
+                })
+                callback(1);
 
             }
 
@@ -415,7 +422,9 @@ function delete_file(file, callback) {
                     console.log(err)
                 } else {
                     console.log('folder deleted')
-                    win.send('remove_card', file)
+                    windows.forEach(win => {
+                        win.send('remove_card', file)
+                    })
                     callback(1)
                 }
             })
@@ -429,7 +438,9 @@ function delete_file(file, callback) {
                     callback(0)
                 } else {
                     console.log('file deleted')
-                    win.send('remove_card', file)
+                    windows.forEach(win => {
+                        win.send('remove_card', file)
+                    })
                     callback(1)
                 }
 
@@ -482,8 +493,6 @@ function ReadClipboard () {
 function ClearClipboard() {
     clipboard.clear();
 }
-
-
 
 // CREATE MAIN WINDOW
 // let win;
@@ -544,7 +553,6 @@ function ClearClipboard() {
 //         win.show();
 //     });
 // }
-
 
 const createWindow = exports.createWindow = () => {
 
@@ -607,7 +615,6 @@ const createWindow = exports.createWindow = () => {
     return newWindow;
 };
 
-
 app.whenReady().then(() => {
 
     // globalShortcut.register('Escape', (e) => {
@@ -627,7 +634,6 @@ app.whenReady().then(() => {
     // })
 
 })
-
 
 ipcMain.handle('dark-mode:toggle', () => {
     if (nativeTheme.shouldUseDarkColors) {
@@ -680,7 +686,9 @@ ipcMain.on('close', () => {
 // GO BACK
 ipcMain.on('go_back', function(e, msg) {
     console.log('running go back from main ')
-    win.webContents.goBack()
+    windows.forEach(win => {
+        win.webContents.goBack()
+    })
 })
 
 ipcMain.on('go_foward', (e) => {
@@ -794,7 +802,9 @@ function copy(state) {
                 })
 
                 // SHOW PROGRESS
-                win.webContents.send('progress', max);
+                windows.forEach(win => {
+                    win.webContents.send('progress', max);
+                })
 
                 // BUILD DESTINATION PATH
                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
@@ -834,7 +844,10 @@ function copy(state) {
                     })
 
                     // SHOW PROGRESS
+                    // windows.forEach(win => {
+                    let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
+                    // })
 
                     // COPY FOLDERS RECURSIVE
                     copyfolder(source, destination_file, state, () => {
@@ -927,7 +940,6 @@ function copy(state) {
 
     return true
 }
-
 
 
 // SHOW COPY CONFIRM OVERWRITE DIALOG
@@ -1048,7 +1060,9 @@ ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr) => {
     })
 
     // SHOW PROGRESS
-    win.webContents.send('progress', max);
+    windows.forEach(win => {
+        win.webContents.send('progress', max);
+    })
 
     // COPY FOLDER
     if (fs.statSync(data.source).isDirectory()) {
@@ -1279,7 +1293,10 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
-                        win.send('remove_card', data.source);
+                        windows.forEach(win => {
+                            win.send('remove_card', data.source);
+                        })
+
                     })
                 })
 
@@ -1299,7 +1316,9 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
-                        win.send('remove_card', data.source);
+                        windows.forEach(win => {
+                            win.send('remove_card', data.source);
+                        })
                     })
                 })
 
@@ -1339,8 +1358,10 @@ ipcMain.on('move_confirmed', (e, data, copy_files_arr) => {
     })
 
     // SHOW PROGRESS
-    let win = window.getFocusedWindow();
-    win.webContents.send('progress', max);
+    // let win = window.getFocusedWindow();
+    windows.forEach(win => {
+        win.webContents.send('progress', max);
+    })
 
     // SET STATE TO 1 IF PASTE
     // let state = data.state
@@ -1718,7 +1739,9 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 
                     copy_files_arr.forEach(data => {
                         delete_file(data.source, () => {
-                            win.send('remove_card', data.source);
+                            windows.forEach(win => {
+                                win.send('remove_card', data.source);
+                            })
                         })
                     })
 
@@ -2057,11 +2080,13 @@ ipcMain.on('get_folder_size', (e , args) => {
             du = exec(cmd)
             du.stdout.on('data', function (res) {
 
-                let win = window.getFocusedWindow();
+                // let win = window.getFocusedWindow();
 
-                // SEND FOLDER SIZE TO RENDERER
-                let size = parseInt(res.replace('.', '') * 1024)
-                win.webContents.send('folder_size', {href: args.href, size: size})
+                windows.forEach(win => {
+                    // SEND FOLDER SIZE TO RENDERER
+                    let size = parseInt(res.replace('.', '') * 1024)
+                    win.webContents.send('folder_size', {href: args.href, size: size})
+                })
 
             })
         }

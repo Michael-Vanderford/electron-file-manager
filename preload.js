@@ -2362,21 +2362,22 @@ async function add_card(options) {
 
         // MOUSE OVER
         let timeoutid
-        card.addEventListener('mouseover', function (e) {
+        card.onmouseover = (e) => {
 
             console.log('running mouseover')
 
-            e.preventDefault()
+            e.preventDefault();
+            e.stopPropagation();
 
             // SET GLOBAL CARD ID ON HOVER
             // todo: this needs to be vetted
-            card_id = id
+            card_id = id;
 
             // HIGHLIGHT CARD timeoutid = setTimeout(() => {
-            card.classList.add("highlight")
+            card.classList.add("highlight");
 
-            nc = nc2
-            nc2 = parseInt(card.dataset.id)
+            nc = nc2;
+            nc2 = parseInt(card.dataset.id);
 
             active_href = href;
             // console.log('active href', active_href)
@@ -2387,12 +2388,12 @@ async function add_card(options) {
             /* Add audio controls on mouse over */
             if (is_audio) {
                 source.src = href;
-                audio.setAttribute('controls', '')
-                audio.style = 'height: 15px; width: 100%;'
-                audio.append(source)
+                audio.setAttribute('controls', '');
+                audio.style = 'height: 15px; width: 100%;';
+                audio.append(source);
             }
 
-        })
+        }
 
         //  OUT
         card.addEventListener('mouseout', function (e) {
@@ -2621,7 +2622,7 @@ async function add_card(options) {
                 destination = breadcrumbs.value
             }
 
-            ipcRenderer.send('active_folder', destination)
+            // ipcRenderer.send('active_folder', destination)
 
             let main_view = document.getElementById('main_view')
             main_view.classList.add('selectableunselected')
@@ -5112,21 +5113,27 @@ async function get_files(dir, callback) {
 
             })
 
+            main_view.onmouseover = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                // ipcRenderer.send('active_folder', breadcrumbs.value);
+            }
+
             // ON DRAG ENTER
             main_view.ondragenter = (e) => {
 
                 // dragging++
-                console.log(copy_files_arr)
-                console.log('main view on drag enter', breadcrumbs.value)
+                // console.log(copy_files_arr)
+                // console.log('main view on drag enter', breadcrumbs.value)
 
                 destination = breadcrumbs.value
                 target = e.target
 
-                ipcRenderer.send('active_folder', destination)
+                // ipcRenderer.send('active_folder', destination)
+                // ipcRenderer.send('active_folder', breadcrumbs.value);
 
                 // e.preventDefault()
                 // e.stopPropagation()
-
                 // return false
             };
 
@@ -5135,6 +5142,7 @@ async function get_files(dir, callback) {
 
                 e.preventDefault();
                 e.stopPropagation();
+                // ipcRenderer.send('active_folder', breadcrumbs.value);
                 // return false
 
             }
@@ -7657,57 +7665,59 @@ function delete_confirmed() {
 // DELETE FILE
 async function delete_file(file) {
 
-    console.log('deleting file ' + file)
-    notification('deleting file ' + file)
+    ipcRenderer.send('delete_file', file);
 
-    let main_view = document.getElementById('main_view')
+    // console.log('deleting file ' + file)
+    // notification('deleting file ' + file)
 
-    let stats = fs.statSync(file)
+    // let main_view = document.getElementById('main_view')
 
-    if (stats) {
+    // let stats = fs.statSync(file)
 
-        if (stats.isFile()) {
+    // if (stats) {
 
-            fs.unlink(file, function (err) {
+    //     if (stats.isFile()) {
 
-                if (err) {
+    //         fs.unlink(file, function (err) {
 
-                    clear_items()
+    //             if (err) {
 
-                    notification('Error deleting file: ' + source + ' \n' + err)
-                    console.log('Error deleting file: ' + source + ' \n' + err)
+    //                 clear_items()
 
-                } else {
+    //                 notification('Error deleting file: ' + source + ' \n' + err)
+    //                 console.log('Error deleting file: ' + source + ' \n' + err)
 
-                    // folder_count = delete_arr.filter(item => fs.statSync(item.source).isDirectory().length)
-                    // file_count = delete_arr.filter(item => fs.statSync(item.source).isFile().length)
+    //             } else {
 
-                    // notification (get_file_count() + ' Files deleted.')
-                    // notification('deleted file ' + file)
-                    // ipcRenderer.send('get_folder_size', { href: breadcrumbs.value })
+    //                 // folder_count = delete_arr.filter(item => fs.statSync(item.source).isDirectory().length)
+    //                 // file_count = delete_arr.filter(item => fs.statSync(item.source).isFile().length)
 
-                    // HIDE PROGRESS
-                    // hide_top_progress()
+    //                 // notification (get_file_count() + ' Files deleted.')
+    //                 // notification('deleted file ' + file)
+    //                 // ipcRenderer.send('get_folder_size', { href: breadcrumbs.value })
 
-                    let card = document.querySelector('[data-href="' + file + '"]')
-                    let col = card.closest('.column')
-                    col.remove()
+    //                 // HIDE PROGRESS
+    //                 // hide_top_progress()
 
-                    // UDATE CARDS
-                    update_cards(main_view)
+    //                 let card = document.querySelector('[data-href="' + file + '"]')
+    //                 let col = card.closest('.column')
+    //                 col.remove()
 
-                }
+    //                 // UDATE CARDS
+    //                 update_cards(main_view)
 
-            })
+    //             }
+
+    //         })
 
 
-        } else {
+    //     } else {
 
-            notification('error deleted file ' + source)
-            console.log('Error deleting file: ' + source)
-        }
+    //         notification('error deleted file ' + source)
+    //         console.log('Error deleting file: ' + source)
+    //     }
 
-    }
+    // }
 
 }
 
