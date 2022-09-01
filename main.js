@@ -20,11 +20,24 @@ ipcMain.on('open_file', (e) => {
 
 })
 
-// GET_CURRENT DIRECTOR
-dir = ''
+// GET DESTINATION DIRECTORY
+destination = ''
+destination0 = ''
 ipcMain.on('active_folder', (e, breadcrumb) => {
-    dir = breadcrumb;
-    console.log('setting current directory', dir)
+
+    if (breadcrumb != destination) {
+        destination = breadcrumb;
+        console.log('setting directory', destination)
+    }
+    // destination0 = destination;
+
+
+})
+
+let current_directory = ''
+ipcMain.on('current_directory', (e, directory) => {
+    current_directory = directory;
+    console.log('setting current directory to ' + current_directory);
 })
 
 // COPY FILES RECURSIVE
@@ -46,8 +59,10 @@ function copyfile(source, target, state, callback) {
     recursive++
     let file_exists = fs.existsSync(targetFile)
 
+    console.log(destination, targetFile)
+
     /* Add card if copying into the current direcoty unless one exists */
-    if (dir == path.dirname(targetFile)) {
+    if (current_directory == path.dirname(targetFile)) {
 
         let options = {
             id: 0,
@@ -56,9 +71,10 @@ function copyfile(source, target, state, callback) {
             grid: ''
         }
 
-        windows.forEach(win => {
+        // windows.forEach(win => {
+            let win = window.getFocusedWindow();
             win.webContents.send('add_card', options)
-        })
+        // })
 
 
     }
@@ -73,9 +89,10 @@ function copyfile(source, target, state, callback) {
             /* Update cards */
             if (--recursive == 0) {
 
-                windows.forEach(win => {
+                // windows.forEach(win => {
+                    let win = window.getFocusedWindow();
                     win.webContents.send('update_cards');
-                })
+                // })
                 callback(1);
 
             }
@@ -744,8 +761,10 @@ ipcMain.on('ondragstart', (e, href) => {
 let copy_files_arr = [];
 ipcMain.on('add_copy_files', function( e, data) {
 
-    console.log('on add copy files', data)
-    copy_files_arr = data
+    console.log('on add copy files', data);
+    copy_files_arr = data;
+
+    e.sender.send('clear_copy_arr');
 
 })
 
@@ -773,10 +792,10 @@ function copy(state) {
     copy_files_arr.every((item, idx) => {
 
         let source = item.source;
-        let destination = dir; //item.destination
+        // let destination = dir; //item.destination
 
         let source_stats = fs.statSync(source)
-        let destination_stats = fs.statSync(destination)
+        // let destination_stats = fs.statSync(destination)
 
         let destination_file = path.join(destination, path.basename(source))
 
@@ -881,6 +900,8 @@ function copy(state) {
         // FILES
         } else {
 
+            console.log(source, destination)
+
             // APPEND COPY TO FILENAME IF SAME
             if (path.dirname(source) == destination) {
 
@@ -920,13 +941,19 @@ function copy(state) {
                     })
 
                     // SHOW PROGRESS
-                    let win = window.getFocusedWindow();
-                    win.webContents.send('progress', max, destination_file);
+                    windows.forEach(win => {
+                        // let win = window.getFocusedWindow();
+                        win.webContents.send('progress', max, destination_file);
+                    })
+
+                    console.log('copy array', copy_files_arr)
 
                     copyfile(source, destination_file, state, () => {});
 
                     copy_files_arr.shift();
                     copy(copy_files_arr, state);
+
+                    console.log('copy array', copy_files_arr)
 
                     return false;
 
@@ -1008,6 +1035,9 @@ ipcMain.on('overwrite_confirmed_all', (e, copy_files_arr) => {
 
     console.log('running overwrite confirmed all')
 
+    // todo: remove references to data.destination. use destination instead
+    data.destination = destination;
+
     // HIDE WINDOW
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide();
@@ -1046,6 +1076,9 @@ ipcMain.on('overwrite_confirmed_all', (e, copy_files_arr) => {
 
 // OVERWRITE COPY CONFIRMED
 ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr) => {
+
+    // todo: remove references to data.destination. use destination instead
+    data.destination = destination;
 
     console.log('running overwrite confirmed', data.source, data.destination)
 
@@ -1138,7 +1171,7 @@ ipcMain.on('overwrite_canceled_all', (e, copy_files_arr) => {
 // OVERWRITE COPY CANCLED - done
 ipcMain.on('overwrite_canceled', (e, copy_files_arr) => {
 
-    console.log('running overwrite canceled');
+    console.log('running overwrite canceled', copy_files_arr);
 
     // HIDE
     let confirm = BrowserWindow.getFocusedWindow();
@@ -1286,6 +1319,9 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
     copy_files_arr.forEach((data, idx) => {
         // console.log(data.source);
 
+        // todo: remove references to data.destination. use destination instead
+        data.destination = destination;
+
         // DIRECTORY
         if (fs.statSync(data.source).isDirectory()) {
 
@@ -1350,6 +1386,9 @@ ipcMain.on('move_confirmed', (e, data, copy_files_arr) => {
 
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
+
+    // todo: remove references to data.destination. use destination instead
+    data.destination = destination;
 
     // SET SIZE FOR PROGRESS
     let max = 0;
@@ -1452,14 +1491,14 @@ ipcMain.on('move_confirmed', (e, data, copy_files_arr) => {
 })
 
 // MOVE
-ipcMain.on('move', (e, copy_files_arr, state) => {
+ipcMain.on('move', (e, state) => {
 
     console.log('copy files array length', copy_files_arr.length);
 
     copy_files_arr.every((item, idx) => {
 
         let source = item.source
-        let destination = item.destination
+        // let destination = item.destination
 
         let source_stats = fs.statSync(source)
         let destination_file = path.join(destination, path.basename(source))
@@ -2112,8 +2151,6 @@ ipcMain.on('get_diskspace_summary', (e) => {
     get_diskspace_summary()
 })
 
-
-
 // // SEND COPY FILES ARRAY
 // ipcMain.on('get_copy_files_arr', (e, destination_folder) => {
 
@@ -2372,7 +2409,6 @@ const template = [
     }
 
 ]
-
 
 const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu);

@@ -2524,7 +2524,8 @@ async function add_card(options) {
                 clear_items()
 
                 // CLEAR COPY ARRAY
-                copy_files_arr = []
+                clear_copy_arr();
+                // copy_files_arr = []
 
             }
 
@@ -2568,7 +2569,7 @@ async function add_card(options) {
             // e.preventDefault()
 
             console.log('on drag start')
-            clear_copy_arr()
+            // clear_copy_arr()
 
             let datalist = e.dataTransfer.items
             let data = fs.readFileSync(href)
@@ -2652,6 +2653,8 @@ async function add_card(options) {
             } else {
                 e.dataTransfer.dropEffect = "move";
             }
+
+            ipcRenderer.send('active_folder', href);
 
             e.preventDefault()
             e.stopPropagation()
@@ -3954,7 +3957,7 @@ async function get_view(dir) {
             localStorage.setItem('folder', dir);
 
             /* Update active directory in main.js */
-            ipcRenderer.send('active_folder', dir);
+            ipcRenderer.send('current_directory', dir);
 
         }
     } catch (err) {
@@ -5107,6 +5110,7 @@ async function get_files(dir, callback) {
 
                     clear_items()
                     // CLEAR COPY ARRAY
+                    clear_copy_arr();
                     // copy_files_arr = []
 
                 }
@@ -5116,7 +5120,10 @@ async function get_files(dir, callback) {
             main_view.onmouseover = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                // ipcRenderer.send('active_folder', breadcrumbs.value);
+                console.log('setting focus');
+                // window.focus();
+                ipcRenderer.send('active_folder', breadcrumbs.value);
+                return false;
             }
 
             // ON DRAG ENTER
@@ -5142,7 +5149,7 @@ async function get_files(dir, callback) {
 
                 e.preventDefault();
                 e.stopPropagation();
-                // ipcRenderer.send('active_folder', breadcrumbs.value);
+                ipcRenderer.send('active_folder', breadcrumbs.value);
                 // return false
 
             }
@@ -5194,7 +5201,7 @@ async function get_files(dir, callback) {
 
                     console.log('destination ' + destination)
 
-                    // MOVE FILE
+                // MOVE FILE
                 } else {
 
                     // notification('changing state to 0')
@@ -5202,13 +5209,13 @@ async function get_files(dir, callback) {
                     move_to_folder(destination, state)
 
                     // clear_items()
-                    clear_copy_arr()
+                    // clear_copy_arr()
 
                 }
 
                 // ipcRenderer.send('active_folder', document.getElementById('breadcrumbs').value)
-
                 // clear_selected_files()
+
                 clear_items();
                 return false;
 
@@ -5843,7 +5850,7 @@ function clear_copy_arr() {
     console.log('clearing copy arr')
 
     if (copy_files_arr.length > 0) {
-        notification('Cleared copied items');
+        console.log('Cleared copied items');
         copy_files_arr = []
     }
 
@@ -7438,14 +7445,17 @@ function copyFolderRecursiveSync(source, destination) {
 // MOVE FOLDER - done
 function move_to_folder(destination, state) {
 
+    console.log("running move to folder", copy_files_arr)
+
     // ADD DESTINATION TO ARRAY
     copy_files_arr.forEach((item, idx) => {
         item.destination = destination
     })
 
     // SEND TO MAIN
-    ipcRenderer.send('move', copy_files_arr, state)
-    clear_copy_arr()
+    ipcRenderer.send('move', state);
+    // ipcRenderer.send('move', copy_files_arr, state)
+    // clear_copy_arr()
 
 }
 
@@ -7570,6 +7580,7 @@ function rename_file(source, destination_name) {
                     console.log('File/folder renamed successfully!');
                     notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
                     update_cards(document.getElementById('main_view'))
+                    clear_items();
                 }
 
             })
