@@ -21,28 +21,46 @@ ipcMain.on('open_file', (e) => {
 })
 
 // GET DESTINATION DIRECTORY
-destination = ''
-destination0 = ''
-ipcMain.on('active_folder', (e, breadcrumb) => {
+let destination     = ''; // destination
+let destination0    = ''; // destination
+let isMainView      = 1;  // state
+ipcMain.on('is_main_view', (e, state = 0) => {
+    console.log('running on is_main_view', state);
+    isMainView = state;
+})
+
+let active_window   = '';
+ipcMain.on('active_folder', (e, breadcrumb, state = 0) => {
+
+    /* Get active window */
+    let window_id = e.sender.id;
+    active_window = window.fromId(window_id);
 
     if (breadcrumb != destination) {
-        destination = breadcrumb;
-        console.log('setting directory', destination)
-    }
-    // destination0 = destination;
 
+        destination = breadcrumb;
+        isMainView  = state;
+
+        // console.log('active window', active_window)
+        console.log('setting target destination', destination, isMainView);
+
+    }
 
 })
 
-let current_directory = ''
+let current_directory   = '';
 ipcMain.on('current_directory', (e, directory) => {
-    current_directory = directory;
+
+    if (directory != current_directory) {
+        current_directory = directory;
+    }
     console.log('setting current directory to ' + current_directory);
+
 })
 
 // COPY FILES RECURSIVE
 let recursive = 0
-function copyfile(source, target, state, callback) {
+async function copyfile(source, target, state, callback) {
 
     // TARGET
     var targetFile = target
@@ -59,25 +77,27 @@ function copyfile(source, target, state, callback) {
     recursive++
     let file_exists = fs.existsSync(targetFile)
 
-    console.log(destination, targetFile)
+    console.log(targetFile, current_directory);
 
     /* Add card if copying into the current direcoty unless one exists */
-    if (current_directory == path.dirname(targetFile)) {
-
-        let options = {
-            id: 0,
-            href: targetFile,
-            linktext: path.basename(targetFile),
-            grid: ''
-        }
-
-        // windows.forEach(win => {
-            let win = window.getFocusedWindow();
-            win.webContents.send('add_card', options)
-        // })
-
-
-    }
+    // if (path.dirname(targetFile) == current_directory) {
+    // if (path.dirname(targetFile) == current_directory) {
+    //     let options = {
+    //         id: 0,
+    //         href: targetFile,
+    //         linktext: path.basename(targetFile),
+    //         is_folder: fs.statSync(source).isDirectory(),
+    //         grid: ''
+    //     }
+    //     // windows.forEach(win => {
+    //         try {
+    //             let win = active_window; //window.getFocusedWindow();
+    //             win.webContents.send('add_card', options);
+    //         } catch {err} {
+    //             // console.log();
+    //         }
+    //     // })
+    // }
 
     /* Copy file */
     fs.copyFile(source, targetFile, (err) => {
@@ -86,14 +106,29 @@ function copyfile(source, target, state, callback) {
             console.log('copy file sync err', err)
         } else {
 
+            callback(1);
+
             /* Update cards */
             if (--recursive == 0) {
 
-                // windows.forEach(win => {
-                    let win = window.getFocusedWindow();
-                    win.webContents.send('update_cards');
-                // })
-                callback(1);
+                // if (current_directory == path.dirname(targetFile)) {
+
+                    try {
+
+                        active_window.webContents.send('update_cards');
+                        // callback(1);
+                        return 1;
+
+                        // windows.forEach(win => {
+                        // })
+                        // callback(1);
+                    } catch (err) {``
+                        // console.log(err);
+                        // callback(0)
+                        return 0;
+                    }
+
+                // }
 
             }
 
@@ -219,7 +254,8 @@ function get_file_properties(filename) {
     }
 
     console.log('send file properties')
-    win.send('file_properties', file_properties)
+    let win = window.getFocusedWindow();
+    win.send('file_properties', file_properties);
 }
 
 /* Get disk space */
@@ -432,33 +468,55 @@ function delete_file(file, callback) {
 
     if (stats) {
 
+        /* Folder */
         if (stats.isDirectory()) {
 
             fs.rm(file, {recursive: true}, (err) => {
                 if (err) {
-                    console.log(err)
+                    console.log(err);
                 } else {
-                    console.log('folder deleted')
-                    windows.forEach(win => {
-                        win.send('remove_card', file)
-                    })
-                    callback(1)
+
+                    try{
+                        console.log('folder deleted');
+                        windows.forEach(win => {
+                            win.send('remove_card', file);
+                        })
+                    } catch (err) {
+                        console.log(err);
+                    }
+                    callback(1);
                 }
             })
 
+        /* File */
         } else {
 
             fs.unlink(file, err => {
 
                 if (err) {
-                    console.log('error deleteing file', source)
-                    callback(0)
+                    console.log('error deleteing file', file);
+                    callback(0);
                 } else {
-                    console.log('file deleted')
-                    windows.forEach(win => {
-                        win.send('remove_card', file)
-                    })
-                    callback(1)
+
+                    console.log('file deleted');
+
+                    try {
+                        active_window.send('remove_card', file);
+                    } catch (err) {
+
+                    }
+
+                    // if (current_directory == path.dirname(file)) {
+                        // try {
+                        //     windows.forEach(win => {
+                        //         win.send('remove_card', file);
+                        //     })
+                        // } catch (err) {
+                        //     console.log(err)
+                        // }
+                    // }
+
+                    callback(1);
                 }
 
             })
@@ -615,21 +673,23 @@ const createWindow = exports.createWindow = () => {
         },
     }
 
-    let newWindow = new BrowserWindow(options);
+    let win = new BrowserWindow(options);
 
-    newWindow.loadFile('src/index.html');
+    win.loadFile('src/index.html');
 
-    newWindow.once('ready-to-show', () => {
-    newWindow.show();
+    win.once('ready-to-show', () => {
+        win.show();
     });
 
-    newWindow.on('closed', () => {
-    windows.delete(newWindow);
-    newWindow = null;
+    win.on('closed', () => {
+        windows.delete(win);
+        // win = null;
     });
 
-    windows.add(newWindow);
-    return newWindow;
+    console.log('win', win);
+    windows.add(win);
+    // return win;
+
 };
 
 app.whenReady().then(() => {
@@ -696,7 +756,9 @@ ipcMain.on('minimize', () => {
 
 // CLOSE WINDOW
 ipcMain.on('close', () => {
-    var window = BrowserWindow.getFocusedWindow();
+    var win = BrowserWindow.getFocusedWindow();
+    console.log('removing window from set');
+    windows.delete(win)
     window.hide()
 })
 
@@ -735,7 +797,7 @@ function get_icon_path(href) {
             icon_path: icon_path
         }
 
-        win.webContents.send('icon_path',data);
+        active_window.send('icon_path',data);
 
     })
 }
@@ -777,7 +839,7 @@ ipcMain.on('add_copy_files', function( e, data) {
 
 // })
 
-ipcMain.on('copy', (e, copy_files_arr, state = 0) => {
+ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
 
     console.log('on copy', copy_files_arr);
     copy(copy_files_arr, state);
@@ -836,9 +898,11 @@ function copy(state) {
                 // CREATE FOLDER
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
+
+                let win = window.getFocusedWindow()
                 win.webContents.send('add_card', options)
 
-                return false
+                return true
 
             } else {
 
@@ -947,15 +1011,30 @@ function copy(state) {
                     })
 
                     console.log('copy array', copy_files_arr)
-
                     copyfile(source, destination_file, state, () => {});
+
+                    if (isMainView) {
+
+                        let options = {
+                            id: 0,
+                            href: destination_file,
+                            linktext: path.basename(destination_file),
+                            is_folder: false,
+                            grid: ''
+                        }
+
+                        active_window.webContents.send('add_card', options)
+
+                    }
+
+
 
                     copy_files_arr.shift();
                     copy(copy_files_arr, state);
 
                     console.log('copy array', copy_files_arr)
 
-                    return false;
+                    return true;
 
                 }
 
@@ -1116,11 +1195,11 @@ ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr) => {
 
             if (copy_files_arr.length > 0) {
 
-                data = {
-                    state: 0,
-                    source: copy_files_arr[0].source,
-                    destination: copy_files_arr[0].destination
-                }
+            //     data = {
+            //         state: 0,
+            //         source: copy_files_arr[0].source,
+            //         destination: copy_files_arr[0].destination
+            //     }
 
                 copy(copy_files_arr, data.state);
 
@@ -1198,7 +1277,9 @@ ipcMain.on('overwrite_canceled', (e, copy_files_arr) => {
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
 
-    let destination = data.destination
+    // let destination = data.destination
+
+    console.log('data', data);
 
     let bounds = screen.getPrimaryDisplay().bounds;
     let x = bounds.x + ((bounds.width - 400) / 2);
@@ -1241,7 +1322,6 @@ function createMoveDialog(data, copy_files_arr) {
         confirm.removeMenu()
 
         console.log('create move data', data, copy_files_arr)
-        // confirm.webContents.openDevTools()
         confirm.send('confirming_move', data, copy_files_arr)
 
     })
@@ -1269,231 +1349,21 @@ function createMoveDialog(data, copy_files_arr) {
 
 }
 
-// MOVE CANCELED - done
-ipcMain.on('move_canceled', (e) => {
-
-    let confirm = BrowserWindow.getFocusedWindow()
-    confirm.hide()
-
-    if (copy_files_arr.length > 0) {
-
-        data = {
-            state:          0,
-            source:         copy_files_arr[0].source,
-            destination:    copy_files_arr[0].destination
-        }
-        if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
-            createOverwriteMoveDialog(data,copy_files_arr);
-        } else {
-            createMoveDialog(data, copy_files_arr);
-        }
-
-        // REMOVE ITEM FROM ARRAY
-        copy_files_arr.shift()
-    }
-
-})
-
-// MOVE CONFIRMED ALL - done
-ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
-
-    let confirm = BrowserWindow.getFocusedWindow()
-    confirm.hide()
-
-    // SET SIZE FOR PROGRESS
-    let max = 0;
-    copy_files_arr.forEach(item => {
-        max += parseInt(item.size)
-    })
-
-    // SHOW PROGRESS
-    win.webContents.send('progress', max);
-
-    // SET STATE TO 1 IF PASTE
-    let state = data.state
-    if (state == 2) {
-        state = 1;
-    }
-
-    // COPY FILES
-    copy_files_arr.forEach((data, idx) => {
-        // console.log(data.source);
-
-        // todo: remove references to data.destination. use destination instead
-        data.destination = destination;
-
-        // DIRECTORY
-        if (fs.statSync(data.source).isDirectory()) {
-
-            copyfolder(data.source, data.destination, state, () => {
-
-                copy_files_arr.forEach(data => {
-                    delete_file(data.source, () => {
-                        windows.forEach(win => {
-                            win.send('remove_card', data.source);
-                        })
-
-                    })
-                })
-
-                move_windows.forEach(win => {
-                    win.hide();
-                })
-                move_windows.clear();
-
-            })
-
-
-        // FILES
-        } else {
-
-            // state = 0
-            copyfile(data.source, data.destination, state, () => {
-
-                copy_files_arr.forEach(data => {
-                    delete_file(data.source, () => {
-                        windows.forEach(win => {
-                            win.send('remove_card', data.source);
-                        })
-                    })
-                })
-
-                // if (fs.existsSync(data.destination)) {
-                //     console.log('file exists',data.source)
-
-                //     delete_file(data.source, () => {
-                //         win.send('remove_card', data.source)
-                //         // let active_window = BrowserWindow.getFocusedWindow()
-                //         // active_window.close()
-
-                //     })
-                // }
-
-                move_windows.forEach(win => {
-                    win.hide();
-                })
-                move_windows.clear();
-
-            })
-
-        }
-    })
-
-})
-
-// MOVE CONFIRMED - done
-ipcMain.on('move_confirmed', (e, data, copy_files_arr) => {
-
-    let confirm = BrowserWindow.getFocusedWindow()
-    confirm.hide()
-
-    // todo: remove references to data.destination. use destination instead
-    data.destination = destination;
-
-    // SET SIZE FOR PROGRESS
-    let max = 0;
-    copy_files_arr.forEach(item => {
-        max += parseInt(item.size)
-    })
-
-    // SHOW PROGRESS
-    // let win = window.getFocusedWindow();
-    windows.forEach(win => {
-        win.webContents.send('progress', max);
-    })
-
-    // SET STATE TO 1 IF PASTE
-    // let state = data.state
-    // if (state == 2) {
-    //     state = 1;
-    // }
-
-    // DIRECTORY
-    if (fs.statSync(data.source).isDirectory()) {
-        // state = 0
-        copyfolder(data.source, data.destination, data.state, () => {
-
-            console.log('done copying folder')
-
-            try {
-
-                if (fs.existsSync(data.destination)) {
-
-                    delete_file(data.source, () => {
-
-                        // REMOVE ITEM FROM ARRAY
-                        copy_files_arr.shift()
-
-                        console.log('folder deleted array length ', copy_files_arr.length)
-
-                        if (copy_files_arr.length > 0) {
-
-                            data = {
-                                state: data.state,
-                                source: copy_files_arr[0].source,
-                                destination: copy_files_arr[0].destination
-                            }
-
-                            createMoveDialog(data, copy_files_arr)
-                        }
-
-                    })
-                }
-            } catch (err) {
-                console.log('copy folder recursive error', err)
-            }
-
-        })
-
-
-    // FILES - done
-    } else {
-
-        // state = 0
-        copyfile(data.source, data.destination, data.state, () => {
-
-            if (fs.existsSync(data.destination)) {
-
-                delete_file(data.source, () => {
-
-                    console.log('move data', data, 'array',copy_files_arr)
-
-                    // REMOVE ITEM FROM ARRAY
-                    copy_files_arr.shift();
-
-                    if (copy_files_arr.length > 0) {
-
-                        // if (data.state == 2) {
-                        //     data.state = 1;
-                        // }
-
-                        data = {
-                            state: data.state,
-                            source: copy_files_arr[0].source,
-                            destination: copy_files_arr[0].destination
-                        }
-
-
-                        if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
-                            createOverwriteMoveDialog(data,copy_files_arr);
-                        } else {
-                            console.log('move array length', copy_files_arr.length)
-                            createMoveDialog(data, copy_files_arr);
-                        }
-
-                    }
-
-                })
-            }
-        })
-
-    }
-})
-
 // MOVE
-ipcMain.on('move', (e, state) => {
+ipcMain.on('move', (e) => {
 
-    console.log('copy files array length', copy_files_arr.length);
+    console.log('running on move');
+    move();
+
+})
+
+/* Move files */
+function move() {
+
+    console.log('running move', copy_files_arr);
+
+    // Set destination1 since destination (active_folder) will change on mouseover events
+    // let destination1 = destination;
 
     copy_files_arr.every((item, idx) => {
 
@@ -1523,23 +1393,24 @@ ipcMain.on('move', (e, state) => {
 
                     // CREATE CONFIRM COPY OVERWRITE
                     let data = {
-                        state: state,
+                        state: 0,
                         source: source,
                         destination: destination_file
                     }
 
                     createConfirmDialog(data, copy_files_arr)
+                    return false;
 
                 } else {
 
                     let data = {
-                        state: state,
+                        state: 0,
                         source: source,
                         destination: destination_file
                     }
 
                     // REMOVE ITEM FROM ARRAY
-                    // copy_files_arr.splice(idx,1)
+                    copy_files_arr.splice(idx,1)
 
                     // CREATE MOVE DIALOG
                     createMoveDialog(data, copy_files_arr)
@@ -1555,13 +1426,13 @@ ipcMain.on('move', (e, state) => {
         } else {
 
             // APPEND COPY TO FILENAME IF SAME
-            if (path.dirname(source) == destination) {
+            if (path.dirname(source) == destination_file) {
 
                 // CREATE NEW FILE NAME
-                destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
+                destination_file = path.join(destination1, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
 
                 // COPY FILE
-                copyfile(source,destination_file, state, () => {})
+                copyfile(source, destination_file, 0, () => {})
 
             } else {
 
@@ -1577,20 +1448,18 @@ ipcMain.on('move', (e, state) => {
 
                     createOverwriteMoveDialog(data, copy_files_arr)
 
-
                 // CREATE MOVE DIALOG
                 } else {
 
                     let data = {
-                        state: state,
+                        state: 0,
                         source: source,
                         destination: destination_file
                     }
 
-                    console.log('create move data', data, copy_files_arr)
-
-                    createMoveDialog(data,copy_files_arr)
-                    return false
+                    console.log('create move data', data, copy_files_arr);
+                    createMoveDialog(data,copy_files_arr);
+                    return false;
 
                 }
 
@@ -1599,7 +1468,230 @@ ipcMain.on('move', (e, state) => {
         }
 
     })
+
     return true
+
+}
+
+// MOVE CONFIRMED - done
+ipcMain.on('move_confirmed', (e, data) => {
+
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+
+    // SET SIZE FOR PROGRESS
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        max += parseInt(item.size)
+    })
+
+    // SHOW PROGRESS
+    // let win = window.getFocusedWindow();
+    windows.forEach(win => {
+        win.webContents.send('progress', max);
+    })
+
+    // DIRECTORY
+    if (fs.statSync(data.source).isDirectory()) {
+        // state = 0
+        copyfolder(data.source, data.destination, data.state, () => {
+
+            console.log('done copying folder')
+
+            try {
+
+                if (fs.existsSync(data.destination)) {
+
+                    delete_file(data.source, () => {
+
+                        // REMOVE ITEM FROM ARRAY
+                        copy_files_arr.shift()
+
+                        console.log('folder deleted array length ', copy_files_arr.length)
+
+                        if (copy_files_arr.length > 0) {
+                            move();
+                        }
+
+                    })
+                }
+            } catch (err) {
+                console.log('copy folder recursive error', err)
+            }
+
+        })
+
+
+    // FILES - done
+    } else {
+
+        // state = 0
+        copyfile(data.source, data.destination, data.state, (res) => {
+
+            // REMOVE ITEM FROM ARRAY
+            copy_files_arr.shift();
+            delete_file(data.source, (res) => {
+
+                if (isMainView) {
+
+                    let options = {
+                        id: 0,
+                        href: data.destination,
+                        linktext: path.basename(data.destination),
+                        is_folder: false,
+                        grid: ''
+                    }
+
+                    active_window.webContents.send('add_card', options);
+
+                }
+
+                move();
+
+            })
+
+
+        })
+
+    }
+
+})
+
+// MOVE CONFIRMED ALL - done
+ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
+
+    console.log('running move confirmmed all');
+
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+
+    // SET SIZE FOR PROGRESS
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        max += parseInt(item.size)
+    })
+
+    // SHOW PROGRESS
+    windows.forEach(win => {
+        win.webContents.send('progress', max);
+    })
+
+    // SET STATE TO 1 IF PASTE
+    let state = data.state;
+    if (state == 2) {
+        state = 1;
+    }
+
+    // COPY FILES
+    copy_files_arr.forEach((data, idx) => {
+
+
+        let destination_file = path.join(destination, path.basename(data.source));
+
+
+        // todo: remove references to data.destination. use destination instead
+        // data.destination = destination;
+
+        // DIRECTORY
+        if (fs.statSync(data.source).isDirectory()) {
+
+            copyfolder(data.source, destination_file, state, () => {
+
+                copy_files_arr.forEach(data => {
+                    delete_file(data.source, () => {
+                        windows.forEach(win => {
+                            win.send('remove_card', data.source);
+                        })
+
+                    })
+                })
+
+                move_windows.forEach(win => {
+                    win.hide();
+                })
+                move_windows.clear();
+
+            })
+
+
+        // FILES
+        } else {
+
+            // state = 0
+            copyfile(data.source, destination_file, state, (res) => {
+
+                console.log('runninig copy file')
+
+                console.log('callback', res)
+
+                if (fs.existsSync(destination_file)) {
+
+                    if (isMainView) {
+
+                        let options = {
+                            id: 0,
+                            href: destination_file,
+                            linktext: path.basename(destination_file),
+                            is_folder: false,
+                            grid: ''
+                        }
+
+                        active_window.webContents.send('add_card', options);
+
+                    }
+
+                    delete_file(data.source, () => {});
+
+                }
+
+
+                // if (fs.existsSync(data.destination)) {
+                //     console.log('file exists',data.source)
+
+                //     delete_file(data.source, () => {
+                //         win.send('remove_card', data.source)
+                //         // let active_window = BrowserWindow.getFocusedWindow()
+                //         // active_window.close()
+
+                //     })
+                // }
+
+                move_windows.forEach(win => {
+                    win.hide();
+                })
+                move_windows.clear();
+
+            })
+
+        }
+    })
+
+})
+
+// MOVE CANCELED - done
+ipcMain.on('move_canceled', (e) => {
+
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+
+    if (copy_files_arr.length > 0) {
+
+        data = {
+            state:       0,
+            source:      copy_files_arr[0].source,
+            destination: copy_files_arr[0].destination
+        }
+
+        if (fs.existsSync(path.join(data.destination, path.basename(data.source)))) {
+            createOverwriteMoveDialog(data,copy_files_arr);
+        } else {
+            createMoveDialog(data, copy_files_arr);
+        }
+
+        // REMOVE ITEM FROM ARRAY
+        copy_files_arr.shift()
+    }
+
 })
 
 // GET CONFIRM DIALOG
@@ -1659,6 +1751,8 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
         console.log('running overwrite move confirmed')
         confirm.hide()
 
+        data.destination = destination
+
         // console.log('copy files array length', copy_files_arr.length, 'data', data)
 
         // DIRECTORY
@@ -1675,6 +1769,9 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 
                 // DELETE SOURCE FILE
                 delete_file(data.source, () => {})
+
+                // REMOVE ITEM FROM ARRAY
+                copy_files_arr.shift()
 
                 // CHECK ARRAY LENGTH
                 if (copy_files_arr.length > 0) {
@@ -1696,8 +1793,6 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
                         createMoveDialog(data, copy_files_arr);
                     }
 
-                    // REMOVE ITEM FROM ARRAY
-                    copy_files_arr.shift()
 
                 }
 
@@ -1746,7 +1841,9 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
         })
 
         // SHOW PROGRESS
-        win.webContents.send('progress', max);
+        windows.forEach(item => {
+            win.webContents.send('progress', max);
+        })
 
         let state = data.state
 
@@ -2137,10 +2234,8 @@ ipcMain.on('get_folder_size', (e , args) => {
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
 
-    let win = window.getFocusedWindow();
-
     get_disk_space(href, (res) => {
-        win.webContents.send('disk_space', res)
+        active_window.webContents.send('disk_space', res)
     });
 
 

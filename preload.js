@@ -146,10 +146,8 @@ ipcRenderer.on('notification', (e, msg) => {
 })
 
 ipcRenderer.on('get_copy_files_arr' , (e, copy_files_arr) => {
-
     console.log('on get_copy_files_arr', copy_files_arr)
     // copy_files()
-
 })
 
 /* Update Card */
@@ -477,8 +475,8 @@ ipcRenderer.on('copy-complete', function (e) {
 // CONFIRM MOVE
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
-    let btn_cancel = add_button('btn_cancel', 'Cancel')
-    let btn_ok = add_button('btn_ok', 'Move')
+    let btn_cancel  = add_button('btn_cancel', 'Cancel')
+    let btn_ok      = add_button('btn_ok', 'Move')
     btn_ok.classList.add('primary')
 
     let footer = add_div()
@@ -526,14 +524,24 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     confirm_dialog.append(header, description, source_data, chk_div, add_br(), add_br(), add_br(), footer)
 
 
-    chk = document.getElementById('chk_replace')
+    chk = document.getElementById('chk_replace');
 
-    // // MOVE ALL
-    let is_checked = 0
+    let is_checked = 0;
+    if (localStorage.getItem('move_all') === null) {
+        is_checked = 0;
+    } else {
+        is_checked = parseInt(localStorage.getItem('move_all'));
+    }
+
+    chk.checked = is_checked;
+
+    // MOVE ALL
     chk.addEventListener('change', (e) => {
         if (chk.checked) {
+            localStorage.setItem('move_all', 1)
             is_checked = 1
         } else {
+            localStorage.setItem('move_all', 0)
             is_checked = 0
         }
     })
@@ -1594,6 +1602,8 @@ async function get_properties(file_properties_obj) {
     let tbody           = document.createElement('tbody');
     let hr              = document.createElement('hr')
 
+
+
     clear_minibar();
     mb_info.style = 'color: #ffffff !important;';
 
@@ -2381,9 +2391,10 @@ async function add_card(options) {
 
             active_href = href;
             // console.log('active href', active_href)
-            if (is_folder) {
-                ipcRenderer.send('active_folder', href);
-            }
+            // if (is_folder) {
+            //     ipcRenderer.send('active_folder', href);
+            //     ipcRenderer.send('is_main_view', 0);
+            // }
 
             /* Add audio controls on mouse over */
             if (is_audio) {
@@ -2571,15 +2582,15 @@ async function add_card(options) {
             console.log('on drag start')
             // clear_copy_arr()
 
-            let datalist = e.dataTransfer.items
-            let data = fs.readFileSync(href)
-            let blob = new Blob([data])
-            let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
-            const fr = new FileReader()
-            fr.readAsText(file)
-            // e.dataTransfer.setData(path.basename(href), "testing")
-            console.log('bufer data', file)
-            datalist.add(file)
+            // let datalist = e.dataTransfer.items
+            // // let data = fs.readFileSync(href)
+            // let blob = new Blob([data])
+            // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
+            // const fr = new FileReader()
+            // fr.readAsText(file)
+            // // e.dataTransfer.setData(path.basename(href), "testing")
+            // console.log('bufer data', file)
+            // datalist.add(file)
 
             e.dataTransfer.effectAllowed = 'copyMove'
 
@@ -2655,6 +2666,7 @@ async function add_card(options) {
             }
 
             ipcRenderer.send('active_folder', href);
+            ipcRenderer.send('is_main_view', 0)
 
             e.preventDefault()
             e.stopPropagation()
@@ -3090,10 +3102,10 @@ async function get_sidebar_files(dir) {
 
     let sidebar_items       = document.getElementById('sidebar_items');
     let sb_breadcrumbs      = add_div();
-    let dirents             = fs.readdirSync(dir, { withFileTypes: true })
+    let dirents             = fs.readdirSync(dir, { withFileTypes: true });
 
-    sidebar_items.innerHTML = ''
-    sb_breadcrumbs.classList.add('ui', 'breadcrumb')
+    sidebar_items.innerHTML = '';
+    sb_breadcrumbs.classList.add('ui', 'breadcrumb');
 
     if (dirents) {
 
@@ -3121,20 +3133,20 @@ async function get_sidebar_files(dir) {
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 get_sidebar_files(link.dataset.src);
-                // get_view(link.dataset.src)
+                get_view(link.dataset.src);
             })
 
             sidebar_items.append(link, '/');
             console.log('path', nav_path);
         })
 
-        sidebar_items.append(add_br(), add_br())
+        sidebar_items.append(add_br(), add_br());
 
         // sidebar_items.append(add_header(dir));
 
         //SET DEFAULT SORT OPTION
         if (!options.sort) {
-            options.sort = 1
+            options.sort = 1;
         }
 
         // SORT BY NAME
@@ -3154,10 +3166,10 @@ async function get_sidebar_files(dir) {
 
             if (regex.test(file.name) == false || localStorage.getItem('show_hidden') == 1) {
 
-                let filename = file.name
-                let filepath = dir + '/' + filename
-                let stats = fs.statSync(filepath)
-                let is_dir = stats.isDirectory()
+                let filename = file.name;
+                let filepath = dir + '/' + filename;
+                let stats = fs.statSync(filepath);
+                let is_dir = stats.isDirectory();
 
                 if (is_dir) {
 
@@ -3621,12 +3633,20 @@ function get_folder_size1(href, callback) {
 
 /* Clear minibar highlight */
 function clear_minibar() {
-    let minibar_item = document.getElementById('minibar')
-    minibar_items = minibar_item.querySelectorAll('.item')
+    let file_properties = document.getElementById('file_properties')
+    let minibar_item    = document.getElementById('minibar')
+    minibar_items       = minibar_item.querySelectorAll('.item')
+    if (file_properties) {
+        file_properties.classList.add('hidden')
+    }
+
     console.log(minibar_items)
     minibar_items.forEach(item => {
         item.style = '';
     })
+
+
+
 }
 
 // CLEAR WORKSPACE
@@ -4054,7 +4074,14 @@ async function get_view(dir) {
 
     }
 
+    /* Change target on view */
+    ipcRenderer.send('is_main_view', 1)
+    ipcRenderer.send('active_folder', dir)
+    ipcRenderer.send('current_directory', dir)
+
+
     autocomplete()
+    ds.start();
 
 }
 
@@ -5056,7 +5083,7 @@ async function get_files(dir, callback) {
 
                 // LOOK FOR LETTERS AND NUMBERS. I DONT THINK THIS
                 // let regex = /[^A-Za-z0-9]+/
-                let regex = /[^A-Za-z0-9]+/
+                let regex = /[^A-Za-z0-9-.]+/
 
                 // TEST FOR LETTERS AND NUMBERS
                 if (regex.test(e.key) === false && !e.shiftKey && e.key !== 'Delete' && !e.ctrlKey) {
@@ -5117,31 +5144,37 @@ async function get_files(dir, callback) {
 
             })
 
+
+            let isMainView = 0;
+            let active_folder = ''
             main_view.onmouseover = (e) => {
+
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('setting focus');
-                // window.focus();
-                ipcRenderer.send('active_folder', breadcrumbs.value);
-                return false;
+
+                isMainView = 1;
+
+                // ipcRenderer.send('active_folder', breadcrumbs.value, 1);
+                // ipcRenderer.send('is_main_view', 1);
+
+            }
+
+            main_view.onmouseout = (e) => {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                isMainView = 0;
+
+
             }
 
             // ON DRAG ENTER
             main_view.ondragenter = (e) => {
 
-                // dragging++
-                // console.log(copy_files_arr)
-                // console.log('main view on drag enter', breadcrumbs.value)
-
                 destination = breadcrumbs.value
                 target = e.target
 
-                // ipcRenderer.send('active_folder', destination)
-                // ipcRenderer.send('active_folder', breadcrumbs.value);
-
-                // e.preventDefault()
-                // e.stopPropagation()
-                // return false
             };
 
             // DRAG OVER
@@ -5149,16 +5182,19 @@ async function get_files(dir, callback) {
 
                 e.preventDefault();
                 e.stopPropagation();
+
+                ipcRenderer.send('is_main_view', 1)
                 ipcRenderer.send('active_folder', breadcrumbs.value);
-                // return false
+
+                console.log('testing', isMainView)
 
             }
 
             main_view.ondragleave = (e) => {
 
-                e.preventDefault()
-                console.log('leaving main window')
-                return false
+                e.preventDefault();
+                console.log('leaving main window');
+                return false;
 
             }
 
@@ -5171,8 +5207,7 @@ async function get_files(dir, callback) {
                 e.stopPropagation();
 
                 for (const f of e.dataTransfer.files) {
-                    // Using the path attribute to get absolute file path
-                    console.log('File Path of dragged files: ', f.path)
+                    console.log('File Path of dragged files: ', f.path);
                 }
 
                 const file_data = e.dataTransfer.files
@@ -5189,32 +5224,40 @@ async function get_files(dir, callback) {
 
                     console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
                     if (breadcrumbs.value == destination) {
+                        console.log('dropping on main')
+                        ipcRenderer.send('is_main_view', 1)
                         state = 2
                     } else {
+                        console.log('dropping on card')
+                        ipcRenderer.send('is_main_view', 0)
                         state = 0
                     }
 
                     console.log('state', state)
 
                     // THIS IS RUNNING COPY FOLDERS TOO
-                    copy_files(destination, state)
+                    copy_files(destination, state);
 
-                    console.log('destination ' + destination)
+                    clear_items();
+                    console.log('destination ' + destination);
 
                 // MOVE FILE
                 } else {
 
+                    console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
+                    if (breadcrumbs.value == destination) {
+                        console.log('dropping on main')
+                        ipcRenderer.send('is_main_view', 1)
+                        state = 2
+                    } else {
+                        console.log('dropping on card')
+                        ipcRenderer.send('is_main_view', 0)
+                        state = 0
+                    }
+
                     // notification('changing state to 0')
-
                     move_to_folder(destination, state)
-
-                    // clear_items()
-                    // clear_copy_arr()
-
                 }
-
-                // ipcRenderer.send('active_folder', document.getElementById('breadcrumbs').value)
-                // clear_selected_files()
 
                 clear_items();
                 return false;
@@ -5222,11 +5265,6 @@ async function get_files(dir, callback) {
             }
 
             document.getElementById('main_view').focus()
-
-            // WORSPACE
-            // // POPULATE WORKSPACE
-            // workspace_arr = []
-            // get_workspace()
 
             /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
             cardindex = 0;
@@ -5758,7 +5796,7 @@ function clear_items() {
     let nav_items           = document.querySelectorAll('.nav_item')
     let input               = document.getElementById('edit_' + card_id)
     let header              = document.getElementById('header_' + card_id)
-    let file_properties     = document.getElementById('file_properties');
+    // let file_properties     = document.getElementById('file_properties');
     let breadcrumb_items    = document.getElementById('breadcrumb_items');
 
     /* Reset nav counters */
@@ -5779,7 +5817,7 @@ function clear_items() {
 
     /* Hidden elements */
     txt_search.classList.add          ('hidden');
-    file_properties.classList.add     ('hidden');
+    // file_properties.classList.add     ('hidden');
     // search_content.classList.remove   ('active');
     breadcrumb_items.classList.add    ('hidden');
 
@@ -5840,7 +5878,7 @@ function clear_items() {
     console.log('starting ds')
 
     /* Restart dragselect module */
-    ds.start();
+    // ds.start();
 
 }
 
@@ -6311,7 +6349,12 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 /* Get sidebar info */
 async function get_info() {
-    let sb_items = document.getElementById('siebar_items');
+    // let sb_items = document.getElementById('siebar_items');
+    console.log('getting file properties');
+    let file_properties = document.getElementById('file_properties');
+    if (file_properties) {
+        file_properties.classList.remove('hidden');
+    }
     // sb_items.innerHTML = ''
 
 }
@@ -6702,6 +6745,7 @@ const get_files_recursive = function (source) {
 function paste() {
 
     state = 2
+    ipcRenderer.send('is_main_view', 1)
 
     // RUN MOVE TO FOLDER
     if (cut_files == 1) {
