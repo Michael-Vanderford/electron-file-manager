@@ -528,7 +528,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
     let is_checked = 0;
     if (localStorage.getItem('move_all') === null) {
-        is_checked = 0;
+        localStorage.setItem('move_all', 0);
     } else {
         is_checked = parseInt(localStorage.getItem('move_all'));
     }
@@ -539,10 +539,10 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     chk.addEventListener('change', (e) => {
         if (chk.checked) {
             localStorage.setItem('move_all', 1)
-            is_checked = 1
+            is_checked = 1;
         } else {
             localStorage.setItem('move_all', 0)
-            is_checked = 0
+            is_checked = 0;
         }
     })
 
@@ -724,7 +724,7 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     // SKIP OVERWRITE BUTTON
     btn_skip.addEventListener('click', (e) => {
         if (is_checked) {
-            ipcRenderer.send('overwrite_move_cancel_all')
+            ipcRenderer.send('overwrite_move_canceled_all')
         } else {
             ipcRenderer.send('overwrite_move_skip')
         }
@@ -5798,6 +5798,7 @@ function clear_items() {
     let header              = document.getElementById('header_' + card_id)
     // let file_properties     = document.getElementById('file_properties');
     let breadcrumb_items    = document.getElementById('breadcrumb_items');
+    let info_view           = document.getElementById('info_view')
 
     /* Reset nav counters */
     nc              = 1
@@ -5813,12 +5814,11 @@ function clear_items() {
     /* Clear elements */
     pager.innerHTML             = '';
     txt_search.value            = '';
-    // file_properties.innerHTML   = '';
+    info_view.innerHTML         = '';
+
 
     /* Hidden elements */
     txt_search.classList.add          ('hidden');
-    // file_properties.classList.add     ('hidden');
-    // search_content.classList.remove   ('active');
     breadcrumb_items.classList.add    ('hidden');
 
     if (input) {
@@ -5833,8 +5833,8 @@ function clear_items() {
     if (nav_items) {
         nav_items.forEach(item => {
 
-            item.classList.remove   ('highlight_select', 'ds-selected')
-            item.classList.remove   ('highlight')
+            item.classList.remove('highlight_select', 'ds-selected')
+            item.classList.remove('highlight')
 
             item.querySelector('input').classList.add   ('hidden')
             item.querySelector('a').classList.remove    ('hidden')
