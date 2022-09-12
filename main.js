@@ -12,6 +12,7 @@ const windows = new Set()
 const { clipboard } = require('electron')
 
 
+
 ipcMain.on('delete_file', (e, file) => {
     delete_file(file, () => {});
 })
@@ -27,6 +28,13 @@ let isMainView      = 1;  // state
 ipcMain.on('is_main_view', (e, state = 0) => {
     console.log('running on is_main_view', state);
     isMainView = state;
+})
+
+ipcMain.on('active_window', (e) => {
+    console.log('setting active window')
+    /* Get active window */
+    let window_id = e.sender.id;
+    active_window = window.fromId(window_id);
 })
 
 let active_window   = '';
@@ -347,7 +355,7 @@ function get_disk_space(href, callback) {
             df.push(options)
 
             // SEND DISK SPACE
-            win.webContents.send('disk_space', df)
+            active_window.send('disk_space', df)
 
         })
 
@@ -638,7 +646,6 @@ const createWindow = exports.createWindow = () => {
     // Single Display
     if (displays.length === 1) {
         displayToUse = displays[0]
-
     // Multi Display
     } else {
         // if we have a last active window, use that display for the new window
@@ -674,6 +681,7 @@ const createWindow = exports.createWindow = () => {
     }
 
     let win = new BrowserWindow(options);
+    // win.removeMenu()
 
     win.loadFile('src/index.html');
 
@@ -797,7 +805,7 @@ function get_icon_path(href) {
             icon_path: icon_path
         }
 
-        active_window.send('icon_path',data);
+        win.send('icon_path',data);
 
     })
 }
@@ -899,8 +907,8 @@ function copy(state) {
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
 
-                let win = window.getFocusedWindow()
-                win.webContents.send('add_card', options)
+                // let win = window.getFocusedWindow()
+                active_window.send('add_card', options)
 
                 return true
 
@@ -937,21 +945,25 @@ function copy(state) {
 
                         console.log('running',path.basename(source))
 
-                        switch (state) {
-                            // PASTE
-                            case 2:
+                        // switch (state) {
+                        //     // PASTE
+                        //     case 2:
 
-                                let options = {
-                                    href: destination_file,
-                                    linktext: path.basename(destination_file),
-                                    is_folder: true
-                                }
+                        if (isMainView) {
 
-                                win.webContents.send('add_card', options)
-                                win.webContents.send('update_cards')
+                            let options = {
+                                href: destination_file,
+                                linktext: path.basename(destination_file),
+                                is_folder: true
+                            }
 
-                            break;
+                            active_window.send('add_card', options)
+                            active_window.send('update_cards')
+
                         }
+
+                        //     break;
+                        // }
 
                         copy_files_arr.shift()
                         copy(copy_files_arr,state)
@@ -1085,7 +1097,7 @@ function createConfirmDialog(data, copy_files_arr) {
         parent: win,
         modal:true,
         width: 550,
-        height: 350,
+        height: 400,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -1320,6 +1332,7 @@ function createMoveDialog(data, copy_files_arr) {
 
     // LOAD FILE
     confirm.loadFile('src/confirm_move.html')
+    // confirm.webContents.openDevTools()
 
     // SHOW DIALG
     confirm.once('ready-to-show', () => {
@@ -1423,7 +1436,7 @@ function move() {
                     }
 
                     // REMOVE ITEM FROM ARRAY
-                    copy_files_arr.splice(idx,1)
+                    // copy_files_arr.splice(idx,1)
 
                     // CREATE MOVE DIALOG
                     createMoveDialog(data, copy_files_arr)
@@ -1573,7 +1586,7 @@ ipcMain.on('move_confirmed', (e, data) => {
 // MOVE CONFIRMED ALL - done
 ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
-    console.log('running move confirmmed all');
+    console.log('running move confirmmed all', copy_files_arr);
 
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
@@ -1590,34 +1603,43 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
     })
 
     // SET STATE TO 1 IF PASTE
-    let state = data.state;
-    if (state == 2) {
-        state = 1;
-    }
+    // todo: state has been replaced with ismainview
+    let state = 0; //data.state;
 
     // COPY FILES
     copy_files_arr.forEach((data, idx) => {
 
-
         let destination_file = path.join(destination, path.basename(data.source));
-
-
-        // todo: remove references to data.destination. use destination instead
-        // data.destination = destination;
 
         // DIRECTORY
         if (fs.statSync(data.source).isDirectory()) {
 
             copyfolder(data.source, destination_file, state, () => {
 
-                copy_files_arr.forEach(data => {
+                if (fs.existsSync(destination_file)) {
+
                     delete_file(data.source, () => {
-                        windows.forEach(win => {
-                            win.send('remove_card', data.source);
-                        })
+
+                        if (isMainView) {
+                            active_window.send('remove_card', data.source);
+
+                            let options = {
+                                id: 0,
+                                href: destination_file,
+                                linktext: path.basename(destination_file),
+                                is_folder: true,
+                                grid: ''
+
+                            }
+
+                            active_window.send('add_card', options);
+
+                        }
+
 
                     })
-                })
+
+                }
 
                 move_windows.forEach(win => {
                     win.hide();
@@ -2046,6 +2068,10 @@ function create_properties_window(filename) {
     windows.add(win)
 }
 
+ipcMain.on('get_image_properties', (e) => {
+
+})
+
 // GET FILE PROPERTIES
 ipcMain.on('get_file_properties', (e, file_properties_arr) => {
 
@@ -2236,7 +2262,7 @@ ipcMain.on('get_folder_size', (e , args) => {
                 windows.forEach(win => {
                     // SEND FOLDER SIZE TO RENDERER
                     let size = parseInt(res.replace('.', '') * 1024)
-                    win.webContents.send('folder_size', {href: args.href, size: size})
+                    win.send('folder_size', {href: args.href, size: size})
                 })
 
             })
@@ -2250,7 +2276,7 @@ ipcMain.on('get_folder_size', (e , args) => {
 ipcMain.on('get_disk_space', (e, href) => {
 
     get_disk_space(href, (res) => {
-        active_window.webContents.send('disk_space', res)
+        active_window.send('disk_space', res)
     });
 
 
@@ -2459,19 +2485,19 @@ const template = [
                     {
                         label: 'Date',
                         accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+D' : 'CTRL+SHIFT+D',
-                        click: () => {win.webContents.send('sort', 'date')}
+                        click: () => {active_window.send('sort', 'date')}
                     },
                     {
                         label: 'Name',
-                        click: () => {win.webContents.send('sort', 'size')}
+                        click: () => {active_window.send('sort', 'size')}
                     },
                     {
                         label: 'Size',
-                        click: () => {win.webContents.send('sort', 'name')}
+                        click: () => {active_window.send('sort', 'name')}
                     },
                     {
                         label: 'Type',
-                        click: () => {win.webContents.send('sort', 'type')}
+                        click: () => {active_window.send('sort', 'type')}
                     },
                 ]
             },
@@ -2843,6 +2869,7 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         },
         {
             label: 'Properties',
+            accelerator: process.platform == 'darwin' ? 'ALT+I' : 'ALT+I',
             click:()=>{
                 // createPropertiesWindow()
                 e.sender.send('context-menu-command', 'props')
@@ -2979,7 +3006,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         },
         {
         label: '&Extract',
-        accelerator: process.platform === 'darwin' ? 'ALT+E' : 'ALT+E',
+        accelerator: process.platform === 'darwin' ? 'SHIFT+E' : 'SHIFT+E',
         click: () => { e.sender.send('context-menu-command', 'extract_here') }
         },
         {
@@ -3016,6 +3043,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         },
         {
             label: 'Properties',
+            accelerator: process.platform == 'darwin' ? 'ALT+I' : 'ALT+I',
             click:()=>{
                 // createPropertiesWindow()
                 e.sender.send('context-menu-command', 'props')

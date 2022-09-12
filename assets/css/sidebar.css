@@ -31,8 +31,8 @@
 
     #sidebar_items .header {
         /* background-color: #3a3a3a; */
-        font-size: 1.1em;
-        margin-bottom: 10px;
+        font-size: 10px;
+        margin-bottom: 5px;
         border-radius: 4px;
         padding: 4px;
 
@@ -82,12 +82,14 @@
 
     #sidebar_items .eject {
         position: absolute;
-        right: 0px;
+        display:block;
+        right: -5px;
         border-radius: 5px;
         height: 23px;
         width: 23px;
-        background: rgba(0, 0, 0, 0.5);
-        padding: 2px !important;
+        background: #222222;
+        margin-right: -5px;
+        padding: 5px !important;
     }
 
     #sidebar_items .tree_item a {
@@ -149,6 +151,10 @@
     #sb_find_input {
         color: #cfcfcf;
         background:rgba(0, 0, 0, 0.75)
+    }
+
+    #sb_find_input {
+        border: 1px solid red !important;
     }
 
     #file_properties {

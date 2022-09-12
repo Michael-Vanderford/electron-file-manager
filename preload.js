@@ -18,6 +18,7 @@ const DragSelect                                = require('dragselect')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
+// const im                                        = require('imagemagick');
 
 /* Arrays */
 let chart_labels    = []
@@ -475,6 +476,8 @@ ipcRenderer.on('copy-complete', function (e) {
 // CONFIRM MOVE
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
+    console.log('here i am')
+
     let btn_cancel  = add_button('btn_cancel', 'Cancel')
     let btn_ok      = add_button('btn_ok', 'Move')
     btn_ok.classList.add('primary')
@@ -684,13 +687,13 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
     // HANDLE CHECKBOX
     let replace_all = add_div()
-    let br = document.createElement('br')
-    let br1 = document.createElement('br')
-    replace_all.append(br)
-    replace_all.append(br1)
+    // let br = document.createElement('br')
+    // let br1 = document.createElement('br')
+    // replace_all.append(br)
+    // replace_all.append(br1)
     replace_all.append(chk_replace_div)
 
-    confirm_dialog.append(header, destination_data, source_data, replace_all, footer)
+    confirm_dialog.append(header, destination_data, source_data, add_br(), replace_all, add_br(), footer)
 
     // Handle checkbox
     let chk_replace = document.getElementById('chk_replace')
@@ -1508,6 +1511,7 @@ ipcRenderer.on('sidebar', (e) => {
 
 // // PROPERTIES WINDOW
 ipcRenderer.on('file_properties_window', (e, data) => {
+    console.log('what', data)
     get_properties(source)
 })
 
@@ -1585,13 +1589,61 @@ async function get_file(file) {
 
 // CLEAR CACHE
 function clear_cache() {
-
     let folder_cache = path.join(__dirname, '/', 'folder_cache.json')
+}
+
+async function get_image_properties(image) {
+    let sb_items        = document.getElementById('sidebar_items');
+
+    exec('identify -verbose "' + image + '"', (err, info) => {
+        if (err) {
+
+        } else {
+
+            let prop_view = add_div()
+            let icon      = add_icon('times');
+
+            prop_view.style     = 'height: 100%; overflow-y: auto;'
+            sb_items.innerHTML  = ''
+            sb_items.append(add_header('Image Properties'))
+            icon.style  = 'display:block; float:right; width: 23px; cursor: pointer';
+
+            icon.addEventListener('click', (e) => {
+                prop_view.remove();
+            })
+
+            let image_obj = {};
+            let info_arr  = info.split('\n');
+            info_arr.forEach(item => {
+
+                const [key, value] = item.trim().split(":");
+                image_obj[key] = value;
+
+                let row         = add_div();
+                let col1        = add_div();
+                let col2        = add_div();
+
+                row.style       = 'display:flex; padding: 5px;';
+                col1.style      = 'width: 150px;'
+
+                col1.append(key);
+                col2.append(value);
+
+                row.append(col1,col2);
+                prop_view.append(row)
+            })
+
+            sb_items.append(icon, prop_view);
+        }
+
+    });
 
 }
 
 // FILE PROPERTIES WINDOW
 async function get_properties(file_properties_obj) {
+
+    console.log('getting file prperties')
 
     let sb_items        = document.getElementById('sidebar_items');
     let mb_info         = document.getElementById('mb_info')
@@ -1602,12 +1654,10 @@ async function get_properties(file_properties_obj) {
     let tbody           = document.createElement('tbody');
     let hr              = document.createElement('hr')
 
-
-
     clear_minibar();
     mb_info.style = 'color: #ffffff !important;';
 
-    file_properties.classList.remove('hidden');
+    // file_properties.classList.remove('hidden');
     table.classList.add('ui', 'small', 'compact', 'table', 'fluid');
     icon.classList.add('small');
 
@@ -1639,9 +1689,36 @@ async function get_properties(file_properties_obj) {
             })
 
             td2.append(link);
+
+            let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
+            if (fs.statSync(filename).isDirectory()) {
+
+                let files = fs.readdirSync(filename)
+                // console.log('files', files)
+                let folder_count    = files.filter(item => fs.statSync(path.join(filename, item)).isDirectory()).length
+                let file_count      = files.filter(item => !fs.statSync(path.join(filename, item)).isDirectory()).length
+
+                // td1.append('Folder count')
+                // td2.append(folder_count)
+                // tr.append(td1, td2)
+                // // tbody.append(tr)
+                // td1.append('File count')
+                // td2.append(file_count)
+                // tr.append(td1, td2)
+                // // tbody.append(tr)
+
+            } else {
+
+            }
+
+
+
         } else {
             td2.append(`${file_properties_obj[prop]}`);
         }
+
+
+
 
         td1.append(prop);
         tr.append(td1);
@@ -2431,6 +2508,10 @@ async function add_card(options) {
 
         })
 
+        img.onmouseover = () => {
+            // get_image_properties(href)
+        }
+
         // CREATE CONTENT
         content.classList.add('content')
         content.style = 'overflow-wrap: break-word;'
@@ -2578,7 +2659,6 @@ async function add_card(options) {
         card.ondragstart = function (e) {
 
             // e.preventDefault()
-
             console.log('on drag start')
             // clear_copy_arr()
 
@@ -3637,7 +3717,7 @@ function clear_minibar() {
     let minibar_item    = document.getElementById('minibar')
     minibar_items       = minibar_item.querySelectorAll('.item')
     if (file_properties) {
-        file_properties.classList.add('hidden')
+        // file_properties.classList.add('hidden')
     }
 
     console.log(minibar_items)
@@ -3715,39 +3795,39 @@ function add_workspace() {
 
             if (!file_exists) {
 
-                console.log(3);
-                let stats = fs.statSync(item.dataset.href);
+                // console.log(3);
+                // let stats = fs.statSync(item.dataset.href);
 
-                /* Add card */
-                options = {
-                    id: idx,
-                    href: item.dataset.href,
-                    linktext: path.basename(item.dataset.href),
-                    grid: workspace,
-                    is_folder: stats.isDirectory()
-                }
+                // /* Add card */
+                // options = {
+                //     id: idx,
+                //     href: item.dataset.href,
+                //     linktext: path.basename(item.dataset.href),
+                //     grid: workspace,
+                //     is_folder: stats.isDirectory()
+                // }
 
-                add_card(options).then(card => {
+                // add_card(options).then(card => {
 
-                    // workspace.append(card);
-                    update_card(card.dataset.href);
+                //     workspace.append(card);
+                //     update_card(card.dataset.href);
 
-                    let icon = add_icon('times');
-                    icon.classList.add('small');
-                    icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
-                    let content = card.querySelector('.content');
-                    content.prepend(icon);
+                //     let icon = add_icon('times');
+                //     icon.classList.add('small');
+                //     icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
+                //     let content = card.querySelector('.content');
+                //     content.prepend(icon);
 
-                    /* Remove card */
-                    icon.addEventListener('click', (e) => {
-                        card.remove();
-                        workspace_arr.splice(idx, 1);
-                        localStorage.setItem('workspace',JSON.stringify(workspace_arr));
-                    })
+                //     /* Remove card */
+                //     icon.addEventListener('click', (e) => {
+                //         card.remove();
+                //         workspace_arr.splice(idx, 1);
+                //         localStorage.setItem('workspace',JSON.stringify(workspace_arr));
+                //     })
 
-                    sb_items.append(card)
+                //     sb_items.append(card)
 
-                })
+                // })
 
                 workspace_arr.push(item.dataset.href);
 
@@ -3779,6 +3859,9 @@ async function get_workspace() {
 
     console.log('getting workspace')
 
+    clear_minibar()
+
+    let mb_workspace        = document.getElementById('mb_workspace')
     let local_items         = JSON.parse(localStorage.getItem('workspace'))
     let sb_items            = document.getElementById('sidebar_items')
     let workspace           = add_div();
@@ -3791,6 +3874,7 @@ async function get_workspace() {
     workspace.id            = 'workspace';
     workspace_msg.id        = 'workspace_msg'
 
+    mb_workspace.style = 'color: #ffffff !important'
     workspace.style.height = '100%'
 
     sb_items.append(add_header('Workspace'));
@@ -3798,10 +3882,14 @@ async function get_workspace() {
     // localStorage.removeItem('workspace')
     if (localStorage.getItem('workspace') == null) {
 
+        localStorage.setItem('minibar', 'mb_workspace')
+
         workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+Shift+Click) or Drag and Drop'
         sidebar_items.append(workspace_msg)
 
     } else {
+
+        localStorage.setItem('minibar', 'mb_workspace')
 
         local_items.forEach((item, idx) => {
 
@@ -3812,8 +3900,8 @@ async function get_workspace() {
                 id: idx,
                 href: item,
                 linktext: path.basename(item),
-                grid: workspace,
-                is_folder: stats.isDirectory()
+                is_folder: stats.isDirectory(),
+                grid: workspace
             }
 
             add_card(options).then(card => {
@@ -4505,31 +4593,16 @@ async function get_list_view(dir) {
 
                                     case 'Name': {
 
-                                        box.append(add_img(get_icon_path(filename)), header_link, input);
+                                        let stats = fs.statSync(header_link)
+
+                                        if (stats.isDirectory()) {
+                                            box.append(add_img(folder_icon), header_link, input);
+                                        } else {
+                                            box.append(add_img(get_icon_path(filename)), header_link, input);
+                                        }
+
                                         td.append(box);
-
                                         td.tabIndex = idx
-
-                                        // td.addEventListener('mouseover', (e) => {
-
-                                        //     let title =  {
-                                        //         filename: filename,
-                                        //         size: get_file_size(localStorage.getItem(filename)),
-                                        //         modified: get_time_stamp(fs.statSync(filename).mtime)
-                                        //     }
-
-                                        //     e.target.title = title.filename +
-                                        //                      '\n' +
-                                        //                      title.size +
-                                        //                      '\n' +
-                                        //                      title.modified
-
-                                        //     td.focus()
-
-                                        //     // SET ACTIVE HREF FOR CONTEXT MENU
-                                        //     active_href = filename
-
-                                        // })
 
                                         // EDIT MODE
                                         td.addEventListener('keyup', (e) => {
@@ -5135,7 +5208,8 @@ async function get_files(dir, callback) {
                     // CLEAR ITEMS
                     console.log('esc pressed on keydown')
 
-                    clear_items()
+
+                    clear_items();
                     // CLEAR COPY ARRAY
                     clear_copy_arr();
                     // copy_files_arr = []
@@ -5153,6 +5227,8 @@ async function get_files(dir, callback) {
                 e.stopPropagation();
 
                 isMainView = 1;
+
+                ipcRenderer.send('active_window');
 
                 // ipcRenderer.send('active_folder', breadcrumbs.value, 1);
                 // ipcRenderer.send('is_main_view', 1);
@@ -5258,6 +5334,8 @@ async function get_files(dir, callback) {
                     // notification('changing state to 0')
                     move_to_folder(destination, state)
                 }
+
+
 
                 clear_items();
                 return false;
@@ -5985,6 +6063,8 @@ async function find_files() {
         find_folders.checked        = show_folders;
         find_files.checked          = show_files;
 
+        localStorage.setItem('minibar', 'mb_find')
+
         // FIND FOLDERS
         find_folders.addEventListener('change', (e) => {
             if (find_folders.checked) {
@@ -6033,12 +6113,11 @@ async function find_files() {
 
             if (e.key === 'Enter') {
 
+                search_results.innerHTML    = 'Searching...';
+
                 console.log('running find files', start_date.value, end_date.value)
 
                 if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
-
-                    search_results.innerHTML = ''
-                    // console.log('running find files')
 
                     // CHECK LOCAL STORAGE
                     if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
@@ -6067,7 +6146,7 @@ async function find_files() {
                     //  SIZE
                     if (options.size != '') {
                         let size_option = document.querySelector('input[name="size_options"]:checked').value
-                        options.size = '-size +' + options.size + size_option
+                        options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
                     }
 
                     // START DATE
@@ -6088,20 +6167,20 @@ async function find_files() {
 
                     // DIR
                     if (options.d == 1 && options.s != '') {
-                        options.d = ' -type d ' + options.size + ' -iname "' + options.s + '*"'
+                        options.d = ' -type d ' + '-iname "' + options.s + '*"'
                     } else {
                         options.d = ''
                     }
 
                     // FILES
                     if (options.f == 1 && options.s != '') {
-                        options.f = ' -type f ' + options.size + ' -iname "' + options.s + '"'
+                        options.f = ' -type f ' + ' -iname " ' +options.size + ' ' + options.s + '"'
                     } else {
                         options.f = ''
                     }
 
                     // OR
-                    if (options.d && options.f && options.s != '') {
+                    if (options.d && options.f && options.s != '')   {
                         options.o = ' -or '
                     } else {
                         options.o = ''
@@ -6109,84 +6188,40 @@ async function find_files() {
 
                     console.log(options)
 
-                    search_results.innerHTML = 'Searching...'
-
                     //  FIND FILES
-                    cmd = ' find "' + breadcrumbs.value + '" ' + options.size + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                    cmd = ' find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
                     console.log(cmd)
                     let child = exec(cmd)
 
                     child.stdout.on('data', (res) => {
 
                         res = res.split('\n')
-                        if (res.length > 0 && res.length < 500) {
-
-                            // search_content.classList.add('active')
-                            // search_results.innerHTML = ''
+                        if (res.length > 0 && res.length < 100) {
 
                             for (let i = 0; i < res.length; i++) {
-
                                 console.log(res[i])
-
                                 try {
-
                                     files_arr.push(res[i]);
-                                    // let filename = res[i]
-                                    // let options = {
-                                    //     id: 'find_' + i,
-                                    //     linktext: path.basename(filename),
-                                    //     href: filename,
-                                    //     grid: search_results,
-                                    //     is_folder: fs.statSync(filename).isDirectory()
-                                    // }
-                                    // try {
-                                    //     add_card(options).then(() => {
-                                    //     })
-                                    // } catch (err) {
-                                    //     // notification(err)
-                                    //     // info(err)
-                                    // }
-
                                 } catch (err) {
                                     // notification(err)
                                 }
 
                             }
 
+                        } else {
+                            search_results.innerHTML    = 'No results found......';
                         }
 
                     })
-
-                    // child.stderr.on('data', (err) => {
-                    //     console.log(err);
-                    // })
-
-                    search_results.innerHTML = ''
 
                     child.stdout.on('end', (res) => {
 
                         // search_content.classList.add('active');
                         if (files_arr.length > 0) {
 
+                            search_results.innerHTML    = ' ';
+
                             files_arr.forEach((item, idx) => {
-
-                                // let link = add_link(href, href);
-                                // let icon = add_icon('file');
-
-                                // link.classList.add('nowrap');
-
-                                // link.prepend(icon);
-                                // link.addEventListener('click', (e) => {
-                                //     e.preventDefault();
-                                //     get_view(href);
-                                // })
-
-                                // console.log(href);
-                                // let item = add_item(link);
-                                // item.classList.add('no-wrap');
-                                // item.style.color = '#cfcfcf'
-
-                                // search_results.append(item);
 
                                 try {
 
@@ -6213,29 +6248,18 @@ async function find_files() {
 
                             })
 
-                            // update_cards(search_results);
+
 
                             files_arr = [];
-
-                            // localStorage.setItem('sidebar', 0);
-                            // show_sidebar();
-                            // sidebar_items.append(search_results);
 
                         } else {
                             search_results.innerHTML = 'No results found......'
                         }
 
-                        // update_cards(search_results)
-                        // if (search_results.innerHTML == 'Searching...') {
-                        //     search_results.innerHTML = 'No results found......'
-                        // }
-
                     })
 
-                    // show_sidebar()
-
                 } else {
-                    // search_content.classList.remove('active')
+                    search_results.innerHTML    = 'No results found......';
                 }
 
             }
@@ -6347,13 +6371,42 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 // FUNCTIONS //
 
+async function get_file_properties() {
+
+    file_properties_arr = []
+        let main_view       = document.getElementById('main_view')
+        let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
+        items.forEach(item => {
+
+            switch (path.extname(item.dataset.href)) {
+                case '.jpg':
+                case '.png':
+                case '.jpeg':
+                case '.svg':
+                case '.gif':
+                    get_image_properties(item.dataset.href);
+                break;
+                default: {
+                    file_properties_arr.push(item.dataset.href);
+                    ipcRenderer.send('get_file_properties', file_properties_arr)
+                    console.log('props array', file_properties_arr)
+                    file_properties_arr = []
+                }
+            }
+
+        })
+
+    clear_items()
+
+}
+
 /* Get sidebar info */
 async function get_info() {
     // let sb_items = document.getElementById('siebar_items');
     console.log('getting file properties');
     let file_properties = document.getElementById('file_properties');
     if (file_properties) {
-        file_properties.classList.remove('hidden');
+        // file_properties.classList.remove('hidden');
     }
     // sb_items.innerHTML = ''
 
@@ -6369,9 +6422,6 @@ async function get_devices() {
     let sidebar_items       = document.getElementById('sidebar_items');
     link_div                = add_div();
     remove_div              = add_div();
-
-
-    // device_grid.innerHTML   = '';
     sidebar_items.innerHTML = '';
 
     let mnt = fs.readdirSync('/mnt/');
@@ -6395,7 +6445,6 @@ async function get_devices() {
         devices.push({name: item, href: path.join(gvfs_path, item)});
     })
 
-
     sidebar_items.append(add_header('Devices'))
 
     if (devices.length > 0) {
@@ -6407,18 +6456,14 @@ async function get_devices() {
             let icon    = add_icon('hdd');
             let umount  = add_icon('eject');
 
-            device.style = 'display: flex';
-            umount.title = "Unmount '" + item.href + "'"
-            // umount.style = 'position: absolute; right: 5px;'
+            device.classList.add('item')
+            device.style    = 'display: flex';
+            umount.title    = "Unmount '" + item.href + "'"
             device.append(icon, add_item(link), umount)
 
             umount.addEventListener('click', (e) => {
                 execSync("umount '" + item.href + "'")
             })
-
-            // link.style = 'float:left;';
-            // link.classList.add('nowrap');
-
 
             // link.prepend(icon);
             link.addEventListener('click', (e) => {
@@ -6426,18 +6471,7 @@ async function get_devices() {
                 get_view(item.href);
             })
 
-            // link_div.append(link)
-            // remove_div.append(add_icon('minus'))
-
-            // link_div.style = 'float:left;'
-            // remove_div.style = 'float:right; height:23px; width:23px; cursor: pointer;'
-
-            // device_grid.append(link);
-            // sidebar_items.append(umount)
             sidebar_items.append(device)
-
-
-            // sidebar_items.append(remove_div, link_div)
 
         })
 
@@ -7189,7 +7223,7 @@ function create_folder(folder) {
         if (err) {
 
             notification(err)
-            alert(err)
+            // alert(err)
 
         } else {
 
@@ -7489,12 +7523,12 @@ function copyFolderRecursiveSync(source, destination) {
 // MOVE FOLDER - done
 function move_to_folder(destination, state) {
 
-    console.log("running move to folder", copy_files_arr)
+    console.log("running move to folder")
 
-    // ADD DESTINATION TO ARRAY
-    copy_files_arr.forEach((item, idx) => {
-        item.destination = destination
-    })
+    // // ADD DESTINATION TO ARRAY
+    // copy_files_arr.forEach((item, idx) => {
+    //     item.destination = destination
+    // })
 
     // SEND TO MAIN
     ipcRenderer.send('move', state);
@@ -7698,7 +7732,6 @@ function delete_confirmed() {
             msg = msg + ' ' + delete_files_count + ' file/s deleted'
         }
         notification(msg)
-
 
         // ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: 0,file_count: 0 })
 
@@ -7943,10 +7976,14 @@ function update_card(href) {
 
     cards.forEach(card => {
 
-        console.log(card)
+        // console.log(card)
 
-        let image   = card.querySelector('.image').getElementsByTagName('img')
+        let img  = card.querySelector('.img')
         let icon    = card.querySelector('icon')
+
+        if (img) {
+            img.src = href
+        }
 
         // DETAILS
         let extra = card.querySelector('.extra')
@@ -7958,14 +7995,14 @@ function update_card(href) {
         let atime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
         let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
 
-        description.innerHTML = mtime
+        description.innerHTML   = mtime
+        extra.innerHTML         = get_file_size(localStorage.getItem(href))
 
         // HANDLE DIRECTORY
         if (stats.isDirectory()) {
 
             // img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
-
-            console.log(folder_icon)
+            // console.log(folder_icon)
 
             // icon.src    = folder_icon
             // img.src     = folder_icon
@@ -8018,25 +8055,6 @@ function update_card(href) {
 
 }
 
-// function update_card(card) {
-
-//     let href = card.querySelector('.header_link').getAttribute('href')
-//     let extra = card.querySelector('.extra')
-//     let description = card.querySelector('.description')
-
-//     console.log(href)
-
-//     let stats = fs.statSync(href)
-
-//     let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-
-//     description.innerHTML = mtime
-
-// }
-
-
-// UPDATE CARDS WITH
-
 /**
  * Update Cards - this function adds additional file information
  * @param {*} view requires a valid view to update
@@ -8065,9 +8083,7 @@ function update_cards(view) {
             ds.addSelectables(card, false)
 
             // ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
-
             //     console.log('dragging', isDragging)
-
             //     if (isDragging) {
             //         ds.stop(false, true)
             //         // setTimeout(ds.start)
@@ -8076,6 +8092,8 @@ function update_cards(view) {
 
             let header = card.querySelector('.header_link')
             let img = card.querySelector('.image')
+
+            // console.log('img',img)
 
             // PROGRESS
             let progress = card.querySelector('.progress')
@@ -8195,381 +8213,609 @@ function update_cards(view) {
 }
 
 // EXTRACT HERE
-function extract(source) {
+function extract() {
 
-    notification('extracting ' + source)
-    console.log('to dest ' + breadcrumbs.value)
+    // notification('extracting ' + source)
+    // console.log('to dest ' + breadcrumbs.value)
 
-    let cmd = ''
-    let us_cmd = ''
-    let filename = ''
+    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
 
-    let ext = path.extname(source).toLowerCase()
+    items.forEach(item => {
 
-    switch (ext) {
-        case '.zip':
-            filename = source.replace('.zip', '')
-            us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-            cmd = "unzip '" + source + "' -d '" + filename + "'"
-            break;
-        case '.tar':
-            filename = source.replace('.tar', '')
-            us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-            cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
-            break;
-        case '.gz':
-            filename = source.replace('.tar.gz', '')
-            us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-            cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '" -C "' + filename + '"'
-            break;
-        case '.xz':
-            filename = source.replace('tar.xz', '')
-            filename = filename.replace('.img.xz', '')
-            us_cmd = "xz -l '" + source + "' | awk 'FNR==2{print $5}'"
-            cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
-            break;
-        case '.bz2':
-            filename = source.replace('.bz2', '')
-            us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-            cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/bzip2 -dk "' + source + '"'
-            break;
+        let cmd         = '';
+        let us_cmd      = '';
+        let filename    = '';
+        let source      = item.dataset.href;
+        let ext         = path.extname(source).toLowerCase()
 
-    }
+        console.log('extension ', ext)
 
-    console.log('cmd ' + cmd)
-    console.log('uncompressed size cmd ' + us_cmd)
+        switch (ext) {
+            case '.zip':
+                filename = source.replace('.zip', '')
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = "unzip '" + source + "' -d '" + filename + "'"
+                break;
+            case '.tar':
+                filename = source.replace('.tar', '')
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+                break;
+            case '.gz':
+                filename = source.replace('.tar.gz', '')
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '" -C "' + filename + '"'
+                break;
+            case '.xz':
+                filename = source.replace('tar.xz', '')
+                filename = filename.replace('.img.xz', '')
+                us_cmd = "xz -l '" + source + "' | awk 'FNR==2{print $5}'"
+                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                break;
+            case '.bz2':
+                filename = source.replace('.bz2', '')
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/bzip2 -dk "' + source + '"'
+                break;
 
-
-    // CREATE DIRECTORY FOR COMPRESSED FILES
-    if (fs.existsSync(filename)) {
-
-        data = {
-            source: source,
-            destination: filename
         }
 
-        // ipcRenderer.send('confirm_overwrite', data)
-
-        let confirm_overwrite = confirm(filename, 'exists.\nWould you like to overwrite?\n')
-        if (confirm_overwrite) {
-            alert('overwrite confirmed')
-        }
+        console.log('cmd ' + cmd)
+        console.log('uncompressed size cmd ' + us_cmd)
 
 
-    } else {
-        fs.mkdirSync(filename)
-    }
+        // CREATE DIRECTORY FOR COMPRESSED FILES
+        if (fs.existsSync(filename)) {
 
+            data = {
+                source: source,
+                destination: filename
+            }
 
-    // GET UNCOMPRESSED SIZE
-    let uncompressed_size = parseInt(execSync(us_cmd))
+            // ipcRenderer.send('confirm_overwrite', data)
 
-    // RUN PROGRESS
-    get_progress(get_raw_file_size(uncompressed_size))
+            let confirm_overwrite = confirm(filename, 'exists.\nWould you like to overwrite?\n')
+            if (confirm_overwrite) {
+                alert('overwrite confirmed')
+            }
 
-    notification('executing ' + cmd)
-    notification('source ' + source)
-    console.log('executing ' + cmd)
-
-    // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-    exec(cmd, (err, stdout, stderr) => {
-
-        if (err) {
-
-            console.log('error ' + err)
-            notification('error ' + err)
 
         } else {
+            console.log('filename', filename)
+            fs.mkdirSync(filename)
+        }
 
-            try {
 
-                // GET REFERENCE TO FOLDER GRID
-                let folder_grid = document.getElementById('folder_grid');
-                let is_folder = fs.statSync(filename).isDirectory();
+        // GET UNCOMPRESSED SIZE
+        let uncompressed_size = parseInt(execSync(us_cmd))
 
-                // CREATE CARD OPTIONS
-                let options = {
-                    id: 'folder_card_10000',
-                    href: filename,
-                    linktext: path.basename(filename),
-                    grid: folder_grid
+        // RUN PROGRESS
+        get_progress(get_raw_file_size(uncompressed_size))
+
+        notification('executing ' + cmd)
+        notification('source ' + source)
+        console.log('executing ' + cmd)
+
+        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+        exec(cmd, (err, stdout, stderr) => {
+
+            if (err) {
+
+                console.log('error ' + err)
+                notification('error ' + err)
+
+            } else {
+
+                try {
+
+                    // GET REFERENCE TO FOLDER GRID
+                    let folder_grid = document.getElementById('folder_grid');
+                    let is_folder = fs.statSync(filename).isDirectory();
+
+                    // CREATE CARD OPTIONS
+                    let options = {
+                        id: 'folder_card_10000',
+                        href: filename,
+                        linktext: path.basename(filename),
+                        is_folder: true,
+                        grid: folder_grid
+                    }
+
+                    //
+                    // let folder_grid = document.getElementById('folder_grid')
+                    notification('filename ' + filename);
+
+                    add_card(options).then(card => {
+
+                        console.log(card);
+
+                        let col = add_column('three');
+                        col.append(card)
+
+                        // console.log('card ' + card)
+                        folder_grid.insertBefore(col, folder_grid.firstChild)
+
+                        // let card = col.querySelector('.nav_item')
+                        // card.classList.add('highlight_select')
+
+                        // let header_link = card.querySelector('.header_link')
+                        // header_link.focus()
+
+                        // UPDATE CARDS
+                        update_cards(document.getElementById('main_view'))
+
+
+                    })
+
+                } catch (err) {
+
+                    console.log(err)
+                    notification(err)
+
                 }
 
-                //
-                // let folder_grid = document.getElementById('folder_grid')
-                notification('filename ' + filename);
-
-                add_card(options).then(col => {
-
-                    console.log(col);
-
-                    // console.log('card ' + card)
-                    folder_grid.insertBefore(col, folder_grid.firstChild)
-
-                    let card = col.querySelector('.nav_item')
-                    card.classList.add('highlight_select')
-
-                    let header_link = card.querySelector('.header_link')
-                    header_link.focus()
-
-                    // UPDATE CARDS
-                    update_cards(document.getElementById('main_view'))
-
-
-                })
-
-            } catch (err) {
-
-                console.log(err)
-                notification(err)
+                clear_items()
+                notification('extracted ' + source)
 
             }
 
-            clear_items()
-            notification('extracted ' + source)
-
-        }
+        })
 
     })
 
 }
 
 // COMPRESS
-function compress(source) {
-
-    notification('compressing ' + source + ' to dest ' + breadcrumbs.value)
-
-    let filename = path.basename(source) + '.tar.gz'
-    let filepath = breadcrumbs.value
-
-    let file_exists = fs.existsSync(path.join(filepath, filename))
-
-    if (file_exists == true) {
-
-        let msg = 'confirm overwrite'
-        ipcRenderer.send('confirm_overwrite', msg)
-
-        ipcRenderer.on('overwrite_canceled', (e, res) => {
-            hide_progress()
-        })
-
-
-        // ipcRenderer.on('overwrite_confirmed', (e, res) => {
-
-        //     notification('overwriting file ' + destination)
-
-        //     // BUILD COMPRESS COMMAND
-        //     let cmd = 'cd "' + filepath + '"; tar czvf "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"' //var/www/websit'
-
-        //     // let cmd = 'cd ' + breadcrumbs.value + ';/usr/bin/tar -xvf "' + source + '"'
-        //     console.log('cmd ' + cmd)
-
-        //     show_progress(card_id)
-        //     exec(cmd, (err, stdout, stderr) => {
-
-        //         if (!err) {
-
-        //             try {
-
-        //                 // GET REFERENCE TO FOLDER GRID
-        //                 let grid = document.getElementById('file_grid')
-
-        //                 // CREATE CARD OPTIONS
-        //                 let options = {
-
-        //                     id: 'file_card_10000',
-        //                     href: filepath + '/' + filename,
-        //                     linktext: filename,
-        //                     grid: grid
-
-        //                 }
-
-        //                 //
-        //                 // let folder_grid = document.getElementById('folder_grid')
-        //                 notification('filename ' + filename)
-        //                 add_card(options).then(card => {
-        //                     grid.insertBefore(card, grid.firstChild)
-        //                     // update_cards()
-        //                 })
-
-        //             } catch (err) {
-        //                 notification(err)
-        //             }
-
-        //         } else {
-        //             clear_selected_files()
-        //             notification('error ' + err)
-        //         }
-
-        //     })
-
-        //     clear_selected_files()
-
-        // })
-
-    } else {
-
-
-        // BUILD COMPRESS COMMAND
-        let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"'
-
-
-        // let cmd = 'cd ' + breadcrumbs.value + ';/usr/bin/tar -xvf "' + source + '"'
-        console.log('cmd ' + cmd)
-
-        exec(cmd, (err, stdout, stderr) => {
-
-            // console.log(stdout)
-
-            if (!err) {
-
-                try {
-
-                    // GET REFERENCE TO FOLDER GRID
-                    let grid = document.getElementById('file_grid')
-
-                    // CREATE CARD OPTIONS
-                    let options = {
-
-                        id: 'file_card_10000',
-                        href: filepath + '/' + filename,
-                        linktext: filename,
-                        grid: grid
-                    }
-
-                    //
-                    // let folder_grid = document.getElementById('folder_grid')
-                    notification('filename ' + filename)
-
-                    add_card(options).then(col => {
-
-                        grid.insertBefore(col, grid.firstChild)
-
-                        let card = col.querySelector('.card')
-                        card.classList.add('highlight_select')
-                        update_cards(grid)
-
-                    })
-
-                } catch (err) {
-
-                    notification(err)
-
-                }
-
-                // hide_progress(card_id)
-                clear_items()
-
-
-            } else {
-                notification('error: ' + err)
-            }
-
-        })
-
-
-
-        let c = 0
-        let stats
-        let stats1
-        let href_stats = fs.statSync(source)
-        let href_size = href_stats.size
-
-        console.log('source is ' + source)
-
-        // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-        let progress_file_card = document.getElementById('progress_' + card_id)
-        let progress_bar = document.getElementById('progress_bar_' + card_id)
-
-        progress_file_card.classList.remove('hidden')
-
-        var interval_id = setInterval(() => {
-
-            // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-            // let progress_file_card = document.getElementById('progress_' + card_id)
-            // let progress_bar = document.getElementById('progress_bar_' + card_id)
-
-            // progress_file_card.classList.remove('hidden')
-
-            let file = path.join(filepath, filename)
-            let file_exists = fs.existsSync(file)
-
-            // COUNT ELAPSED SECONDS
-            c = c + 1
-
-            if (file_exists) {
-                stats1 = stats
-                stats = fs.statSync(file)
-
-                // LET STATS1 GET POPULATED
-                if (c > 1) {
-
-                    // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
-                    if (stats1.size == stats.size) {
-                        progress_file_card.classList.add('hidden')
-                        clearInterval(interval_id)
-                    }
-
-                }
-
-                // CALCULATE TRANSFER RATE
-                let transferspeed = stats.size / c
-                let transfer_time = href_size / transferspeed
-                let transfer_data_amount = transferspeed * transfer_time
-
-                // CHECK PROGRESS
-                // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
-                console.log('transfer speed is  ' + get_file_size(transferspeed))
-                console.log('transfer time is  ' + get_file_size(transfer_time))
-                console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                // UPDATE PROGRESS
-                if (c < 5) {
-
-                    if (fs.statSync(source).isDirectory() === true) {
-
-                        console.log('running ' + source + '....................')
-
-                        ipcRenderer.send('get_folder_size', { dir: source })
-
-                        ipcRenderer.on('folder_size', (e, data) => {
-
-                            transfer_time = data.size / transferspeed
-                            progress_bar.max = Math.floor(transfer_time)
-
-                            // // CHECK PROGRESS
-                            // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-                            // console.log('transfer time is  ' + Math.floor(transfer_time))
-                            // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                        })
-
-                    } else {
-                        console.log('setting progress max to ' + Math.floor(transfer_time))
-                        progress_bar.max = Math.floor(transfer_time)
-
-                        // // CHECK PROGRESS
-                        // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-                        // console.log('transfer time is  ' + Math.floor(transfer_time))
-                        // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                    }
-
-                }
-
-                if (progress_bar) {
-                    progress_bar.value = c
-                }
-
-            }
-
-
-        }, 1000);
-
-
-        clear_items()
-
+function compress() {
+
+    let cards       = document.querySelectorAll('.highlight, .highliht_select, .ds-selected')
+    let file_grid   = document.getElementById('file_grid')
+    let file_name   = 'Untitled.tar.gz'
+    let file_list   = ''
+
+    cards.forEach((card, idx) => {
+
+        // if (idx == 1) {
+        //     file_name = path.basename(card.dataset.href) + '.tar.gz'
+        // }
+
+        let file = path.basename(card.dataset.href)
+        file_list += "'" + file + "' "
+
+    })
+
+    let cmd = 'cd "' + breadcrumbs.value + '"; tar czf ' + file_name + ' ' + file_list;
+    exec(cmd, (err, stdout) => {
+        if (err) {
+            console.log(err);
+        } else {
+            console.log(stdout)
+            update_card(path.join(breadcrumbs.value, file_name))
+
+        }
+    })
+
+    let options = {
+        id: 0,
+        href: path.join(breadcrumbs.value, file_name),
+        linktext: file_name,
+        is_folder: false,
+        grid: file_grid
     }
+
+    add_card(options).then(card => {
+
+        let col = add_column('three')
+        col.append(card)
+        file_grid.insertBefore(col, file_grid.firstChild);
+
+        update_card(card.dataset.href);
+
+    })
+
+    clear_items()
+
+    // notification('compressing ' + source + ' to dest ' + breadcrumbs.value);
+
+    //     let filename = path.basename(source) + '.tar.gz';
+    //     let filepath = breadcrumbs.value;
+
+    //     let file_exists = fs.existsSync(path.join(filepath, filename));
+
+    //     if (file_exists == true) {
+
+    //         let msg = 'confirm overwrite';
+    //         ipcRenderer.send('confirm_overwrite', msg);
+
+    //         ipcRenderer.on('overwrite_canceled', (e, res) => {
+    //             hide_progress();
+    //         })
+
+    //     } else {
+
+
+    //         // BUILD COMPRESS COMMAND
+    //         let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"';
+    //         console.log('cmd ' + cmd);
+
+    //         exec(cmd, (err, stdout, stderr) => {
+
+    //             if (!err) {
+
+    //                 try {
+
+    //                     // GET REFERENCE TO FOLDER GRID
+    //                     let grid = document.getElementById('file_grid')
+
+    //                     // CREATE CARD OPTIONS
+    //                     let options = {
+
+    //                         id: 'file_card_10000',
+    //                         href: filepath + '/' + filename,
+    //                         linktext: filename,
+    //                         grid: grid
+    //                     }
+
+    //                     //
+    //                     // let folder_grid = document.getElementById('folder_grid')
+    //                     notification('filename ' + filename)
+
+    //                     add_card(options).then(col => {
+
+    //                         grid.insertBefore(col, grid.firstChild)
+
+    //                         let card = col.querySelector('.card')
+    //                         card.classList.add('highlight_select')
+    //                         // update_cards()
+
+    //                     })
+
+    //                 } catch (err) {
+
+    //                     notification(err)
+
+    //                 }
+
+    //                 // hide_progress(card_id)
+    //                 clear_items()
+
+
+    //             } else {
+    //                 notification('error: ' + err)
+    //             }
+
+    //         })
+
+    //         let c = 0
+    //         let stats
+    //         let stats1
+    //         let href_stats = fs.statSync(source)
+    //         let href_size = href_stats.size
+
+    //         console.log('source is ' + source)
+
+    //         // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+    //         let progress_file_card = document.getElementById('progress_' + card_id)
+    //         let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+    //         progress_file_card.classList.remove('hidden')
+
+    //         var interval_id = setInterval(() => {
+
+    //             // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+    //             // let progress_file_card = document.getElementById('progress_' + card_id)
+    //             // let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+    //             // progress_file_card.classList.remove('hidden')
+
+    //             let file = path.join(filepath, filename)
+    //             let file_exists = fs.existsSync(file)
+
+    //             // COUNT ELAPSED SECONDS
+    //             c = c + 1
+
+    //             if (file_exists) {
+    //                 stats1 = stats
+    //                 stats = fs.statSync(file)
+
+    //                 // LET STATS1 GET POPULATED
+    //                 if (c > 1) {
+
+    //                     // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
+    //                     if (stats1.size == stats.size) {
+    //                         progress_file_card.classList.add('hidden')
+    //                         clearInterval(interval_id)
+    //                     }
+
+    //                 }
+
+    //                 // CALCULATE TRANSFER RATE
+    //                 let transferspeed = stats.size / c
+    //                 let transfer_time = href_size / transferspeed
+    //                 let transfer_data_amount = transferspeed * transfer_time
+
+    //                 // CHECK PROGRESS
+    //                 // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
+    //                 console.log('transfer speed is  ' + get_file_size(transferspeed))
+    //                 console.log('transfer time is  ' + get_file_size(transfer_time))
+    //                 console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+    //                 // UPDATE PROGRESS
+    //                 if (c < 5) {
+
+    //                     if (fs.statSync(source).isDirectory() === true) {
+
+    //                         console.log('running ' + source + '....................')
+
+    //                         ipcRenderer.send('get_folder_size', { dir: source })
+
+    //                         ipcRenderer.on('folder_size', (e, data) => {
+
+    //                             transfer_time = data.size / transferspeed
+    //                             progress_bar.max = Math.floor(transfer_time)
+
+    //                             // // CHECK PROGRESS
+    //                             // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+    //                             // console.log('transfer time is  ' + Math.floor(transfer_time))
+    //                             // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+    //                         })
+
+    //                     } else {
+    //                         console.log('setting progress max to ' + Math.floor(transfer_time))
+    //                         progress_bar.max = Math.floor(transfer_time)
+
+    //                     }
+
+    //                 }
+
+    //                 if (progress_bar) {
+    //                     progress_bar.value = c
+    //                 }
+
+
+    //             }
+
+
+    //         }, 1000);
+
+
+    //         clear_items()
+
+    //     }
+
+
+    // let filename = path.basename(source) + '.tar.gz'
+    // let filepath = breadcrumbs.value
+
+    // let file_exists = fs.existsSync(path.join(filepath, filename))
+
+    // if (file_exists == true) {
+
+    //     let msg = 'confirm overwrite'
+    //     ipcRenderer.send('confirm_overwrite', msg)
+
+    //     ipcRenderer.on('overwrite_canceled', (e, res) => {
+    //         hide_progress()
+    //     })
+
+
+    //     // ipcRenderer.on('overwrite_confirmed', (e, res) => {
+
+    //     //     notification('overwriting file ' + destination)
+
+    //     //     // BUILD COMPRESS COMMAND
+    //     //     let cmd = 'cd "' + filepath + '"; tar czvf "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"' //var/www/websit'
+
+    //     //     // let cmd = 'cd ' + breadcrumbs.value + ';/usr/bin/tar -xvf "' + source + '"'
+    //     //     console.log('cmd ' + cmd)
+
+    //     //     show_progress(card_id)
+    //     //     exec(cmd, (err, stdout, stderr) => {
+
+    //     //         if (!err) {
+
+    //     //             try {
+
+    //     //                 // GET REFERENCE TO FOLDER GRID
+    //     //                 let grid = document.getElementById('file_grid')
+
+    //     //                 // CREATE CARD OPTIONS
+    //     //                 let options = {
+
+    //     //                     id: 'file_card_10000',
+    //     //                     href: filepath + '/' + filename,
+    //     //                     linktext: filename,
+    //     //                     grid: grid
+
+    //     //                 }
+
+    //     //                 //
+    //     //                 // let folder_grid = document.getElementById('folder_grid')
+    //     //                 notification('filename ' + filename)
+    //     //                 add_card(options).then(card => {
+    //     //                     grid.insertBefore(card, grid.firstChild)
+    //     //                     // update_cards()
+    //     //                 })
+
+    //     //             } catch (err) {
+    //     //                 notification(err)
+    //     //             }
+
+    //     //         } else {
+    //     //             clear_selected_files()
+    //     //             notification('error ' + err)
+    //     //         }
+
+    //     //     })
+
+    //     //     clear_selected_files()
+
+    //     // })
+
+    // } else {
+
+
+    //     // BUILD COMPRESS COMMAND
+    //     let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"'
+
+
+    //     // let cmd = 'cd ' + breadcrumbs.value + ';/usr/bin/tar -xvf "' + source + '"'
+    //     console.log('cmd ' + cmd)
+
+    //     exec(cmd, (err, stdout, stderr) => {
+
+    //         // console.log(stdout)
+
+    //         if (!err) {
+
+    //             try {
+
+    //                 // GET REFERENCE TO FOLDER GRID
+    //                 let grid = document.getElementById('file_grid')
+
+    //                 // CREATE CARD OPTIONS
+    //                 let options = {
+
+    //                     id: 'file_card_10000',
+    //                     href: filepath + '/' + filename,
+    //                     linktext: filename,
+    //                     grid: grid
+    //                 }
+
+    //                 //
+    //                 // let folder_grid = document.getElementById('folder_grid')
+    //                 notification('filename ' + filename)
+
+    //                 add_card(options).then(col => {
+
+    //                     grid.insertBefore(col, grid.firstChild)
+
+    //                     let card = col.querySelector('.card')
+    //                     card.classList.add('highlight_select')
+    //                     update_cards(grid)
+
+    //                 })
+
+    //             } catch (err) {
+
+    //                 notification(err)
+
+    //             }
+
+    //             // hide_progress(card_id)
+    //             clear_items()
+
+
+    //         } else {
+    //             notification('error: ' + err)
+    //         }
+
+    //     })
+
+
+
+    //     let c = 0
+    //     let stats
+    //     let stats1
+    //     let href_stats = fs.statSync(source)
+    //     let href_size = href_stats.size
+
+    //     console.log('source is ' + source)
+
+    //     // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+    //     let progress_file_card = document.getElementById('progress_' + card_id)
+    //     let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+    //     progress_file_card.classList.remove('hidden')
+
+    //     var interval_id = setInterval(() => {
+
+    //         // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+    //         // let progress_file_card = document.getElementById('progress_' + card_id)
+    //         // let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+    //         // progress_file_card.classList.remove('hidden')
+
+    //         let file = path.join(filepath, filename)
+    //         let file_exists = fs.existsSync(file)
+
+    //         // COUNT ELAPSED SECONDS
+    //         c = c + 1
+
+    //         if (file_exists) {
+    //             stats1 = stats
+    //             stats = fs.statSync(file)
+
+    //             // LET STATS1 GET POPULATED
+    //             if (c > 1) {
+
+    //                 // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
+    //                 if (stats1.size == stats.size) {
+    //                     progress_file_card.classList.add('hidden')
+    //                     clearInterval(interval_id)
+    //                 }
+
+    //             }
+
+    //             // CALCULATE TRANSFER RATE
+    //             let transferspeed = stats.size / c
+    //             let transfer_time = href_size / transferspeed
+    //             let transfer_data_amount = transferspeed * transfer_time
+
+    //             // CHECK PROGRESS
+    //             // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
+    //             console.log('transfer speed is  ' + get_file_size(transferspeed))
+    //             console.log('transfer time is  ' + get_file_size(transfer_time))
+    //             console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+    //             // UPDATE PROGRESS
+    //             if (c < 5) {
+
+    //                 if (fs.statSync(source).isDirectory() === true) {
+
+    //                     console.log('running ' + source + '....................')
+
+    //                     ipcRenderer.send('get_folder_size', { dir: source })
+
+    //                     ipcRenderer.on('folder_size', (e, data) => {
+
+    //                         transfer_time = data.size / transferspeed
+    //                         progress_bar.max = Math.floor(transfer_time)
+
+    //                         // // CHECK PROGRESS
+    //                         // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+    //                         // console.log('transfer time is  ' + Math.floor(transfer_time))
+    //                         // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+    //                     })
+
+    //                 } else {
+    //                     console.log('setting progress max to ' + Math.floor(transfer_time))
+    //                     progress_bar.max = Math.floor(transfer_time)
+
+    //                     // // CHECK PROGRESS
+    //                     // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+    //                     // console.log('transfer time is  ' + Math.floor(transfer_time))
+    //                     // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+    //                 }
+
+    //             }
+
+    //             if (progress_bar) {
+    //                 progress_bar.value = c
+    //             }
+
+    //         }
+
+
+    //     }, 1000);
+
+
+    //     clear_items()
+
+    // }
 }
 
 //////////////////////////////////////////////////////////////////
@@ -8591,184 +8837,186 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     // COMPRESS HERE
     if (command === 'compress_folder') {
 
-        notification('compressing ' + source + ' to dest ' + breadcrumbs.value);
+        compress();
 
-        let filename = path.basename(source) + '.tar.gz';
-        let filepath = breadcrumbs.value;
+        // notification('compressing ' + source + ' to dest ' + breadcrumbs.value);
 
-        let file_exists = fs.existsSync(path.join(filepath, filename));
+        // let filename = path.basename(source) + '.tar.gz';
+        // let filepath = breadcrumbs.value;
 
-        if (file_exists == true) {
+        // let file_exists = fs.existsSync(path.join(filepath, filename));
 
-            let msg = 'confirm overwrite';
-            ipcRenderer.send('confirm_overwrite', msg);
+        // if (file_exists == true) {
 
-            ipcRenderer.on('overwrite_canceled', (e, res) => {
-                hide_progress();
-            })
+        //     let msg = 'confirm overwrite';
+        //     ipcRenderer.send('confirm_overwrite', msg);
 
-        } else {
+        //     ipcRenderer.on('overwrite_canceled', (e, res) => {
+        //         hide_progress();
+        //     })
 
-
-            // BUILD COMPRESS COMMAND
-            let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"';
-            console.log('cmd ' + cmd);
-
-            exec(cmd, (err, stdout, stderr) => {
-
-                if (!err) {
-
-                    try {
-
-                        // GET REFERENCE TO FOLDER GRID
-                        let grid = document.getElementById('file_grid')
-
-                        // CREATE CARD OPTIONS
-                        let options = {
-
-                            id: 'file_card_10000',
-                            href: filepath + '/' + filename,
-                            linktext: filename,
-                            grid: grid
-                        }
-
-                        //
-                        // let folder_grid = document.getElementById('folder_grid')
-                        notification('filename ' + filename)
-
-                        add_card(options).then(col => {
-
-                            grid.insertBefore(col, grid.firstChild)
-
-                            let card = col.querySelector('.card')
-                            card.classList.add('highlight_select')
-                            // update_cards()
-
-                        })
-
-                    } catch (err) {
-
-                        notification(err)
-
-                    }
-
-                    // hide_progress(card_id)
-                    clear_items()
+        // } else {
 
 
-                } else {
-                    notification('error: ' + err)
-                }
+        //     // BUILD COMPRESS COMMAND
+        //     let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"';
+        //     console.log('cmd ' + cmd);
 
-            })
+        //     exec(cmd, (err, stdout, stderr) => {
 
-            let c = 0
-            let stats
-            let stats1
-            let href_stats = fs.statSync(source)
-            let href_size = href_stats.size
+        //         if (!err) {
 
-            console.log('source is ' + source)
+        //             try {
 
-            // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-            let progress_file_card = document.getElementById('progress_' + card_id)
-            let progress_bar = document.getElementById('progress_bar_' + card_id)
+        //                 // GET REFERENCE TO FOLDER GRID
+        //                 let grid = document.getElementById('file_grid')
 
-            progress_file_card.classList.remove('hidden')
+        //                 // CREATE CARD OPTIONS
+        //                 let options = {
 
-            var interval_id = setInterval(() => {
+        //                     id: 'file_card_10000',
+        //                     href: filepath + '/' + filename,
+        //                     linktext: filename,
+        //                     grid: grid
+        //                 }
 
-                // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-                // let progress_file_card = document.getElementById('progress_' + card_id)
-                // let progress_bar = document.getElementById('progress_bar_' + card_id)
+        //                 //
+        //                 // let folder_grid = document.getElementById('folder_grid')
+        //                 notification('filename ' + filename)
 
-                // progress_file_card.classList.remove('hidden')
+        //                 add_card(options).then(col => {
 
-                let file = path.join(filepath, filename)
-                let file_exists = fs.existsSync(file)
+        //                     grid.insertBefore(col, grid.firstChild)
 
-                // COUNT ELAPSED SECONDS
-                c = c + 1
+        //                     let card = col.querySelector('.card')
+        //                     card.classList.add('highlight_select')
+        //                     // update_cards()
 
-                if (file_exists) {
-                    stats1 = stats
-                    stats = fs.statSync(file)
+        //                 })
 
-                    // LET STATS1 GET POPULATED
-                    if (c > 1) {
+        //             } catch (err) {
 
-                        // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
-                        if (stats1.size == stats.size) {
-                            progress_file_card.classList.add('hidden')
-                            clearInterval(interval_id)
-                        }
+        //                 notification(err)
 
-                    }
+        //             }
 
-                    // CALCULATE TRANSFER RATE
-                    let transferspeed = stats.size / c
-                    let transfer_time = href_size / transferspeed
-                    let transfer_data_amount = transferspeed * transfer_time
-
-                    // CHECK PROGRESS
-                    // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
-                    console.log('transfer speed is  ' + get_file_size(transferspeed))
-                    console.log('transfer time is  ' + get_file_size(transfer_time))
-                    console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                    // UPDATE PROGRESS
-                    if (c < 5) {
-
-                        if (fs.statSync(source).isDirectory() === true) {
-
-                            console.log('running ' + source + '....................')
-
-                            ipcRenderer.send('get_folder_size', { dir: source })
-
-                            ipcRenderer.on('folder_size', (e, data) => {
-
-                                transfer_time = data.size / transferspeed
-                                progress_bar.max = Math.floor(transfer_time)
-
-                                // // CHECK PROGRESS
-                                // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-                                // console.log('transfer time is  ' + Math.floor(transfer_time))
-                                // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                            })
-
-                        } else {
-                            console.log('setting progress max to ' + Math.floor(transfer_time))
-                            progress_bar.max = Math.floor(transfer_time)
-
-                            // // CHECK PROGRESS
-                            // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-                            // console.log('transfer time is  ' + Math.floor(transfer_time))
-                            // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                        }
-
-                    }
-
-                    if (progress_bar) {
-                        // console.log('progress value is ' + get_file_size(c))
-                        progress_bar.value = c
-                    }
-
-                    // // CHECK PROGRESS
-                    // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-                    // console.log('transfer time is  ' + Math.floor(transfer_time))
-                    // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-                }
+        //             // hide_progress(card_id)
+        //             clear_items()
 
 
-            }, 1000);
+        //         } else {
+        //             notification('error: ' + err)
+        //         }
+
+        //     })
+
+        //     let c = 0
+        //     let stats
+        //     let stats1
+        //     let href_stats = fs.statSync(source)
+        //     let href_size = href_stats.size
+
+        //     console.log('source is ' + source)
+
+        //     // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+        //     let progress_file_card = document.getElementById('progress_' + card_id)
+        //     let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+        //     progress_file_card.classList.remove('hidden')
+
+        //     var interval_id = setInterval(() => {
+
+        //         // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
+        //         // let progress_file_card = document.getElementById('progress_' + card_id)
+        //         // let progress_bar = document.getElementById('progress_bar_' + card_id)
+
+        //         // progress_file_card.classList.remove('hidden')
+
+        //         let file = path.join(filepath, filename)
+        //         let file_exists = fs.existsSync(file)
+
+        //         // COUNT ELAPSED SECONDS
+        //         c = c + 1
+
+        //         if (file_exists) {
+        //             stats1 = stats
+        //             stats = fs.statSync(file)
+
+        //             // LET STATS1 GET POPULATED
+        //             if (c > 1) {
+
+        //                 // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
+        //                 if (stats1.size == stats.size) {
+        //                     progress_file_card.classList.add('hidden')
+        //                     clearInterval(interval_id)
+        //                 }
+
+        //             }
+
+        //             // CALCULATE TRANSFER RATE
+        //             let transferspeed = stats.size / c
+        //             let transfer_time = href_size / transferspeed
+        //             let transfer_data_amount = transferspeed * transfer_time
+
+        //             // CHECK PROGRESS
+        //             // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
+        //             console.log('transfer speed is  ' + get_file_size(transferspeed))
+        //             console.log('transfer time is  ' + get_file_size(transfer_time))
+        //             console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+        //             // UPDATE PROGRESS
+        //             if (c < 5) {
+
+        //                 if (fs.statSync(source).isDirectory() === true) {
+
+        //                     console.log('running ' + source + '....................')
+
+        //                     ipcRenderer.send('get_folder_size', { dir: source })
+
+        //                     ipcRenderer.on('folder_size', (e, data) => {
+
+        //                         transfer_time = data.size / transferspeed
+        //                         progress_bar.max = Math.floor(transfer_time)
+
+        //                         // // CHECK PROGRESS
+        //                         // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+        //                         // console.log('transfer time is  ' + Math.floor(transfer_time))
+        //                         // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+        //                     })
+
+        //                 } else {
+        //                     console.log('setting progress max to ' + Math.floor(transfer_time))
+        //                     progress_bar.max = Math.floor(transfer_time)
+
+        //                     // // CHECK PROGRESS
+        //                     // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+        //                     // console.log('transfer time is  ' + Math.floor(transfer_time))
+        //                     // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+        //                 }
+
+        //             }
+
+        //             if (progress_bar) {
+        //                 // console.log('progress value is ' + get_file_size(c))
+        //                 progress_bar.value = c
+        //             }
+
+        //             // // CHECK PROGRESS
+        //             // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
+        //             // console.log('transfer time is  ' + Math.floor(transfer_time))
+        //             // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
+
+        //         }
 
 
-            clear_items()
+        //     }, 1000);
 
-        }
+
+        //     clear_items()
+
+        // }
 
     }
 
@@ -8987,12 +9235,26 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         let main_view       = document.getElementById('main_view')
         let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
         items.forEach(item => {
-            file_properties_arr.push(item.dataset.href);
+
+            switch (path.extname(item.dataset.href)) {
+                case '.jpg':
+                case '.png':
+                case '.jpeg':
+                case '.svg':
+                case '.gif':
+                    get_image_properties(item.dataset.href);
+                break;
+                default: {
+                    file_properties_arr.push(item.dataset.href);
+                    ipcRenderer.send('get_file_properties', file_properties_arr)
+                    console.log('props array', file_properties_arr)
+                    file_properties_arr = []
+                }
+            }
+
         })
 
-        ipcRenderer.send('get_file_properties', file_properties_arr)
-        console.log('props array', file_properties_arr)
-        file_properties_arr = []
+        clear_items()
 
     }
 
@@ -9120,6 +9382,19 @@ window.addEventListener('DOMContentLoaded', () => {
         selectorClass: 'drag_select',
     })
 
+    // Show workspace
+    Mousetrap.bind('alt+w', () => {
+        get_workspace()
+
+    })
+
+    // Get File info
+    Mousetrap.bind('ctrl+i', () => {
+
+        get_file_properties();
+
+    })
+
     // BACKSPACE
     Mousetrap.bind('alt+right', () => {
 
@@ -9131,7 +9406,6 @@ window.addEventListener('DOMContentLoaded', () => {
     // ALT+E EXTRACT
     Mousetrap.bind('shift+e', (e) => {
 
-        e.preventDefault()
         console.log('extracting file')
 
         // GET SELECTED ITEMS
@@ -9151,19 +9425,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     Mousetrap.bind('shift+c', (e) => {
 
-        let href = ''
-        if (items.length > 0) {
-            for (let i = 0; i < items.length; i++) {
+        compress()
 
-                let item = items[i]
+        // let href = ''
+        // if (items.length > 0) {
+        //     for (let i = 0; i < items.length; i++) {
 
-                if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
-                    href = item.dataset.href
-                    console.log('source ' + href)
-                    compress(href)
-                }
-            }
-        }
+        //         // let item = items[i]
+
+        //         // if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
+        //         //     href = item.dataset.href
+        //         //     console.log('source ' + href)
+        //         //     compress(href)
+        //         // }
+        //     }
+        // }
 
     })
 
@@ -9304,17 +9580,18 @@ window.addEventListener('DOMContentLoaded', () => {
     // ESC KEY
     Mousetrap.bind('esc', () => {
 
-        clear_copy_arr()
-        clear_items()
-        console.log('esc pressed')
+        notification('');
+        clear_copy_arr();
+        clear_items();
+        console.log('esc pressed');
 
     })
 
     // BACKSPACE
     Mousetrap.bind('backspace', () => {
 
-        console.log('back pressed')
-        navigate('left')
+        console.log('back pressed');
+        navigate('left');
 
     })
 
