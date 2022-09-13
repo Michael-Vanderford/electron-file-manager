@@ -2826,14 +2826,14 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         {
             label: 'Paste file into folder',
             click: () => {
-            e.sender.send('context-menu-command', 'paste_file')
+                e.sender.send('context-menu-command', 'paste_file')
             }
         },
         {
             label: '&Rename',
             accelerator: process.platform === 'darwin' ? 'F2' : 'F2',
             click: () => {
-            e.sender.send('context-menu-command', 'rename')
+                e.sender.send('context-menu-command', 'rename')
             }
         },
         {
@@ -2841,9 +2841,21 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         },
         {
             label: 'Compress',
-            click: () => {
-            e.sender.send('context-menu-command', 'compress_folder')
-            }
+                accelerator: process.platform === 'darwin' ? 'SHIFT+C' : 'SHIFT+C',
+                submenu: [
+                    {
+                        label: 'tar.gz',
+                        click: () => {
+                            e.sender.send('context-menu-command', 'compress_folder')
+                        }
+                    },
+                    {
+                        label: 'zip',
+                        click: () => {
+                            e.sender.send('context-menu-command', 'compress_folder')
+                        }
+                    },
+                ]
         },
         {
             type: 'separator'
@@ -3005,12 +3017,13 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             type: 'separator'
         },
         {
-        label: '&Extract',
-        accelerator: process.platform === 'darwin' ? 'SHIFT+E' : 'SHIFT+E',
-        click: () => { e.sender.send('context-menu-command', 'extract_here') }
+            label: '&Extract',
+            accelerator: process.platform === 'darwin' ? 'SHIFT+E' : 'SHIFT+E',
+            click: () => { e.sender.send('context-menu-command', 'extract_here') }
         },
         {
             label: 'Compress',
+            accelerator: process.platform === 'darwin' ? 'SHIFT+C' : 'SHIFT+C',
             click: () => {
             e.sender.send(
                 'context-menu-command', 'compress_folder'
