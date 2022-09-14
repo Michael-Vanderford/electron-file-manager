@@ -11,7 +11,10 @@ const window = require('electron').BrowserWindow;
 const windows = new Set()
 const { clipboard } = require('electron')
 
-
+let canceled = 0;
+ipcMain.on('cancel', (e) => {
+    canceled = 1;
+})
 
 ipcMain.on('delete_file', (e, file) => {
     delete_file(file, () => {});
@@ -210,7 +213,6 @@ function copyfolder(source, destination, state, callback) {
 
             callback(1)
 
-
         }
 
     })
@@ -235,11 +237,9 @@ function get_file_properties(filename) {
     let contents        = '0 items, totalling 0 MB';
 
     if (stats.isDirectory()) {
-
         // let folders = fs.readdirSync(filename)
         // let folders_arr = folders.filter(item => fs.statSync(path.join(path.dirname(filename),item)).isDirectory())
         // console.log(folders_arr.length)
-
     }
 
 
@@ -253,7 +253,6 @@ function get_file_properties(filename) {
         Name:       name,
         Parent:     parent_folder,
         Size:       size,
-        // Contents: contents,
         Accessed:   accessed,
         Modified:   modified,
         Created:    created,
@@ -269,12 +268,11 @@ function get_file_properties(filename) {
 /* Get disk space */
 function get_disk_space(href, callback) {
 
-    df = []
+    console.log('running get disk space', cmd)
 
+    df = []
     // RUN DISK FREE COMMAND
     let cmd = 'df "' + href.href + '"'
-
-    console.log('running get disk space', cmd)
 
     let data = execSync(cmd).toString()
     let data_arr = data.split('\n')
@@ -358,8 +356,6 @@ function get_disk_space(href, callback) {
             active_window.send('disk_space', df)
 
         })
-
-        // console.log(options)
 
     }
 
@@ -468,7 +464,7 @@ function get_diskspace_summary() {
 
 }
 
-// DELETE FILE
+// DELETE FILE / FOLDER
 function delete_file(file, callback) {
 
     console.log('deleting file ' + file)
@@ -485,13 +481,21 @@ function delete_file(file, callback) {
                 } else {
 
                     try{
+
                         console.log('folder deleted');
                         windows.forEach(win => {
                             win.send('remove_card', file);
                         })
+
                     } catch (err) {
                         console.log(err);
                     }
+
+                    // Update disk size
+                    get_disk_space({href: current_directory}, (res) => {
+                        active_window.send('disk_space', res)
+                    });
+
                     callback(1);
                 }
             })
@@ -514,15 +518,10 @@ function delete_file(file, callback) {
 
                     }
 
-                    // if (current_directory == path.dirname(file)) {
-                        // try {
-                        //     windows.forEach(win => {
-                        //         win.send('remove_card', file);
-                        //     })
-                        // } catch (err) {
-                        //     console.log(err)
-                        // }
-                    // }
+                    // Update disk size
+                    get_disk_space({href: current_directory}, (res) => {
+                        active_window.send('disk_space', res)
+                    });
 
                     callback(1);
                 }
@@ -2245,8 +2244,6 @@ ipcMain.on('get_file_size', (e, args) => {
 // GET FOLDER SIZE
 ipcMain.on('get_folder_size', (e , args) => {
 
-    // console.log('getting folder size', args)
-
     if (fs.existsSync(args.href)) {
 
         let stats = fs.statSync(args.href)
@@ -2278,7 +2275,6 @@ ipcMain.on('get_disk_space', (e, href) => {
     get_disk_space(href, (res) => {
         active_window.send('disk_space', res)
     });
-
 
 })
 

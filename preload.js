@@ -189,11 +189,9 @@ ipcRenderer.on('remove_card', (e, source) => {
             col.remove()
         })
 
-
     } catch (err) {
 
     }
-
 
 })
 
@@ -915,8 +913,10 @@ ipcRenderer.on('disk_space', (e, data) => {
             usedspace.innerHTML = '<div class="item">Used space: <b>&nbsp' + item.usedspace + '</b></div>'
             availablespace.innerHTML = '<div class="item">Available space: <b>&nbsp' + item.availablespace + '</b></div>'
             foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
-            foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + item.foldercount + '</b></div>'
-            filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + item.filecount + '</b></div>'
+            // foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + item.foldercount + '</b></div>'
+            // filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + item.filecount + '</b></div>'
+            foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + get_folder_count() + '</b></div>'
+            filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + get_file_count() + '</b></div>'
 
             status.appendChild(disksize)
             status.appendChild(usedspace)
@@ -936,14 +936,21 @@ ipcRenderer.on('disk_space', (e, data) => {
 // ON FOLDER SIZE
 ipcRenderer.on('folder_size', (e, data) => {
 
-    // console.log('href ' + data.href)
-    // console.log('setting local storage to ' + get_file_size(data.size))
-
     try {
 
         let card = document.querySelector('[data-href="' + data.href + '"]')
         let extra = card.querySelector('.extra')
-        extra.innerHTML = get_file_size(data.size)
+
+        console.log(data.size)
+        // extra.innerHTML = get_file_size(data.size)
+
+        if (fs.readdirSync(data.href).length > 0) {
+            extra.innerHTML = get_file_size(data.size)
+        } else {
+            extra.innerHTML = '0 Items'
+        }
+
+
 
     } catch (err) {
         // console.log(err)
@@ -956,9 +963,7 @@ ipcRenderer.on('folder_size', (e, data) => {
 
 //ON GIO VOLUMES
 ipcRenderer.on('gio_volumes', (e, res) => {
-
     console.log('results ', res)
-
 })
 
 // ON GIO DEVICE
@@ -1661,10 +1666,13 @@ async function get_properties(file_properties_obj) {
     let tbody           = document.createElement('tbody');
     let hr              = document.createElement('hr')
 
+    sb_items.innerHTML  = ''
+
     clear_minibar();
     mb_info.style = 'color: #ffffff !important;';
 
-    // file_properties.classList.remove('hidden');
+
+
     table.classList.add('ui', 'small', 'compact', 'table', 'fluid');
     icon.classList.add('small');
 
@@ -1705,27 +1713,23 @@ async function get_properties(file_properties_obj) {
                 let folder_count    = files.filter(item => fs.statSync(path.join(filename, item)).isDirectory()).length
                 let file_count      = files.filter(item => !fs.statSync(path.join(filename, item)).isDirectory()).length
 
-                // td1.append('Folder count')
-                // td2.append(folder_count)
-                // tr.append(td1, td2)
-                // // tbody.append(tr)
-                // td1.append('File count')
-                // td2.append(file_count)
-                // tr.append(td1, td2)
-                // // tbody.append(tr)
-
-            } else {
-
             }
 
+            // Get image properties
+            switch (path.extname(filename)) {
+                case '.jpg':
+                case '.png':
+                case '.jpeg':
+                case '.svg':
+                case '.gif':
+                    get_image_properties(filename);
+                break;
+            }
 
 
         } else {
             td2.append(`${file_properties_obj[prop]}`);
         }
-
-
-
 
         td1.append(prop);
         tr.append(td1);
@@ -1742,6 +1746,8 @@ async function get_properties(file_properties_obj) {
 
     // sb_items.innerHTML = ''
     sb_items.append(file_properties);
+
+
 
     localStorage.setItem('sidebar', 1);
     show_sidebar()
@@ -1801,9 +1807,14 @@ function update_progress(val) {
  */
 function get_progress(max, destination_file) {
 
-    let breadcrumbs = document.getElementById('breadcrumbs');
-    let progress_div = document.getElementById('progress_div')
-    let progress = document.getElementById('progress');
+    let breadcrumbs     = document.getElementById('breadcrumbs');
+    let progress_div    = document.getElementById('progress_div')
+    let progress        = document.getElementById('progress');
+    let cancel          = document.getElementById('cancel_operation')
+
+    cancel.onclick = (e) => {
+        alert('test')
+    }
 
     progress_div.classList.remove('hidden')
     progress.classList.remove('hidden');
@@ -3520,10 +3531,10 @@ function get_disk_usage_chart() {
             chart_labels.push('folder size')
             chart_data.push((size))
 
-            // if (size > 1000000000) {
-            //     extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
-            // } else {
-            // }
+            if (size > 1000000000) {
+                extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
+            } else {
+            }
 
             // notification(chart_data)
             // bar_chart(chart_labels, chart_data)
@@ -6390,21 +6401,21 @@ async function get_file_properties() {
         let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
         items.forEach(item => {
 
-            switch (path.extname(item.dataset.href)) {
-                case '.jpg':
-                case '.png':
-                case '.jpeg':
-                case '.svg':
-                case '.gif':
-                    get_image_properties(item.dataset.href);
-                break;
-                default: {
+            // switch (path.extname(item.dataset.href)) {
+            //     case '.jpg':
+            //     case '.png':
+            //     case '.jpeg':
+            //     case '.svg':
+            //     case '.gif':
+            //         get_image_properties(item.dataset.href);
+            //     break;
+            //     default: {
                     file_properties_arr.push(item.dataset.href);
                     ipcRenderer.send('get_file_properties', file_properties_arr)
                     console.log('props array', file_properties_arr)
                     file_properties_arr = []
-                }
-            }
+                // }
+            // }
 
         })
 
@@ -7690,10 +7701,6 @@ function delete_confirmed() {
             card_id = file.card_id
             console.log('file source ' + file.source + ' card_id ' + file.card_id)
 
-            // CLEAR HREF LOCAL STORAGE
-            // console.log('href ' + file.source)
-            // localStorage.setItem(file.source, '')
-
             // IF DIRECTORY
             if (fs.statSync(file.source).isDirectory()) {
 
@@ -7706,9 +7713,7 @@ function delete_confirmed() {
                 get_progress(parseInt(localStorage.getItem(file.source) * -1))
 
                 // DELETE FOLDER
-                delete_folder(file.source)
-
-                // notification(delete_folder_count + ' folders deleted.')
+                delete_file(file.source)
 
                 // IF FILE
             } else if (fs.statSync(file.source).isFile()) {
@@ -7719,19 +7724,8 @@ function delete_confirmed() {
                 // DELETE FILE
                 delete_file(file.source)
 
-                // notification(delete_files_count + ' files deleted.')
-
             }
 
-            // // REMOVE CARD
-            // let card = document.getElementById(file.card_id)
-            // let col = card.closest('.column')
-            // col.remove()
-
-            // // UPDATE CARDS
-            // update_cards(main_view)
-
-            ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
         })
 
@@ -7744,7 +7738,6 @@ function delete_confirmed() {
         }
 
         notification(msg)
-        // ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
         // CLEAR DELETE ARRAY
         delete_arr = []
@@ -7754,129 +7747,19 @@ function delete_confirmed() {
         update_cards(main_view);
 
     } else {
-        console.log('nothing to delete');
-        notification('Nothing to delete');
+        // console.log('nothing to delete');
+        // notification('Nothing to delete');
         // indexOf('Nothing to delete.')
     }
 
+    ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
     ds.start();
 
 }
 
 // DELETE FILE
 async function delete_file(file) {
-
     ipcRenderer.send('delete_file', file);
-
-    // console.log('deleting file ' + file)
-    // notification('deleting file ' + file)
-
-    // let main_view = document.getElementById('main_view')
-
-    // let stats = fs.statSync(file)
-
-    // if (stats) {
-
-    //     if (stats.isFile()) {
-
-    //         fs.unlink(file, function (err) {
-
-    //             if (err) {
-
-    //                 clear_items()
-
-    //                 notification('Error deleting file: ' + source + ' \n' + err)
-    //                 console.log('Error deleting file: ' + source + ' \n' + err)
-
-    //             } else {
-
-    //                 // folder_count = delete_arr.filter(item => fs.statSync(item.source).isDirectory().length)
-    //                 // file_count = delete_arr.filter(item => fs.statSync(item.source).isFile().length)
-
-    //                 // notification (get_file_count() + ' Files deleted.')
-    //                 // notification('deleted file ' + file)
-    //                 // ipcRenderer.send('get_folder_size', { href: breadcrumbs.value })
-
-    //                 // HIDE PROGRESS
-    //                 // hide_top_progress()
-
-    //                 let card = document.querySelector('[data-href="' + file + '"]')
-    //                 let col = card.closest('.column')
-    //                 col.remove()
-
-    //                 // UDATE CARDS
-    //                 update_cards(main_view)
-
-    //             }
-
-    //         })
-
-
-    //     } else {
-
-    //         notification('error deleted file ' + source)
-    //         console.log('Error deleting file: ' + source)
-    //     }
-
-    // }
-
-}
-
-// DELETE FOLDER
-function delete_folder(directory) {
-
-    // let breadcrumbs = document.getElementById('breadcrumbs')
-    notification('running delete foder')
-    console.log('direcotry = ' + path.basename(directory))
-
-    // CHECK IF YOU ARE ABOUT TO WACK IMPORTANT FOLDER
-    if (breadcrumbs.value == 'Documents' || breadcrumbs.value == 'Home' || breadcrumbs.value == 'Downloads' || breadcrumbs.value == 'Pictures' || breadcrumbs.value == 'Music') {
-
-        alert('This is a system Directory. Do not delete!')
-        return 0
-
-    } else {
-
-        // CHECK IF ITS A DIRECTORY
-        if (fs.statSync(directory).isDirectory()) {
-
-            // DELETE FOLDER
-            fs.rm(directory, { recursive: true }, (err) => {
-
-                if (err) {
-
-                    notification(err)
-                    console.error(err)
-
-                } else {
-
-                    // COUNT ITEMS IN MAIN VIEW
-                    folder_count = get_folder_count()
-                    file_count = get_file_count()
-
-                    let card = document.querySelector('[data-href="' + directory + '"]')
-                    let col = card.closest('.column')
-                    col.remove()
-
-                    // update_cards(main_view)
-
-                    // hide_progress(card_id)
-                    // notification('Deleted directory ' + directory)
-                    ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: folder_count, file_count: file_count })
-
-                }
-
-            })
-
-        } else {
-
-            notification('Error: This is not directory!')
-            console.log('Error: This is not directory!')
-
-        }
-
-    }
-
 }
 
 // GET FOLDER COUNT
@@ -8148,7 +8031,6 @@ function update_cards(view) {
                     img.width = '24px'
 
                     ipcRenderer.send('get_folder_size', { href: href })
-                    // extra.innerHTML = get_file_size(localStorage.getItem(href))
 
                     // CARD ON MOUSE OVER
                     card.addEventListener('mouseover', (e) => {
