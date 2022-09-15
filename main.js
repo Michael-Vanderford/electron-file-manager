@@ -268,7 +268,7 @@ function get_file_properties(filename) {
 /* Get disk space */
 function get_disk_space(href, callback) {
 
-    console.log('running get disk space', cmd)
+    console.log('running get disk space')
 
     df = []
     // RUN DISK FREE COMMAND
@@ -906,9 +906,7 @@ function copy(state) {
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
 
-                // let win = window.getFocusedWindow()
                 active_window.send('add_card', options)
-
                 return true
 
             } else {

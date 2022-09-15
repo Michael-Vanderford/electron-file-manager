@@ -29,6 +29,10 @@ body {
       color:#cfcfcf !important;
     }
 
+    td {
+        color: #fff;
+    }
+
     #header_menu {
         -webkit-user-select: none;
         -webkit-app-region: drag;

@@ -896,6 +896,26 @@ ipcRenderer.on('disk_space', (e, data) => {
 
     console.log('running on disk space')
 
+    let folders_card    = document.getElementById('folders_card');
+    let files_card      = document.getElementById('files_card');
+    let main_view       = document.getElementById('info_view')
+
+    if (!get_folder_count()) {
+        folders_card.classList.add('hidden')
+    } else {
+        folders_card.classList.remove('hidden')
+    }
+
+    if (!get_file_count()) {
+        files_card.classList.add('hidden')
+    } else {
+        files_card.classList.remove('hidden')
+    }
+
+    if (!get_folder_count() && !get_file_count()) {
+        main_view.append('Folder is empty !!!!!')
+    }
+
     if (data.length > 0) {
 
         let status = document.getElementById('status')
@@ -1657,31 +1677,38 @@ async function get_properties(file_properties_obj) {
 
     console.log('getting file prperties')
 
+    let filename = path.join(breadcrumbs.value, file_properties_obj['Name']);
+
     let sb_items        = document.getElementById('sidebar_items');
     let mb_info         = document.getElementById('mb_info')
     let file_properties = document.getElementById('file_properties');
     let div             = add_div();
-    let icon            = add_icon('times');
+    let remove_btn      = add_icon('times');
     let table           = document.createElement('table');
     let tbody           = document.createElement('tbody');
     let hr              = document.createElement('hr')
+    let image           = add_img(filename)
 
-    sb_items.innerHTML  = ''
+    // sb_items.innerHTML  = ''
 
     clear_minibar();
-    mb_info.style = 'color: #ffffff !important;';
-
-
+    mb_info.style       = 'color: #ffffff !important;';
 
     table.classList.add('ui', 'small', 'compact', 'table', 'fluid');
-    icon.classList.add('small');
+    remove_btn.classList.add('small');
 
     table.style = 'background:transparent !important;';
-    icon.style  = 'display:block; float:right; width: 23px; cursor: pointer';
+    remove_btn.style  = 'display:block; float:right; width: 23px; cursor: pointer';
 
-    icon.addEventListener('click', (e) => {
+    remove_btn.addEventListener('click', (e) => {
         div.remove();
     })
+
+    let card            = add_div();
+    let content         = add_div();
+    card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav');
+    card.style = 'color: #ffffff !important;';
+    content.classList.add('content');
 
     for (const prop in file_properties_obj) {
 
@@ -1705,7 +1732,7 @@ async function get_properties(file_properties_obj) {
 
             td2.append(link);
 
-            let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
+            // let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
             if (fs.statSync(filename).isDirectory()) {
 
                 let files = fs.readdirSync(filename)
@@ -1741,17 +1768,17 @@ async function get_properties(file_properties_obj) {
 
     table.append(tbody);
 
-    div.append(icon, table, add_link('#', 'permissions'), hr);
+    div.append(remove_btn, table);
     file_properties.append(div);
 
+    content.append(div);
+    card.append(content)
+
     // sb_items.innerHTML = ''
-    sb_items.append(file_properties);
-
-
+    sb_items.appendChild(card);
 
     localStorage.setItem('sidebar', 1);
     show_sidebar()
-
 
     console.log(table);
 
@@ -1813,7 +1840,7 @@ function get_progress(max, destination_file) {
     let cancel          = document.getElementById('cancel_operation')
 
     cancel.onclick = (e) => {
-        alert('test')
+        ipcRenderer.send('cancel');
     }
 
     progress_div.classList.remove('hidden')
@@ -3784,8 +3811,8 @@ function add_workspace() {
     // clear_minibar();
     // mb_icon.style = 'color: #ffffff !important'
     // localStorage.setItem('minibar', 'mb_workspace')
-    // localStorage.setItem('sidebar', 1);
-    // show_sidebar()
+    localStorage.setItem('sidebar', 1);
+    show_sidebar()
 
     // localStorage.setItem('workspace', null)
     // console.log(localStorage.getItem('workspace'));
@@ -5129,7 +5156,7 @@ async function get_files(dir, callback) {
                 folders_card.classList.remove('hidden')
             }
 
-            if (folder_count === 0 && file_count == 0) {
+            if (!folder_count && !file_count) {
                 main_view.append('Folder is empty !!!!!')
             }
 
@@ -5137,6 +5164,8 @@ async function get_files(dir, callback) {
 
             if (dir.indexOf('/gvfs') === -1) {
                 ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
+            } else {
+                document.getElementById('status').innerHTML = ''
             }
 
             // UPDATE CARDS
@@ -6197,7 +6226,7 @@ async function find_files() {
 
                     // FILES
                     if (options.f == 1 && options.s != '') {
-                        options.f = ' -type f ' + ' -iname " ' +options.size + ' ' + options.s + '"'
+                        options.f = ' -type f ' + ' -iname "' +options.size + options.s + '"'
                     } else {
                         options.f = ''
                     }
@@ -6397,29 +6426,20 @@ contextBridge.exposeInMainWorld('darkMode', {
 async function get_file_properties() {
 
     file_properties_arr = []
-        let main_view       = document.getElementById('main_view')
-        let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
-        items.forEach(item => {
+    let sb_items        = document.getElementById('sidebar_items')
+    let main_view       = document.getElementById('main_view');
+    let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
 
-            // switch (path.extname(item.dataset.href)) {
-            //     case '.jpg':
-            //     case '.png':
-            //     case '.jpeg':
-            //     case '.svg':
-            //     case '.gif':
-            //         get_image_properties(item.dataset.href);
-            //     break;
-            //     default: {
-                    file_properties_arr.push(item.dataset.href);
-                    ipcRenderer.send('get_file_properties', file_properties_arr)
-                    console.log('props array', file_properties_arr)
-                    file_properties_arr = []
-                // }
-            // }
+    sb_items.innerHTML  = ''
 
-        })
+    items.forEach(item => {
+        file_properties_arr.push(item.dataset.href);
+        ipcRenderer.send('get_file_properties', file_properties_arr);
+        console.log('props array', file_properties_arr);
+        file_properties_arr = [];
+    })
 
-    clear_items()
+    clear_items();
 
 }
 
@@ -8123,7 +8143,7 @@ function extract() {
         let source      = item.dataset.href;
         let ext         = path.extname(source).toLowerCase()
 
-        console.log('extension ', ext)
+        console.log('extension ', source)
 
         switch (ext) {
             case '.zip':
@@ -8167,7 +8187,7 @@ function extract() {
                 destination: filename
             }
 
-            // ipcRenderer.send('confirm_overwrite', data)
+            ipcRenderer.send('confirm_overwrite', data)
 
             let confirm_overwrite = confirm(filename, 'exists.\nWould you like to overwrite?\n')
             if (confirm_overwrite) {
@@ -8204,12 +8224,12 @@ function extract() {
                 try {
 
                     // GET REFERENCE TO FOLDER GRID
-                    let folder_grid = document.getElementById('folder_grid');
-                    let is_folder = fs.statSync(filename).isDirectory();
+                    let folder_grid     = document.getElementById('folder_grid');
+                    let folders_card    = document.getElementById('folders_card')
 
                     // CREATE CARD OPTIONS
                     let options = {
-                        id: 'folder_card_10000',
+                        id: 0,
                         href: filename,
                         linktext: path.basename(filename),
                         is_folder: true,
@@ -8218,7 +8238,7 @@ function extract() {
 
                     //
                     // let folder_grid = document.getElementById('folder_grid')
-                    notification('filename ' + filename);
+                    // notification('filename ' + filename);
 
                     add_card(options).then(card => {
 
@@ -8228,16 +8248,12 @@ function extract() {
                         col.append(card)
 
                         // console.log('card ' + card)
+                        folders_card.classList.remove('hidden');
                         folder_grid.insertBefore(col, folder_grid.firstChild)
-
-                        // let card = col.querySelector('.nav_item')
-                        // card.classList.add('highlight_select')
-
-                        // let header_link = card.querySelector('.header_link')
-                        // header_link.focus()
 
                         // UPDATE CARDS
                         update_cards(document.getElementById('main_view'))
+
 
 
                     })
@@ -8285,13 +8301,6 @@ function compress() {
 
     })
 
-
-    let intervalid = setInterval(() => {
-        update_card(path.join(breadcrumbs.value, file_name));
-        max = max / cards.length
-        // get_progress(max, path.join(breadcrumbs.value, file_name))
-    }, 500);
-
     // Create compressed file
     let cmd = 'cd "' + breadcrumbs.value + '"; tar czf "' + file_name + '" ' + file_list;
     console.log(cmd);
@@ -8324,6 +8333,13 @@ function compress() {
 
     })
 
+    let intervalid = setInterval(() => {
+        update_card(path.join(breadcrumbs.value, file_name));
+        max = max / cards.length
+        // get_progress(max, path.join(breadcrumbs.value, file_name))
+    }, 500);
+
+
     clear_items()
 
 }
@@ -8341,7 +8357,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // EXTRACT HERE
     if (command === 'extract_here') {
-        extract(source);
+        extract();
     }
 
     // COMPRESS HERE
@@ -8917,18 +8933,19 @@ window.addEventListener('DOMContentLoaded', () => {
     Mousetrap.bind('shift+e', (e) => {
 
         console.log('extracting file')
+        extract();
 
-        // GET SELECTED ITEMS
-        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-        if (items.length > 0) {
+        // // GET SELECTED ITEMS
+        // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        // if (items.length > 0) {
 
-            // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
-            for (let i = 0; i < items.length; i++) {
-                let item = items[i]
-                let href = item.getAttribute('data-href')
-                extract(href)
-            }
-        }
+        //     // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
+        //     for (let i = 0; i < items.length; i++) {
+        //         let item = items[i]
+        //         let href = item.getAttribute('data-href')
+        //         extract(href)
+        //     }
+        // }
 
 
     })
