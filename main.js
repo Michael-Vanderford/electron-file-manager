@@ -11,8 +11,14 @@ const window = require('electron').BrowserWindow;
 const windows = new Set()
 const { clipboard } = require('electron')
 
+
+let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
+console.log('settings', settings.window.width)
+
+
 let canceled = 0;
 ipcMain.on('cancel', (e) => {
+    console.log('setting cancel to 1');
     canceled = 1;
 })
 
@@ -142,6 +148,8 @@ async function copyfile(source, target, state, callback) {
                 // }
 
             }
+
+
 
         }
 
@@ -662,8 +670,8 @@ const createWindow = exports.createWindow = () => {
     let options = {
         minWidth: 1024,
         minHeight: 600,
-        width: 1600,
-        height: 768,
+        width: settings.window.width,
+        height: settings.window.height,
         backgroundColor: '#2e2c29',
         x:displayToUse.bounds.x + 50,
         y:displayToUse.bounds.y + 50,
@@ -692,6 +700,10 @@ const createWindow = exports.createWindow = () => {
         windows.delete(win);
         // win = null;
     });
+
+    // win.on('resize', (e) => {
+    //     console.log(win.getBounds().width)
+    // })
 
     console.log('win', win);
     windows.add(win);
@@ -747,26 +759,26 @@ ipcMain.on('clear_clipboard', (a, data) => {
 })
 
 // RELOAD WINDOW
-ipcMain.on('reload',function(e){
+ipcMain.on('z',function(e){
     win.loadFile('src/index.html')
 })
 
 // MAXAMIZE WINDOW
 ipcMain.on('maximize', () => {
-    win.maximize()
+    active_window.maximize()
 })
 
 // MINIMIZE WINDOW
 ipcMain.on('minimize', () => {
-    win.minimize()
+    active_window.minimize()
 })
 
 // CLOSE WINDOW
 ipcMain.on('close', () => {
-    var win = BrowserWindow.getFocusedWindow();
-    console.log('removing window from set');
-    windows.delete(win)
-    window.hide()
+    // var win = BrowserWindow.getFocusedWindow();
+    // console.log('removing window from set');
+    windows.delete(active_window)
+    active_window.close();
 })
 
 // GO BACK
@@ -935,38 +947,35 @@ function copy(state) {
                     // windows.forEach(win => {
                     let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
+
                     // })
+                    if (!canceled) {
 
-                    // COPY FOLDERS RECURSIVE
-                    copyfolder(source, destination_file, state, () => {
+                        // COPY FOLDERS RECURSIVE
+                        copyfolder(source, destination_file, state, () => {
 
-                        console.log('running',path.basename(source))
 
-                        // switch (state) {
-                        //     // PASTE
-                        //     case 2:
+                            console.log('running',path.basename(source))
+                            if (isMainView) {
 
-                        if (isMainView) {
+                                let options = {
+                                    href: destination_file,
+                                    linktext: path.basename(destination_file),
+                                    is_folder: true
+                                }
 
-                            let options = {
-                                href: destination_file,
-                                linktext: path.basename(destination_file),
-                                is_folder: true
+                                active_window.send('add_card', options)
+                                active_window.send('update_cards')
+
                             }
+                            copy_files_arr.shift()
+                            copy(copy_files_arr,state)
 
-                            active_window.send('add_card', options)
-                            active_window.send('update_cards')
 
-                        }
 
-                        //     break;
-                        // }
-
-                        copy_files_arr.shift()
-                        copy(copy_files_arr,state)
-
-                    })
-                    return false;
+                        })
+                        return false;
+                    }
                 }
             }
 
@@ -3073,7 +3082,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
 
 })
 
-// CREATE NEW WINDOW
+// CREATE WINDOW
 ipcMain.on('new_window', function (e, args) {
     createWindow()
 })

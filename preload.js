@@ -900,19 +900,22 @@ ipcRenderer.on('disk_space', (e, data) => {
     let files_card      = document.getElementById('files_card');
     let main_view       = document.getElementById('info_view')
 
-    if (!get_folder_count()) {
+    let folder_count    = get_folder_count();
+    let file_count      = get_file_count();
+
+    if (!folder_count) {
         folders_card.classList.add('hidden')
     } else {
         folders_card.classList.remove('hidden')
     }
 
-    if (!get_file_count()) {
+    if (!file_count) {
         files_card.classList.add('hidden')
     } else {
         files_card.classList.remove('hidden')
     }
 
-    if (!get_folder_count() && !get_file_count()) {
+    if (!folder_count && !file_count) {
         main_view.append('Folder is empty !!!!!')
     }
 
@@ -935,8 +938,8 @@ ipcRenderer.on('disk_space', (e, data) => {
             foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
             // foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + item.foldercount + '</b></div>'
             // filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + item.filecount + '</b></div>'
-            foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + get_folder_count() + '</b></div>'
-            filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + get_file_count() + '</b></div>'
+            foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + folder_count + '</b></div>'
+            filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + file_count + '</b></div>'
 
             status.appendChild(disksize)
             status.appendChild(usedspace)
@@ -1621,7 +1624,7 @@ function clear_cache() {
 
 async function get_image_properties(image) {
     let sb_items        = document.getElementById('sidebar_items');
-    sb_items.innerHTML  = ''
+    // sb_items.innerHTML  = ''
 
     exec('identify -verbose "' + image + '"', (err, info) => {
         if (err) {
@@ -1840,6 +1843,7 @@ function get_progress(max, destination_file) {
     let cancel          = document.getElementById('cancel_operation')
 
     cancel.onclick = (e) => {
+        console.log('sending cancel request')
         ipcRenderer.send('cancel');
     }
 
@@ -4109,7 +4113,7 @@ async function get_view(dir) {
         stats = fs.statSync(dir);
         if (stats) {
 
-            console.log('setting folder')
+            console.log('setting current directory')
 
             /* Set local storage */
             localStorage.setItem('folder', dir);
@@ -6430,16 +6434,21 @@ async function get_file_properties() {
     let main_view       = document.getElementById('main_view');
     let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
 
-    sb_items.innerHTML  = ''
+    if (items.length > 0) {
 
-    items.forEach(item => {
-        file_properties_arr.push(item.dataset.href);
-        ipcRenderer.send('get_file_properties', file_properties_arr);
-        console.log('props array', file_properties_arr);
-        file_properties_arr = [];
-    })
+        sb_items.innerHTML  = ''
+        items.forEach(item => {
+            file_properties_arr.push(item.dataset.href);
+            ipcRenderer.send('get_file_properties', file_properties_arr);
+            console.log('props array', file_properties_arr);
+            file_properties_arr = [];
+        })
 
-    clear_items();
+        clear_items();
+        
+    }
+
+
 
 }
 
@@ -6551,9 +6560,7 @@ async function get_devices() {
         get_devices();
     })
 
-
-
-    console.log('devices', devices);
+    // console.log('devices', devices);
 }
 
 /**
@@ -7000,7 +7007,6 @@ let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme'
 let icon_dir = path.join('/usr/share/icons', icon_theme)
 
 let folder_icon_dir = path.join('/usr/share/icons', icon_theme)
-console.log(icon_dir, fs.existsSync(icon_dir))
 
 if (fs.existsSync(icon_dir) == false) {
     console.log(icon_dir)
@@ -7786,7 +7792,7 @@ async function delete_file(file) {
 function get_folder_count() {
     let main_view = document.getElementById('main_view')
     let folder_cards = main_view.querySelectorAll('.folder_card')
-    console.log(folder_cards.length)
+    console.log('folder_count', folder_cards.length)
     return folder_cards.length
 }
 
@@ -7794,7 +7800,7 @@ function get_folder_count() {
 function get_file_count() {
     let main_view = document.getElementById('main_view')
     let file_cards = main_view.querySelectorAll('.file_card')
-    console.log(file_cards.length)
+    console.log('file count',file_cards.length)
     return file_cards.length
 }
 
@@ -7963,9 +7969,6 @@ function update_card(href) {
             })
 
         }
-
-
-
 
     })
 
@@ -8266,6 +8269,7 @@ function extract() {
                 }
 
                 clear_items()
+                ds.start()
                 notification('extracted ' + source)
 
             }
@@ -8281,6 +8285,7 @@ function compress() {
 
     let cards       = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
     let file_grid   = document.getElementById('file_grid');
+    let files_card  = document.getElementById('files_card')
     let file_name   = ''; //'Untitled.tar.gz'
     let file_list   = '';
     let max         = 0;
@@ -8311,27 +8316,34 @@ function compress() {
             console.log(stdout);
             update_card(path.join(breadcrumbs.value, file_name));
             clearInterval(intervalid);
+
             notification('Done compressinge files.')
+
+            let options = {
+                id: 0,
+                href: path.join(breadcrumbs.value, file_name),
+                linktext: file_name,
+                is_folder: false,
+                grid: file_grid
+            }
+
+            add_card(options).then(card => {
+
+                console.log('what')
+
+                let col = add_column('three')
+                col.append(card)
+                file_grid.insertBefore(col, file_grid.firstChild);
+
+                update_card(card.dataset.href);
+                files_card.classList.remove('hidden')
+
+            })
+
         }
-    })
-
-    let options = {
-        id: 0,
-        href: path.join(breadcrumbs.value, file_name),
-        linktext: file_name,
-        is_folder: false,
-        grid: file_grid
-    }
-
-    add_card(options).then(card => {
-
-        let col = add_column('three')
-        col.append(card)
-        file_grid.insertBefore(col, file_grid.firstChild);
-
-        update_card(card.dataset.href);
 
     })
+
 
     let intervalid = setInterval(() => {
         update_card(path.join(breadcrumbs.value, file_name));

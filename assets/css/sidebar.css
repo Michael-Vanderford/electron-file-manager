@@ -113,12 +113,14 @@
 
     /* Find labels */
     #find_div .label {
+        font-size: 10px !important;
         font-weight: normal !important;
         color: #069 !important;
     }
 
     /* Find input */
     .find_input {
+        font-size: 10px !important;
         height:20px !important; width: 100% !important;
     }
 
