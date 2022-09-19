@@ -7,7 +7,7 @@
         position: fixed;
         z-index: 0 !important;
         left: 0px;
-        background-color: #222222 !important;
+        background-color: #262626 !important;
         color: #f7f7f7 !important;
         /* top: 40px; */
         height:100%;
@@ -130,6 +130,14 @@
         color: #cfcfcf !important;
     }
 
+    #search_content {
+        overflow: hidden;
+    }
+
+    #search_content:hover {
+        overflow: auto;
+    }
+
     #minibar {
         margin-left: -4px;
         padding: 8px;
@@ -195,7 +203,7 @@
         padding-left: 12px;
         margin-left: 40px;
         min-width: 200px;
-        overflow: scroll;
+        overflow: hidden;
         scroll-behavior: smooth;
     }
 
@@ -310,7 +318,9 @@
 #sidebar .ui.card
 {
   /* background:#252525 !important; */
+  background: #2c2c2c;
   box-shadow: none !important;
+  padding: 4px;
 }
 
 #sidebar .header {
@@ -354,6 +364,7 @@
   }
 
   aside.sidebar-left {
+    position: fixed;
     width: 250px;
     /* top: 0; */
     float: left;
@@ -362,12 +373,14 @@
   }
 
   aside.sidebar-left .draghandle {
+    overflow: hidden;
     position: absolute;
     z-index: 100;
     width: 4px;
-    /* height:200% !important; */
-    top: 0;
+    height:200% !important;
+    /* /* top: 0; */
     right: 0;
+    bottom: 0;
     cursor: col-resize;
     float: right;
     /* background-color: #222222; */

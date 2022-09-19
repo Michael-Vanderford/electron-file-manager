@@ -194,7 +194,7 @@
 
 
                     <!-- LIST VIEW -->
-                    <a class="item" id="btn_list_view" title="List view.">
+                    <a class="item hidden" id="btn_list_view" title="List view.">
                         <i class="ui icon list small"></i>
                     </a>
 
@@ -312,10 +312,9 @@
                 <div id="file_properties" class="">
                 </div>
             </div>
-
-            <div id="draghandle" class="draghandle"></div>
-
         </aside>
+
+        <div id="draghandle" class="draghandle"></div>
 
         <!-- MAIN VIEW -->
         <div class="border" id="main_view">
@@ -339,7 +338,7 @@
 
                     <div class="content fluid">
 
-                        <div class="ui grid navigate" id="folder_grid">
+                        <div class="ui grid stackable navigate" id="folder_grid">
                         </div>
 
                         <div class="ui grid navigate hidden" id="hidden_folder_grid">
@@ -399,9 +398,9 @@
 
 </body>
 
-<script type="" src="../assets/scripts/jquery-3.6.0.min.js"></script>
-<script type="" src="../assets/scripts/semantic.min.js"></script>
-<script type="" src="../assets/scripts/popup.min.js"></script>
+<script type="" src="../assets/js/jquery-3.6.0.min.js"></script>
+<script type="" src="../assets/js/semantic.min.js"></script>
+<script type="" src="../assets/js/popup.min.js"></script>
 <script type="" src="../node_modules/dragselect/dist/ds.min.js"></script>
 <script type="" src="index.js"></script>
 

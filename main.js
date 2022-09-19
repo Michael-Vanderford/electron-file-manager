@@ -11,6 +11,18 @@ const window = require('electron').BrowserWindow;
 const windows = new Set()
 const { clipboard } = require('electron')
 
+let settings_file = path.join(__dirname, 'settings.json');
+if (!fs.existsSync(settings_file)) {
+    let data = {
+        window: {
+            length: 1400,
+            width: 700,
+            x: 0,
+            y: 0
+        }
+    }
+    fs.writeFileSync(settings_file, JSON.stringify(data, null, 4));
+}
 
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 console.log('settings', settings.window.width)
@@ -39,11 +51,19 @@ ipcMain.on('is_main_view', (e, state = 0) => {
     isMainView = state;
 })
 
+let window_id  = 0;
+let window_id0 = 0;
 ipcMain.on('active_window', (e) => {
-    console.log('setting active window')
-    /* Get active window */
-    let window_id = e.sender.id;
-    active_window = window.fromId(window_id);
+
+    window_id0 = window_id
+    window_id = e.sender.id;
+
+    if (window_id != window_id0) {
+
+        console.log('setting active window')
+        active_window = window.fromId(window_id);
+
+    }
 })
 
 let active_window   = '';
@@ -230,18 +250,22 @@ function copyfolder(source, destination, state, callback) {
 /* Get files properties */
 function get_file_properties(filename) {
 
+    console.log(filename)
+
     let stats           = fs.statSync(filename)
     let cmd             = "xdg-mime query filetype '" + filename + "'"
     let exec_mime       = execSync(cmd).toString()
 
     // BUILD PROPERTIES
-    let name            = path.basename(filename);
+    let name            = filename;
     let parent_folder   = path.basename(path.dirname(filename));
     let type            = exec_mime;
     let size            = '';
     let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime);
     let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
     let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime);
+    let mode            = stats.mode;
+    let group           = stats.uid;
     let contents        = '0 items, totalling 0 MB';
 
     if (stats.isDirectory()) {
@@ -264,13 +288,14 @@ function get_file_properties(filename) {
         Accessed:   accessed,
         Modified:   modified,
         Created:    created,
-        Type:       type
+        Type:       type,
+        Mode:       mode,
+        Group:      group,
 
     }
 
     console.log('send file properties')
-    let win = window.getFocusedWindow();
-    win.send('file_properties', file_properties);
+    active_window.send('file_properties', file_properties);
 }
 
 /* Get disk space */
@@ -666,6 +691,14 @@ const createWindow = exports.createWindow = () => {
         }
     }
 
+    if (settings.window.x == 0) {
+        settings.window.x = displayToUse.bounds.x + 50
+    }
+
+    if (settings.window.y == 0) {
+        settings.window.y = displayToUse.bounds.y + 50
+    }
+
     // WINDOW OPTIONS
     let options = {
         minWidth: 1024,
@@ -673,9 +706,10 @@ const createWindow = exports.createWindow = () => {
         width: settings.window.width,
         height: settings.window.height,
         backgroundColor: '#2e2c29',
-        x:displayToUse.bounds.x + 50,
-        y:displayToUse.bounds.y + 50,
+        x: settings.window.x,
+        y: settings.window.y,
         frame: true,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -701,9 +735,33 @@ const createWindow = exports.createWindow = () => {
         // win = null;
     });
 
-    // win.on('resize', (e) => {
-    //     console.log(win.getBounds().width)
-    // })
+    win.on('resize', (e) => {
+
+        let intervalid = setInterval(() => {
+
+            settings.window.width   = win.getBounds().width;
+            settings.window.height  = win.getBounds().height;
+            // settings.window.x       = win.getBounds().x;
+            // settings.window.y       = win.getBounds().y;
+
+            fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+        }, 1000);
+
+    })
+
+    win.on('move', (e) => {
+
+
+
+
+            settings.window.x       = win.getBounds().x;
+            settings.window.y       = win.getBounds().y;
+
+            fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+
+
+
+    })
 
     console.log('win', win);
     windows.add(win);
@@ -2553,7 +2611,7 @@ const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu);
 
 // TEMPLATE MENU
-function add_templates_menu(menu, e, args){
+function add_templates_menu(menu, e, args) {
 
     let template_menu = menu.getMenuItemById('templates')
 
@@ -2594,6 +2652,24 @@ function add_launcher_menu(menu, e, args) {
             }))
         }
     }
+}
+
+// Scripte Menu
+function add_scripts_menu(menu, e, args) {
+
+    let scripts_menu = menu.getMenuItemById('scripts')
+
+    let templates = fs.readdirSync(path.join(__dirname, 'assets/scripts'))
+    templates.forEach((file,idx) => {
+
+        template_menu.submenu.append(new MenuItem({
+            label: file.replace(path.extname(file),''),
+            click: () => {
+                console.log('scripts test')
+                // e.sender.send('create_file_from_template', {file: file})
+            }
+        }));
+    })
 }
 
 // MAIN MENU

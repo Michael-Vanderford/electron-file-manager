@@ -1,6 +1,9 @@
 {
-    "window" : {
-        "width": 1600,
-        "height": 768
+    "window": {
+        "length": 1024,
+        "width": 1404,
+        "x": 2159,
+        "y": 252,
+        "height": 687
     }
 }

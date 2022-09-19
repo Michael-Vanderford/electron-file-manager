@@ -127,6 +127,10 @@ let page                = 1
 let start_path          = ''
 // let main_view           = document.getElementById('main_view')
 
+ipcRenderer.on('ds_start', (e) => {
+    ds.start()
+})
+
 // ON START PATH
 ipcRenderer.on('start_path', (e, res) => {
     if (res) {
@@ -578,6 +582,7 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
     })
 
+
     // confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),btn_cancel,btn_ok)
 
 })
@@ -903,22 +908,6 @@ ipcRenderer.on('disk_space', (e, data) => {
     let folder_count    = get_folder_count();
     let file_count      = get_file_count();
 
-    if (!folder_count) {
-        folders_card.classList.add('hidden')
-    } else {
-        folders_card.classList.remove('hidden')
-    }
-
-    if (!file_count) {
-        files_card.classList.add('hidden')
-    } else {
-        files_card.classList.remove('hidden')
-    }
-
-    if (!folder_count && !file_count) {
-        main_view.append('Folder is empty !!!!!')
-    }
-
     if (data.length > 0) {
 
         let status = document.getElementById('status')
@@ -950,9 +939,28 @@ ipcRenderer.on('disk_space', (e, data) => {
 
         })
 
+
     } else {
         console.log('no data found')
     }
+
+
+    // if (!folder_count) {
+    //     folders_card.classList.add('hidden')
+    // } else {
+    //     folders_card.classList.remove('hidden')
+    // }
+
+    // if (!file_count) {
+    //     files_card.classList.add('hidden')
+    // } else {
+    //     files_card.classList.remove('hidden')
+    // }
+
+    // if (!folder_count && !file_count) {
+    //     main_view.append('Folder is empty !!!!!')
+    // }
+
 
 })
 
@@ -1623,8 +1631,13 @@ function clear_cache() {
 }
 
 async function get_image_properties(image) {
+
     let sb_items        = document.getElementById('sidebar_items');
-    // sb_items.innerHTML  = ''
+    let card            = add_div();
+    let content         = add_div();
+
+    card.classList.add('ui', 'card');
+    content.classList.add('content');
 
     exec('identify -verbose "' + image + '"', (err, info) => {
         if (err) {
@@ -1635,11 +1648,11 @@ async function get_image_properties(image) {
             let icon      = add_icon('times');
 
             prop_view.style     = 'height: 100%; overflow-y: auto;'
-            sb_items.append(add_header('Image Properties'))
+            // sb_items.append(add_header('Image Properties'))
             icon.style  = 'display:block; float:right; width: 23px; cursor: pointer';
 
             icon.addEventListener('click', (e) => {
-                prop_view.remove();
+                card.remove();
             })
 
             let image_obj = {};
@@ -1668,19 +1681,34 @@ async function get_image_properties(image) {
 
             })
 
-            sb_items.append(icon, prop_view);
+            content.append(icon, prop_view)
+            card.append(content)
+
+            sb_items.append(card);
         }
 
     });
 
 }
 
+// rwx rwx rwx ==> ( r = 4 ) if set + ( w = 2) if set + (x = 1) if set , for example:
+// You have :
+// -rw-wxrw- => (4+2+0)(0+2+1)(4+2+0) = 0636
+// First argument before 9 permissions is one of :
+// - = regular file
+// d =  directory
+// b = block device
+// c = character device
+// s = socket
+// p = pipe
+// f = fifo
+
 // FILE PROPERTIES WINDOW
 async function get_properties(file_properties_obj) {
 
-    console.log('getting file prperties')
+    console.log('getting file prperties', file_properties_obj)
 
-    let filename = path.join(breadcrumbs.value, file_properties_obj['Name']);
+    let filename        = file_properties_obj['Name'];
 
     let sb_items        = document.getElementById('sidebar_items');
     let mb_info         = document.getElementById('mb_info')
@@ -1691,24 +1719,26 @@ async function get_properties(file_properties_obj) {
     let tbody           = document.createElement('tbody');
     let hr              = document.createElement('hr')
     let image           = add_img(filename)
+    let card            = add_div();
+    let content         = add_div();
 
     // sb_items.innerHTML  = ''
 
     clear_minibar();
     mb_info.style       = 'color: #ffffff !important;';
 
-    table.classList.add('ui', 'small', 'compact', 'table', 'fluid');
+    // table.classList.add('ui', 'compact', 'table');
     remove_btn.classList.add('small');
 
-    table.style = 'background:transparent !important;';
+    table.style = 'background:transparent !important; width: 100%;';
     remove_btn.style  = 'display:block; float:right; width: 23px; cursor: pointer';
 
     remove_btn.addEventListener('click', (e) => {
-        div.remove();
+        card.remove();
     })
 
-    let card            = add_div();
-    let content         = add_div();
+
+    card.dataset.href = filename
     card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav');
     card.style = 'color: #ffffff !important;';
     content.classList.add('content');
@@ -1724,44 +1754,65 @@ async function get_properties(file_properties_obj) {
 
         if (prop === 'Name') {
 
-            let link = add_link(path.join(breadcrumbs.value, file_properties_obj[prop]), file_properties_obj[prop]);
+            let link = add_link(file_properties_obj[prop], file_properties_obj[prop]);
             link.addEventListener('click', (e) => {
-                if (fs.statSync(path.join(breadcrumbs.value, file_properties_obj[prop])).isDirectory()) {
-                    get_view(path.join(breadcrumbs.value, file_properties_obj[prop]));
+                if (fs.statSync(file_properties_obj[prop]).isDirectory()) {
+                    get_view(file_properties_obj[prop]);
                 } else {
-                    open(path.join(breadcrumbs.value, file_properties_obj[prop]))
+                    open(file_properties_obj[prop])
                 }
             })
 
             td2.append(link);
 
+            console.log(filename)
+            let stats = fs.statSync(filename)
+
             // let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
-            if (fs.statSync(filename).isDirectory()) {
+            if (stats.isDirectory()) {
 
-                let files = fs.readdirSync(filename)
+                let img = add_img(folder_icon)
+                img.src = img.dataset.src
+                img.classList.remove('lazy')
+                td1.append(img);
+
+                // let files = fs.readdirSync(filename)
                 // console.log('files', files)
-                let folder_count    = files.filter(item => fs.statSync(path.join(filename, item)).isDirectory()).length
-                let file_count      = files.filter(item => !fs.statSync(path.join(filename, item)).isDirectory()).length
+                // let folder_count    = files.filter(item => fs.statSync(path.join(filename, item)).isDirectory()).length
+                // let file_count      = files.filter(item => !fs.statSync(path.join(filename, item)).isDirectory()).length
+
+            } else {
+
+                // Get image properties
+                switch (path.extname(path.basename(filename))) {
+                    case '.jpg':
+                    case '.png':
+                    case '.jpeg':
+                    case '.svg':
+                    case '.gif':
+                        get_image_properties(filename);
+                    break;
+                }
+
+                let img = add_img('')
+                // img.classList.add('icon')
+                // img.src = img.dataset.src
+                // img.classList.remove('lazy')
+                td1.append(img);
 
             }
 
-            // Get image properties
-            switch (path.extname(filename)) {
-                case '.jpg':
-                case '.png':
-                case '.jpeg':
-                case '.svg':
-                case '.gif':
-                    get_image_properties(filename);
-                break;
-            }
+
+            update_card(filename)
 
 
         } else {
+
+            td1.append(prop);
             td2.append(`${file_properties_obj[prop]}`);
         }
 
-        td1.append(prop);
+        // td1.append(prop);
         tr.append(td1);
         tr.append(td2);
         tbody.append(tr);
@@ -1780,10 +1831,60 @@ async function get_properties(file_properties_obj) {
     // sb_items.innerHTML = ''
     sb_items.appendChild(card);
 
+    fs.writeFileSync('src/info.html', sb_items.innerHTML);
+
     localStorage.setItem('sidebar', 1);
     show_sidebar()
 
     console.log(table);
+
+}
+
+// Call get file properties
+async function get_file_properties() {
+
+    file_properties_arr = []
+    // let breadcrumbs     = document.getElementById('breadcrumbs')
+    let sb_items        = document.getElementById('sidebar_items')
+    let main_view       = document.getElementById('main_view');
+    let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
+
+    if (items.length > 0) {
+
+        sb_items.innerHTML  = ''
+
+        items.forEach(item => {
+            file_properties_arr.push(item.dataset.href);
+            ipcRenderer.send('get_file_properties', file_properties_arr);
+            console.log('props array', file_properties_arr);
+            file_properties_arr = [];
+        })
+
+        clear_items();
+
+    } else {
+
+        sb_items.innerHTML  = ''
+        let href = breadcrumbs.value
+        file_properties_arr.push(href);
+        ipcRenderer.send('get_file_properties', file_properties_arr);
+        file_properties_arr = [];
+
+    }
+
+
+
+}
+
+/* Get sidebar info */
+async function get_info() {
+    // let sb_items = document.getElementById('siebar_items');
+    console.log('getting file properties');
+    let file_properties = document.getElementById('file_properties');
+    if (file_properties) {
+        // file_properties.classList.remove('hidden');
+    }
+    // sb_items.innerHTML = ''
 
 }
 
@@ -2305,6 +2406,7 @@ async function add_card(options) {
 
         /* Card */
         card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav')
+        // card.classList.add  ('uk-card', 'nav_item', 'nav')
         card.draggable      = 'true'
         card.id             = id
         card.dataset.href   = href
@@ -2370,6 +2472,7 @@ async function add_card(options) {
         /* Folder */
         if (is_folder) {
             // get_folder_icon(icon => {
+                img.classList.add('icon')
                 img.src = folder_icon
             // })
 
@@ -3235,22 +3338,14 @@ async function get_sidebar_files(dir) {
     console.log('running get sidebar files ' + dir)
 
     let sidebar_items       = document.getElementById('sidebar_items');
-    let sb_breadcrumbs      = add_div();
+    let sb_breadcrumbs      = document.createElement('ul') //add_div();
     let dirents             = fs.readdirSync(dir, { withFileTypes: true });
 
     sidebar_items.innerHTML = '';
-    sb_breadcrumbs.classList.add('ui', 'breadcrumb');
+    // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
+    sb_breadcrumbs.classList.add('uk-breadcrumb');
 
     if (dirents) {
-
-        // let tree_grid = add_div()
-        // if (dir == '/') {
-        //     tree_grid = document.querySelector('[data-id="/"]')
-        // } else if (dir == '/media/michael') {
-        //     tree_grid = document.querySelector('[data-id="/media/michael"]')
-        // } else {
-        //     tree_grid = document.querySelector('[data-id="' + basename(dir) + '"]')
-        // }
 
         /* Make header dir selectable */
         let dir_arr = dir.split('/')
@@ -3258,6 +3353,8 @@ async function get_sidebar_files(dir) {
         dir_arr.forEach((item, idx) => {
 
             nav_path = path.join(nav_path, item)
+
+            let li = document.createElement('li')
 
             let link = add_link(nav_path, item)
             link.classList.add('nav_header', 'section');
@@ -3275,7 +3372,6 @@ async function get_sidebar_files(dir) {
         })
 
         sidebar_items.append(add_br(), add_br());
-
         // sidebar_items.append(add_header(dir));
 
         //SET DEFAULT SORT OPTION
@@ -3947,38 +4043,45 @@ async function get_workspace() {
 
         local_items.forEach((item, idx) => {
 
-            let stats = fs.statSync(item);
+            try {
 
-            /* Add card */
-            options = {
-                id: idx,
-                href: item,
-                linktext: path.basename(item),
-                is_folder: stats.isDirectory(),
-                grid: workspace
-            }
+                let stats = fs.statSync(item);
 
-            add_card(options).then(card => {
+                /* Add card */
+                options = {
+                    id: idx,
+                    href: item,
+                    linktext: path.basename(item),
+                    is_folder: stats.isDirectory(),
+                    grid: workspace
+                }
 
-                workspace.append(card);
-                update_card(card.dataset.href);
+                add_card(options).then(card => {
 
-                let icon = add_icon('times');
-                icon.classList.add('small');
-                icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
+                    workspace.append(card);
+                    update_card(card.dataset.href);
 
-                let content = card.querySelector('.content');
-                content.prepend(icon);
+                    let icon = add_icon('times');
+                    icon.classList.add('small');
+                    icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
 
-                /* Remove card */
-                icon.addEventListener('click', (e) => {
-                    card.remove();
-                    local_items.splice(idx, 1);
-                    localStorage.setItem('workspace',JSON.stringify(local_items));
-                    get_workspace();
+                    let content = card.querySelector('.content');
+                    content.prepend(icon);
+
+                    /* Remove card */
+                    icon.addEventListener('click', (e) => {
+                        card.remove();
+                        local_items.splice(idx, 1);
+                        localStorage.setItem('workspace',JSON.stringify(local_items));
+                        get_workspace();
+                    })
+
                 })
 
-            })
+            } catch (err) {
+                // todo: use this clean up missing items from 'local_items' local storage
+            }
+
 
         })
 
@@ -4447,7 +4550,8 @@ async function get_list_view(dir) {
             let tr = document.createElement('tr')
             let tbody = document.createElement('tbody')
 
-            table.classList.add('ui', 'four', 'small', 'selectable', 'sortable', 'compact', 'celled', 'table')
+            // table.classList.add('ui', 'four', 'selectable', 'sortable', 'compact', 'celled', 'table')
+            table.classList.add('ui', 'table', 'compact', 'small')
             thead.classList.add('full-width')
             table.style = 'background:transparent !important;'
 
@@ -4693,7 +4797,7 @@ async function get_list_view(dir) {
                                         break;
                                     }
                                     case 'Created': {
-                                        td.append(new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime));
+                                        td.append(new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime));
                                         break;
                                     }
                                 }
@@ -4785,7 +4889,7 @@ async function get_list_view(dir) {
             update_cards(document.getElementById('main_view'))
 
             // GET DISK USAGE STATS
-            ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
+            // ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
 
             // LAZY LOAD IMAGES
             lazyload()
@@ -6066,15 +6170,299 @@ function get(href, callback) {
     xmlHttp.send(null);
 }
 
+function find_init() {
+    // SEARCH VIEW
+    let search_content          = document.getElementById('search_content');
+    let search_results          = document.getElementById('search_results');
+    let find_div                = document.getElementById('find_div');
+    let find                    = document.getElementById('find');
+    let find_options            = document.getElementById('find_options');
+    let find_folders            = document.getElementById('find_folders')
+    let find_files              = document.getElementById('find_files')
+    let btn_find_options        = document.getElementById('btn_find_options');
+    let breadcrumbs             = document.getElementById('breadcrumbs');
+    let find_size               = document.getElementById('find_size');
+    let start_date              = document.getElementById('start_date');
+    let end_date                = document.getElementById('end_date');
+    let grid                    = add_grid();
+    let input                   = add_input('text', 'sb_find_input');
+    let mb_find                 = document.getElementById('mb_find');
+
+    let show_options            = localStorage.getItem('find_options');
+
+    let show_folders            = localStorage.getItem('find_folders');
+    let show_files              = localStorage.getItem('find_files');
+
+    clear_minibar();
+    mb_find.style = 'color: #ffffff !important'
+
+    if (show_options == null) {
+        localStorage.setItem('find_options', 0);
+    }
+
+    if (show_folders == null) {
+        localStorage.setItem('find_folders', 1);
+    }
+
+    if (show_files == null) {
+        localStorage.setItem('find_files', 1);
+    }
+
+    if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
+
+    find_folders.checked        = show_folders;
+    find_files.checked          = show_files;
+
+    localStorage.setItem('minibar', 'mb_find')
+
+    // FIND FOLDERS
+    find_folders.addEventListener('change', (e) => {
+        if (find_folders.checked) {
+            localStorage.setItem('find_folders', 1);
+            console.log('setting find to 1');
+        } else {
+            localStorage.setItem('find_folders', 0);
+            console.log('setting find to 0');
+        }
+    })
+
+    // FIND FILES
+    find_files.addEventListener('change', (e) => {
+        if (find_files.checked) {
+
+            localStorage.setItem('find_files', 1);
+            console.log('setting find to 1');
+
+        } else {
+
+            localStorage.setItem('find_files', 0);
+            console.log('setting find to 0');
+
+        }
+    })
+
+    // search_results.innerHTML    = '';
+    // sidebar_items.innerHTML     = '';
+    // input.placeholder           = 'Search';
+    // grid.style                  = 'padding-top: 10px;'
+
+
+    // find_div.classList.remove('hidden');
+    find.focus();
+    // find_arr = [];
+
+    // sidebar_items.prepend(add_header('Search'))
+
+    find.addEventListener('keyup', (e) => {
+
+        // CLEAR ON ESCAPE
+        if (e.key === 'Escape') {
+            console.log('esc pressed on find')
+            clear_items()
+        }
+
+        if (e.key === 'Enter') {
+
+            search_results.innerHTML    = 'Searching...';
+
+            console.log('running find files', start_date.value, end_date.value)
+
+            if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
+
+                // CHECK LOCAL STORAGE
+                if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
+                    localStorage.setItem('find_folders', 1)
+                }
+
+                if (localStorage.getItem('find_files') == '' || localStorage.getItem('find_files') == null) {
+                    localStorage.setItem('find_files', 1)
+                }
+
+                let find_folders = localStorage.getItem('find_folders')
+                let find_files = localStorage.getItem('find_files')
+
+                console.log('storage find files', find_files)
+
+                let options = {
+                    d: find_folders,
+                    f: find_files,
+                    start_date: start_date.value,
+                    end_date: end_date.value,
+                    size: find_size.value, //localStorage.getItem('find_by_size'),
+                    o: ' -o ',
+                    s: find.value
+                }
+
+                //  SIZE
+                if (options.size != '') {
+                    let size_option = document.querySelector('input[name="size_options"]:checked').value
+                    options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
+                }
+
+                // START DATE
+                if (options.start_date != '') {
+                    let start_date = ' -newermt "' + options.start_date + '"'
+                    options.start_date = start_date
+                } else {
+                    options.start_date = ''
+                }
+
+                // END DATE
+                if (options.end_date != '') {
+                    let end_date = ' ! -newermt "' + options.end_date + '"'
+                    options.end_date = end_date
+                } else {
+                    options.end_date = ''
+                }
+
+                // DIR
+                if (options.d == 1 && options.s != '') {
+                    options.d = ' -type d ' + '-iname "' + options.s + '"'
+                } else {
+                    options.d = ''
+                }
+
+                // FILES
+                if (options.f == 1 && options.s != '') {
+                    options.f = ' -type f ' + '-iname "' + options.size + options.s + '"'
+                } else {
+                    options.f = ''
+                }
+
+                console.log(options.f)
+
+                // OR
+                if (options.d && options.f && options.s != '')   {
+                    options.o = ' -or '
+                } else {
+                    options.o = ''
+                }
+
+                console.log(options)
+
+                //  FIND FILES
+                cmd = ' find "' + breadcrumbs.value + '" -maxdepth 5 ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                // cmd = 'find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                console.log(cmd)
+
+                let child = exec(cmd)
+
+                child.stdout.on('data', (res) => {
+
+                    console.log('running')
+
+                    res = res.split('\n')
+                    if (res.length > 0 && res.length < 50) {
+
+                        for (let i = 0; i < res.length; i++) {
+                            console.log(res[i])
+                            try {
+                                files_arr.push(res[i]);
+                            } catch (err) {
+                                // notification(err)
+                            }
+
+                        }
+
+                    } else {
+                        search_results.innerHTML    = 'No results found......';
+                    }
+
+                })
+
+                child.stdout.on('end', (res) => {
+
+                    // search_content.classList.add('active');
+                    if (files_arr.length > 0) {
+
+                        search_results.innerHTML    = ' ';
+
+                        files_arr.forEach((item, idx) => {
+
+                            try {
+
+                                let stats = fs.statSync(item)
+                                console.log(item);
+                                let options = {
+                                    id: 'find_' + idx,
+                                    linktext: path.basename(item),
+                                    href: item,
+                                    grid: search_results,
+                                    is_folder: stats.isDirectory()
+                                }
+
+                                add_card(options).then((card) => {
+                                    card.style = 'font-size: .9em;'
+                                    card.tabIndex = idx;
+                                    update_card(item)
+                                })
+
+                            } catch (err) {
+
+                            }
+
+
+                        })
+
+                        search_res = sidebar_items.innerHTML
+                        console.log(search_res)
+
+                        files_arr = [];
+
+
+                    } else {
+                        search_results.innerHTML = 'No results found......'
+                    }
+
+                })
+
+            } else {
+                search_results.innerHTML    = 'No results found......';
+            }
+
+        }
+
+    })
+
+    // FIND OPTIONS
+    btn_find_options.addEventListener('click', (e) => {
+
+        let chevron = btn_find_options.querySelector('i');
+
+        /* Remove hidden */
+        if (find_options.classList.contains('hidden')) {
+            find_options.classList.remove('hidden')
+
+            chevron.classList.add('down')
+            chevron.classList.remove('right')
+
+            localStorage.setItem('find_options', 1);
+
+        /* Add hidden */
+        } else {
+            find_options.classList.add('hidden')
+
+            chevron.classList.add('right')
+            chevron.classList.remove('down')
+
+            localStorage.setItem('find_options', 0);
+        }
+
+    })
+
+}
+
+
 // FIND FILES
+var search_res = '';
 async function find_files() {
 
-    // let filename
-    let cmd = ''
+    let sidebar_items           = document.getElementById('sidebar_items');
+    let cmd = '';
 
     get('../src/find.html', (find_page) => {
 
-        let sidebar_items           = document.getElementById('sidebar_items');
+
         sidebar_items.innerHTML     = find_page;
 
         // SEARCH VIEW
@@ -6100,7 +6488,7 @@ async function find_files() {
         let show_files              = localStorage.getItem('find_files');
 
         clear_minibar();
-        mb_find.style = 'color: #ffffff !important'
+        mb_find.style = 'color: #ffffff !important';
 
         if (show_options == null) {
             localStorage.setItem('find_options', 0);
@@ -6147,18 +6535,7 @@ async function find_files() {
             }
         })
 
-        search_results.innerHTML    = '';
-        // sidebar_items.innerHTML     = '';
-        // input.placeholder           = 'Search';
-        // grid.style                  = 'padding-top: 10px;'
-
-
-        // find_div.classList.remove('hidden');
         find.focus();
-        // find_arr = [];
-
-        sidebar_items.prepend(add_header('Search'))
-
         find.addEventListener('keyup', (e) => {
 
             // CLEAR ON ESCAPE
@@ -6223,17 +6600,19 @@ async function find_files() {
 
                     // DIR
                     if (options.d == 1 && options.s != '') {
-                        options.d = ' -type d ' + '-iname "' + options.s + '*"'
+                        options.d = ' -type d ' + '-iname "' + options.s + '"'
                     } else {
                         options.d = ''
                     }
 
                     // FILES
                     if (options.f == 1 && options.s != '') {
-                        options.f = ' -type f ' + ' -iname "' +options.size + options.s + '"'
+                        options.f = ' -type f ' + '-iname "' + options.size + options.s + '"'
                     } else {
                         options.f = ''
                     }
+
+                    console.log(options.f)
 
                     // OR
                     if (options.d && options.f && options.s != '')   {
@@ -6245,14 +6624,18 @@ async function find_files() {
                     console.log(options)
 
                     //  FIND FILES
-                    cmd = ' find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                    cmd = ' find "' + breadcrumbs.value + '" -maxdepth 5 ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                    // cmd = 'find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
                     console.log(cmd)
+
                     let child = exec(cmd)
 
                     child.stdout.on('data', (res) => {
 
+                        console.log('running')
+
                         res = res.split('\n')
-                        if (res.length > 0 && res.length < 100) {
+                        if (res.length > 0 && res.length < 50) {
 
                             for (let i = 0; i < res.length; i++) {
                                 console.log(res[i])
@@ -6304,9 +6687,12 @@ async function find_files() {
 
                             })
 
+                            // Write search resuts back to find.html
+                            search_res = sidebar_items.innerHTML
+                            fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
 
+                            // Clear files array
                             files_arr = [];
-
 
                         } else {
                             search_results.innerHTML = 'No results found......'
@@ -6348,10 +6734,20 @@ async function find_files() {
 
         })
 
-    })
+
+        // Need this to reapply click events for re -rendered search results that get loaded from saved html
+        let cards = sidebar_items.querySelectorAll('.card')
+        cards.forEach(card => {
+            update_card(card.dataset.href)
+        })
+
+
+        })
+
 
     localStorage.setItem('sidebar', 1);
     show_sidebar();
+
 
 }
 
@@ -6427,42 +6823,9 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 // FUNCTIONS //
 
-async function get_file_properties() {
-
-    file_properties_arr = []
-    let sb_items        = document.getElementById('sidebar_items')
-    let main_view       = document.getElementById('main_view');
-    let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
-
-    if (items.length > 0) {
-
-        sb_items.innerHTML  = ''
-        items.forEach(item => {
-            file_properties_arr.push(item.dataset.href);
-            ipcRenderer.send('get_file_properties', file_properties_arr);
-            console.log('props array', file_properties_arr);
-            file_properties_arr = [];
-        })
-
-        clear_items();
-        
-    }
 
 
 
-}
-
-/* Get sidebar info */
-async function get_info() {
-    // let sb_items = document.getElementById('siebar_items');
-    console.log('getting file properties');
-    let file_properties = document.getElementById('file_properties');
-    if (file_properties) {
-        // file_properties.classList.remove('hidden');
-    }
-    // sb_items.innerHTML = ''
-
-}
 
 /* Get devices */
 async function get_devices() {
@@ -6508,7 +6871,7 @@ async function get_devices() {
             let icon    = add_icon('hdd');
             let umount  = add_icon('eject');
 
-            device.classList.add('item')
+            // device.classList.add('item')
             device.style    = 'display: flex';
             umount.title    = "Unmount '" + item.href + "'"
             device.append(icon, add_item(link), umount)
@@ -6575,23 +6938,26 @@ function autocomplete() {
     let folders                 = fs.readdirSync(breadcrumbs.value);
     let folders_arr             = folders.filter(a => fs.statSync(path.join(breadcrumbs.value, a)).isDirectory());
 
+    // breadcrumbs.addEventListener('keydown', (e) => {})
+
     breadcrumbs.addEventListener('keyup', (e) => {
 
-        // if (e.key === 'Backspace') {
-        //     console.log('backspace');
-        //     return false;
-        // }
+        if (e.key === 'Backspace') {
+            console.log('backspace');
+            return false;
+        }
 
-        breadcrumb_items.innerHTML = ''
+        breadcrumb_items.innerHTML = '';
+        let search_results = []
 
         let search = e.target.value.substring(path.dirname(breadcrumbs.value).length + 1, e.target.value.length)
-        console.log(search)
-        let search_results = []
+        console.log(search);
         folders_arr.forEach(item => {
             if (item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) > -1 && item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) < 1) {
                 search_results.push(path.join(path.dirname(breadcrumbs.value),  item));
             }
         })
+
 
         if (search_results.length > 0) {
 
@@ -6600,7 +6966,21 @@ function autocomplete() {
                 breadcrumb_items.classList.add('hidden')
             }
 
-            search_results.forEach(breadcrumb_item => {
+            search_results.forEach((breadcrumb_item, idx) => {
+
+                if (idx == 0) {
+
+                    console.log('l1', breadcrumbs.value.length, 'l2',  breadcrumb_item.length);
+
+                    let length0         = breadcrumbs.value.length
+                    // breadcrumbs.value   = breadcrumb_item
+                    breadcrumbs.setSelectionRange(parseInt(length0), parseInt(breadcrumb_item.length));
+
+                    // breadcrumbs.focus()
+                    // breadcrumbs.selectionEnd(breadcrumbs.value.length);
+
+                }
+
                 let item = add_item(breadcrumb_item)
                 breadcrumb_items.append(item)
                 autocomplete.append(breadcrumb_items)
@@ -6619,9 +6999,15 @@ function autocomplete() {
             })
 
 
+
         } else {
-            return false
+            // breadcrumb_items.classList.add('hidden');
+            // return false
         }
+
+        // if (e.key == 'Enter') {
+        //     get_view(breadcrumbs.value);
+        // }
 
     })
 
@@ -7198,6 +7584,7 @@ function show_sidebar() {
 
         sidebar.classList.remove('hidden');
         sidebar.style.width = sidebar_width + 'px';
+        sidebar.style.maxWidth = '25%';
         draghandle.style.height = parseInt(main_view.clientHeight + 30) + 'px';
 
         // SET MAIN VIEW SIZE
@@ -7702,7 +8089,8 @@ function rename_file(source, destination_name) {
                     console.log('File/folder renamed successfully!');
                     notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
                     update_cards(document.getElementById('main_view'))
-                    clear_items();
+                    // clear_items();
+                    // ds.start()
                 }
 
             })
@@ -7915,13 +8303,24 @@ function update_card(href) {
         let stats = fs.statSync(href)
         let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
         let atime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
-        let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
+        let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime)
 
         description.innerHTML   = mtime
         extra.innerHTML         = get_file_size(localStorage.getItem(href))
 
         // HANDLE DIRECTORY
         if (stats.isDirectory()) {
+
+            let links = card.querySelectorAll('.header_link, .icon');
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    get_view(card.dataset.href);
+                })
+            })
+
+            let icon = card.querySelector('.icon')
+            icon.src = folder_icon
+            console.log(folder_icon)
 
             // img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
             // console.log(folder_icon)
@@ -7948,6 +8347,15 @@ function update_card(href) {
 
             // FILES
         } else {
+
+            let links = card.querySelectorAll('.header_link, .icon')
+            links.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    open(card.dataset.href);
+                })
+            })
+
+            ipcRenderer.send('get_icon_path', card.dataset.href);
 
             size = get_file_size(stats.size)
             extra.innerHTML = size
@@ -8030,7 +8438,7 @@ function update_cards(view) {
 
                 let atime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
                 let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-                let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
+                let ctime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime)
 
                 // card.tabIndex = idx
                 card.dataset.id = idx + 1
@@ -8071,7 +8479,7 @@ function update_cards(view) {
 
                     })
 
-                    // FILES
+                // FILES
                 } else {
 
                     ++file_counter
@@ -9102,6 +9510,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // FIND
     Mousetrap.bind('ctrl+f', () => {
+
         find_files();
     })
 

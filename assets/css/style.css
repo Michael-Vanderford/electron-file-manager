@@ -42,12 +42,23 @@ body {
         -webkit-app-region: no-drag;
     }
 
+    #file_menu .item {
+        /* border: 1px solid #343a40 !important; */
+        box-shadow: 1px 1px 0px #252525;
+    }
+
+    #file_menu {
+        background: #303134 !important;
+    }
 
     #navigation_menu {
+        background: #303134 !important;
         font-size: 1em !important;
         border: none !important;
         /* display: none; */
     }
+
+
 
     #navigation_menu input[type="text"] {
         margin-top:4px;
@@ -59,6 +70,10 @@ body {
         font-size: 10px;
     }
 
+    #breadcrumbs::selection {
+        background: #069;
+        color: #cfcfcf;
+    }
 
     #breadcrumb_items {
         /* font-size: 10px !important; */
@@ -94,21 +109,9 @@ body {
         color:#ffffff !important;
     }
 
-    /* .title {
-        padding-top:20px;
-    } */
 
-    /* .tree_item {
-        margin-top: 15px !important;
-        margin-left: 15px !important;
-    } */
 
     .tree_subicon {
-        /* margin-top:2px !important; */
-        /* margin-left: 25px !important; */
-        /* background-image: url("../icons/korla-pgrey/places/scalable/gnome-folder.svg"); */
-        /* width:22px;
-        height: 22px; */
         float:left;
     }
 
@@ -117,24 +120,6 @@ body {
         width: 22px !important;
         height: 22px !important;
     }
-
-    /* #workspace_content .ui.card {
-        background: transparent !important;
-    } */
-
-    /* .input:focus {
-        -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
-        box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgb(0, 140, 255);
-    } */
-
-
-    /* .tree_icon {
-        background-image: url("../icons/korla/places/scalable/gnome-folder.svg");
-        width:18px;
-        height: 18px;
-        float:left;
-    } */
-
 
     .list {
         color:#ffffff !important;
@@ -169,7 +154,8 @@ body {
     }
 
     .ui.card {
-        background: #2c2c2c !important;
+        /* background: #2c2c2c !important; */
+        background: transparent;
         box-shadow: none !important;
     }
 
@@ -584,8 +570,8 @@ img:hover {
 }
 
 .content .dark {
-  background-color:#222222 !important;
-  color:#ffffff !important;
+  /* background-color:#222222 !important; */
+  /* color:#ffffff !important; */
 }
 
 body .ui.card .none{
@@ -608,8 +594,14 @@ body .ui.card .none{
 
 .ui.card .folder_card,
 .ui.card .file_card {
-  padding-left: 5px;
-  /* background-color: transparent !important; */
+  /* padding-left: 5px; */
+  padding-bottom: 0px !important;
+  /* background: rgba(0, 0, 0, .3) !important; */
+  /* background-color: transparent, !important; */
+}
+
+.ui.card:hover {
+    /* background-color: #069 !important; */
 }
 
 .card .content {
@@ -796,6 +788,7 @@ progress[value]::-webkit-progress-bar {
     -moz-outline-style: none;
 }
 
+
 #breadcrumb_items {
 
     position:   fixed;
@@ -980,9 +973,10 @@ h5 {
 
 #main_view {
 
-    /* background-image: url('../backgrounds/bg1.jpg'); */
-    background-size: 100% 100%;
+    /* background-image: url('../backgrounds/bg2.jpg'); */
+    /* background-size: 100% 100%; */
     /* background-color: rgba(0, 0, 0, 0.1); */
+    background: #2c2c2c;
     position: relative;
     outline: none;
     border: none;
@@ -991,8 +985,11 @@ h5 {
     height: 100%;
     margin-left: 0px;
     overflow-x: hidden;
-    overflow-y: scroll;
-    padding: 10px;
+    /* overflow-y: scroll; */
+    padding-right: 20px;
+    padding-left: 20px;
+    padding-top: 10px;
+    /* padding:20px; */
     padding-bottom: 40px;
     z-index: 0;
 }
@@ -1066,7 +1063,7 @@ a:active, a:focus {
 }
 .background-transparent a:link, .background-transparent a:visited, .background-transparent.nav-link {
   color:#ffffff;
-  backgrxxound: rgba(0, 0, 0, .0);
+  background: rgba(0, 0, 0, .0);
 }
 
 .no-wrap {

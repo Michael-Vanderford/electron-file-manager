@@ -165,8 +165,14 @@ function initResize(e) {
 
     window.addEventListener('mousemove', Resize, false);
     window.addEventListener('mouseup', stopResize, false);
-    $('#main_view, #sidebar iframe').addClass('marginLeft');
 
+    // let items = document.querySelectorAll('#sidebar .')
+    let sidebar = document.getElementById('sidebar')
+    let iframe = sidebar.querySelector('iframe')
+
+    sidebar.classList.add()
+
+    $('#main_view, #sidebar iframe').addClass('marginLeft');
     $('#main_view, #sidebar').addClass('margin-left');
 
 }
@@ -717,39 +723,47 @@ $(function() {
 
     })
 
-    $(document).on('click','#btn_show_hidden_folders',function(e){
+    let btn_show_hidden_folders = document.getElementById('btn_show_hidden_folders')
+    btn_show_hidden_folders.onclick = (e) => {
 
-        e.preventDefault()
-
+        // e.preventDefault()
 
         let hidden_directory = document.getElementById('hidden_folder_grid')
         let hidden_files = document.getElementById('hidden_file_grid')
 
         if(hidden_directory.classList.contains('hidden')){
 
-            $(this).addClass('active')
+            btn_show_hidden_folders.classList.add('active')
 
             hidden_directory.classList.remove('hidden')
             hidden_files.classList.remove('hidden')
 
             localStorage.setItem('show_hidden', 1)
 
-            // window.api.get_tree(breadcrumbs.value)
+            if (localStorage.getItem('minibar') == 'mb_home') {
+                window.api.get_sidebar_files(breadcrumbs.value)
+            }
+
+            // window.api.get_sidebar_files(breadcrumbs.value)
 
         }else {
 
-            $(this).removeClass('active')
+            btn_show_hidden_folders.classList.remove('active')
 
             hidden_directory.classList.add('hidden')
             hidden_files.classList.add('hidden')
 
             localStorage.setItem('show_hidden', 0)
 
-            // window.api.get_tree(breadcrumbs.value)
+            if (localStorage.getItem('minibar') == 'mb_home') {
+                window.api.get_sidebar_files(breadcrumbs.value)
+            }
+
         }
+    }
 
 
-    })
+
 
 
     // SORT BY DATE
@@ -930,14 +944,24 @@ $(function() {
 
 // })
 
-// BREADCRUMBS
-breadcrumbs.addEventListener('change',function(e){
 
-    e.preventDefault()
-    clear_active()
-    dir = breadcrumbs.value
-    window.api.get_view(dir)
+breadcrumbs.addEventListener('keydown', (e) => {
+    if (e.key == 'Enter') {
+        window.api.get_view(breadcrumbs.value);
+    }
 })
+
+// BREADCRUMBS
+// breadcrumbs.addEventListener('keyup', (e) => {
+
+//     if (e.key == 'Enter') {
+//         e.preventDefault()
+//         clear_active()
+//         dir = breadcrumbs.value
+//         window.api.get_view(dir)
+//     }
+
+// })
 
 // HOME
 // home.addEventListener('click', function(e){
