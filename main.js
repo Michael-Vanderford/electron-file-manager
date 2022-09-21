@@ -1006,7 +1006,6 @@ function copy(state) {
                     let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
 
-                    // })
                     if (!canceled) {
 
                         // COPY FOLDERS RECURSIVE

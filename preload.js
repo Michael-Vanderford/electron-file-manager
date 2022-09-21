@@ -18,7 +18,7 @@ const DragSelect                                = require('dragselect')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
-// const im                                        = require('imagemagick');
+const im                                        = require('imagemagick');
 
 /* Arrays */
 let chart_labels    = []
@@ -1568,6 +1568,53 @@ ipcRenderer.on('select_all', (e) => {
     select_all();
 })
 
+// Drag
+function drag() {
+
+    let main_view = document.getElementById('main_view')
+
+    let rec = add_div()
+
+    let start = {x:0, y:0}
+    let end = {x:0, y:0}
+
+    main_view.addEventListener('mousedown', (e) => {
+
+        start.x = e.clientX
+        start.y = e.clientY
+
+    })
+
+    main_view.addEventListener('mouseup', (e) => {
+
+        end.x = e.clientX
+        end.y = e.clientY
+
+
+
+        console.log(start)
+        console.log(end)
+
+    })
+
+
+    // console.log('starting drag')
+    // let cards = main_view.querySelectorAll('.card')
+    // cards.forEach(card => {
+    //     console.log('test')
+    //     // card.ondragover = (e) => {
+    //     //     console.log('what')
+    //     // }
+    // })
+    // main_view.ondragover = (e) => {
+    //     console.log('dragging')
+    // }
+    // mainview.ondragstart = (e) => {
+    //     let rec = mainview.getBoundingClientRect()
+    //     console.log('rec', rec)
+    // }
+}
+
 // todo: these need to be consolidated at ome point
 // NOTICE
 function notice(notice_msg) {
@@ -1713,16 +1760,19 @@ async function get_properties(file_properties_obj) {
     let sb_items        = document.getElementById('sidebar_items');
     let mb_info         = document.getElementById('mb_info')
     let file_properties = document.getElementById('file_properties');
-    let div             = add_div();
+    // let div             = add_div();
     let remove_btn      = add_icon('times');
-    let table           = document.createElement('table');
-    let tbody           = document.createElement('tbody');
-    let hr              = document.createElement('hr')
-    let image           = add_img(filename)
+    // let table           = document.createElement('table');
+    // let tbody           = document.createElement('tbody');
+    // let hr              = document.createElement('hr')
+    // let image           = add_img(filename)
     let card            = add_div();
     let content         = add_div();
+    let image           = add_div();
+
 
     // sb_items.innerHTML  = ''
+    image.classList.add('image')
 
     clear_minibar();
     mb_info.style       = 'color: #ffffff !important;';
@@ -1730,27 +1780,30 @@ async function get_properties(file_properties_obj) {
     // table.classList.add('ui', 'compact', 'table');
     remove_btn.classList.add('small');
 
-    table.style = 'background:transparent !important; width: 100%;';
+    // table.style = 'background:transparent !important; width: 100%;';
     remove_btn.style  = 'display:block; float:right; width: 23px; cursor: pointer';
 
     remove_btn.addEventListener('click', (e) => {
         card.remove();
     })
 
-
     card.dataset.href = filename
     card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav');
     card.style = 'color: #ffffff !important;';
     content.classList.add('content');
 
+    content.append(remove_btn, add_br());
+
     for (const prop in file_properties_obj) {
 
-        // CREATE TABLE ROW
-        let tr  = document.createElement('tr');
-        let td1 = document.createElement('td');
-        let td2 = document.createElement('td');
+        let div             = add_div();
+        div.style           = 'display: flex; padding: 2px;';
 
-        td1.style   = 'font-weight: bold;';
+        let col1 = add_div();
+        let col2 = add_div();
+
+        col1.style = 'width: 30%;'
+        col2.style = 'width: 60%;'
 
         if (prop === 'Name') {
 
@@ -1763,7 +1816,7 @@ async function get_properties(file_properties_obj) {
                 }
             })
 
-            td2.append(link);
+            col2.append(link)
 
             console.log(filename)
             let stats = fs.statSync(filename)
@@ -1771,10 +1824,12 @@ async function get_properties(file_properties_obj) {
             // let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
             if (stats.isDirectory()) {
 
-                let img = add_img(folder_icon)
-                img.src = img.dataset.src
-                img.classList.remove('lazy')
-                td1.append(img);
+                let img = add_img(folder_icon);
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                image.append(img);
+
+                col1.append(image);
 
                 // let files = fs.readdirSync(filename)
                 // console.log('files', files)
@@ -1783,60 +1838,78 @@ async function get_properties(file_properties_obj) {
 
             } else {
 
-                // Get image properties
-                switch (path.extname(path.basename(filename))) {
-                    case '.jpg':
-                    case '.png':
-                    case '.jpeg':
-                    case '.svg':
-                    case '.gif':
-                        get_image_properties(filename);
-                    break;
-                }
+                let img = add_img('');
+                // img.src = img.dataset.src
+                img.classList.remove('lazy');
+                // img.classList.add('icon');
 
-                let img = add_img('')
+                image.append(img);
+
+
+                // switch (path.extname(path.basename(filename))) {
+                //     case '.jpg':
+                //     case '.png':
+                //     case '.jpeg':
+                //     case '.svg':
+                //     case '.gif':
+                //         get_image_properties(filename);
+                //         img.src = ''
+                //     break;
+
+                // }
+
+
+                // img.src = filename
                 // img.classList.add('icon')
                 // img.src = img.dataset.src
-                // img.classList.remove('lazy')
-                td1.append(img);
+
+                ipcRenderer.send('get_icon_path', filename);
+
+                col1.append(image);
 
             }
 
-
-            update_card(filename)
-
+            // update_card(filename)
 
         } else {
 
-            td1.append(prop);
-            td2.append(`${file_properties_obj[prop]}`);
+            // td1.append(prop);
+            // td2.append(`${file_properties_obj[prop]}`);
+
+            col1.append(prop);
+            col2.append(`${file_properties_obj[prop]}`);
+
         }
 
         // td1.append(prop);
-        tr.append(td1);
-        tr.append(td2);
-        tbody.append(tr);
+        // tr.append(td1);
+        // tr.append(td2);
+        // tbody.append(tr);
 
+        div.append(col1, col2)
+        content.append(div)
 
     }
 
-    table.append(tbody);
+    // table.append(tbody);
 
-    div.append(remove_btn, table);
-    file_properties.append(div);
+    // div.append(remove_btn, table);
+    // div.append(remove_btn);
+    // file_properties.append(div);
 
-    content.append(div);
+    // content.append(div);
+    // content.append(remove_btn);
     card.append(content)
 
     // sb_items.innerHTML = ''
     sb_items.appendChild(card);
 
-    fs.writeFileSync('src/info.html', sb_items.innerHTML);
+    // fs.writeFileSync('src/info.html', sb_items.innerHTML);
 
     localStorage.setItem('sidebar', 1);
     show_sidebar()
 
-    console.log(table);
+    // console.log(table);
 
 }
 
@@ -1903,9 +1976,35 @@ ipcRenderer.on('icon_path', (e, data) => {
     let href = data.href;
     let card = document.querySelectorAll('[data-href="' + href + '"]');
     if (card) {
+
         card.forEach(item => {
+
             let img     = item.querySelector('img');
-            img.src     = data.icon_path;
+            let ext     = path.extname(href)
+            let is_image = 0;
+            if (
+                ext === '.png'  ||
+                ext === '.jpg'  ||
+                ext === '.svg'  ||
+                ext === '.gif'  ||
+                ext === '.webp' ||
+                ext === '.jpeg'
+
+            ) {
+
+                is_image = 1;
+                img.classList.add('img');
+                img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
+                img.src = filename
+
+            } else {
+
+                img.src     = data.icon_path;
+                img.classList.add('icon');
+
+            }
+
+
         })
     }
 })
@@ -2360,8 +2459,6 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
     return options
 
 }
-
-
 
 var cardindex = 0
 
@@ -3890,8 +3987,6 @@ function clear_workspace() {
 
 }
 
-
-
 // ADD ITEM TO WORKSPACE
 function add_workspace() {
 
@@ -4027,7 +4122,7 @@ async function get_workspace() {
     mb_workspace.style = 'color: #ffffff !important'
     workspace.style.height = '100%'
 
-    sb_items.append(add_header('Workspace'));
+    // sb_items.append(add_header('Workspace'));
 
     // localStorage.removeItem('workspace')
     if (localStorage.getItem('workspace') == null) {
@@ -4059,7 +4154,6 @@ async function get_workspace() {
                 add_card(options).then(card => {
 
                     workspace.append(card);
-                    update_card(card.dataset.href);
 
                     let icon = add_icon('times');
                     icon.classList.add('small');
@@ -4075,6 +4169,8 @@ async function get_workspace() {
                         localStorage.setItem('workspace',JSON.stringify(local_items));
                         get_workspace();
                     })
+
+                    update_card(card.dataset.href);
 
                 })
 
@@ -4167,8 +4263,6 @@ async function get_workspace() {
     // update_cards(workspace)
     // clear_items()
 }
-
-
 
 // QUICK SEARCH
 function quick_search() {
@@ -4266,7 +4360,7 @@ async function get_view(dir) {
         info_view.classList.add('hidden')
         info_view.innerHTML = ''
 
-        get_files(dir, () => { });
+        get_files(dir, () => {});
 
 
     /* List View */
@@ -4326,6 +4420,7 @@ async function get_view(dir) {
 
 
     autocomplete()
+    // drag();
     ds.start();
 
 }
@@ -6021,8 +6116,6 @@ function add_history(dir) {
     }
 }
 
-
-
 // CLEAR SELECTED FILES ARRAY
 function clear_items() {
 
@@ -6115,8 +6208,11 @@ function clear_items() {
 
     console.log('starting ds')
 
+
+    drag();
+
     /* Restart dragselect module */
-    // ds.start();
+    ds.start();
 
 }
 
@@ -6451,7 +6547,6 @@ function find_init() {
     })
 
 }
-
 
 // FIND FILES
 var search_res = '';
@@ -6823,25 +6918,20 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 // FUNCTIONS //
 
-
-
-
-
 /* Get devices */
 async function get_devices() {
 
     console.log('running get devices');
     let devices             = [];
-    let device_grid         = document.getElementById('device_grid');
-    let device_content      = document.getElementById('device_content');
     let sidebar_items       = document.getElementById('sidebar_items');
     link_div                = add_div();
     remove_div              = add_div();
+
+
     sidebar_items.innerHTML = '';
 
     let mnt = fs.readdirSync('/mnt/');
     mnt.forEach(item => {
-        console.log(item);
         devices.push({name: item, href: path.join('/mnt', item)});
     })
 
@@ -6860,7 +6950,7 @@ async function get_devices() {
         devices.push({name: item, href: path.join(gvfs_path, item)});
     })
 
-    sidebar_items.append(add_header('Devices'))
+    // sidebar_items.append(add_header('Devices'))
 
     if (devices.length > 0) {
 
@@ -6871,10 +6961,25 @@ async function get_devices() {
             let icon    = add_icon('hdd');
             let umount  = add_icon('eject');
 
+            let div = add_div()
+
+            let col1 = add_div().innerHTML = (icon)
+            let col2 = add_div().innerHTML = (link)
+            let col3 = add_div().innerHTML = (umount)
+
+            link.style = 'display: block'
+            col2.style = 'width: 100%'
+
+            div.append(col1, col2, col3)
+            div.style = 'display: flex; padding: 5px; width: 100%;'
+            div.classList.add('item')
+
             // device.classList.add('item')
-            device.style    = 'display: flex';
-            umount.title    = "Unmount '" + item.href + "'"
-            device.append(icon, add_item(link), umount)
+            // device.style    = 'display: flex';
+            // umount.title    = "Unmount '" + item.href + "'"
+            // device.append(icon, add_item(link), umount)
+
+            device.append(div)
 
             umount.addEventListener('click', (e) => {
                 execSync("umount '" + item.href + "'")
@@ -7512,7 +7617,7 @@ function add_link(href, text) {
     link.href = href
     link.text = text
     link.title = href
-    link.classList.add('header_link')
+    // link.classList.add('header_link')
     return link
 }
 
@@ -7585,6 +7690,7 @@ function show_sidebar() {
         sidebar.classList.remove('hidden');
         sidebar.style.width = sidebar_width + 'px';
         sidebar.style.maxWidth = '25%';
+
         draghandle.style.height = parseInt(main_view.clientHeight + 30) + 'px';
 
         // SET MAIN VIEW SIZE
@@ -8090,7 +8196,7 @@ function rename_file(source, destination_name) {
                     notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
                     update_cards(document.getElementById('main_view'))
                     // clear_items();
-                    // ds.start()
+                    ds.start()
                 }
 
             })
@@ -8311,7 +8417,7 @@ function update_card(href) {
         // HANDLE DIRECTORY
         if (stats.isDirectory()) {
 
-            let links = card.querySelectorAll('.header_link, .icon');
+            let links = card.querySelectorAll('.header_link');
             links.forEach(link => {
                 link.addEventListener('click', (e) => {
                     get_view(card.dataset.href);
@@ -8348,14 +8454,18 @@ function update_card(href) {
             // FILES
         } else {
 
-            let links = card.querySelectorAll('.header_link, .icon')
+            let links = card.querySelectorAll('.header_link')
             links.forEach(link => {
                 link.addEventListener('click', (e) => {
                     open(card.dataset.href);
                 })
             })
 
-            ipcRenderer.send('get_icon_path', card.dataset.href);
+            let icon = card.querySelector('#img')
+            if (icon) {
+                icon.classList.remove('lazy');
+                ipcRenderer.send('get_icon_path', card.dataset.href);
+            }
 
             size = get_file_size(stats.size)
             extra.innerHTML = size
@@ -8378,7 +8488,12 @@ function update_card(href) {
 
         }
 
+        // DRAG AMD DROP
+        ds.addSelectables(card, false)
+
     })
+
+    ds.start()
 
 }
 
@@ -8677,7 +8792,7 @@ function extract() {
                 }
 
                 clear_items()
-                ds.start()
+                // ds.start()
                 notification('extracted ' + source)
 
             }
@@ -9451,7 +9566,6 @@ window.addEventListener('DOMContentLoaded', () => {
         breadcrumb.select()
     })
 
-
     // CTRL V - PASTE
     Mousetrap.bind('ctrl+v', () => {
 
@@ -9460,19 +9574,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-
     // NEW WINDOW
     Mousetrap.bind('ctrl+n', () => {
         // window.open('../src/index.html','_blank', 'width=1600,height=800,frame=false')
         ipcRenderer.send('new_window')
     })
 
-
     // NEW FOLDER
     Mousetrap.bind('ctrl+shift+n', () => {
         create_folder(breadcrumbs.value + '/Untitled Folder')
     })
-
 
     // RENAME
     Mousetrap.bind('f2', () => {
@@ -9543,16 +9654,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-
     // get_devices();
 
     /* Toggle sidebar */
     show_sidebar();
 
 })
-
-
-
 
 // // WATCH DIRECTORY FOR CHANGES
 // fs.watch(breadcrumbs.value, "", (eventtype, filename) => {

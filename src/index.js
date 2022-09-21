@@ -180,7 +180,10 @@ function initResize(e) {
 /* Resize sidebar */
 function Resize(e) {
     element.style.width = (e.clientX - element.offsetLeft) + 'px';
-    $('#main_view').css('margin-left', (e.clientX - (element.offsetLeft - 40)) + 'px');
+
+    main_view.style.marginLeft = (e.clientX - (element.offsetLeft - 40)) + 'px'
+    // main_view.style.marginLeft = '(max(75%, min (' + (e.clientX - (element.offsetLeft - 40)) + 'px, 100%))'
+    // $('#main_view').css('margin-left', (e.clientX - (element.offsetLeft - 40)) + 'px');
     // $('#sidebar').css('margin-left', (element.offsetLeft) + 'px');
 
 }

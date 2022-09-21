@@ -87,9 +87,9 @@
         border-radius: 5px;
         height: 23px;
         width: 23px;
-        background: #222222;
+        /* background: #222222; */
         margin-right: -5px;
-        padding: 5px !important;
+        /* padding: 5px !important; */
     }
 
     #sidebar_items .tree_item a {
@@ -287,6 +287,11 @@
     }
 
 
+}
+
+#sidebar_items {
+    margin-top: 10px;
+    padding-right: 5px;
 }
 
 #sidebar .ui.accordion .content {
