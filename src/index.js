@@ -20,9 +20,10 @@ let minibar_items    = minibar.querySelectorAll('.item')
 
 
 // TOGGLE VIEWS
-let btn_list_view   = document.getElementById('btn_list_view')
-let btn_grid_view   = document.getElementById('btn_grid_view')
-let btn_disk_view   = document.getElementById('btn_disk_view')
+let btn_settings_view   = document.getElementById('btn_settings_view')
+let btn_list_view       = document.getElementById('btn_list_view')
+let btn_grid_view       = document.getElementById('btn_grid_view')
+let btn_disk_view       = document.getElementById('btn_disk_view')
 
 // VIEWS
 let list_view       = document.getElementById('list_view')
@@ -266,6 +267,12 @@ if (active_minibar_item == null) {
 
     }
 }
+
+// Settings View
+btn_settings_view.addEventListener('click', (e) => {
+    // localStorage.setItem('view', 'settings');
+    window.api.get_settings_view();
+})
 
 /* List view */
 btn_list_view.addEventListener('click', (e) => {

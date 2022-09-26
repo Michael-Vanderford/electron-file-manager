@@ -29,8 +29,28 @@ body {
       color:#cfcfcf !important;
     }
 
+    .audio {
+        background: #000000 !important;
+        -webkit-transition: all 1000ms ease;
+        -moz-transition: all 1000ms ease;
+        -ms-transition: all 1000ms ease;
+        -o-transition: all 1000ms ease;
+        transition: all 100ms ease;
+    }
+
     td {
         color: #fff;
+    }
+
+    progress::-webkit-progress-value { background: blue; }
+
+    .settings_label {
+        font-weight: bold;
+    }
+
+    .settings_input {
+        color: #cfcfcf;
+        background: #454545;
     }
 
     #header_menu {
@@ -57,8 +77,6 @@ body {
         border: none !important;
         /* display: none; */
     }
-
-
 
     #navigation_menu input[type="text"] {
         margin-top:4px;
@@ -984,9 +1002,9 @@ h5 {
     margin-right: 0px;
     height: 100%;
     margin-left: 0px;
-    overflow-x: hidden;
+    /* overflow-x: hidden; */
     /* overflow-y: scroll; */
-    padding-right: 20px;
+    /* padding-right: 20px; */
     padding-left: 20px;
     padding-top: 10px;
     /* padding:20px; */
@@ -1001,7 +1019,7 @@ h5 {
 
 #info_view {
     margin-right: 110px !important;
-    margin-top: 20px;
+    /* margin-top: 20px; */
 }
 
 #folders_card {

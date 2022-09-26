@@ -1,0 +1,83 @@
+
+@media (prefers-color-scheme: dark) {
+
+    .fm.grid {
+        display: flex;
+        align-items: center;
+        height: 30px;
+        width: 100%;
+        /* background-color: red; */
+    }
+
+    .fm.col {
+        flex: 1;
+    }
+
+    .fm.tabs {
+        position:absolute;
+        top: 0;
+        left: 0;
+
+        margin-left: -8px;
+        /* width: 100%; */
+        /* height: 23px; */
+    }
+
+    .fm.tab {
+
+        background: #000;
+        z-index: 1;
+
+        height: 23px;
+        font-size: 10px;
+
+        position: relative;
+
+        border-radius: 2px;
+        border-top: 1px solid #000;
+        border-left: 1px solid #000;
+        border-right: 1px solid #000;
+
+        display: inline-flex;
+        align-items: center;
+        padding: 5px;
+        /* width: 100%; */
+
+    }
+
+    .fm.tab:hover {
+        cursor: pointer;
+        /* background-color: #000; */
+    }
+
+    .fm.active-tab {
+        background-color: #252525;
+    }
+
+    .fm.tab-content {
+
+        /* background: #252525; */
+        /* margin-top: 15px; */
+        overflow-x: hidden;
+        overflow-y: auto;
+
+        position:absolute;
+        top:  0;
+        left: 0;
+
+        /* margin-left: -5px; */
+        margin-top: 24px;
+
+        /* padding-top: 23px; */
+        padding: 15px;
+
+        border-top: 1px solid #000;
+        /* border-left: 1px solid #000; */
+        height: 100%;
+        width: 100%;
+
+    }
+
+    progress::-webkit-progress-value {background-color: #aaa !important;}
+
+}

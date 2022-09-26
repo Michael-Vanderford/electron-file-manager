@@ -3,7 +3,7 @@
     todo: System and fs calls need to start getting moved into main.js
     Electron v20. seems to be breaking fs and path
 */
-const { BrowserWindow, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
+const { BrowserWindow, Notification, getCurrentWindow, globalShortcut, ipcRenderer, contextBridge, Menu, shell, ipcMain, app, MenuItem, menu, TouchBarSegmentedControl, desktopCapturer, clipboard, nativeImage } = require('electron')
 const { exec, execSync, spawn, execFileSync }   = require("child_process");
 const { dirname, basename, normalize }          = require('path');
 const fs                                        = require('fs');
@@ -127,6 +127,14 @@ let page                = 1
 let start_path          = ''
 // let main_view           = document.getElementById('main_view')
 
+let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
+
+// Add new tab
+ipcRenderer.on('open_new_tab', (e, label) => {
+    add_tab(label)
+})
+
+// Start drag select
 ipcRenderer.on('ds_start', (e) => {
     ds.start()
 })
@@ -972,7 +980,7 @@ ipcRenderer.on('folder_size', (e, data) => {
         let card = document.querySelector('[data-href="' + data.href + '"]')
         let extra = card.querySelector('.extra')
 
-        console.log(data.size)
+        // console.log(data.size)
         // extra.innerHTML = get_file_size(data.size)
 
         if (fs.readdirSync(data.href).length > 0) {
@@ -1568,6 +1576,69 @@ ipcRenderer.on('select_all', (e) => {
     select_all();
 })
 
+// SET PROGRESS
+ipcRenderer.on('progress', (e, max, destination_file) => {
+    get_progress(max,destination_file);
+})
+
+// UPDATE PROGRESS
+ipcRenderer.on('update_progress', (e, step) => {
+    update_progress(step)
+})
+
+/* On icon view */
+ipcRenderer.on('icon_path', (e, data) => {
+    let href = data.href;
+    let card = document.querySelectorAll('[data-href="' + href + '"]');
+    if (card) {
+
+        card.forEach(item => {
+
+            let img     = item.querySelector('img');
+            let ext     = path.extname(href)
+            let is_image = 0;
+            if (
+                ext === '.png'  ||
+                ext === '.jpg'  ||
+                ext === '.svg'  ||
+                ext === '.gif'  ||
+                ext === '.webp' ||
+                ext === '.jpeg'
+
+            ) {
+
+                is_image = 1;
+                img.classList.add('img');
+                img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
+                img.src = filename
+
+            } else {
+
+                img.src     = data.icon_path;
+                img.classList.add('icon');
+
+            }
+
+
+        })
+    }
+})
+
+/* On sort */
+ipcRenderer.on('sort', (e, sort) => {
+    let breadcrumbs = document.getElementById('breadcrumbs')
+    if (sort == 'date') {
+        localStorage.setItem('sort', 1)
+    } else if (sort == 'size') {
+        localStorage.setItem('sort', 3)
+    } else if (sort == 'name') {
+        localStorage.setItem('sort', 2)
+    } else if (sort == 'type') {
+        localStorage.setItem('sort', 4)
+    }
+    get_view(breadcrumbs.value)
+})
+
 // Drag
 function drag() {
 
@@ -1762,10 +1833,6 @@ async function get_properties(file_properties_obj) {
     let file_properties = document.getElementById('file_properties');
     // let div             = add_div();
     let remove_btn      = add_icon('times');
-    // let table           = document.createElement('table');
-    // let tbody           = document.createElement('tbody');
-    // let hr              = document.createElement('hr')
-    // let image           = add_img(filename)
     let card            = add_div();
     let content         = add_div();
     let image           = add_div();
@@ -1797,7 +1864,7 @@ async function get_properties(file_properties_obj) {
     for (const prop in file_properties_obj) {
 
         let div             = add_div();
-        div.style           = 'display: flex; padding: 2px;';
+        div.style           = 'display: flex; padding: 2px; word-break: break-all';
 
         let col1 = add_div();
         let col2 = add_div();
@@ -1960,69 +2027,6 @@ async function get_info() {
     // sb_items.innerHTML = ''
 
 }
-
-// SET PROGRESS
-ipcRenderer.on('progress', (e, max, destination_file) => {
-    get_progress(max,destination_file);
-})
-
-// UPDATE PROGRESS
-ipcRenderer.on('update_progress', (e, step) => {
-    update_progress(step)
-})
-
-/* On icon view */
-ipcRenderer.on('icon_path', (e, data) => {
-    let href = data.href;
-    let card = document.querySelectorAll('[data-href="' + href + '"]');
-    if (card) {
-
-        card.forEach(item => {
-
-            let img     = item.querySelector('img');
-            let ext     = path.extname(href)
-            let is_image = 0;
-            if (
-                ext === '.png'  ||
-                ext === '.jpg'  ||
-                ext === '.svg'  ||
-                ext === '.gif'  ||
-                ext === '.webp' ||
-                ext === '.jpeg'
-
-            ) {
-
-                is_image = 1;
-                img.classList.add('img');
-                img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
-                img.src = filename
-
-            } else {
-
-                img.src     = data.icon_path;
-                img.classList.add('icon');
-
-            }
-
-
-        })
-    }
-})
-
-/* On sort */
-ipcRenderer.on('sort', (e, sort) => {
-    let breadcrumbs = document.getElementById('breadcrumbs')
-    if (sort == 'date') {
-        localStorage.setItem('sort', 1)
-    } else if (sort == 'size') {
-        localStorage.setItem('sort', 3)
-    } else if (sort == 'name') {
-        localStorage.setItem('sort', 2)
-    } else if (sort == 'type') {
-        localStorage.setItem('sort', 4)
-    }
-    get_view(breadcrumbs.value)
-})
 
 // UPDATE PROGRESS
 function update_progress(val) {
@@ -2484,6 +2488,7 @@ async function add_card(options) {
         let image           = add_div()
         let img             = document.createElement('img')
         let audio           = document.createElement('audio')
+        let video           = document.createElement('video')
         let source          = document.createElement('source')
         let content         = add_div()
         let extra           = add_div()
@@ -2521,8 +2526,11 @@ async function add_card(options) {
         /* Get Extension Name */
         let ext = path.extname(href)
 
-        /* Handle Image Files */
+        image.appendChild(img);
+
+        // Handle Picture / Audio / Video Files
         let is_image = 0;
+        let is_audio = 0;
         if (
             ext === '.png'  ||
             ext === '.jpg'  ||
@@ -2535,22 +2543,53 @@ async function add_card(options) {
             is_image = 1;
             img.classList.add('img');
             img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
-        } else {
-            img.classList.add('icon');
-        }
 
-        /* Handle Audio Files */
-        let is_audio = 0;
-        if (
-            ext === '.mp4' ||
+        } else if (
             ext === '.m4a' ||
             ext === '.mp3' ||
             ext === '.wav' ||
             ext === '.ogg'
         ) {
-            console.log('appending source')
+            // audio
             is_audio = 1;
+
+        } else if (
+            ext === '.mp4' ||
+            ext === '.webm'
+        ) {
+            // Video
+            img.remove()
+            source.src = href
+            video.append(source)
+            // video.setAttribute('controls', '');
+            image.append(video)
+
+        } else {
+            img.classList.add('icon');
         }
+
+
+
+        // /* Handle Audio Files */
+        // let is_audio = 0;
+        // if (
+        //     ext === '.m4a' ||
+        //     ext === '.mp3' ||
+        //     ext === '.wav' ||
+        //     ext === '.ogg'
+        // ) {
+        //     is_audio = 1;
+        // }
+
+        // if (ext === '.mp4') {
+        //     source.src = href
+        //     video.append(source)
+        //     image.append(video)
+        // }
+
+        // if (is_video) {
+
+        // }
 
 
         /* Create items */
@@ -2724,10 +2763,13 @@ async function add_card(options) {
 
             /* Add audio controls on mouse over */
             if (is_audio) {
+
                 source.src = href;
                 audio.setAttribute('controls', '');
                 audio.style = 'height: 15px; width: 100%;';
+                audio.classList.add('audio')
                 audio.append(source);
+
             }
 
         }
@@ -3041,7 +3083,7 @@ async function add_card(options) {
         card.appendChild(items);
         items.appendChild(item);
         item.appendChild(image);
-        image.appendChild(img);
+        // image.appendChild(img);
         item.appendChild(content);
         item.appendChild(popovermenu);
         content.appendChild(header);
@@ -4109,12 +4151,14 @@ async function get_workspace() {
     let mb_workspace        = document.getElementById('mb_workspace')
     let local_items         = JSON.parse(localStorage.getItem('workspace'))
     let sb_items            = document.getElementById('sidebar_items')
+    let find                = document.getElementById('find')
     let workspace           = add_div();
     let workspace_msg       = add_div();
     let btn_clear_workspace = add_item('Clear workspace');
 
     workspace.classList.add('grid')
 
+    // find.innerHTML          = '';
     sb_items.innerHTML      = '';
     workspace.id            = 'workspace';
     workspace_msg.id        = 'workspace_msg'
@@ -4129,7 +4173,7 @@ async function get_workspace() {
 
         localStorage.setItem('minibar', 'mb_workspace')
 
-        workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+Shift+Click) or Drag and Drop'
+        workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
         sidebar_items.append(workspace_msg)
 
     } else {
@@ -4307,18 +4351,23 @@ async function get_view(dir) {
 
     let stats = ''
     try {
-        stats = fs.statSync(dir);
-        if (stats) {
+        if (dir) {
 
-            console.log('setting current directory')
+            stats = fs.statSync(dir);
+            if (stats) {
 
-            /* Set local storage */
-            localStorage.setItem('folder', dir);
+                console.log('setting current directory')
 
-            /* Update active directory in main.js */
-            ipcRenderer.send('current_directory', dir);
+                // Set local storage
+                localStorage.setItem('folder', dir);
+
+                // Update active directory in main.js
+                ipcRenderer.send('current_directory', dir);
+
+            }
 
         }
+
     } catch (err) {
         notification(err);
     }
@@ -4339,11 +4388,13 @@ async function get_view(dir) {
     if (view == 'grid') {
 
         file_menu_items.forEach(item => {
+
             if (item.innerText == path.basename(dir)) {
                 item.classList.add('active');
             } else {
                 item.classList.remove('active');
             }
+
         })
 
         let btn_grid_view = document.getElementById('btn_grid_view');
@@ -4353,6 +4404,7 @@ async function get_view(dir) {
 
         console.log('grid view')
         grid_view.classList.remove('hidden')
+        // grid_view.classList.add('fm', 'tab-content')
 
         list_view.classList.add('hidden')
         list_view.innerHTML = ''
@@ -4360,8 +4412,15 @@ async function get_view(dir) {
         info_view.classList.add('hidden')
         info_view.innerHTML = ''
 
-        get_files(dir, () => {});
+        // Add tab if first page
+        // let tabs = document.getElementById('tabs')
+        // let tab = document.querySelectorAll('.tab')
+        // if (tab.length == 0) {
+        //     tabs.append(add_tab(dir))
+        // }
 
+        // Get files
+        get_files(dir, () => {});
 
     /* List View */
     } else if (view == 'list') {
@@ -4404,12 +4463,14 @@ async function get_view(dir) {
         info_view.innerHTML = ''
 
         list_view.classList.add('hidden')
-
         grid_view.classList.add('hidden')
-
         localStorage.setItem('view', view0)
 
         get_disk_summary_view()
+
+    } else if (view == 'settings') {
+
+        get_settings_view()
 
     }
 
@@ -4420,8 +4481,123 @@ async function get_view(dir) {
 
 
     autocomplete()
-    // drag();
     ds.start();
+
+}
+
+// Settings View
+async function get_settings_view() {
+
+    console.log('get settings view')
+
+    let main_view = document.getElementById('main_view');
+    let info_view = document.getElementById('info_view');
+    let message   = add_message('Note: Be carfull editing these settings. There is currently no protection and you might break something!');
+    // let btn_close = add_icon('times');
+    let tabs      = document.getElementById('tabs');
+    let tab_view  = add_div();
+    let tab       = add_tab('Keyboard Shortuts');
+
+    // let tab2   = add_tab('Tab2')
+    tabs.innerHTML = '';
+    info_view.innerHTML = '';
+
+    tabs.append(tab);
+
+    // tab_view.append(tab, tab2)
+    // info_view.append(tab_view)
+
+    info_view.classList.remove('hidden');
+    info_view.classList.add('fm', 'tab-content')
+    message.classList.add('inverted');
+    // btn_close.classList.add('small');
+
+    let views = document.querySelectorAll('.view');
+    views.forEach(view => {
+        view.classList.add('hidden');
+    })
+
+    // info_view.innerHTML = '';
+    info_view.classList.remove('hidden');
+    // btn_close.style = 'position: absolute; right: 0;';
+
+    // info_view.append(btn_close);
+    info_view.append(message);
+
+    let div = add_div();
+    let col1 = add_div();
+    let col2 = add_div();
+    let col3 = add_div();
+
+    div.classList.add('fm', 'grid', 'item');
+    // div.style = 'padding-bottom: 10px';
+    // col1.style = 'width: 250px;';
+    // col2.style = 'width: 350px;';
+
+    col1.classList.add('fm', 'col');
+    col2.classList.add('fm', 'col');
+    // col3.classList.add('fm', 'col');
+
+    col1.append(add_header('Command'));
+    col2.append(add_header('Shortcut'));
+    col3.append(add_header('Set Shortcut'))
+
+    div.append(col1, col2);
+    info_view.append(div);
+
+    let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
+    for (let shortcut in settings.keyboard_shortcuts) {
+
+        let div = add_div();
+        div.classList.add('fm', 'grid','item', 'stripe')
+        // div.style = 'display: flex; align-items: center; height: 30px;';
+
+        let col1 = add_div();
+        let col2 = add_div();
+        // let col3 = add_div();
+
+        let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
+        let input = add_input('text', shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
+        let set_shortcut = add_input('', 0)
+
+        label.classList.add('settings_label');
+        input.value = settings.keyboard_shortcuts[shortcut];
+        input.classList.add('settings_input');
+
+        // col1.style = 'width: 250px;';
+        // col2.style = 'width: 350px;';
+
+        col1.classList.add('fm', 'col')
+        col2.classList.add('fm', 'col')
+        // col3.classList.add('fm', 'col')
+
+        col1.append(label);
+        col2.append(input);
+        // col3.append(set_shortcut)
+
+        div.append(col1, col2);
+
+        info_view.append(div);
+        console.log(shortcut, settings.keyboard_shortcuts[shortcut]);
+
+        input.addEventListener('change', (e) => {
+
+            let key = input.id
+            settings.keyboard_shortcuts[key] = input.value
+
+            console.log(key, input.value)
+
+            fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+
+            ipcRenderer.send('reload_settings');
+
+        })
+
+        // for (let x in settings[cat]) {
+        //     console.log(settings[cat][x])
+        // }
+    }
+
 
 }
 
@@ -5011,6 +5187,8 @@ let card_counter = 0
 // MAIN GET FILES FUNCTION
 async function get_files(dir, callback) {
 
+    let date1 = new Date();
+
     if (!fs.existsSync(dir)) {
         return false
     }
@@ -5379,6 +5557,9 @@ async function get_files(dir, callback) {
 
             callback(1)
 
+            let date2 = new Date();
+            console.log('get files elapsed time', date2.getTime() - date1.getTime());
+
             let filename0 = ''
             fs.watch(dir, (e, filename) => {
                 if (filename0 != filename) {
@@ -5622,6 +5803,7 @@ async function get_files(dir, callback) {
     let folder_cards = document.getElementsByClassName('folder_card')
     let items = document.querySelectorAll('.nav_item')
     let headers = document.getElementsByClassName('header_link')
+    let highlight = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
 
 
     nc = 1
@@ -5661,7 +5843,7 @@ async function get_files(dir, callback) {
     })
 
     // RIGHT
-    Mousetrap.bind('right', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), (e) => {
 
         keycounter0 = keycounter
 
@@ -5701,7 +5883,7 @@ async function get_files(dir, callback) {
     })
 
     // LEFT
-    Mousetrap.bind('left', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Left.toLocaleLowerCase(), (e) => {
 
         keycounter0 = keycounter
 
@@ -5780,7 +5962,11 @@ async function get_files(dir, callback) {
     })
 
     // HANDLE KEYBOARD DOWN. DONT CHANGE
-    Mousetrap.bind('down', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Down.toLocaleLowerCase(), (e) => {
+
+        highlight.forEach(item => {
+            item.classList.remove('highlight')
+        })
 
         keycounter0 = keycounter
 
@@ -5827,7 +6013,7 @@ async function get_files(dir, callback) {
     })
 
     // todo: check hidden files
-    Mousetrap.bind('up', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Up.toLocaleLowerCase(), (e) => {
 
         keycounter0 = keycounter
 
@@ -5865,155 +6051,6 @@ async function get_files(dir, callback) {
         document.querySelector("[data-id='" + (keycounter) + "']").querySelector('a').focus()
 
     })
-
-    // // SHOW SIDEBAR
-    // show_sidebar()
-
-    // // DEL DELETE KEY
-    // Mousetrap.bind('del', (e, res) => {
-
-    //     console.log('running del')
-
-    //     // delete_arr = []
-
-    //     items = []
-    //     items = document.querySelectorAll('.highlight_select, .ds-selected')
-    //     // let items = document.getElementsByClassName('ds-selected')
-
-
-    //     console.log(items.length)
-
-    //     let source = ''
-    //     if (items.length > 0) {
-
-    //         for (let i = 0; i < items.length; i++) {
-
-    //             let item = items[i]
-
-    //             source += item.getAttribute('data-href') + '\n'
-
-    //             let file = {
-    //                 source: item.getAttribute('data-href'),
-    //                 card_id: item.id
-    //             }
-
-    //             delete_arr.push(file)
-    //         }
-
-    //         ipcRenderer.send('confirm_file_delete', source)
-
-    //     }
-
-    // })
-
-    // // CTRL-L - LOCATION
-    // Mousetrap.bind('ctrl+l', (e, res) => {
-    //     let breadcrumb = document.getElementById('breadcrumbs')
-
-    //     breadcrumb.focus()
-    //     breadcrumb.select()
-    // })
-
-
-    // // CTRL V - PASTE
-    // Mousetrap.bind('ctrl+v', () => {
-
-    //     // PAST FILES
-    //     paste()
-
-    // })
-
-
-    // // NEW WINDOW
-    // Mousetrap.bind('ctrl+n', () => {
-    //     // window.open('../src/index.html','_blank', 'width=1600,height=800,frame=false')
-    //     ipcRenderer.send('new_window')
-    // })
-
-
-    // // NEW FOLDER
-    // Mousetrap.bind('ctrl+shift+n', () => {
-    //     create_folder(breadcrumbs.value + '/Untitled Folder')
-    // })
-
-
-    // // RENAME
-    // Mousetrap.bind('f2', () => {
-
-    //     console.log('f2 pressed')
-
-    //     let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-    //     if (cards.length > 0) {
-    //         cards.forEach(card => {
-    //             if (card) {
-    //                 let header = card.querySelector('a')
-    //                 header.classList.add('hidden')
-
-    //                 let input = card.querySelector('input')
-    //                 input.spellcheck = false
-    //                 input.classList.remove('hidden')
-    //                 input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
-    //                 input.focus()
-
-    //                 console.log('running focus')
-    //             }
-
-    //         })
-    //     }
-
-    // })
-
-    // // RELOAD
-    // Mousetrap.bind('f5', () => {
-
-    //     get_view(breadcrumbs.value)
-    //     localStorage.setItem('folder', breadcrumbs.value)
-
-    // })
-
-    // // FIND
-    // Mousetrap.bind('ctrl+f', () => {
-    //     find_files();
-    // })
-
-
-    // // // LEFT
-    // // let left = document.getElementById('left')
-    // // left.addEventListener('click', function (e) {
-
-    // //     // alert('test')
-    // //     ipcRenderer.send('go_back', 'test')
-
-
-    // // })
-
-    // // CTRL C COPY
-    // Mousetrap.bind('ctrl+c', (e) => {
-    //     copy();
-    // })
-
-    // // CTRL+X CUT
-    // Mousetrap.bind('ctrl+x', (e) => {
-    //     cut();
-    // })
-
-
-    // // ESC KEY
-    // Mousetrap.bind('esc', () => {
-
-    //     clear_copy_arr()
-    //     clear_selected_files()
-    //     console.log('esc pressed')
-
-    // })
-
-    // // BACKSPACE
-    // Mousetrap.bind('backspace', () => {
-
-    //     console.log('back pressed')
-    //     navigate('left')
-
-    // })
 
     clear_items()
 
@@ -6062,6 +6099,9 @@ contextBridge.exposeInMainWorld('api', {
     },
     get_files: (dir, callback) => {
         return get_files(dir, callback)
+    },
+    get_settings_view: () => {
+        return get_settings_view();
     },
     get_view: (dir) => {
         return get_view(dir);
@@ -6145,7 +6185,7 @@ function clear_items() {
     /* Clear elements */
     pager.innerHTML             = '';
     txt_search.value            = '';
-    info_view.innerHTML         = '';
+    // info_view.innerHTML         = '';
 
 
     /* Hidden elements */
@@ -6167,8 +6207,8 @@ function clear_items() {
             item.classList.remove('highlight_select', 'ds-selected')
             item.classList.remove('highlight')
 
-            item.querySelector('input').classList.add   ('hidden')
-            item.querySelector('a').classList.remove    ('hidden')
+            item.querySelector('input').classList.add('hidden')
+            item.querySelector('a').classList.remove('hidden')
 
         })
     }
@@ -6209,7 +6249,7 @@ function clear_items() {
     console.log('starting ds')
 
 
-    drag();
+    // drag();
 
     /* Restart dragselect module */
     ds.start();
@@ -7330,9 +7370,7 @@ function paste() {
 
     // RUN COPY FUNCTION
     } else {
-
         copy_files(breadcrumbs.value, state);
-
     }
 
     // CLEAN UP
@@ -7351,6 +7389,56 @@ function add_grid() {
 function add_div() {
     let div = document.createElement('div')
     return div
+}
+
+function add_tab(label) {
+
+    tabs.classList.remove('hidden')
+
+    let div = add_div();
+    div.classList.add('fm', 'tab');
+
+    let col1 = add_div();
+    let col2 = add_div();
+
+    // try {
+    //     get_view(label);
+    // } catch (err) {
+
+    // }
+
+    div.onclick = (e) => {
+
+        let tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.classList.remove('active-tab')
+        })
+
+        div.classList.add('fm', 'active-tab')
+
+        console.log(label)
+        get_view(label);
+
+    }
+
+    div.classList.add('fm', 'active-tab')
+
+    let btn_close = add_icon('times');
+    btn_close.classList.add('small');
+    col2.onclick = (e) => {
+        div.remove();
+        get_view(breadcrumbs.value);
+    }
+
+    btn_close.style = 'padding-left: 10px; padding-right: 10px;'
+
+    col1.append(label);
+    col2.append(btn_close);
+
+    div.append(col1, col2);
+
+    return div;
+
 }
 
 // ADD ROW
@@ -7408,10 +7496,21 @@ function add_br() {
  * @returns HTMLDivElement
  */
 function add_item(text) {
-    let item = document.createElement('div')
+    let item = add_div() //document.createElement('div')
     item.classList.add('item')
     item.append(text)
     return item
+}
+
+/**
+ *
+ * @param {String} text
+ * @returns a text
+ */
+function add_text(text) {
+    let item = add_div()
+    item.append(text)
+    return item;
 }
 
 /**
@@ -7429,11 +7528,16 @@ function add_input(type, id) {
 
 }
 
-// ADD BUTTON
+/**
+ *
+ * @param {int} id
+ * @param {string} text
+ * @returns
+ */
 function add_button(id, text) {
     let button = document.createElement('input')
     button.type = 'button'
-    button.classList.add('ui', 'button', 'default')
+    button.classList.add('fm', 'button')
     button.value = text
     return button
 }
@@ -7491,6 +7595,17 @@ function add_img(src) {
     img.dataset.src = src
     img.src = img.src = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
     return img
+}
+
+/**
+ *
+ * @param {HtmlElement} msg
+ */
+function add_message(msg) {
+    let div = add_div();
+    div.classList.add('ui', 'message');
+    div.append(msg);
+    return div;
 }
 
 // RETURNS A STRING PATH TO AN ICON IMAGE BASED ON FILE EXTENSION
@@ -7756,7 +7871,7 @@ window.notification = function notification(msg) {
 }
 
 /** Create Folder */
-function create_folder(folder) {
+async function create_folder(folder) {
 
     fs.mkdir(folder, {}, (err) => {
 
@@ -8419,9 +8534,9 @@ function update_card(href) {
 
             let links = card.querySelectorAll('.header_link');
             links.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    get_view(card.dataset.href);
-                })
+                // link.addEventListener('click', (e) => {
+                //     get_view(card.dataset.href);
+                // })
             })
 
             let icon = card.querySelector('.icon')
@@ -8456,9 +8571,9 @@ function update_card(href) {
 
             let links = card.querySelectorAll('.header_link')
             links.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    open(card.dataset.href);
-                })
+                // link.addEventListener('click', (e) => {
+                //     open(card.dataset.href);
+                // })
             })
 
             let icon = card.querySelector('#img')
@@ -8610,6 +8725,7 @@ function update_cards(view) {
                     card.classList.add('file_card')
 
                     size = get_file_size(stats.size)
+
                     extra.innerHTML = size
                     localStorage.setItem(href, stats.size)
 
@@ -8653,7 +8769,7 @@ function update_cards(view) {
 
 }
 
-// EXTRACT HERE
+// EXTRACT HERE / DECOMPRESS
 function extract() {
 
     // notification('extracting ' + source)
@@ -8668,74 +8784,91 @@ function extract() {
         let filename    = '';
         let source      = item.dataset.href;
         let ext         = path.extname(source).toLowerCase()
+        let makedir     = 1;
 
         console.log('extension ', source)
-
+        let c = 0;
         switch (ext) {
             case '.zip':
                 filename = source.replace('.zip', '')
+                c = 0
+                while(fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
                 us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
                 cmd = "unzip '" + source + "' -d '" + filename + "'"
                 break;
             case '.tar':
                 filename = source.replace('.tar', '')
+                c = 0
+                while(fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
                 us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
                 cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
                 break;
             case '.gz':
                 filename = source.replace('.tar.gz', '')
+                c = 0
+                while(fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
                 us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '" -C "' + filename + '"'
+                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+
                 break;
             case '.xz':
                 filename = source.replace('tar.xz', '')
                 filename = filename.replace('.img.xz', '')
-                us_cmd = "xz -l '" + source + "' | awk 'FNR==2{print $5}'"
-                cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                c = 0
+                while(fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
+                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                if (source.indexOf('img.xz') > -1) {
+                    makedir = 0;
+                    cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/unxz -k "' + source + '"';
+                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
+                } else {
+                    cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
+                }
                 break;
             case '.bz2':
                 filename = source.replace('.bz2', '')
+                c = 0
+                while(fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
                 us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
                 cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/bzip2 -dk "' + source + '"'
                 break;
 
         }
 
-        console.log('cmd ' + cmd)
-        console.log('uncompressed size cmd ' + us_cmd)
+        console.log('cmd ' + cmd);
+        console.log('uncompressed size cmd ' + us_cmd);
 
-
-        // CREATE DIRECTORY FOR COMPRESSED FILES
-        if (fs.existsSync(filename)) {
-
-            data = {
-                source: source,
-                destination: filename
-            }
-
-            ipcRenderer.send('confirm_overwrite', data)
-
-            let confirm_overwrite = confirm(filename, 'exists.\nWould you like to overwrite?\n')
-            if (confirm_overwrite) {
-                alert('overwrite confirmed')
-            }
-
-
-        } else {
-            console.log('filename', filename)
-            fs.mkdirSync(filename)
+        if (makedir) {
+            fs.mkdirSync(filename);
         }
 
-
         // GET UNCOMPRESSED SIZE
-        let uncompressed_size = parseInt(execSync(us_cmd))
+        let uncompressed_size = parseInt( execSync(us_cmd).toString().replaceAll(',',''))
+
+        console.log('uncompressed size:', uncompressed_size);
 
         // RUN PROGRESS
-        get_progress(get_raw_file_size(uncompressed_size))
+        // get_progress(get_raw_file_size(uncompressed_size))
+        get_progress(uncompressed_size)
 
-        notification('executing ' + cmd)
-        notification('source ' + source)
         console.log('executing ' + cmd)
+        notification('Extracting ' + source )
 
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
         exec(cmd, (err, stdout, stderr) => {
@@ -8749,40 +8882,47 @@ function extract() {
 
                 try {
 
-                    // GET REFERENCE TO FOLDER GRID
-                    let folder_grid     = document.getElementById('folder_grid');
-                    let folders_card    = document.getElementById('folders_card')
+                    if (makedir) {
 
-                    // CREATE CARD OPTIONS
-                    let options = {
-                        id: 0,
-                        href: filename,
-                        linktext: path.basename(filename),
-                        is_folder: true,
-                        grid: folder_grid
+                        // GET REFERENCE TO FOLDER GRID
+                        let folder_grid     = document.getElementById('folder_grid');
+                        let folders_card    = document.getElementById('folders_card')
+
+                        // CREATE CARD OPTIONS
+                        let options = {
+                            id: 0,
+                            href: filename,
+                            linktext: path.basename(filename),
+                            is_folder: true,
+                            grid: folder_grid
+                        }
+
+                        //
+                        // let folder_grid = document.getElementById('folder_grid')
+                        // notification('filename ' + filename);
+
+                        add_card(options).then(card => {
+
+                            console.log(card);
+
+                            let col = add_column('three');
+                            col.append(card)
+
+                            // console.log('card ' + card)
+                            folders_card.classList.remove('hidden');
+                            folder_grid.insertBefore(col, folder_grid.firstChild)
+
+                            // UPDATE CARDS
+                            update_cards(document.getElementById('main_view'))
+
+
+
+                        })
+
+                    } else {
+                        makedir = 1;
                     }
 
-                    //
-                    // let folder_grid = document.getElementById('folder_grid')
-                    // notification('filename ' + filename);
-
-                    add_card(options).then(card => {
-
-                        console.log(card);
-
-                        let col = add_column('three');
-                        col.append(card)
-
-                        // console.log('card ' + card)
-                        folders_card.classList.remove('hidden');
-                        folder_grid.insertBefore(col, folder_grid.firstChild)
-
-                        // UPDATE CARDS
-                        update_cards(document.getElementById('main_view'))
-
-
-
-                    })
 
                 } catch (err) {
 
@@ -8791,9 +8931,13 @@ function extract() {
 
                 }
 
+                if (uncompressed_size > (1024 * 1024 * 1024)) {
+                    ipcRenderer.send('add_system_notification', 'Operation Complete', 'Done extractig file ' + filename);
+                }
+
                 clear_items()
                 // ds.start()
-                notification('extracted ' + source)
+                notification('Extracted ' + source)
 
             }
 
@@ -8861,6 +9005,8 @@ function compress() {
                 update_card(card.dataset.href);
                 files_card.classList.remove('hidden')
 
+                card.classList.add('highlight_select')
+
             })
 
         }
@@ -8897,188 +9043,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // COMPRESS HERE
     if (command === 'compress_folder') {
-
         compress();
-
-        // notification('compressing ' + source + ' to dest ' + breadcrumbs.value);
-
-        // let filename = path.basename(source) + '.tar.gz';
-        // let filepath = breadcrumbs.value;
-
-        // let file_exists = fs.existsSync(path.join(filepath, filename));
-
-        // if (file_exists == true) {
-
-        //     let msg = 'confirm overwrite';
-        //     ipcRenderer.send('confirm_overwrite', msg);
-
-        //     ipcRenderer.on('overwrite_canceled', (e, res) => {
-        //         hide_progress();
-        //     })
-
-        // } else {
-
-
-        //     // BUILD COMPRESS COMMAND
-        //     let cmd = 'cd "' + filepath + '"; tar czf  "' + path.basename(source) + '.tar.gz" "' + path.basename(source) + '"';
-        //     console.log('cmd ' + cmd);
-
-        //     exec(cmd, (err, stdout, stderr) => {
-
-        //         if (!err) {
-
-        //             try {
-
-        //                 // GET REFERENCE TO FOLDER GRID
-        //                 let grid = document.getElementById('file_grid')
-
-        //                 // CREATE CARD OPTIONS
-        //                 let options = {
-
-        //                     id: 'file_card_10000',
-        //                     href: filepath + '/' + filename,
-        //                     linktext: filename,
-        //                     grid: grid
-        //                 }
-
-        //                 //
-        //                 // let folder_grid = document.getElementById('folder_grid')
-        //                 notification('filename ' + filename)
-
-        //                 add_card(options).then(col => {
-
-        //                     grid.insertBefore(col, grid.firstChild)
-
-        //                     let card = col.querySelector('.card')
-        //                     card.classList.add('highlight_select')
-        //                     // update_cards()
-
-        //                 })
-
-        //             } catch (err) {
-
-        //                 notification(err)
-
-        //             }
-
-        //             // hide_progress(card_id)
-        //             clear_items()
-
-
-        //         } else {
-        //             notification('error: ' + err)
-        //         }
-
-        //     })
-
-        //     let c = 0
-        //     let stats
-        //     let stats1
-        //     let href_stats = fs.statSync(source)
-        //     let href_size = href_stats.size
-
-        //     console.log('source is ' + source)
-
-        //     // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-        //     let progress_file_card = document.getElementById('progress_' + card_id)
-        //     let progress_bar = document.getElementById('progress_bar_' + card_id)
-
-        //     progress_file_card.classList.remove('hidden')
-
-        //     var interval_id = setInterval(() => {
-
-        //         // GET REFREFENCE TO PROGRESS AND PROGRESS BAR
-        //         // let progress_file_card = document.getElementById('progress_' + card_id)
-        //         // let progress_bar = document.getElementById('progress_bar_' + card_id)
-
-        //         // progress_file_card.classList.remove('hidden')
-
-        //         let file = path.join(filepath, filename)
-        //         let file_exists = fs.existsSync(file)
-
-        //         // COUNT ELAPSED SECONDS
-        //         c = c + 1
-
-        //         if (file_exists) {
-        //             stats1 = stats
-        //             stats = fs.statSync(file)
-
-        //             // LET STATS1 GET POPULATED
-        //             if (c > 1) {
-
-        //                 // EXIT INTERVAL IF FILE SIZE DOESNT CHANGE
-        //                 if (stats1.size == stats.size) {
-        //                     progress_file_card.classList.add('hidden')
-        //                     clearInterval(interval_id)
-        //                 }
-
-        //             }
-
-        //             // CALCULATE TRANSFER RATE
-        //             let transferspeed = stats.size / c
-        //             let transfer_time = href_size / transferspeed
-        //             let transfer_data_amount = transferspeed * transfer_time
-
-        //             // CHECK PROGRESS
-        //             // console.log('uncompressed size is  ' + get_file_size(uncompressed_size))
-        //             console.log('transfer speed is  ' + get_file_size(transferspeed))
-        //             console.log('transfer time is  ' + get_file_size(transfer_time))
-        //             console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-        //             // UPDATE PROGRESS
-        //             if (c < 5) {
-
-        //                 if (fs.statSync(source).isDirectory() === true) {
-
-        //                     console.log('running ' + source + '....................')
-
-        //                     ipcRenderer.send('get_folder_size', { dir: source })
-
-        //                     ipcRenderer.on('folder_size', (e, data) => {
-
-        //                         transfer_time = data.size / transferspeed
-        //                         progress_bar.max = Math.floor(transfer_time)
-
-        //                         // // CHECK PROGRESS
-        //                         // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-        //                         // console.log('transfer time is  ' + Math.floor(transfer_time))
-        //                         // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-        //                     })
-
-        //                 } else {
-        //                     console.log('setting progress max to ' + Math.floor(transfer_time))
-        //                     progress_bar.max = Math.floor(transfer_time)
-
-        //                     // // CHECK PROGRESS
-        //                     // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-        //                     // console.log('transfer time is  ' + Math.floor(transfer_time))
-        //                     // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-        //                 }
-
-        //             }
-
-        //             if (progress_bar) {
-        //                 // console.log('progress value is ' + get_file_size(c))
-        //                 progress_bar.value = c
-        //             }
-
-        //             // // CHECK PROGRESS
-        //             // console.log('transfer speed is  ' + get_file_size(transferspeed) + ' /s')
-        //             // console.log('transfer time is  ' + Math.floor(transfer_time))
-        //             // console.log('data transfer amount is ' + get_file_size(transfer_data_amount))
-
-        //         }
-
-
-        //     }, 1000);
-
-
-        //     clear_items()
-
-        // }
-
     }
 
     // RELOAD
@@ -9271,6 +9236,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
         let cards = document.querySelectorAll('.highlight_select, .highlight, .ds-selected')
         cards.forEach(item => {
+
             let cmd = args
             console.log('cmd args', args)
             // let filename = path.basename(source)
@@ -9283,9 +9249,27 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
             console.log('cmd ' + cmd)
             exec(cmd)
+
         });
 
         clear_items()
+
+    }
+
+    if (command === 'open_new_tab') {
+
+        let tabs = document.getElementById('tabs');
+        let items = document.querySelectorAll('.highlight_select, .highlight, .ds-selected');
+        items.forEach((item, idx) => {
+            let tab = add_tab(item.dataset.href)
+            tabs.append(tab)
+
+            if (items.length == idx + 1) {
+                get_view(item.dataset.href)
+            }
+
+        })
+
 
     }
 
@@ -9444,28 +9428,26 @@ window.addEventListener('DOMContentLoaded', () => {
     })
 
     // Show workspace
-    Mousetrap.bind('alt+w', () => {
+    Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {
         get_workspace()
 
     })
 
     // Get File info
-    Mousetrap.bind('ctrl+i', () => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Properties.toLocaleLowerCase(), () => {
 
         get_file_properties();
 
     })
 
-    // BACKSPACE
-    Mousetrap.bind('alt+right', () => {
-
+    // Navigate right
+    Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), () => {
         console.log('back pressed')
         navigate('right')
-
     })
 
     // ALT+E EXTRACT
-    Mousetrap.bind('shift+e', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Extract.toLocaleLowerCase(), (e) => {
 
         console.log('extracting file')
         extract();
@@ -9485,7 +9467,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-    Mousetrap.bind('shift+c', (e) => {
+    // Compress
+    Mousetrap.bind(settings.keyboard_shortcuts.Compress.toLocaleLowerCase(), (e) => {
 
         compress()
 
@@ -9505,8 +9488,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-    // KEYBOARD SHORTCUTS SECTION
-    Mousetrap.bind('ctrl+a', (e) => {
+    // Select all
+    Mousetrap.bind(settings.keyboard_shortcuts.SelectAll.toLocaleLowerCase(), (e) => {
 
         e.preventDefault();
         select_all();
@@ -9528,7 +9511,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // })
 
     // DEL DELETE KEY
-    Mousetrap.bind('del', (e, res) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Delete.toLocaleLowerCase(), (e, res) => {
 
         console.log('running del')
 
@@ -9567,11 +9550,9 @@ window.addEventListener('DOMContentLoaded', () => {
     })
 
     // CTRL V - PASTE
-    Mousetrap.bind('ctrl+v', () => {
-
+    Mousetrap.bind(settings.keyboard_shortcuts.Paste.toLocaleLowerCase(), () => {
         // PAST FILES
         paste()
-
     })
 
     // NEW WINDOW
@@ -9581,12 +9562,12 @@ window.addEventListener('DOMContentLoaded', () => {
     })
 
     // NEW FOLDER
-    Mousetrap.bind('ctrl+shift+n', () => {
+    Mousetrap.bind(settings.keyboard_shortcuts.NewFolder.toLocaleLowerCase(), () => {
         create_folder(breadcrumbs.value + '/Untitled Folder')
     })
 
     // RENAME
-    Mousetrap.bind('f2', () => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Rename.toLocaleLowerCase(), () => {
 
         console.log('f2 pressed')
 
@@ -9620,21 +9601,19 @@ window.addEventListener('DOMContentLoaded', () => {
     })
 
     // FIND
-    Mousetrap.bind('ctrl+f', () => {
-
+    Mousetrap.bind(settings.keyboard_shortcuts.Find.toLocaleLowerCase(), () => {
         find_files();
     })
 
     // CTRL C COPY
-    Mousetrap.bind('ctrl+c', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Copy.toLocaleLowerCase(), (e) => {
         copy();
     })
 
     // CTRL+X CUT
-    Mousetrap.bind('ctrl+x', (e) => {
+    Mousetrap.bind(settings.keyboard_shortcuts.Cut.toLocaleLowerCase(), (e) => {
         cut();
     })
-
 
     // ESC KEY
     Mousetrap.bind('esc', () => {
@@ -9646,12 +9625,21 @@ window.addEventListener('DOMContentLoaded', () => {
 
     })
 
-    // BACKSPACE
-    Mousetrap.bind('backspace', () => {
-
+    // Backspace
+    Mousetrap.bind(settings.keyboard_shortcuts.Backspace.toLocaleLowerCase(), () => {
         console.log('back pressed');
         navigate('left');
+    })
 
+
+    // Add worksoace
+    Mousetrap.bind(settings.keyboard_shortcuts.AddWorkspace.toLocaleLowerCase(), () => {
+        add_workspace()
+    })
+
+    // Show settings
+    Mousetrap.bind(settings.keyboard_shortcuts.ShowSettings.toLocaleLowerCase(), () => {
+        get_settings_view()
     })
 
     // get_devices();

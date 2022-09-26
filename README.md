@@ -17,21 +17,37 @@ Install
 
 ![Screenshot 3](/screenshots/screenshot3.png?raw=true "Find")
 
-<!-- Keboard Shortcuts
 
-F2 - rename
-Del - delete on clicked items
+<h4>Keboard Shortcuts</h4>
 
-Arrows- card navigation (needs work)
+<ul>
+    <li>Go Back: Backspace</li>
+    <li>ShowWorkspace: Alt+W,</li>
+    <li>ShowSidebar: Ctrl+B,</li>
+    <li>Find: Ctrl+F,</li>
+    <li>Down: down,</li>
+    <li>Up: Up,</li>
+    <li>Left: Left,</li>
+    <li>Right: Right,</li>
+    <li>Rename: F2,</li>
+    <li>Cut: Ctrl+X,</li>
+    <li>Copy: Ctrl+C,</li>
+    <li>Paste: Ctrl+V,</li>
+    <li>SelectAll: Ctrl+A,</li>
+    <li>Delete: Del,</li>
+    <li>Compress: Shift+C,</li>
+    <li>Extract: Shift+E,</li>
+    <li>Properties: Ctrl+I,</li>
+    <li>NewFolder: Ctrl+Shift+N,</li>
+    <li>AddWorkspace: Ctrl+D</li>
+</ul>
 
 
-Current Feature Status
-
-Cut, Copy, Paste, Move, Delete, Rename
-Inline audio playback (html5 audio controls) -->
 
 
-Stack
+
+
+<!-- Stack
 <ul>
     <li><a href="https://nodejs.org/en/">nodejs</a></li>
     <li><a href="https://github.com/electron/electron">electron</li>
@@ -45,6 +61,6 @@ Stack
     <li><a href="https://icons.getbootstrap.com/">bootstrap-icons</a></li>
     <li><a href="https://getbootstrap.com/">bootstrap</a></li>
     <li><a href="https://jquery.com/">jquery - legacy</a></li>
-</ul>
+</ul> -->
 
 

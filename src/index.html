@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="../node_modules/uikit/dist/css/uikit.min.css">
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <link rel="stylesheet" href="../assets/css/grid.css" />
     <link rel="stylesheet" href="../assets/css/sidebar.css" />
     <script type="" src="../node_modules/chart.js/dist/chart.min.js"></script>
 
@@ -138,16 +139,6 @@
                         <i class="icon bi-music-note small"> </i>
                         Music
                     </a>
-                    <!-- todo: this needs to be fixed network and media are reversed -->
-                    <!-- <a class="item" id="devices" title="/run/user/1000/gvfs" >
-                        <i class="icon bi-hdd-network small"></i>
-                        Network
-                    </a> -->
-                    <!-- <a class="item" id="network" title="/media">
-                        <i class="icon bi-tablet small"></i>
-                        Devices
-                    </a> -->
-                    <!-- ----------------------------------------------------- -->
 
                     <a class="item" id="terminal" title="Open a terminal in the current folder">
                         <!-- <i class="terminal icon"></i> -->
@@ -208,9 +199,14 @@
                         <i class="ui icon disk small"></i>
                     </a>
 
-
-                    <!-- <input type="file" id="files" name="avatar" accept="image/png, image/jpeg"> -->
-
+                    <!-- Settings -->
+                    <a class="item right settings" id="btn_settings_view">
+                        <i class="ui icon cog"></i>
+                        <!-- <div class="settings_menu"> -->
+                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
+                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
+                        <!-- </div> -->
+                    </a>
 
                 </div>
 
@@ -319,19 +315,22 @@
         <!-- MAIN VIEW -->
         <div class="border" id="main_view">
 
-            <div class="selection-rect"></div>
-
             <!-- LOADER MESSAGE -->
             <div id="loader" class="ui centered loader"></div>
 
+            <!-- Tabs view -->
+            <div class="fm tabs hidden" id="tabs">
+                <div class="fm tab-content" id="tab_content"></div>
+            </div>
+
             <!-- INFO VIEW -->
-            <div id="info_view"></div>
+            <div class="view" id="info_view"></div>
 
             <!-- LIST VIEW -->
-            <div id="list_view" style="margin-top: 5px"></div>
+            <div class="view" id="list_view" style="margin-top: 5px"></div>
 
             <!-- ICON VIEW -->
-            <div id="grid_view" style="margin-top: 10px">
+            <div class="view" id="grid_view" style="margin-top: 10px">
 
                 <!-- FOLDERS -->
                 <div class="ui card fluid folders_card border-none" id="folders_card" style="">
