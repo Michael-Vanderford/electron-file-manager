@@ -63,7 +63,6 @@ ipcMain.on('reload_settings', (e) => {
     // active_window.webContents.reloadI();
 })
 
-
 let canceled = 0;
 ipcMain.on('cancel', (e) => {
     console.log('setting cancel to 1');
@@ -812,7 +811,7 @@ const createWindow = exports.createWindow = () => {
     windows.add(win);
 
     const sess = win.webContents.session
-    sess.fromPartition(current_directory)
+    // sess.fromPartition(current_directory)
     console.log('user agent' ,sess.getUserAgent())
 
 
@@ -991,7 +990,7 @@ function copy(state) {
 
         let max = 0
 
-        // DIRECTORY
+        // DIRECTORY - Done
         if (source_stats.isDirectory()) {
 
             let options = {
@@ -1026,11 +1025,29 @@ function copy(state) {
                 state = 0
                 copyfolder(source, destination_file, state, () => {
 
+                    console.log('running',path.basename(source))
+                            if (isMainView) {
+
+                                let options = {
+                                    href: destination_file,
+                                    linktext: path.basename(destination_file),
+                                    is_folder: true
+                                }
+
+                                active_window.send('add_card', options)
+                                active_window.send('update_cards')
+
+                            }
+                            copy_files_arr.shift()
+                            copy(copy_files_arr,state)
+
                 })
 
                 // CREATE FOLDER
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
+
+                console.log('copy files array ', copy_files_arr.length())
 
                 active_window.send('add_card', options)
                 return true
@@ -1062,7 +1079,7 @@ function copy(state) {
                     let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
 
-                    if (!canceled) {
+                    // if (!canceled) {
 
                         // COPY FOLDERS RECURSIVE
                         copyfolder(source, destination_file, state, () => {
@@ -1088,7 +1105,7 @@ function copy(state) {
 
                         })
                         return false;
-                    }
+                    // }
                 }
             }
 
@@ -1535,7 +1552,7 @@ function move() {
 
             if (source == destination_file) {
 
-                win.webContents.send('notification', 'select a different directory')
+                active_window.webContents.send('notification', 'select a different directory')
 
             } else {
 

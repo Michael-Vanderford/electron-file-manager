@@ -2559,10 +2559,13 @@ async function add_card(options) {
         ) {
             // Video
             img.remove()
+
             source.src = href
             video.append(source)
+
+            content.append(video)
             // video.setAttribute('controls', '');
-            image.append(video)
+            // image.append(video)
 
         } else {
             img.classList.add('icon');
@@ -3506,7 +3509,10 @@ async function get_sidebar_files(dir) {
                 get_view(link.dataset.src);
             })
 
-            sidebar_items.append(link, '/');
+            if (idx > 0) {
+                sidebar_items.append(link, '/');
+            }
+
             console.log('path', nav_path);
         })
 
@@ -4413,7 +4419,8 @@ async function get_view(dir) {
         info_view.innerHTML = ''
 
         // Add tab if first page
-        // let tabs = document.getElementById('tabs')
+        let tabs = document.getElementById('tabs')
+        tabs.innerHTML = ''
         // let tab = document.querySelectorAll('.tab')
         // if (tab.length == 0) {
         //     tabs.append(add_tab(dir))
@@ -7537,7 +7544,7 @@ function add_input(type, id) {
 function add_button(id, text) {
     let button = document.createElement('input')
     button.type = 'button'
-    button.classList.add('fm', 'button')
+    button.classList.add('ui', 'button')
     button.value = text
     return button
 }
