@@ -179,26 +179,26 @@ ipcRenderer.on('update_card', (e, href) => {
 ipcRenderer.on('update_cards', (e) => {
     // console.log('updating cards')
     let view = document.getElementById('main_view')
-    update_cards(view)
+    update_cards(view);
 
 })
 
 // CLEAR COPY ARRAY
 ipcRenderer.on('clear_copy_arr', (e) => {
-    clear_copy_arr()
+    clear_copy_arr();
 })
 
 // REMOVE CARD
 ipcRenderer.on('remove_card', (e, source) => {
 
-    console.log('removing card')
+    console.log('removing card');
 
     try {
 
-        let cards = document.querySelectorAll('[data-href="' + source + '"]')
+        let cards = document.querySelectorAll('[data-href="' + source + '"]');
         cards.forEach(item => {
-            let col = item.closest('.column')
-            col.remove()
+            let col = item.closest('.column');
+            col.remove();
         })
 
     } catch (err) {
@@ -216,7 +216,6 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
 
     let source_stats = fs.statSync(data.source)
     let destination_stats = fs.statSync(data.destination)
-
 
     // CHECKBOX REPLACE
     let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders');
@@ -250,10 +249,9 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
     let btn_skip = add_button('btn_skip', 'Skip')
     btn_skip.addEventListener('click', (e) => {
         if (is_checked) {
-            ipcRenderer.send('overwrite_canceled_all')
-            // alert('not yet implemented')
+            ipcRenderer.send('overwrite_canceled_all');
         } else {
-            ipcRenderer.send('overwrite_skip', copy_files_arr)
+            ipcRenderer.send('overwrite_skip', copy_files_arr);
         }
 
     })
@@ -262,7 +260,6 @@ ipcRenderer.on('confirming_overwrite', (e, data, copy_files_arr) => {
     let footer = add_div()
     footer.style = 'position:fixed; bottom:0; height: 40px; margin-bottom: 25px;';
     footer.append(btn_cancel, btn_replace, btn_skip)
-
 
     let source_data = ''
     let destination_data = ''
@@ -1555,15 +1552,23 @@ ipcRenderer.on('sidebar', (e) => {
     }
 })
 
+ipcRenderer.on('clear_sidebar', (e) => {
+    let sb_items = document.getElementById('sidebar_items');
+    sb_items.innerHTML = ''
+})
+
 // // PROPERTIES WINDOW
 ipcRenderer.on('file_properties_window', (e, data) => {
     console.log('what', data)
+    let sb_items = document.getElementById('sidebar_items');
+    sb_items.innerHTML = ''
     get_properties(source)
 })
 
 // POPULATE FILE PROPERTIES
 ipcRenderer.on('file_properties', (e, file_properties_obj) => {
-    get_properties(file_properties_obj)
+    console.log(file_properties_obj);
+    get_properties(file_properties_obj);
 })
 
 /* On add workspace */
@@ -1588,15 +1593,16 @@ ipcRenderer.on('update_progress', (e, step) => {
 
 /* On icon view */
 ipcRenderer.on('icon_path', (e, data) => {
+
     let href = data.href;
     let card = document.querySelectorAll('[data-href="' + href + '"]');
     if (card) {
 
         card.forEach(item => {
 
-            let img     = item.querySelector('img');
-            let ext     = path.extname(href)
-            let is_image = 0;
+            let img         = item.querySelector('img');
+            let ext         = path.extname(href)
+            let is_image    = 0;
             if (
                 ext === '.png'  ||
                 ext === '.jpg'  ||
@@ -1608,9 +1614,9 @@ ipcRenderer.on('icon_path', (e, data) => {
             ) {
 
                 is_image = 1;
-                img.classList.add('img');
                 img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
                 img.src = filename
+                img.classList.add('img');
 
             } else {
 
@@ -1748,6 +1754,45 @@ function clear_cache() {
     let folder_cache = path.join(__dirname, '/', 'folder_cache.json')
 }
 
+// Get  sidebar view
+async function get_sidebar_view() {
+
+    console.log('running sidebar view');
+
+    try {
+
+        switch (localStorage.getItem('minibar')) {
+            case 'mb_home':
+                get_sidebar_files(get_home());
+                break;
+            case 'mb_workspace':
+                get_workspace();
+                break;
+            case 'mb_find':
+                console.log('running find files')
+                find_files()
+                break;
+            case 'mb_fs':
+                get_sidebar_files('/');
+                break;
+            case 'mb_devices':
+                get_devices();
+                break;
+            case 'mb_info':
+                get_info();
+                break;
+        }
+
+        show_sidebar()
+
+    } catch (err) {
+
+    }
+    // show_sidebar();
+}
+
+
+// Get image properties
 async function get_image_properties(image) {
 
     let sb_items        = document.getElementById('sidebar_items');
@@ -1827,31 +1872,56 @@ async function get_properties(file_properties_obj) {
     console.log('getting file prperties', file_properties_obj)
 
     let filename        = file_properties_obj['Name'];
-
+    let ext             = path.extname(filename);
+    let execute_chk_div = add_checkbox('', 'Make Executable')
     let sb_items        = document.getElementById('sidebar_items');
     let mb_info         = document.getElementById('mb_info')
     let file_properties = document.getElementById('file_properties');
-    // let div             = add_div();
     let remove_btn      = add_icon('times');
     let card            = add_div();
     let content         = add_div();
     let image           = add_div();
-
 
     // sb_items.innerHTML  = ''
     image.classList.add('image')
 
     clear_minibar();
     mb_info.style       = 'color: #ffffff !important;';
-
-    // table.classList.add('ui', 'compact', 'table');
     remove_btn.classList.add('small');
-
-    // table.style = 'background:transparent !important; width: 100%;';
     remove_btn.style  = 'display:block; float:right; width: 23px; cursor: pointer';
-
     remove_btn.addEventListener('click', (e) => {
         card.remove();
+        let items = sb_items.querySelectorAll('.nav_item')
+        if (items.length == 0) {
+            // Load previous view
+            get_sidebar_view();
+        }
+    })
+
+    console.log(execute_chk_div)
+
+    let execute_chk = execute_chk_div.querySelector('.checkbox')
+
+    try {
+        fs.accessSync(filename, fs.constants.X_OK)
+        execute_chk.checked = 1
+    } catch (err) {
+        execute_chk.checked = 0
+    }
+
+    execute_chk.addEventListener('change', (e) => {
+
+        // mode: r/w 33188
+        // mode: r/w/x 33261
+
+        console.log('changed', execute_chk)
+        if (execute_chk.checked) {
+            console.log('checked')
+            chmod = fs.chmodSync(filename, '755');
+        } else {
+            chmod = fs.chmodSync(filename, '33188');
+        }
+
     })
 
     card.dataset.href = filename
@@ -1864,7 +1934,7 @@ async function get_properties(file_properties_obj) {
     for (const prop in file_properties_obj) {
 
         let div             = add_div();
-        div.style           = 'display: flex; padding: 2px; word-break: break-all';
+        div.style           = 'display: flex; padding: 5px; word-break: break-all';
 
         let col1 = add_div();
         let col2 = add_div();
@@ -1887,8 +1957,6 @@ async function get_properties(file_properties_obj) {
 
             console.log(filename)
             let stats = fs.statSync(filename)
-
-            // let filename = path.join(breadcrumbs.value, file_properties_obj[prop]);
             if (stats.isDirectory()) {
 
                 let img = add_img(folder_icon);
@@ -1898,85 +1966,42 @@ async function get_properties(file_properties_obj) {
 
                 col1.append(image);
 
-                // let files = fs.readdirSync(filename)
-                // console.log('files', files)
-                // let folder_count    = files.filter(item => fs.statSync(path.join(filename, item)).isDirectory()).length
-                // let file_count      = files.filter(item => !fs.statSync(path.join(filename, item)).isDirectory()).length
-
             } else {
 
                 let img = add_img('');
-                // img.src = img.dataset.src
                 img.classList.remove('lazy');
-                // img.classList.add('icon');
-
                 image.append(img);
-
-
-                // switch (path.extname(path.basename(filename))) {
-                //     case '.jpg':
-                //     case '.png':
-                //     case '.jpeg':
-                //     case '.svg':
-                //     case '.gif':
-                //         get_image_properties(filename);
-                //         img.src = ''
-                //     break;
-
-                // }
-
-
-                // img.src = filename
-                // img.classList.add('icon')
-                // img.src = img.dataset.src
-
                 ipcRenderer.send('get_icon_path', filename);
-
                 col1.append(image);
 
             }
 
-            // update_card(filename)
+
 
         } else {
-
-            // td1.append(prop);
-            // td2.append(`${file_properties_obj[prop]}`);
 
             col1.append(prop);
             col2.append(`${file_properties_obj[prop]}`);
 
         }
 
-        // td1.append(prop);
-        // tr.append(td1);
-        // tr.append(td2);
-        // tbody.append(tr);
-
         div.append(col1, col2)
-        content.append(div)
+
+        if (ext == '.sh') {
+            content.append(div, execute_chk_div)
+        } else {
+            content.append(div)
+        }
 
     }
 
-    // table.append(tbody);
-
-    // div.append(remove_btn, table);
-    // div.append(remove_btn);
-    // file_properties.append(div);
-
-    // content.append(div);
-    // content.append(remove_btn);
     card.append(content)
-
-    // sb_items.innerHTML = ''
     sb_items.appendChild(card);
-
-    // fs.writeFileSync('src/info.html', sb_items.innerHTML);
 
     localStorage.setItem('sidebar', 1);
     show_sidebar()
 
-    // console.log(table);
+
 
 }
 
@@ -2086,7 +2111,7 @@ function get_progress(max, destination_file) {
 
 
 
-        }, 500);
+        }, 100);
 
 
     } else {
@@ -2824,13 +2849,9 @@ async function add_card(options) {
             e.stopPropagation()
 
             if (is_folder) {
-
                 get_view(href);
-
-                // get_files(href, () => {
-                //     console.log('shit')
-                // })
             } else {
+
                 open(href, { wait: false })
             }
 
@@ -3494,15 +3515,15 @@ async function get_sidebar_files(dir) {
         let nav_path = '/'
         dir_arr.forEach((item, idx) => {
 
-            nav_path = path.join(nav_path, item)
+            nav_path = path.join(nav_path, item);
 
-            let li = document.createElement('li')
+            let li = document.createElement('li');
 
-            let link = add_link(nav_path, item)
+            let link = add_link(nav_path, item);
             link.classList.add('nav_header', 'section');
-            link.dataset.src = nav_path
-            link.style = 'font-size: 12px; color: red; padding: 2px;'
-            link.style.color = 'red'
+            link.dataset.src = nav_path;
+            link.style = 'font-size: 12px; color: red; padding: 2px;';
+            link.style.color = 'red';
             link.addEventListener('click', (e) => {
                 e.preventDefault();
                 get_sidebar_files(link.dataset.src);
@@ -3517,7 +3538,6 @@ async function get_sidebar_files(dir) {
         })
 
         sidebar_items.append(add_br(), add_br());
-        // sidebar_items.append(add_header(dir));
 
         //SET DEFAULT SORT OPTION
         if (!options.sort) {
@@ -3560,7 +3580,6 @@ async function get_sidebar_files(dir) {
                     }
 
                     add_tree_item(options)
-                    // tree_grid.appendChild(card)
 
                 }
 
@@ -4428,6 +4447,7 @@ async function get_view(dir) {
 
         // Get files
         get_files(dir, () => {});
+        notification(path.basename(dir))
 
     /* List View */
     } else if (view == 'list') {
@@ -4486,7 +4506,7 @@ async function get_view(dir) {
     ipcRenderer.send('active_folder', dir)
     ipcRenderer.send('current_directory', dir)
 
-
+    get_sidebar_view()
     autocomplete()
     ds.start();
 
@@ -4571,16 +4591,11 @@ async function get_settings_view() {
         input.value = settings.keyboard_shortcuts[shortcut];
         input.classList.add('settings_input');
 
-        // col1.style = 'width: 250px;';
-        // col2.style = 'width: 350px;';
-
-        col1.classList.add('fm', 'col')
-        col2.classList.add('fm', 'col')
-        // col3.classList.add('fm', 'col')
+        col1.classList.add('fm', 'col');
+        col2.classList.add('fm', 'col');
 
         col1.append(label);
         col2.append(input);
-        // col3.append(set_shortcut)
 
         div.append(col1, col2);
 
@@ -4589,11 +4604,10 @@ async function get_settings_view() {
 
         input.addEventListener('change', (e) => {
 
-            let key = input.id
-            settings.keyboard_shortcuts[key] = input.value
+            let key = input.id;
+            settings.keyboard_shortcuts[key] = input.value;
 
-            console.log(key, input.value)
-
+            console.log(key, input.value);
             fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
 
             ipcRenderer.send('reload_settings');
@@ -5610,7 +5624,7 @@ async function get_files(dir, callback) {
                         txt_search.classList.remove('hidden')
                         txt_search.focus()
 
-                        if (e.key === 'Enter') {
+                        if (e.key === 'Enter' && txt_search.value != '') {
 
                             cards = main_view.querySelectorAll('.nav_item')
                             cards.forEach(card => {
@@ -5637,6 +5651,7 @@ async function get_files(dir, callback) {
             document.addEventListener('keydown', (e) => {
                 if (["ArrowUp", "ArrowDown"].indexOf(e.code) > -1) {
                     e.preventDefault()
+                    e.stopPropagation()
                     console.log('arrow key pressed')
                     return false
                 }
@@ -5812,7 +5827,6 @@ async function get_files(dir, callback) {
     let headers = document.getElementsByClassName('header_link')
     let highlight = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
 
-
     nc = 1
     nc2 = 0
     adj = 0
@@ -5829,7 +5843,7 @@ async function get_files(dir, callback) {
     let is_last = 0
     let is_last0 = 0
 
-    // RIGHT
+    // Shift RIGHT
     Mousetrap.bind('shift+right', (e) => {
 
 
@@ -5852,13 +5866,20 @@ async function get_files(dir, callback) {
     // RIGHT
     Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), (e) => {
 
+        let items = main_view.querySelectorAll('.nav_item')
+        console.log(items.length)
+
         keycounter0 = keycounter
 
         if (keycounter < 1) {
             keycounter = 1
         } else {
-            document.querySelector("[data-id='" + (keycounter0) + "']").classList.remove('highlight_select')
-            keycounter += 1
+
+            if (keycounter < items.length) {
+                keycounter += 1
+                document.querySelector("[data-id='" + (keycounter0) + "']").classList.remove('highlight_select')
+            }
+
         }
 
         document.querySelector("[data-id='" + (keycounter) + "']").classList.add('highlight_select')
@@ -5897,6 +5918,7 @@ async function get_files(dir, callback) {
         if (keycounter <= 1) {
             keycounter = 1
         } else {
+
             document.querySelector("[data-id='" + (keycounter) + "']").classList.remove('highlight_select')
             keycounter -= 1
         }
@@ -5971,9 +5993,12 @@ async function get_files(dir, callback) {
     // HANDLE KEYBOARD DOWN. DONT CHANGE
     Mousetrap.bind(settings.keyboard_shortcuts.Down.toLocaleLowerCase(), (e) => {
 
-        highlight.forEach(item => {
-            item.classList.remove('highlight')
-        })
+
+        let items = main_view.querySelectorAll('.nav_item')
+
+        // highlight.forEach(item => {
+        //     item.classList.remove('highlight')
+        // })
 
         keycounter0 = keycounter
 
@@ -6006,20 +6031,25 @@ async function get_files(dir, callback) {
             }
 
             document.querySelector("[data-id='" + (keycounter0) + "']").classList.remove('highlight_select')
+
+        }
+
+        if (keycounter > items.length) {
+            is_folder = 1
+            keycounter0 = 0;
+            keycounter = 1;
+            document.querySelector("[data-id='" + (keycounter) + "']").classList.add('highlight_select')
+        } else {
+            document.querySelector("[data-id='" + (keycounter) + "']").classList.add('highlight_select')
+            document.querySelector("[data-id='" + (keycounter) + "']").querySelector('a').focus()
         }
 
         console.log(keycounter, keycounter0, folder_cards.length, diff)
-        document.querySelector("[data-id='" + (keycounter) + "']").classList.add('highlight_select')
-        document.querySelector("[data-id='" + (keycounter) + "']").querySelector('a').focus()
-
-        // items.forEach(item => {
-        //     items.classList.remove('highlight')
-        // })
-
 
     })
 
     // todo: check hidden files
+    // Handle Keyboard Up.
     Mousetrap.bind(settings.keyboard_shortcuts.Up.toLocaleLowerCase(), (e) => {
 
         keycounter0 = keycounter
@@ -6032,8 +6062,16 @@ async function get_files(dir, callback) {
             console.log('eurika')
         }
 
-        if (keycounter <= 1) {
+        if (keycounter <= 5) {
+
             keycounter = 1
+            if (keycounter >= 1) {
+                try {
+                    document.querySelector("[data-id='" + (keycounter0) + "']").classList.remove('highlight_select')
+                } catch (err) {
+                }
+            }
+
         } else {
 
             keycounter -= 5
@@ -6049,6 +6087,8 @@ async function get_files(dir, callback) {
                 is_folder_card = 1
 
             }
+
+            // if (keycounter < (folder))
 
             document.querySelector("[data-id='" + (keycounter0) + "']").classList.remove('highlight_select')
         }
@@ -6132,7 +6172,7 @@ contextBridge.exposeInMainWorld('api', {
         navigate(direction)
     },
     get_terminal: () => {
-        get_terminal()
+        open_terminal()
     },
     toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
     // system: () => ipcRenderer.invoke('dark-mode:system')
@@ -6599,15 +6639,28 @@ function find_init() {
 var search_res = '';
 async function find_files() {
 
-    let sidebar_items           = document.getElementById('sidebar_items');
     let cmd = '';
 
     get('../src/find.html', (find_page) => {
 
-
+        let sidebar_items           = document.getElementById('sidebar_items');
         sidebar_items.innerHTML     = find_page;
 
-        // SEARCH VIEW
+        console.log(find_page)
+
+        let cards = sidebar_items.querySelectorAll('.nav_item')
+        console.log(cards.length)
+        cards.forEach(card => {
+
+            console.log(card.dataset.href)
+            update_card(card.dataset.href);
+
+            let img = card.querySelector('img')
+
+
+        })
+
+        // Search view
         let search_content          = document.getElementById('search_content');
         let search_results          = document.getElementById('search_results');
         let find_div                = document.getElementById('find_div');
@@ -6664,6 +6717,7 @@ async function find_files() {
 
         // FIND FILES
         find_files.addEventListener('change', (e) => {
+
             if (find_files.checked) {
 
                 localStorage.setItem('find_files', 1);
@@ -6675,6 +6729,7 @@ async function find_files() {
                 console.log('setting find to 0');
 
             }
+
         })
 
         find.focus();
@@ -6866,25 +6921,27 @@ async function find_files() {
 
             /* Add hidden */
             } else {
+
                 find_options.classList.add('hidden')
 
                 chevron.classList.add('right')
                 chevron.classList.remove('down')
 
                 localStorage.setItem('find_options', 0);
+
             }
 
         })
 
 
         // Need this to reapply click events for re -rendered search results that get loaded from saved html
-        let cards = sidebar_items.querySelectorAll('.card')
-        cards.forEach(card => {
-            update_card(card.dataset.href)
-        })
+        // let cards = sidebar_items.querySelectorAll('.card')
+        // cards.forEach(card => {
+        //     update_card(card.dataset.href)
+        // })
 
 
-        })
+    })
 
 
     localStorage.setItem('sidebar', 1);
@@ -6979,13 +7036,13 @@ async function get_devices() {
 
     let mnt = fs.readdirSync('/mnt/');
     mnt.forEach(item => {
-        devices.push({name: item, href: path.join('/mnt', item)});
+        devices.push({name: item, href: path.join('/mnt', item), type: 'mount'});
     })
 
     let media = fs.readdirSync('/media/michael/');
     media.forEach(item => {
         console.log(item);
-        devices.push({name: item, href: path.join('/media/michael', item)});
+        devices.push({name: item, href: path.join('/media/michael', item), type: 'media'});
     })
 
     let uid = execSync('id -u').toString().replace('\n','');
@@ -6994,7 +7051,7 @@ async function get_devices() {
     let gvfs = fs.readdirSync(gvfs_path);
     gvfs.forEach(item => {
         console.log(item);
-        devices.push({name: item, href: path.join(gvfs_path, item)});
+        devices.push({name: item, href: path.join(gvfs_path, item), type: 'gvfs'});
     })
 
     // sidebar_items.append(add_header('Devices'))
@@ -7021,6 +7078,8 @@ async function get_devices() {
             div.style = 'display: flex; padding: 5px; width: 100%;'
             div.classList.add('item')
 
+
+
             // device.classList.add('item')
             // device.style    = 'display: flex';
             // umount.title    = "Unmount '" + item.href + "'"
@@ -7029,7 +7088,13 @@ async function get_devices() {
             device.append(div)
 
             umount.addEventListener('click', (e) => {
-                execSync("umount '" + item.href + "'")
+
+                if (item.type == 'media' || item.type == 'mnt') {
+                    execSync("umount '" + item.href + "'")
+                } else if (item.type == 'gvfs') {
+                    execSync("gio mount -u -f '" + item.href + "'")
+                }
+
             })
 
             // link.prepend(icon);
@@ -7057,20 +7122,22 @@ async function get_devices() {
 
     fs.watch('/mnt/', (e, filename) => {
         console.log('getting devices');
+        localStorage.setItem('sidebar', 1);
+        show_sidebar();
         get_devices();
     })
 
 
     fs.watch('/media/michael/', (e, filename) => {
         console.log('getting devices');
-        get_devices();
         localStorage.setItem('sidebar', 1);
         show_sidebar();
-
-
+        get_devices();
     })
 
-    fs.watch(gvfs_path, (e) => {
+    console.log(gvfs_path)
+
+    fs.watch('/run/usr/gvfs', (e) => {
         console.log('getting devices');
         get_devices();
     })
@@ -7553,7 +7620,7 @@ function add_button(id, text) {
 function add_checkbox(id, label) {
 
     let checkbox = add_div()
-    checkbox.classList.add('checkbox')
+    // checkbox.classList.add('checkbox')
 
     let chk_label = add_label(label)
     chk_label.htmlFor = id
@@ -7561,6 +7628,7 @@ function add_checkbox(id, label) {
     let chk = document.createElement('input')
     chk.type = "checkbox"
     chk.id = id
+    chk.classList.add('checkbox')
 
     checkbox.append(chk)
     checkbox.append(chk_label)
@@ -7635,7 +7703,7 @@ if (!fs.existsSync(folder_icon_dir)) {
 }
 
 // GET FOLDER_ICON
-let folder_icon = '';
+let folder_icon = ''
 function get_folder_icon(callback) {
 
     let theme = readline.createInterface({
@@ -7644,7 +7712,12 @@ function get_folder_icon(callback) {
 
     let places = '';
     theme.on('line', (line) => {
-        if (line.indexOf('Directories') === -1 && line.indexOf('symbolic') === -1 && line.indexOf('scalable') === -1 && line.indexOf('places') > -1) {
+
+        if (
+            line.indexOf('Directories') === -1 &&
+            line.indexOf('symbolic') === -1 &&
+            line.indexOf('scalable') === -1 &&
+            line.indexOf('places') > -1) {
 
             places = line.replace('[', '').replace(']', '');
 
@@ -7724,10 +7797,7 @@ function get_icon_path(file) {
         }
 
     } catch (err) {
-
     }
-
-
 
     return icon
 
@@ -7795,17 +7865,17 @@ function show_sidebar() {
 
     console.log('runing sidebar')
     let show            = parseInt(localStorage.getItem('sidebar'));
-    let sidebar         = document.getElementById('sidebar')
-    let main_view       = document.getElementById('main_view')
-    let draghandle      = document.getElementById('draghandle')
+    let sidebar         = document.getElementById('sidebar');
+    let main_view       = document.getElementById('main_view');
+    let draghandle      = document.getElementById('draghandle');
 
     // SET / GET SIDEBAR WIDTH
     let sidebar_width   = 250;
     if (localStorage.getItem('sidebar_width')) {
         sidebar_width   = localStorage.getItem('sidebar_width');
-    } else[
-        localStorage.setItem('sidebar_width', sidebar_width)
-    ]
+    } else {
+        localStorage.setItem('sidebar_width', sidebar_width);
+    }
 
     if (show) {
 
@@ -7828,25 +7898,13 @@ function show_sidebar() {
         sidebar.classList.add('hidden');
         main_view.style.marginLeft = (parseInt(0) + 50) + 'px';
 
-        console.log('setting sidebar 0')
+        console.log('setting sidebar 0');
         localStorage.setItem('sidebar', 0);
         show = 1;
 
     }
 
-    sidebar.draggable = false
-    // // sidebar.classList.remove('hidden')
-    // let sidebar_width = 250
-    // if (localStorage.getItem('sidebar_width')) {
-    //     sidebar_width = localStorage.getItem('sidebar_width')
-    // } else[
-    //     localStorage.setItem('sidebar_width', sidebar_width)
-    // ]
-
-    // sidebar.style.width = sidebar_width + 'px'
-    // main_view.style.marginLeft = (parseInt(sidebar_width) + 10) + 'px'
-
-    // sidebar_visible = 1
+    sidebar.draggable = false;
 
 }
 
@@ -8399,12 +8457,12 @@ function delete_confirmed() {
 
 }
 
-// DELETE FILE
+// Delete file
 async function delete_file(file) {
     ipcRenderer.send('delete_file', file);
 }
 
-// GET FOLDER COUNT
+// Get folder count
 function get_folder_count() {
     let main_view = document.getElementById('main_view')
     let folder_cards = main_view.querySelectorAll('.folder_card')
@@ -8412,7 +8470,7 @@ function get_folder_count() {
     return folder_cards.length
 }
 
-// GET FILE COUNT
+// Get file count
 function get_file_count() {
     let main_view = document.getElementById('main_view')
     let file_cards = main_view.querySelectorAll('.file_card')
@@ -8420,7 +8478,7 @@ function get_file_count() {
     return file_cards.length
 }
 
-// CALCULATE FILE SIZE
+// Calculate file size
 function get_file_size(fileSizeInBytes) {
     var i = -1;
     var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -8433,7 +8491,7 @@ function get_file_size(fileSizeInBytes) {
 
 };
 
-// GET RAW FILE SIZE
+// Get raw file size
 function get_raw_file_size(fileSizeInBytes) {
     var i = -1;
     // var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
@@ -8446,12 +8504,17 @@ function get_raw_file_size(fileSizeInBytes) {
 
 };
 
-// OPEN TERMINAL
-function get_terminal() {
+// Open terminal
+function open_terminal() {
 
-    exec('gnome-terminal --working-directory=' + breadcrumbs.value, (error, data, getter) => {
-
-    });
+    let cards = main_view.querySelectorAll('.nav_item')
+    if (cards.length > 0) {
+        cards.forEach(card => {
+            exec('gnome-terminal --working-directory=' + card.dataset.href, (error, data, getter) => {});
+        })
+    } else {
+        exec('gnome-terminal --working-directory=' + breadcrumbs.value, (error, data, getter) => {});
+    }
 
 }
 // COUNTERS
@@ -8509,25 +8572,23 @@ function navigate(direction) {
 function update_card(href) {
 
     console.log('running update card');
-
     let cards = document.querySelectorAll('[data-href="' + href + '"]')
 
     cards.forEach(card => {
 
-        // console.log(card)
 
         let img  = card.querySelector('.img')
-        let icon    = card.querySelector('icon')
+        let icon = card.querySelector('icon')
 
-        if (img) {
-            img.src = href
-        }
+        // if (img) {
+        //     img.src = href
+        // }
 
-        // DETAILS
+        // Details
         let extra = card.querySelector('.extra')
         let description = card.querySelector('.description')
 
-        // ADD DATA TO CARD
+        // Add data to card
         let stats = fs.statSync(href)
         let mtime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
         let atime = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
@@ -8548,15 +8609,8 @@ function update_card(href) {
 
             let icon = card.querySelector('.icon')
             icon.src = folder_icon
-            console.log(folder_icon)
 
-            // img.src = path.join(icon_dir, '-pgrey/places/scalable@2/network-server.svg')
-            // console.log(folder_icon)
-
-            // icon.src    = folder_icon
-            // img.src     = folder_icon
-            // img.height  = '24px'
-            // img.width   = '24px'
+            console.log(icon)
 
             // CARD ON MOUSE OVER
             card.addEventListener('mouseover', (e) => {
@@ -8573,29 +8627,30 @@ function update_card(href) {
                     'Created: ' + ctime
             })
 
-            // FILES
+        // Files
         } else {
 
-            let links = card.querySelectorAll('.header_link')
-            links.forEach(link => {
-                // link.addEventListener('click', (e) => {
-                //     open(card.dataset.href);
-                // })
-            })
+            // let links = card.querySelectorAll('.header_link')
+            // links.forEach(link => {
 
-            let icon = card.querySelector('#img')
+            // })
+
+            let icon = card.querySelector('.icon')
+
+
+            console.log('icon', icon);
             if (icon) {
                 icon.classList.remove('lazy');
                 ipcRenderer.send('get_icon_path', card.dataset.href);
             }
 
-            size = get_file_size(stats.size)
-            extra.innerHTML = size
-            localStorage.setItem(href, stats.size)
+            size = get_file_size(stats.size);
+            extra.innerHTML = size;
+            localStorage.setItem(href, stats.size);
 
-            // CARD ON MOUSE OVER
+            // Card on mouse over
             card.addEventListener('mouseover', (e) => {
-                size = get_file_size(localStorage.getItem(href))
+                size = get_file_size(localStorage.getItem(href));
                 card.title =
                     'Name: ' + href +
                     '\n' +
@@ -8611,11 +8666,11 @@ function update_card(href) {
         }
 
         // DRAG AMD DROP
-        ds.addSelectables(card, false)
+        // ds.addSelectables(card, false)
 
     })
 
-    ds.start()
+    ds.start();
 
 }
 
@@ -8722,8 +8777,6 @@ function update_cards(view) {
                     ++file_counter
 
                     card.id = 'file_card_' + file_counter
-                    // card.dataset.id = file_counter + 1
-                    // card.tabIndex = file_counter
                     header.id = 'header_file_card_' + file_counter
 
                     progress.id = 'progress_' + card.id
@@ -8878,7 +8931,7 @@ function extract() {
         notification('Extracting ' + source )
 
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-        exec(cmd, (err, stdout, stderr) => {
+        exec(cmd,{maxBuffer: 1000000000}, (err, stdout, stderr) => {
 
             if (err) {
 
@@ -9060,17 +9113,17 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // NEW WINDOW
     if (command === 'new_window') {
-        ipcRenderer.send('new_window')
+        ipcRenderer.send('new_window');
     }
 
     // CREATE NEW FOLDER
     if (command === 'new_folder') {
 
-        let folder = breadcrumbs.value
-        console.log(folder)
+        let folder = breadcrumbs.value;
+        console.log(folder);
 
         if (folder != '') {
-            create_folder(folder + '/Untitled Folder')
+            create_folder(folder + '/Untitled Folder');
         }
 
     }
@@ -9086,26 +9139,26 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
         // GET HIGHLIGHTED ITEMS
         // let items = document.getElementsByClassName('highlight_select')
-        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
         if (items.length > 0) {
 
             // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
             for (let i = 0; i < items.length; i++) {
 
-                let item = items[i]
-                let href = item.getAttribute('data-href')
+                let item = items[i];
+                let href = item.getAttribute('data-href');
 
                 let file = {
                     card_id: item.id,
                     source: href
                 }
 
-                delete_arr.push(file)
-                list += href + '\n'
+                delete_arr.push(file);
+                list += href + '\n';
 
             }
 
-            ipcRenderer.send('confirm_file_delete', list)
+            ipcRenderer.send('confirm_file_delete', list);
 
         }
 
@@ -9162,60 +9215,6 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         paste();
     }
 
-    // DELETE FILE. DELETE COMMAND
-    if (command === 'delete_file') {
-
-
-        // console.log('source ' + source)
-
-        // let source_list = ''
-        // // clear_selected_files()
-
-        // add_selected_file(source, card_id)
-        // if(selected_files.length > 0) {
-
-        //     selected_files.forEach((files,idx) => {
-        //         source_list += files.source + '\n'
-        //     })
-
-        // }else {
-
-        //     console.log('delete file source: ' + source)
-
-        // }
-
-        // console.log('source list ' + source_list)
-
-        // // SEND A COMMAND TO MAIN TO SHOW A CONFIRMATION DIALOG
-        // ipcRenderer.send('confirm_file_delete', source_list)
-
-    }
-
-    // // CONFIRM DELETE FOLDER
-    // ipcRenderer.on('delete_folder_confirmed',(e, res) => {
-
-    //     alert('what')
-
-    //     // delete_confirmed()
-
-    //     // if(fs.statSync(source).isDirectory()){
-
-    // //   delete_folder(source)
-    // //   console.log('delete folder confirmed ' + source)
-
-    // // }else {
-
-    // //   console.log('im a file. i should not be running ' + source)
-
-    // // }
-
-    // // CLEAR ARRAY
-    // // clear_selected_files()
-    //     // loaddata(breadcrumbs.value)
-
-    // })
-
-
     // IF WE RECIEVE DELETE CONFIRMED THEN DELETE FILE/S
     ipcRenderer.on('delete_file_confirmed', (e, res) => {
 
@@ -9224,10 +9223,8 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     })
 
     // OPEN TERMINAL
-    if (command === 'menu_terminal') {
-
-        get_terminal()
-
+    if (command === 'open_terminal') {
+        open_terminal()
     }
 
     // OPEN VSCODE
@@ -9282,6 +9279,9 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // FILE PROPERTIES
     if (command === 'props') {
+
+        let sb_items = document.getElementById('sidebar_items');
+        sb_items.innerHTML = ''
 
         file_properties_arr = []
         let main_view       = document.getElementById('main_view')
@@ -9352,7 +9352,6 @@ window.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('sidebar', 1);
     }
 
-
     // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
     let main_view = document.getElementById('main_view')
     main_view.addEventListener('contextmenu', function (e) {
@@ -9371,17 +9370,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
                     ipcRenderer.send('show-context-menu-directory', associated_apps);
 
-                    // CHECK IF FILE CARD
+                // CHECK IF FILE CARD
                 } else if (stats.isFile()) {
 
-                    ipcRenderer.send('show-context-menu-files', associated_apps);
+                    let access = 0;
+                    try {
+                        fs.accessSync(active_href, fs.X_OK);
+                        access = 1;
+                        ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: active_href});
+                    } catch (err) {
+                        ipcRenderer.send('show-context-menu-files', {associated_apps, href:active_href});
+                    }
 
-                    // EMPTY AREA
-                    // todo this needs to be looked
+
+
+                // EMPTY AREA
                 } else {
-
                     ipcRenderer.send('show-context-menu');
-
                 }
 
                 active_href = '';
@@ -9652,7 +9657,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // get_devices();
 
     /* Toggle sidebar */
-    show_sidebar();
+    // get_sidebar_view();
+    // show_sidebar()
+
 
 })
 

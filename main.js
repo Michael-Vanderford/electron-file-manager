@@ -326,12 +326,12 @@ function get_file_properties(filename) {
 
     let file_properties = {
         Name:       name,
-        Parent:     parent_folder,
+        Type:       type,
         Size:       size,
+        Parent:     parent_folder,
         Accessed:   accessed,
         Modified:   modified,
         Created:    created,
-        Type:       type,
         Mode:       mode,
         Group:      group,
 
@@ -1026,20 +1026,20 @@ function copy(state) {
                 copyfolder(source, destination_file, state, () => {
 
                     console.log('running',path.basename(source))
-                            if (isMainView) {
+                    if (isMainView) {
 
-                                let options = {
-                                    href: destination_file,
-                                    linktext: path.basename(destination_file),
-                                    is_folder: true
-                                }
+                        let options = {
+                            href: destination_file,
+                            linktext: path.basename(destination_file),
+                            is_folder: true
+                        }
 
-                                active_window.send('add_card', options)
-                                active_window.send('update_cards')
+                        active_window.send('add_card', options)
+                        active_window.send('update_cards')
 
-                            }
-                            copy_files_arr.shift()
-                            copy(copy_files_arr,state)
+                    }
+                    copy_files_arr.shift()
+                    copy(copy_files_arr,state)
 
                 })
 
@@ -2731,6 +2731,119 @@ function add_launcher_menu(menu, e, args) {
     }
 }
 
+// Run as Program
+function add_execute_menu(menu, e, args) {
+
+    menu.append(new MenuItem({
+        label: 'Run as Program',
+        click: () => {
+            console.log('run as program');
+        }
+
+    }))
+
+}
+
+// Run as Program
+function add_convert_audio_menu(menu, href) {
+
+    menu.append(new MenuItem({
+        label: 'Audio / Video',
+        submenu: [
+            {
+                label: 'Convert to Mp3',
+                click: () => {
+                    let filename = href.substring(0, href.length - path.extname(href).length) + '.mp3'
+                    let cmd = 'ffmpeg -i ' + href + ' ' + filename;
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            // console.log(stdout);
+                            let options = {
+                                id: 0,
+                                href: filename,
+                                linktext: path.basename(filename),
+                                is_folder: false,
+                                grid: ''
+                            }
+                            active_window.send('add_card', options)
+                        }
+                    })
+
+                    cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
+                    console.log(cmd)
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err)
+                        } else {
+                            console.log('stderr', stderr)
+                            console.log('stdout', stdout);
+                            active_window.send('progress', parseInt(stdout))
+                        }
+                    })
+
+                },
+            },
+            {
+                label: 'Convert to Ogg Vorbis',
+                click: () => {
+                    let filename = href.substring(0, href.length - path.extname(href).length) + '.ogg'
+                    let cmd = 'ffmpeg -i ' + href + ' -c:a libvorbis -q:a 4 ' + filename;
+                    console.log(cmd);
+
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            // console.log(stdout);
+                            let options = {
+                                id: 0,
+                                href: filename,
+                                linktext: path.basename(filename),
+                                is_folder: false,
+                                grid: ''
+                            }
+                            active_window.send('add_card', options)
+                        }
+                    })
+
+                    cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
+                    console.log(cmd)
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err)
+                        } else {
+                            console.log('stderr', stderr)
+                            console.log('stdout', stdout);
+                            active_window.send('progress', parseInt(stdout))
+                        }
+                    })
+                }
+            },
+        ]
+
+    }))
+
+}
+
+// Compress Menu
+function extract_menu(menu, e) {
+
+    let menu_item = new MenuItem (
+        {
+            label: '&Extract',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
+            click: () => {
+                e.sender.send('context-menu-command', 'extract_here')
+            }
+        }
+    )
+
+    menu.insert(15, menu_item)
+}
+
+
 // Scripte Menu
 function add_scripts_menu(menu, e, args) {
 
@@ -2863,7 +2976,7 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         {
             label: 'Open with Code',
             click: () => {
-            e.sender.send('context-menu-command', 'vscode')
+                e.sender.send('context-menu-command', 'vscode')
             }
         },
         {
@@ -2981,12 +3094,12 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
                 e.sender.send('context-menu-command', 'paste')
             }
         },
-        {
-            label: 'Paste file into folder',
-            click: () => {
-                e.sender.send('context-menu-command', 'paste_file')
-            }
-        },
+        // {
+        //     label: 'Paste file into folder',
+        //     click: () => {
+        //         e.sender.send('context-menu-command', 'paste_file')
+        //     }
+        // },
         {
             label: '&Rename',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
@@ -3032,7 +3145,7 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         {
             label: 'Open in terminal',
             click: () => {
-            e.sender.send('context-menu-command', 'open_folder_in_terminal')
+                e.sender.send('context-menu-command', 'open_terminal')
             }
         },
         {
@@ -3060,11 +3173,10 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
       const menu1 = Menu.buildFromTemplate(template1)
 
       // ADD TEMPLATES
-      add_templates_menu(menu1, e, args)
+      add_templates_menu(menu1, e, args[0])
 
       // ADD LAUNCHER MENU
-      add_launcher_menu(menu1, e, args)
-
+      add_launcher_menu(menu1, e, args[0])
 
       menu1.popup(BrowserWindow.fromWebContents(e.sender))
 
@@ -3079,7 +3191,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         {
             label: 'Open with Code',
             click: () => {
-            e.sender.send('context-menu-command', 'vscode')
+                e.sender.send('context-menu-command', 'vscode')
             }
         },
         {
@@ -3178,11 +3290,11 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         {
             type: 'separator'
         },
-        {
-            label: '&Extract',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
-            click: () => { e.sender.send('context-menu-command', 'extract_here') }
-        },
+        // {
+        //     label: '&Extract',
+        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
+        //     click: () => { e.sender.send('context-menu-command', 'extract_here') }
+        // },
         {
             label: 'Compress',
                 accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
@@ -3205,12 +3317,12 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         type: 'separator'
         },
         {
-        label: 'Delete file',
-        accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
-        click: () => {
-            // e.sender.send('context-menu-command', 'delete_file')
-            e.sender.send('context-menu-command', 'delete')
-        }
+            label: 'Delete file',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            click: () => {
+                // e.sender.send('context-menu-command', 'delete_file')
+                e.sender.send('context-menu-command', 'delete')
+            }
         },
         {
             type: 'separator'
@@ -3246,7 +3358,34 @@ ipcMain.on('show-context-menu-files', (e, args) => {
     // ADD LAUNCHER MENU
     add_launcher_menu(menu, e, args)
 
+    // Run as program
+    if (args.access) {
+        add_execute_menu(menu, e, args)
+    }
+
+    console.log(args.href)
+
+    // Convert audio menu
+    console.log(path.extname(args.href))
+
+    let ext = path.extname(args.href);
+    if (ext == '.mp4' || ext == '.mp3') {
+        add_convert_audio_menu(menu, args.href);
+    }
+
+    if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
+        console.log('extract compressed file');
+        extract_menu(menu, e, args);
+    }
+
     menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+    // menu.on('menu-will-close', (e) => {
+    //     active_window.on('before-input-event', (e, input) => {
+    //         console.log(input)
+    //     })
+    //     active_window.send('clear_selected_files')
+    // })
 
 
 })

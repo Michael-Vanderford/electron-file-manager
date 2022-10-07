@@ -18,7 +18,6 @@ let btn_disk_usage  = document.getElementById('btn_disk_usage')
 let minibar         = document.getElementById('minibar')
 let minibar_items    = minibar.querySelectorAll('.item')
 
-
 // TOGGLE VIEWS
 let btn_settings_view   = document.getElementById('btn_settings_view')
 let btn_list_view       = document.getElementById('btn_list_view')
@@ -26,6 +25,7 @@ let btn_grid_view       = document.getElementById('btn_grid_view')
 let btn_disk_view       = document.getElementById('btn_disk_view')
 
 // VIEWS
+let main_view       = document.getElementById('main_view');
 let list_view       = document.getElementById('list_view')
 let grid_view       = document.getElementById('grid_view')
 let info_view       = document.getElementById('info_view')
@@ -53,74 +53,6 @@ function clear_active() {
 
 }
 
-// LOAD FILES FROM PREELOAD.JS
-function get_files(dir) {
-
-    // // GRID VIEW
-    // if (localStorage.getItem('view') == 'grid' || localStorage.getItem('view') == '') {
-    //     window.api.get_files(dir, () => {})
-    //     btn_grid_view.classList.add('active')
-
-    // // LIST VIEW
-    // } else if (localStorage.getItem('view') == 'list') {
-    //     window.api.get_list_view(dir)
-    //     btn_list_view.classList.add('active')
-    // } else if (localStorage.getItem('view') == 'disk_summary') {
-    //     window.api.get_list_view(dir)
-    // }
-
-
-}
-
-// function get_data(dir) {
-
-//     // todo: reminder this is intended for chart js
-//     let breadcrumbs = $('#breadcrumbs')
-//     breadcrumbs.val(dir)
-//     setitem('folder', dir)
-//     // GET FILES
-//     let dirents = window.api.get_folders1(dir)
-
-//     let folder_grid = $('#folder_grid')
-//     let hidden_folder_grid = $('#hidden_folder_grid')
-//     let file_grid = $('#file_grid')
-//     let hidden_file_grid = document.getElementById('hidden_file_grid')
-
-//     folder_grid.html('')
-//     hidden_folder_grid.html('')
-//     file_grid.html('')
-//     hidden_file_grid.innerText = ''
-
-//     dirents.forEach((file,idx) => {
-
-//         filepath = file.path + '/' + file.name
-
-//         let id
-//         if(file.isfolder){
-//             id = 'folder_card_' + idx
-//         } else {
-//             id = 'file_card_' + idx
-//         }
-
-//         let options = {
-//             id:  id,
-//             isfolder: file.isfolder,
-//             linktext: file.name,
-//             href: filepath,
-//             imagepath: file.imagepath, //window.api.get_icon_path(file.path),
-//             description: file.mdate,
-//             size: file.size //get_file_size(size)  //get_file_size(size)
-//         }
-
-
-
-//         add_card(options)
-//         // add_card(file)
-
-//     })
-
-// }
-
 // ADD DIV
 function add_div() {
     let div = document.createElement('div')
@@ -135,8 +67,6 @@ function add_progress(){
 }
 
 let element = document.getElementById('sidebar');
-let main_view = document.getElementById('main_view');
-
 let sidebar_width = '250'
 if (localStorage.getItem('sidebar_width')) {
     sidebar_width = localStorage.getItem('sidebar_width')
@@ -554,6 +484,7 @@ $(function() {
     // get_files(localStorage.getItem('folder'))
     // localStorage.setItem('view', 'disk_summary')
     window.api.get_view(localStorage.getItem('folder'))
+    // window.api.get_sidebar_view()
 
     // window.api.get_files(localStorage.getItem('folder'), () => {
     // })
