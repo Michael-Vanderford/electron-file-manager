@@ -901,11 +901,6 @@ ipcMain.on('go_foward', (e) => {
     win.webContents.goFoward()
 })
 
-// showDevices()
-// win.webContents.on('get_devices', (e, devicelist, callback) => {
-//     console.log('device lengh list ' + devicelist.length)
-// })
-
 // GET ICON PATH
 ipcMain.on('get_icon_path', (e, href) => {
     get_icon_path(href)

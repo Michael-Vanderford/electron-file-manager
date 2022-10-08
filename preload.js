@@ -1783,7 +1783,7 @@ async function get_sidebar_view() {
                 break;
         }
 
-        show_sidebar()
+        // show_sidebar()
 
     } catch (err) {
 
@@ -1893,7 +1893,6 @@ async function get_properties(file_properties_obj) {
         card.remove();
         let items = sb_items.querySelectorAll('.nav_item')
         if (items.length == 0) {
-            // Load previous view
             get_sidebar_view();
         }
     })
@@ -2657,13 +2656,6 @@ async function add_card(options) {
         // CARD CLICK
         card.addEventListener('click', function (e) {
 
-            // e.preventDefault()
-            // e.stopPropagation()
-
-            // ADD ITEM TO CLIPBOARD FOR IMAGES THIS WILL NEED TO CHANGE
-            // let clipboard_image = nativeImage.createFromPath(href)
-            // clipboard.writeImage(clipboard_image, "clipboard")
-
             // CRTRL+SHIFT ADD TO WORKSPACE
             if (e.ctrlKey == true && e.shiftKey == true) {
 
@@ -2684,24 +2676,6 @@ async function add_card(options) {
                 } else {
                     card.classList.add('highlight_select');
                 }
-
-                // // CHECK IF ALREADY SELECTED
-                // if (card.classList.contains('highlight_select') || card.classList.contains('ds-selected')) {
-
-                //     console.log('remove highlighting card')
-
-                //     // REMOVE HIGHLIGHT
-                //     card.classList.remove('highlight_select', 'ds-selected')
-
-                // } else {
-
-                //     console.log('highlighting card')
-
-                //     // ADD HIGHLIGHT
-                //     card.classList.add('highlight_select')
-
-                // }
-
 
             // SINGLE SELECT
             } else {
@@ -3126,7 +3100,7 @@ async function add_card(options) {
         return await card;
 
     } catch (err) {
-        console.log('adding card error', err);
+        console.log('error adding card', err);
     }
 
 }
@@ -4183,7 +4157,7 @@ async function get_workspace() {
 
     workspace.classList.add('grid')
 
-    // find.innerHTML          = '';
+    // find.innerHTML       = '';
     sb_items.innerHTML      = '';
     workspace.id            = 'workspace';
     workspace_msg.id        = 'workspace_msg'
@@ -4506,7 +4480,8 @@ async function get_view(dir) {
     ipcRenderer.send('active_folder', dir)
     ipcRenderer.send('current_directory', dir)
 
-    get_sidebar_view()
+    // get_sidebar_view()
+
     autocomplete()
     ds.start();
 
@@ -6639,17 +6614,18 @@ function find_init() {
 var search_res = '';
 async function find_files() {
 
-    let cmd = '';
+    console.log('running find files')
 
+    let cmd = '';
     get('../src/find.html', (find_page) => {
 
         let sidebar_items           = document.getElementById('sidebar_items');
         sidebar_items.innerHTML     = find_page;
 
-        console.log(find_page)
+        // console.log(find_page)
 
         let cards = sidebar_items.querySelectorAll('.nav_item')
-        console.log(cards.length)
+        // console.log(cards.length)
         cards.forEach(card => {
 
             console.log(card.dataset.href)
@@ -6745,7 +6721,7 @@ async function find_files() {
 
                 search_results.innerHTML    = 'Searching...';
 
-                console.log('running find files', start_date.value, end_date.value)
+                // console.log('running find files', start_date.value, end_date.value)
 
                 if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
@@ -6933,20 +6909,7 @@ async function find_files() {
 
         })
 
-
-        // Need this to reapply click events for re -rendered search results that get loaded from saved html
-        // let cards = sidebar_items.querySelectorAll('.card')
-        // cards.forEach(card => {
-        //     update_card(card.dataset.href)
-        // })
-
-
     })
-
-
-    localStorage.setItem('sidebar', 1);
-    show_sidebar();
-
 
 }
 
@@ -7684,30 +7647,58 @@ function add_message(msg) {
 }
 
 // RETURNS A STRING PATH TO AN ICON IMAGE BASED ON FILE EXTENSION
-let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
-let icon_dir = path.join('/usr/share/icons', icon_theme)
+function get_icon_theme() {
 
-let folder_icon_dir = path.join('/usr/share/icons', icon_theme)
+    console.log('running get icon theme');
 
-if (fs.existsSync(icon_dir) == false) {
+    let icon_theme = '';
+    let icon_dir = path.join(__dirname, 'assets', 'icons','kora');
+    try {
+        icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+
+        let search_path = []
+        search_path.push(['/usr/share/icons', path.join(get_home(), '.local', 'share', 'icons'), path.join(get_home(), '.icons')])
+
+        search_path.every(icon_path => {
+
+            if (fs.existsSync(icon_path)) {
+                icon_dir = path.join(icon_path, icon_theme);
+                return false;
+            } else {
+                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                return true;
+            }
+
+        })
+
+    } catch (err) {
+
+    }
+
     console.log(icon_dir)
-    icon_dir = path.join(path.join(get_home(), '.icons'), icon_theme)
-} else {
+    return icon_dir;
 
 }
 
-// IF ICONS ARE NOT IN PATH THEN TRY ICONS IN .icons
-if (!fs.existsSync(folder_icon_dir)) {
-    folder_icon_dir = path.join(get_home(), '.icons', icon_theme)
-    console.log('folder_icons', folder_icon_dir)
-}
+// let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
+// let icon_dir = path.join('/usr/share/icons', get_icon_theme());
+
+
+
+// // IF ICONS ARE NOT IN PATH THEN TRY ICONS IN .icons
+// if (!fs.existsSync(folder_icon_dir)) {
+//     folder_icon_dir = path.join(get_home(), '.icons', icon_theme)
+//     console.log('folder_icons', folder_icon_dir)
+// }
+
+let icon_dir = get_icon_theme();
 
 // GET FOLDER_ICON
 let folder_icon = ''
 function get_folder_icon(callback) {
 
     let theme = readline.createInterface({
-        input: fs.createReadStream(path.join(folder_icon_dir, 'index.theme'))
+        input: fs.createReadStream(path.join(icon_dir, 'index.theme'))
     });
 
     let places = '';
@@ -7724,7 +7715,7 @@ function get_folder_icon(callback) {
             let folder = ['folder.svg', 'folder.png'];
             folder.every(file => {
 
-                icon = path.join(folder_icon_dir, places, file);
+                icon = path.join(icon_dir, places, file);
                 // console.log('places', icon);
 
                 if (!fs.existsSync(icon)) {
@@ -7890,6 +7881,8 @@ function show_sidebar() {
 
         localStorage.setItem('sidebar', 1);
         show = 0;
+
+        // get_sidebar_view();
 
     } else {
 
@@ -8571,7 +8564,7 @@ function navigate(direction) {
 // UPDATE CARD
 function update_card(href) {
 
-    console.log('running update card');
+    // console.log('running update card');
     let cards = document.querySelectorAll('[data-href="' + href + '"]')
 
     cards.forEach(card => {
@@ -8610,7 +8603,7 @@ function update_card(href) {
             let icon = card.querySelector('.icon')
             icon.src = folder_icon
 
-            console.log(icon)
+            // console.log(icon)
 
             // CARD ON MOUSE OVER
             card.addEventListener('mouseover', (e) => {
@@ -8638,7 +8631,7 @@ function update_card(href) {
             let icon = card.querySelector('.icon')
 
 
-            console.log('icon', icon);
+            // console.log('icon', icon);
             if (icon) {
                 icon.classList.remove('lazy');
                 ipcRenderer.send('get_icon_path', card.dataset.href);
@@ -8670,7 +8663,7 @@ function update_card(href) {
 
     })
 
-    ds.start();
+    // ds.start();
 
 }
 
@@ -8832,9 +8825,6 @@ function update_cards(view) {
 // EXTRACT HERE / DECOMPRESS
 function extract() {
 
-    // notification('extracting ' + source)
-    // console.log('to dest ' + breadcrumbs.value)
-
     let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
 
     items.forEach(item => {
@@ -8928,10 +8918,12 @@ function extract() {
         get_progress(uncompressed_size)
 
         console.log('executing ' + cmd)
-        notification('Extracting ' + source )
+        notification('Extracting ' + source)
+
+        open(cmd);
 
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-        exec(cmd,{maxBuffer: 1000000000}, (err, stdout, stderr) => {
+        exec(cmd,{maxBuffer: 4e+9}, (err, stdout, stderr) => {
 
             if (err) {
 
@@ -9424,7 +9416,7 @@ window.addEventListener('DOMContentLoaded', () => {
     // GET GIO DEVICE LIST
     // let device_grid = document.getElementById('device_grid')
     // device_grid.innerHTML = ''
-    ipcRenderer.send('get_gio_devices')
+    // ipcRenderer.send('get_gio_devices')
 
     // GET WORKSPACE
     // workspace_arr = []
@@ -9441,15 +9433,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Show workspace
     Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {
-        get_workspace()
+        get_workspace();
+
+        localStorage.setItem('sidebar', 1);
+        show_sidebar();
 
     })
 
     // Get File info
     Mousetrap.bind(settings.keyboard_shortcuts.Properties.toLocaleLowerCase(), () => {
-
         get_file_properties();
-
     })
 
     // Navigate right
@@ -9463,19 +9456,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
         console.log('extracting file')
         extract();
-
-        // // GET SELECTED ITEMS
-        // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-        // if (items.length > 0) {
-
-        //     // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
-        //     for (let i = 0; i < items.length; i++) {
-        //         let item = items[i]
-        //         let href = item.getAttribute('data-href')
-        //         extract(href)
-        //     }
-        // }
-
 
     })
 
@@ -9615,6 +9595,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // FIND
     Mousetrap.bind(settings.keyboard_shortcuts.Find.toLocaleLowerCase(), () => {
         find_files();
+
+        localStorage.setItem('sidebar', 1);
+        show_sidebar();
+
     })
 
     // CTRL C COPY
@@ -9658,7 +9642,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     /* Toggle sidebar */
     // get_sidebar_view();
-    // show_sidebar()
+    show_sidebar()
 
 
 })
