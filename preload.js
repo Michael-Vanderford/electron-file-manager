@@ -7694,44 +7694,48 @@ function get_icon_theme() {
 let icon_dir = get_icon_theme();
 
 // GET FOLDER_ICON
-let folder_icon = ''
+// let folder_icon = ''
 function get_folder_icon(callback) {
 
-    let theme = readline.createInterface({
-        input: fs.createReadStream(path.join(icon_dir, 'index.theme'))
-    });
+    let folder_icon_path = ['', '', '']
 
-    let places = '';
-    theme.on('line', (line) => {
+    // let theme = readline.createInterface({
+    //     input: fs.createReadStream(path.join(icon_dir, 'index.theme'))
+    // });
 
-        if (
-            line.indexOf('Directories') === -1 &&
-            line.indexOf('symbolic') === -1 &&
-            line.indexOf('scalable') === -1 &&
-            line.indexOf('places') > -1) {
+    // let places = '';
+    // theme.on('line', (line) => {
 
-            places = line.replace('[', '').replace(']', '');
+    //     // '/kora/places/scalable/folder'
 
-            let folder = ['folder.svg', 'folder.png'];
-            folder.every(file => {
+    //     if (
+    //         line.indexOf('Directories') === -1 &&
+    //         line.indexOf('symbolic') === -1 &&
+    //         line.indexOf('scalable') === -1 &&
+    //         line.indexOf('places') > -1) {
 
-                icon = path.join(icon_dir, places, file);
-                // console.log('places', icon);
+    //         places = line.replace('[', '').replace(']', '');
 
-                if (!fs.existsSync(icon)) {
-                    icon = path.join(__dirname, '/assets/icons/folder.png');
-                    return true;
-                } else {
-                    return false;
-                }
+    //         let folder = ['folder.svg', 'folder.png'];
+    //         folder.every(file => {
 
-            });
+    //             icon = path.join(icon_dir, places, file);
+    //             // console.log('places', icon);
 
-            folder_icon = icon
-            return false;
+    //             if (!fs.existsSync(icon)) {
+    //                 icon = path.join(__dirname, '/assets/icons/folder.png');
+    //                 return true;
+    //             } else {
+    //                 return false;
+    //             }
 
-        }
-    })
+    //         });
+
+    //         folder_icon = icon
+    //         return false;
+
+    //     }
+    // })
 }
 get_folder_icon();
 
@@ -8923,7 +8927,7 @@ function extract() {
         open(cmd);
 
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-        exec(cmd,{maxBuffer: 4e+9}, (err, stdout, stderr) => {
+        exec(cmd,{maxBuffer: Number.MAX_SAFE_INTEGER}, (err, stdout, stderr) => {
 
             if (err) {
 
