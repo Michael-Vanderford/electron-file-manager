@@ -1923,6 +1923,8 @@ async function get_properties(file_properties_obj) {
 
     })
 
+    let stats = fs.statSync(filename)
+
     card.dataset.href = filename
     card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav');
     card.style = 'color: #ffffff !important;';
@@ -1953,10 +1955,14 @@ async function get_properties(file_properties_obj) {
             })
 
             col2.append(link)
-
             console.log(filename)
-            let stats = fs.statSync(filename)
+
+            // Directory
             if (stats.isDirectory()) {
+
+
+                // console.log('dirents length', dirents.length)
+
 
                 let img = add_img(folder_icon);
                 img.src = img.dataset.src;
@@ -1965,26 +1971,36 @@ async function get_properties(file_properties_obj) {
 
                 col1.append(image);
 
+                div.append(col1, col2)
+
+            // Files
             } else {
 
                 let img = add_img('');
                 img.classList.remove('lazy');
                 image.append(img);
+
                 ipcRenderer.send('get_icon_path', filename);
+
                 col1.append(image);
 
+                div.append(col1, col2)
+
             }
-
-
 
         } else {
 
             col1.append(prop);
             col2.append(`${file_properties_obj[prop]}`);
+            div.append(col1, col2)
+
+            if (stats.isDirectory()) {
+                // col1.append('count')
+                // col2.append(dirents.length)
+                // div.append(col1, col2)
+            }
 
         }
-
-        div.append(col1, col2)
 
         if (ext == '.sh') {
             content.append(div, execute_chk_div)
@@ -2634,6 +2650,7 @@ async function add_card(options) {
 
         /* Folder */
         if (is_folder) {
+
             // get_folder_icon(icon => {
                 img.classList.add('icon')
                 img.src = folder_icon
@@ -2644,7 +2661,7 @@ async function add_card(options) {
 
             if (img.classList.contains('img')) {
 
-                img.src         = path.join(icon_dir, '/actions/scalable/image-x-generic-symbolic.svg')
+                img.src         = path.join(theme_dir, '/actions/scalable/image-x-generic-symbolic.svg')
                 img.dataset.src = get_icon_path(href)
                 img.classList.add('lazy')
 
@@ -7651,22 +7668,28 @@ function get_icon_theme() {
 
     console.log('running get icon theme');
 
-    let icon_theme = '';
-    let icon_dir = path.join(__dirname, 'assets', 'icons','kora');
+    let icon_theme = 'kora';
+    let icon_dir = path.join(__dirname, 'assets', 'icons');
+
     try {
+
         icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
 
-        let search_path = []
-        search_path.push(['/usr/share/icons', path.join(get_home(), '.local', 'share', 'icons'), path.join(get_home(), '.icons')])
+        let search_path = [];
+        search_path.push(path.join(get_home(), '.local/share/icons'), path.join(get_home(), '.icons'), '/usr/share/icons');
 
         search_path.every(icon_path => {
 
-            if (fs.existsSync(icon_path)) {
+            if (fs.existsSync(path.join(icon_path, icon_theme))) {
                 icon_dir = path.join(icon_path, icon_theme);
+                console.log('icon path ', icon_dir);
                 return false;
+
             } else {
+
                 icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
                 return true;
+
             }
 
         })
@@ -7675,7 +7698,6 @@ function get_icon_theme() {
 
     }
 
-    console.log(icon_dir)
     return icon_dir;
 
 }
@@ -7691,53 +7713,42 @@ function get_icon_theme() {
 //     console.log('folder_icons', folder_icon_dir)
 // }
 
-let icon_dir = get_icon_theme();
+
+// Get icon theme directory
+let theme_dir = get_icon_theme();
 
 // GET FOLDER_ICON
-// let folder_icon = ''
 function get_folder_icon(callback) {
 
-    let folder_icon_path = ['', '', '']
+    console.log(theme_dir)
 
-    // let theme = readline.createInterface({
-    //     input: fs.createReadStream(path.join(icon_dir, 'index.theme'))
-    // });
+    let folder_icon_path = ''
+    let icon_dirs = [path.join(theme_dir,'32x32/places/folder.png'), path.join(theme_dir,'places/scalable/folder.svg')];
+    icon_dirs.every(icon_dir => {
 
-    // let places = '';
-    // theme.on('line', (line) => {
+        // let icon_path = path.join(icon_dir, 'folder.png');
+        console.log('icon path', icon_dir);
 
-    //     // '/kora/places/scalable/folder'
+        if (fs.existsSync(icon_dir)) {
 
-    //     if (
-    //         line.indexOf('Directories') === -1 &&
-    //         line.indexOf('symbolic') === -1 &&
-    //         line.indexOf('scalable') === -1 &&
-    //         line.indexOf('places') > -1) {
+            folder_icon_path = icon_dir
+            console.log('folder icon path', folder_icon_path);
+            return false;
 
-    //         places = line.replace('[', '').replace(']', '');
+        } else {
+            folder_icon_path = path.join(__dirname, 'assets/icons/kora/places/scalable/folder.svg')
+            return true;
 
-    //         let folder = ['folder.svg', 'folder.png'];
-    //         folder.every(file => {
+        }
 
-    //             icon = path.join(icon_dir, places, file);
-    //             // console.log('places', icon);
+    })
 
-    //             if (!fs.existsSync(icon)) {
-    //                 icon = path.join(__dirname, '/assets/icons/folder.png');
-    //                 return true;
-    //             } else {
-    //                 return false;
-    //             }
+    console.log('folder icon path', folder_icon_path)
+    return folder_icon_path;
 
-    //         });
-
-    //         folder_icon = icon
-    //         return false;
-
-    //     }
-    // })
 }
-get_folder_icon();
+
+let folder_icon = get_folder_icon();
 
 function get_icon_path(file) {
 
@@ -7885,7 +7896,6 @@ function show_sidebar() {
 
         localStorage.setItem('sidebar', 1);
         show = 0;
-
         // get_sidebar_view();
 
     } else {
@@ -8633,7 +8643,6 @@ function update_card(href) {
             // })
 
             let icon = card.querySelector('.icon')
-
 
             // console.log('icon', icon);
             if (icon) {
@@ -9598,10 +9607,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // FIND
     Mousetrap.bind(settings.keyboard_shortcuts.Find.toLocaleLowerCase(), () => {
-        find_files();
 
+        // find_files();
         localStorage.setItem('sidebar', 1);
         show_sidebar();
+        find_files();
 
     })
 
