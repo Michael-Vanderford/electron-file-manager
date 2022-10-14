@@ -125,12 +125,9 @@ body {
         color:#ffffff !important;
     }
 
-
-
     .tree_subicon {
         float:left;
     }
-
 
     .workspace_icon {
         width: 22px !important;
@@ -373,7 +370,7 @@ body {
     .tree_subicon {
         margin-top:2px;
         margin-left: 10px;
-        background-image: url("../icons/korla-pgrey/places/scalable/gnome-folder.svg");
+        background-image: url("../icons/kora-pgrey/places/scalable/gnome-folder.svg");
         width:22px;
         height: 22px;
         float:left;
@@ -382,7 +379,7 @@ body {
 
 
     /* .tree_icon {
-        background-image: url("../icons/korla/places/scalable/gnome-folder.svg");
+        background-image: url("../icons/kora/places/scalable/gnome-folder.svg");
         width:18px;
         height: 18px;
         float:left;
@@ -1027,7 +1024,9 @@ h5 {
 
 
 #info_view {
+    border: 1px solid black;
     margin-right: 110px !important;
+    overflow: hidden;
     /* margin-top: 20px; */
 }
 

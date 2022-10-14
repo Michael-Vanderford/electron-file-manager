@@ -233,7 +233,7 @@
     z-index: 0 !important;
     left: 0px;
     height:100%;
-    margin-top: 15px;
+    margin-top: 5px;
     padding-left: 6px;
     margin-left: 40px;
     overflow: scroll;
@@ -270,6 +270,10 @@
 .find_input {
     font-size: 10px !important;
     height:20px !important; width: 100% !important;
+}
+
+#find_div {
+    padding-top: 10px;
 }
 
 #find_div .label {

@@ -11,7 +11,7 @@ const window = require('electron').BrowserWindow;
 const windows = new Set()
 const { clipboard } = require('electron')
 
-app.disableHardwareAcceleration()
+// app.disableHardwareAcceleration()
 
 let settings_file = path.join(__dirname, 'settings.json');
 
@@ -51,21 +51,13 @@ if (!fs.existsSync(settings_file)) {
 }
 
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
-console.log('settings', settings.window.width)
-
 ipcMain.on('reload_settings', (e) => {
-    console.log('reloading');
-
     settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
-
-    // // app.relaunch();
-    // // app.exit();
-    // active_window.webContents.reloadI();
 })
 
 let canceled = 0;
 ipcMain.on('cancel', (e) => {
-    console.log('setting cancel to 1');
+    // console.log('setting cancel to 1');
     canceled = 1;
 })
 
@@ -82,7 +74,7 @@ let destination     = ''; // destination
 let destination0    = ''; // destination
 let isMainView      = 1;  // state
 ipcMain.on('is_main_view', (e, state = 0) => {
-    console.log('running on is_main_view', state);
+    // console.log('running on is_main_view', state);
     isMainView = state;
 })
 
@@ -95,7 +87,7 @@ ipcMain.on('active_window', (e) => {
 
     if (window_id != window_id0) {
 
-        console.log('setting active window')
+        // console.log('setting active window')
         active_window = window.fromId(window_id);
 
     }
@@ -114,9 +106,24 @@ ipcMain.on('active_folder', (e, breadcrumb, state = 0) => {
         isMainView  = state;
 
         // console.log('active window', active_window)
-        console.log('setting target destination', destination, isMainView);
+        // console.log('setting target destination', destination, isMainView);
 
     }
+
+})
+
+ipcMain.on('item_count_recursive', (e, filename) => {
+
+    get_folder_count_recursive(filename);
+    get_file_count_recursive(filename);
+
+    let data = {
+        filename: filename,
+        folder_count: folder_count_recursive,
+        file_count: file_count_recursive
+    }
+
+    active_window.send('item_count', data);
 
 })
 
@@ -126,7 +133,7 @@ ipcMain.on('current_directory', (e, directory) => {
     if (directory != current_directory) {
         current_directory = directory;
     }
-    console.log('setting current directory to ' + current_directory);
+    // console.log('setting current directory to ' + current_directory);
 
 })
 
@@ -157,7 +164,7 @@ async function copyfile(source, target, state, callback) {
     recursive++
     let file_exists = fs.existsSync(targetFile)
 
-    console.log(targetFile, current_directory);
+    // console.log(targetFile, current_directory);
 
     /* Add card if copying into the current direcoty unless one exists */
     // if (path.dirname(targetFile) == current_directory) {
@@ -293,9 +300,24 @@ function copyfolder(source, destination, state, callback) {
 let file_count_recursive = 0
 async function get_file_count_recursive(filename) {
     let dirents = fs.readdirSync(filename)
+
+    ++recursive;
+
+    // fs.readdir(filename, (err, files) => {
+
+    //     // dirents.filter(item => !fs.statSync(path.join(filename, item)).isDirectory())
+    //     file_count_recursive += files.length;
+
+    //     if (--recursive == 0) {
+    //         active_window.sender('file_count_recursive', file_count_recursive)
+    //     }
+    //     // console.log(file_count_recursive);
+    //     // console.log(files.length)
+
+    // })
     try {
         let files = dirents.filter(item => !fs.statSync(path.join(filename, item)).isDirectory())
-        console.log('files', files)
+        // console.log('files', files)
         file_count_recursive += files.length
     } catch (err) {
 
@@ -303,13 +325,14 @@ async function get_file_count_recursive(filename) {
 }
 
 let folder_count_recursive = 0;
-function get_folder_count_recursive(filename) {
+async function get_folder_count_recursive(filename) {
 
     let dirents = fs.readdirSync(filename)
     try {
 
         let folders = dirents.filter(item => fs.statSync(path.join(filename, item)).isDirectory())
         folders.forEach((folder, idx) => {
+
             let cursource = path.join(filename, folder)
             get_folder_count_recursive(cursource)
             ++folder_count_recursive;
@@ -329,7 +352,7 @@ function get_folder_count_recursive(filename) {
 /* Get files properties */
 function get_file_properties(filename) {
 
-    console.log(filename)
+    // console.log(filename)
 
     let stats           = fs.statSync(filename)
     let cmd             = "xdg-mime query filetype '" + filename + "'"
@@ -351,12 +374,12 @@ function get_file_properties(filename) {
     let contents        = '';
 
 
-    // todo: need a better way to do this
-    if (type == true) {
-        size = 0;
-    } else {
-        size = get_file_size(stats.size)
-    }
+    // // todo: need a better way to do this
+    // if (type == true) {
+    //     size = 0;
+    // } else {
+    //     size = get_file_size(stats.size)
+    // }
 
     let file_properties = {
 
@@ -374,8 +397,8 @@ function get_file_properties(filename) {
 
     if (stats.isDirectory()) {
 
-        get_folder_count_recursive(filename);
-        get_file_count_recursive(filename);
+        // get_folder_count_recursive(filename);
+        // get_file_count_recursive(filename);
 
         contents = folder_count_recursive.toLocaleString() + ' Folder/s ' + file_count_recursive.toLocaleString() + ' File/s ';
 
@@ -395,14 +418,14 @@ function get_file_properties(filename) {
 
     }
 
-    console.log('send file properties')
+    // console.log('send file properties')
     active_window.send('file_properties', file_properties);
 }
 
 /* Get disk space */
 function get_disk_space(href, callback) {
 
-    console.log('running get disk space')
+    // console.log('running get disk space')
 
     df = []
     // RUN DISK FREE COMMAND
@@ -430,7 +453,7 @@ function get_disk_space(href, callback) {
 
             if (size != '') {
 
-                console.log('size', size);
+                // console.log('size', size);
 
                 // 0 DISK
                 // 6 SIZE OF DISK
@@ -487,11 +510,10 @@ function get_disk_space(href, callback) {
 
 function get_diskspace_summary() {
 
-    console.log('getting diskspace summary')
+    // console.log('getting diskspace summary')
 
     get_disk_space({href: '/'}, (res) => {
-        console.log('root disk space', res);
-
+        // console.log('root disk space', res);
     });
 
 
@@ -500,7 +522,7 @@ function get_diskspace_summary() {
 // DELETE FILE / FOLDER
 function delete_file(file, callback) {
 
-    console.log('deleting file ' + file)
+    // console.log('deleting file ' + file)
     let stats = fs.statSync(file)
 
     if (stats) {
@@ -515,7 +537,7 @@ function delete_file(file, callback) {
 
                     try{
 
-                        console.log('folder deleted');
+                        // console.log('folder deleted');
                         windows.forEach(win => {
                             win.send('remove_card', file);
                         })
@@ -543,7 +565,7 @@ function delete_file(file, callback) {
                     callback(0);
                 } else {
 
-                    console.log('file deleted');
+                    // console.log('file deleted');
 
                     try {
                         active_window.send('remove_card', file);
@@ -568,7 +590,7 @@ function delete_file(file, callback) {
 }
 
 function clear_copy_arr() {
-    console.log('clearing copy array')
+    // console.log('clearing copy array')
     copy_files_arr = []
 }
 
@@ -591,7 +613,7 @@ function get_file_size(fileSizeInBytes) {
  */
 function CopyToClipboard(data) {
     clipboard.writeText(data);
-    console.log(clipboard.readText());
+    // console.log(clipboard.readText());
 }
 
 /**
@@ -764,12 +786,12 @@ const createWindow = exports.createWindow = () => {
     //   })
     // win.webContents.setFrameRate(60)
 
-    console.log('win', win);
+    // console.log('win', win);
     windows.add(win);
 
     const sess = win.webContents.session
     // sess.fromPartition(current_directory)
-    console.log('user agent' ,sess.getUserAgent())
+    // console.log('user agent' ,sess.getUserAgent())
 
 
 };
@@ -810,7 +832,7 @@ ipcMain.handle('dark-mode:system', () => {
 })
 
 ipcMain.on('copy_to_clipboard', (a, data) => {
-    console.log('copying to clipboard', data)
+    // console.log('copying to clipboard', data)
     CopyToClipboard(data);
 });
 
@@ -848,7 +870,7 @@ ipcMain.on('close', () => {
 
 // GO BACK
 ipcMain.on('go_back', function(e, msg) {
-    console.log('running go back from main ')
+    // console.log('running go back from main ')
     windows.forEach(win => {
         win.webContents.goBack()
     })
@@ -884,7 +906,7 @@ function get_icon_path(href) {
 // HANDLE DRAG START
 ipcMain.on('ondragstart', (e, href) => {
 
-    console.log('added', href, 'to start drag')
+    // console.log('added', href, 'to start drag')
 
     let icon_path = path.join(__dirname, '/assets/icons/file.png')
     if (fs.statSync(href).isDirectory()) {
@@ -902,7 +924,7 @@ ipcMain.on('ondragstart', (e, href) => {
 let copy_files_arr = [];
 ipcMain.on('add_copy_files', function( e, data) {
 
-    console.log('on add copy files', data);
+    // console.log('on add copy files', data);
     copy_files_arr = data;
 
     e.sender.send('clear_copy_arr');
@@ -920,7 +942,7 @@ ipcMain.on('add_copy_files', function( e, data) {
 
 ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
 
-    console.log('on copy', copy_files_arr);
+    // console.log('on copy', copy_files_arr);
     copy(copy_files_arr, state);
 
 })
@@ -928,7 +950,7 @@ ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
 // COPY
 function copy(state) {
 
-    console.log('copy arr length', copy_files_arr.length)
+    // console.log('copy arr length', copy_files_arr.length)
 
     copy_files_arr.every((item, idx) => {
 
@@ -977,7 +999,7 @@ function copy(state) {
                 state = 0
                 copyfolder(source, destination_file, state, () => {
 
-                    console.log('running',path.basename(source))
+                    // console.log('running',path.basename(source))
                     if (isMainView) {
 
                         let options = {
@@ -999,7 +1021,7 @@ function copy(state) {
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
 
-                console.log('copy files array ', copy_files_arr.length())
+                // console.log('copy files array ', copy_files_arr.length())
 
                 active_window.send('add_card', options)
                 return true
@@ -1037,7 +1059,7 @@ function copy(state) {
                         copyfolder(source, destination_file, state, () => {
 
 
-                            console.log('running',path.basename(source))
+                            // console.log('running',path.basename(source))
                             if (isMainView) {
 
                                 let options = {
@@ -1064,7 +1086,7 @@ function copy(state) {
         // FILES
         } else {
 
-            console.log(source, destination)
+            // console.log(source, destination)
 
             // APPEND COPY TO FILENAME IF SAME
             if (path.dirname(source) == destination) {
@@ -1127,7 +1149,7 @@ function copy(state) {
                         win.webContents.send('progress', max, destination_file);
                     })
 
-                    console.log('copy array', copy_files_arr)
+                    // console.log('copy array', copy_files_arr)
                     copyfile(source, destination_file, state, () => {});
 
                     if (isMainView) {
@@ -1149,7 +1171,7 @@ function copy(state) {
                     copy_files_arr.shift();
                     copy(state);
 
-                    console.log('copy array', copy_files_arr)
+                    // console.log('copy array', copy_files_arr)
 
                     return true;
 
@@ -1229,7 +1251,7 @@ function createConfirmDialog(data, copy_files_arr) {
 // OVERWRITE COPY CONFIRMED ALL
 ipcMain.on('overwrite_confirmed_all', (e) => {
 
-    console.log('running overwrite confirmed all')
+    // console.log('running overwrite confirmed all')
 
     // todo: remove references to data.destination. use destination instead
     // data.destination = destination;
@@ -1250,7 +1272,7 @@ ipcMain.on('overwrite_confirmed_all', (e) => {
     // LOOP OVER COPY ARRAY
     copy_files_arr.forEach((data, idx) => {
 
-        console.log(data.source);
+        // console.log(data.source);
 
         let destination_file = path.join(destination, path.basename(data.source));
 
@@ -1277,7 +1299,7 @@ ipcMain.on('overwrite_confirmed_all', (e) => {
 ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr1) => {
 
     // todo: remove references to data.destination. use destination instead
-    console.log('running overwrite confirmed', data.source, data.destination)
+    // console.log('running overwrite confirmed', data.source, data.destination)
 
     let destination_file = path.join(destination, path.basename(data.source))
 
@@ -1331,7 +1353,7 @@ ipcMain.on('overwrite_confirmed', (e, data, copy_files_arr1) => {
 // OVERWRITE COPY SKIP - needs work
 ipcMain.on('overwrite_skip', (e, copy_files_arr) => {
 
-    console.log('running overwrite skipped',copy_files_arr.length);
+    // console.log('running overwrite skipped',copy_files_arr.length);
 
     // confirm.hide()
     let confirm = BrowserWindow.getFocusedWindow()
@@ -1368,7 +1390,7 @@ ipcMain.on('overwrite_canceled_all', (e, copy_files_arr) => {
 // OVERWRITE COPY CANCLED - done
 ipcMain.on('overwrite_canceled', (e) => {
 
-    console.log('running overwrite canceled', copy_files_arr);
+    // console.log('running overwrite canceled', copy_files_arr);
 
     // HIDE
     let confirm = BrowserWindow.getFocusedWindow();
@@ -1394,8 +1416,6 @@ ipcMain.on('overwrite_canceled', (e) => {
 
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
-
-    // let destination = data.destination
 
     console.log('data', data);
 
@@ -1440,7 +1460,7 @@ function createMoveDialog(data, copy_files_arr) {
         confirm.title = title
         confirm.removeMenu()
 
-        console.log('create move data', data, copy_files_arr)
+        // console.log('create move data', data, copy_files_arr)
         confirm.send('confirming_move', data, copy_files_arr)
 
     })
@@ -1471,7 +1491,7 @@ function createMoveDialog(data, copy_files_arr) {
 // MOVE
 ipcMain.on('move', (e) => {
 
-    console.log('running on move');
+    // console.log('running on move');
     move();
 
 })
@@ -1479,7 +1499,7 @@ ipcMain.on('move', (e) => {
 /* Move files */
 function move() {
 
-    console.log('running move', copy_files_arr);
+    // console.log('running move', copy_files_arr);
 
     // Set destination1 since destination (active_folder) will change on mouseover events
     // let destination1 = destination;
@@ -1576,7 +1596,7 @@ function move() {
                         destination: destination_file
                     }
 
-                    console.log('create move data', data, copy_files_arr);
+                    // console.log('create move data', data, copy_files_arr);
                     createMoveDialog(data,copy_files_arr);
                     return false;
 
@@ -1615,7 +1635,7 @@ ipcMain.on('move_confirmed', (e, data) => {
         // state = 0
         copyfolder(data.source, data.destination, data.state, () => {
 
-            console.log('done copying folder')
+            // console.log('done copying folder')
 
             try {
 
@@ -1626,7 +1646,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                         // REMOVE ITEM FROM ARRAY
                         copy_files_arr.shift()
 
-                        console.log('folder deleted array length ', copy_files_arr.length)
+                        // console.log('folder deleted array length ', copy_files_arr.length)
 
                         if (copy_files_arr.length > 0) {
                             move();
@@ -1679,7 +1699,7 @@ ipcMain.on('move_confirmed', (e, data) => {
 // MOVE CONFIRMED ALL - done
 ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
-    console.log('running move confirmmed all', copy_files_arr);
+    // console.log('running move confirmmed all', copy_files_arr);
 
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
@@ -1748,9 +1768,8 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
             // state = 0
             copyfile(data.source, destination_file, state, (res) => {
 
-                console.log('runninig copy file')
-
-                console.log('callback', res)
+                // console.log('runninig copy file')
+                // console.log('callback', res)
 
                 if (fs.existsSync(destination_file)) {
 
@@ -1836,7 +1855,7 @@ ipcMain.on('move_canceled_all', (e) => {
 // GET CONFIRM DIALOG
 ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
-    console.log('running')
+    // console.log('running')
 
     e.preventDefault()
     createOverwriteMoveDialog(data)
@@ -1892,7 +1911,7 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
  // OVERWRITE MOVE CONFIRMED
  ipcMain.on('overwrite_move_confirmed', (e, data) => {
 
-    console.log('running overwrite move confirmed')
+    // console.log('running overwrite move confirmed')
 
     let confirm = window.getFocusedWindow();
     confirm.hide();
@@ -1960,7 +1979,7 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 // OVERWRITE MOVE CONFIRMED ALL
 ipcMain.on('overwrite_move_confirmed_all', (e) => {
 
-    console.log('overwrite move confirmed all')
+    // console.log('overwrite move confirmed all')
 
     let confirm = window.getFocusedWindow();
     confirm.hide();
@@ -1989,7 +2008,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
 
         let destination_file = path.join(destination, path.basename(data.source));
 
-        console.log(data.source);
+        // console.log(data.source);
 
         // DIRECTORY - todo: needs work
         if (fs.statSync(data.source).isDirectory()) {
@@ -2034,7 +2053,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
 // OVERWRITE MOVE SKIP - done
 ipcMain.on('overwrite_move_skip', (e) => {
 
-    console.log('overwrite move skip')
+    // console.log('overwrite move skip')
     let confirm = window.getFocusedWindow();
     confirm.hide()
 
@@ -2050,7 +2069,7 @@ ipcMain.on('overwrite_move_skip', (e) => {
 // OVERWRITE MOVE CANCELED ALL - done
 ipcMain.on('overwrite_move_canceled_all', (e) => {
 
-    console.log('overwrite_move_canceled_all');
+    // console.log('overwrite_move_canceled_all');
 
     let confirm = window.getFocusedWindow();
     confirm.hide();
@@ -2061,7 +2080,7 @@ ipcMain.on('overwrite_move_canceled_all', (e) => {
 // OVERWRITE CANCELED - done
 ipcMain.on('overwrite_move_canceled', (e) => {
 
-    console.log('overwrite_move_canceled');
+    // console.log('overwrite_move_canceled');
 
     let confirm = window.getFocusedWindow();
     confirm.hide();
@@ -2139,11 +2158,9 @@ function create_properties_window(filename) {
                 Created: created
             }
 
-            console.log('send file properties')
+            // console.log('send file properties')
             win.send('file_properties', file_properties)
-
             // win.webContents.openDevTools()
-
             console.log(file_properties)
 
 
@@ -2224,17 +2241,17 @@ ipcMain.on('mount_gio', (e, data) => {
     let mount_gio = exec(cmd)
 
     mount_gio.stdout.on('data', (res) => {
-        console.log('device mounted ' + res)
+        // console.log('device mounted ' + res)
         e.sender.send('gio_mounted', res)
     })
 
     mount_gio.stderr.on('data', (res) => {
-        console.log('device already connected ' + res)
+        // console.log('device already connected ' + res)
         e.sender.send('gio_mounted', res)
     })
 
     mount_gio.on('exit', (code) => {
-        console.log('exit code ' + code)
+        // console.log('exit code ' + code)
     })
 
 })
@@ -2245,16 +2262,16 @@ ipcMain.on('monitor_gio', (e, data) => {
     let cmd = 'gio mount -o'
     let monitor_gio = exec(cmd)
 
-    console.log('starting gio monitor ' + cmd)
+    // console.log('starting gio monitor ' + cmd)
 
     //
     monitor_gio.stdout.on('data', (res) => {
-        console.log('gio monitor' + res)
+        // console.log('gio monitor' + res)
         e.sender.send('gio_monitor', res)
     })
 
     monitor_gio.stderr.on('data', (res) => {
-        console.log('gio monitor error ' + res)
+        // console.log('gio monitor error ' + res)
         e.sender.send('gio_monitor', res)
     })
 
@@ -2266,19 +2283,19 @@ ipcMain.on('monitor_gio', (e, data) => {
 // LIST FILES USING GIO
 ipcMain.on('get_gio_files', (e, data) => {
 
-    console.log(data)
+    // console.log(data)
 
     let files = exec('gio list ' + data)
 
     // STDOUT
     files.stdout.on('data', (res) => {
-        console.log(res)
+        // console.log(res)
         e.sender.send('gio_files', {res, data})
     })
 
     // S
     files.stderr.on('data', (data) => {
-        console.log(data)
+        // console.log(data)
         e.sender.send('gio_files', data)
     })
 
@@ -2298,7 +2315,7 @@ ipcMain.on('get_uncompressed_size', (e, filename) => {
 
     }
 
-    console.log('uncompressed size ' + size)
+    // console.log('uncompressed size ' + size)
     e.sender.send('uncompressed_size', size)
 
 })
@@ -2307,10 +2324,6 @@ ipcMain.on('get_uncompressed_size', (e, filename) => {
 ipcMain.on('get_files', (e, dir) => {
 
     // console.log('directory ' + dir)
-    // let dirents = fs.readdirSync(args.dir)
-    // if (dirents.length > 0) {
-    //     e.sender.send('files', dirents)
-    // }
     fs.readdir(dir, (err, dirents) => {
         e.sender.send('files', dirents)
     })
@@ -2377,20 +2390,6 @@ ipcMain.on('get_diskspace_summary', (e) => {
     get_diskspace_summary()
 })
 
-// // SEND COPY FILES ARRAY
-// ipcMain.on('get_copy_files_arr', (e, destination_folder) => {
-
-//     console.log('on get_copy_files arr', copy_files_arr)
-
-//     let win = window.getFocusedWindow();
-//     win.webContents.send('copy_files_arr', copy_files_arr);
-//     // win.webContents.send('copy_files', {copy_files_arr : copy_files_arr, destination_folder: destination_folder})
-
-//     // CLEAR COPY FILES ARRAY
-//     copy_files_arr = []
-
-// })
-
 // CREATE CHILD WINDOW
 function createChildWindow() {
     chileWindow = new BrowserWindow({
@@ -2416,123 +2415,6 @@ function createChildWindow() {
     // LOAD INDEX FILE
     chileWindow.loadFile('src/index.html')
 }
-
-// win.loadURL('file://' + __dirname + '/src/backup.html')
-
-
-// const contents = win.webContents
-// console.log(contents)
-
-
-//   const ses = win.webContents.session
-//   const ses = session.fromPartition('persist:name')
-
-
-//   win.once('ready-to-show',() => {
-//       win.show()
-//   })
-
-// // TESTING ??
-// if (process.argv[2]) {
-//     start_path = process.argv[2]
-//     console.log(start_path)
-//     win.webContents.send('start_path', start_path)
-//   }
-
-
-
-
-
-  // // START OF SESSION MANAGEMENT
-  // const ses = win.webContents.session
-
-  // ses.fromPartion('partition', true)
-
-
-
-
-  /////////////////////////////////////////////////////////
-
-//   win.once('ready-to-show', () => {
-//     console.log('ready-to-show')
-//     win.show();
-//   });
-
-//   win.on('closed', () => {
-//     windows.delete(win);
-//     win = null;
-//   });
-
-
-
-//   windows.add(win);
-
-    // const ses = session.fromPartition('persist:name')
-
-    // console.log('all running session ' + session.defaultSession.serviceWorkers.getAllRunning())
-
-    // session.defaultSession.serviceWorkers.on('console-message', (event, messageDetails) => {
-    //     console.log(
-    //       'Got service worker message',
-    //       messageDetails,
-    //       'from',
-    //       session.defaultSession.serviceWorkers.getFromVersionID(messageDetails.versionId)
-    //     )
-    // })
-
-    // console.log(ses.getCacheSize())
-
-    // win.setFullScreen = true
-    // win.webContents.openDevTools()
-
-    // win.maximize()
-
-
-    // // RELOAD WINDOW
-    // ipcMain.on('reload',function(e){
-    //     win.loadFile('src/index.html')
-    // })
-
-
-    // // MAXAMIZE WINDOW
-    // ipcMain.on('maximize', () => {
-    //     win.maximize()
-    // })
-
-
-    // // MINIMIZE WINDOW
-    // ipcMain.on('minimize', () => {
-    //     win.minimize()
-    // })
-
-    // // CLOSE WINDOW
-    // ipcMain.on('close', () => {
-    //     win.close()
-    // })
-
-
-  // let displays = screen.getAllDisplays()
-
-  // displays.forEach(element => {
-  //   console.log(element)
-  // });
-
-
-  // let externalDisplay = displays.find((display) => {
-  //   return display.bounds.x !== 0 || display.bounds.y !== 0
-  // })
-
-  // if (externalDisplay) {
-  //   win = new BrowserWindow({
-  //     x: externalDisplay.bounds.x + 50,
-  //     y: externalDisplay.bounds.y + 50
-  //   })
-  // }
-
-  // Menu.setApplicationMenu(menu);
-
-
-// }
 
 process.on('uncaughtException', function (err) {
   console.log(err);
@@ -2659,20 +2541,22 @@ function add_templates_menu(menu, e, args) {
 // LAUNCHER MENU
 let launcher_menu
 function add_launcher_menu(menu, e, args) {
+
     launcher_menu = menu.getMenuItemById('launchers')
     if (args.length > 0) {
         for(let i = 0; i < args.length; i++) {
+
             launcher_menu.submenu.append(new MenuItem({
                 label: args[i].name,
                 click: () => {
 
-                    console.log(e)
-
+                    // console.log(e)
                     // e.sender.send('', args[i].exec)
                     e.sender.send('context-menu-command', 'open_with_application', args[i].exec)
 
                     let cmd = 'xdg-mime default ' + args[i].desktop + ' ' + args[i].mimetype
                     console.log(cmd)
+
                     execSync(cmd)
 
                     // e.sender.send('open_with')
@@ -2681,6 +2565,7 @@ function add_launcher_menu(menu, e, args) {
             }))
         }
     }
+
 }
 
 // Run as Program
@@ -2724,13 +2609,13 @@ function add_convert_audio_menu(menu, href) {
                     })
 
                     cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
-                    console.log(cmd)
+                    // console.log(cmd)
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
                             console.log(err)
                         } else {
-                            console.log('stderr', stderr)
-                            console.log('stdout', stdout);
+                            // console.log('stderr', stderr)
+                            // console.log('stdout', stdout);
                             active_window.send('progress', parseInt(stdout))
                         }
                     })
@@ -2742,7 +2627,7 @@ function add_convert_audio_menu(menu, href) {
                 click: () => {
                     let filename = href.substring(0, href.length - path.extname(href).length) + '.ogg'
                     let cmd = 'ffmpeg -i ' + href + ' -c:a libvorbis -q:a 4 ' + filename;
-                    console.log(cmd);
+                    // console.log(cmd);
 
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
@@ -2761,13 +2646,13 @@ function add_convert_audio_menu(menu, href) {
                     })
 
                     cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
-                    console.log(cmd)
+                    // console.log(cmd)
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
                             console.log(err)
                         } else {
-                            console.log('stderr', stderr)
-                            console.log('stdout', stdout);
+                            // console.log('stderr', stderr)
+                            // console.log('stdout', stdout);
                             active_window.send('progress', parseInt(stdout))
                         }
                     })
@@ -2818,9 +2703,8 @@ function add_scripts_menu(menu, e, args) {
 ipcMain.on('show-context-menu', (e, options) => {
 
     // console.log(data)
-
-  console.log('running main menu')
-  const template = [
+    // console.log('running main menu')
+    const template = [
     {
         label: 'New Folder',
         accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
@@ -2850,19 +2734,19 @@ ipcMain.on('show-context-menu', (e, options) => {
         submenu: [
             {
                 label: 'Date',
-                click: () => {win.webContents.send('sort', 'date')}
+                click: () => {active_window.send('sort', 'date')}
             },
             {
                 label: 'Name',
-                click: () => {win.webContents.send('sort', 'name')}
+                click: () => {active_window.send('sort', 'name')}
             },
             {
                 label: 'Size',
-                click: () => {win.webContents.send('sort', 'size')}
+                click: () => {active_window.send('sort', 'size')}
             },
             {
                 label: 'Type',
-                click: () => {win.webContents.send('sort', 'type')}
+                click: () => {active_window.send('sort', 'type')}
             }
 
         ]
@@ -2905,7 +2789,6 @@ ipcMain.on('show-context-menu', (e, options) => {
       type: 'checkbox'
 
     },
-    // { label: 'Terminal', type: 'button', checked: true }
   ]
 
     // CALL BUILD TEMPLATE. CREATE NEW FILES
@@ -2934,13 +2817,13 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
         {
             type: 'separator'
         },
-        {
-            label: 'Open in New Tab',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.OpenNewTab : settings.keyboard_shortcuts.OpenNewTab,
-            click: () => {
-                e.sender.send('context-menu-command', 'open_new_tab');
-            }
-        },
+        // {
+        //     label: 'Open in New Tab',
+        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.OpenNewTab : settings.keyboard_shortcuts.OpenNewTab,
+        //     click: () => {
+        //         e.sender.send('context-menu-command', 'open_new_tab');
+        //     }
+        // },
         {
             label: 'Open',
             click: () => {
@@ -2969,19 +2852,19 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {win.webContents.send('sort', 'date')}
+                    click: () => {active_window.send('sort', 'date')}
                 },
                 {
                     label: 'Name',
-                    click: () => {win.webContents.send('sort', 'name')}
+                    click: () => {active_window.send('sort', 'name')}
                 },
                 {
                     label: 'Size',
-                    click: () => {win.webContents.send('sort', 'size')}
+                    click: () => {active_window.send('sort', 'size')}
                 },
                 {
                     label: 'Type',
-                    click: () => {win.webContents.send('sort', 'type')}
+                    click: () => {active_window.send('sort', 'type')}
                 }
 
             ]
@@ -3018,7 +2901,7 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
             label: 'Add to workspace',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
             click: () => {
-                console.log('add workspace')
+                // console.log('add workspace')
                 e.sender.send('add_workspace')
             },
         },
@@ -3046,12 +2929,6 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
                 e.sender.send('context-menu-command', 'paste')
             }
         },
-        // {
-        //     label: 'Paste file into folder',
-        //     click: () => {
-        //         e.sender.send('context-menu-command', 'paste_file')
-        //     }
-        // },
         {
             label: '&Rename',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
@@ -3108,29 +2985,24 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click:()=>{
                 // createPropertiesWindow()
-                e.sender.send('context-menu-command', 'props')
+                e.sender.send('context-menu-command', 'props');
             }
         },
         {
             type: 'separator'
         }
-        // {
-        //   label: 'Move to trash',
-        //   click: () => {
-        //     e.sender.send('context-menu-command', 'move_to_trash')
-        //   }
-        // },
     ]
 
-      const menu1 = Menu.buildFromTemplate(template1)
+      const menu1 = Menu.buildFromTemplate(template1);
 
       // ADD TEMPLATES
-      add_templates_menu(menu1, e, args[0])
+      add_templates_menu(menu1, e, args[0]);
 
       // ADD LAUNCHER MENU
-      add_launcher_menu(menu1, e, args[0])
+      add_launcher_menu(menu1, e, args);
+      console.log(args);
 
-      menu1.popup(BrowserWindow.fromWebContents(e.sender))
+      menu1.popup(BrowserWindow.fromWebContents(e.sender));
 
 })
 
@@ -3175,19 +3047,19 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {win.webContents.send('sort', 'date')}
+                    click: () => {active_window.send('sort', 'date')}
                 },
                 {
                     label: 'Name',
-                    click: () => {win.webContents.send('sort', 'name')}
+                    click: () => {active_window.send('sort', 'name')}
                 },
                 {
                     label: 'Size',
-                    click: () => {win.webContents.send('sort', 'size')}
+                    click: () => {active_window.send('sort', 'size')}
                 },
                 {
                     label: 'Type',
-                    click: () => {win.webContents.send('sort', 'type')}
+                    click: () => {active_window.send('sort', 'type')}
                 }
 
             ]
@@ -3242,11 +3114,6 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         {
             type: 'separator'
         },
-        // {
-        //     label: '&Extract',
-        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
-        //     click: () => { e.sender.send('context-menu-command', 'extract_here') }
-        // },
         {
             label: 'Compress',
                 accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
@@ -3308,17 +3175,18 @@ ipcMain.on('show-context-menu-files', (e, args) => {
     add_templates_menu(menu, e, args)
 
     // ADD LAUNCHER MENU
-    add_launcher_menu(menu, e, args)
+    add_launcher_menu(menu, e, args.associated_apps)
+    console.log(args)
 
     // Run as program
     if (args.access) {
         add_execute_menu(menu, e, args)
     }
 
-    console.log(args.href)
+    // console.log(args.href)
 
     // Convert audio menu
-    console.log(path.extname(args.href))
+    // console.log(path.extname(args.href))
 
     let ext = path.extname(args.href);
     if (ext == '.mp4' || ext == '.mp3') {
@@ -3326,19 +3194,11 @@ ipcMain.on('show-context-menu-files', (e, args) => {
     }
 
     if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
-        console.log('extract compressed file');
+        // console.log('extract compressed file');
         extract_menu(menu, e, args);
     }
 
     menu.popup(BrowserWindow.fromWebContents(e.sender))
-
-    // menu.on('menu-will-close', (e) => {
-    //     active_window.on('before-input-event', (e, input) => {
-    //         console.log(input)
-    //     })
-    //     active_window.send('clear_selected_files')
-    // })
-
 
 })
 
@@ -3357,17 +3217,7 @@ ipcMain.on('get_home_folder',function(e) {
 
 // FIND ON PAGE
 ipcMain.on('find', function (e, args) {
-  console.log('running find')
-  // const requestId = win.webContents.findInPage(text, args);
 })
-
-// CREATE NEW WINDOW
-// ipcMain.on('new_window', function (e, args) {
-//     // createWindow()
-//     window.open('src/index.html')
-//     console.log('running new window')
-// })
-
 
 // GET HOME FOLDER
 ipcMain.on('get_home_folder',function(e){
@@ -3379,91 +3229,32 @@ ipcMain.on('get_home_folder',function(e){
 
 // FIND ON PAGE
 ipcMain.on('find', function (e, args) {
-  console.log('running find')
-  // const requestId = win.webContents.findInPage(text, args);
 })
 
 // CONFIRM DELETE FILES DIALOG
 ipcMain.on('confirm_file_delete', function (e, target_name) {
-  // e.preventDefault()
 
-  let res = dialog.showMessageBoxSync(null, {
+    let res = dialog.showMessageBoxSync(null, {
 
-    type: 'warning',
-    title: 'Warning',
-    buttons: ['Delete', 'Cancel'],
-    // type: 'question',
-    normalizeAccessKeys: true,
-    message: 'Are you sure you want to permanently delete',
-    detail: target_name
+        type: 'warning',
+        title: 'Warning',
+        buttons: ['Delete', 'Cancel'],
+        // type: 'question',
+        normalizeAccessKeys: true,
+        message: 'Are you sure you want to permanently delete',
+        detail: target_name
 
-  })
+    })
 
-  console.log(res)
+    if (res == 0) {
+        e.sender.send('delete_file_confirmed', res)
+    }
 
-  if (res == 0) {
-    e.sender.send('delete_file_confirmed', res)
-  }
-
-  if(res == 1){
-    e.sender.send('clear_selected_files')
-  }
-
-
+    if(res == 1){
+        e.sender.send('clear_selected_files')
+    }
 
 })
-
-// // CONFIRM OVERWRITE FILE DIALOG
-// ipcMain.on('confirm_move_overwrite', function (e, msg) {
-//     // e.preventDefault()
-
-//     let res = dialog.showMessageBoxSync(null, {
-
-//         // defaultId: 0,
-//         type: 'warning',
-//         title: 'Warning',
-//         buttons: ['Ok', 'Cancel'],
-//         // type: 'question',
-//         message: 'Are you sure you want to overwrite your stuff',
-//         detail: msg
-
-//     })
-
-//     // console.log(res)
-
-//     if (res == 0) {
-
-//         e.sender.send('move_overwrite_confirmed', res)
-//     }
-
-// })
-
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////
-
-// app.whenReady().then(() => {
-//   createWindow()
-//   app.on('activate', () => {
-//     if (BrowserWindow.getAllWindows().length === 0) {
-
-//         createWindow()
-
-//         const ses = session.fromPartition('persist:name')
-//         console.log(ses.getUserAgent())
-
-//     }
-//   })
-// })
-
-
-// ipcMain.on('ondragstart', (e, filePath) => {
-//   e.sender.startDrag({
-//     file: path.join(__dirname, filePath),
-//     icon: iconName,
-//   })
-// })
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -3475,37 +3266,9 @@ ipcMain.on('quit', () => {
     app.quit()
 })
 
-
 ipcMain.on('reload',()=> {
 
   // let folder = localStorage.getItem('folder')
 
 })
 
-
-// ipcMain.on('ondragstart', (event, filePath) => {
-//   event.sender.startDrag({
-//     file: filePath,
-//     icon: '/path/to/icon.png'
-//   })
-// })
-
-
-
-
-
-
-
-
-
-
-
-
-// ipc.on('btn_getdir', function (event, arg) {
-//   win.webContents.send('targetPriceVal', arg)
-// })
-
-
-// ipc.on('update-notify-value', function (event, arg) {
-//   win.webContents.send('targetPriceVal', arg)
-// })
