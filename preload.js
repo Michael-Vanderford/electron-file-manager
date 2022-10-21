@@ -1778,6 +1778,7 @@ async function get_sidebar_view() {
             case 'mb_find':
                 console.log('running find files')
                 find_files()
+                // find()
                 break;
             case 'mb_fs':
                 get_sidebar_files('/');
@@ -2569,13 +2570,17 @@ async function add_card(options) {
         card.dataset.href   = href
         input.spellcheck    = false
 
-        /* Set Index for Navigation */
-        if (
-            grid.id == 'folder_grid' ||
-            grid.id == 'file_grid'
-            ) {
-            cardindex       += 1
-            card.dataset.id = cardindex
+        // Set Index for Navigation
+        if (grid) {
+            if (
+                grid.id == 'folder_grid' ||
+                grid.id == 'file_grid'
+                ) {
+                cardindex       += 1
+                card.dataset.id = cardindex
+            } else {
+                console.log('grid not defined')
+            }
         }
 
         /* Get Extension Name */
@@ -2626,8 +2631,6 @@ async function add_card(options) {
             img.classList.add('icon');
         }
 
-
-
         // /* Handle Audio Files */
         // let is_audio = 0;
         // if (
@@ -2648,7 +2651,6 @@ async function add_card(options) {
         // if (is_video) {
 
         // }
-
 
         /* Create items */
         items.classList.add('ui', 'items')
@@ -3130,9 +3132,13 @@ async function add_card(options) {
         content.appendChild(progress);
 
         col.appendChild(card);
-        grid.appendChild(col);
 
-        return await card;
+        if (grid) {
+            grid.appendChild(col);
+        }
+
+
+        return card;
 
     } catch (err) {
         console.log('error adding card', err);
@@ -6150,6 +6156,7 @@ contextBridge.exposeInMainWorld('api', {
     },
     find_files: () => {
         find_files()
+        // find()
     },
     get_disk_usage: () => {
         get_disk_usage()
@@ -6438,6 +6445,8 @@ function find_init() {
         }
     })
 
+
+
     // search_results.innerHTML    = '';
     // sidebar_items.innerHTML     = '';
     // input.placeholder           = 'Search';
@@ -6538,7 +6547,7 @@ function find_init() {
                 console.log(options)
 
                 //  FIND FILES
-                cmd = ' find "' + breadcrumbs.value + '" -maxdepth 5 ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                cmd = ' find "' + breadcrumbs.value + '" -maxdepth ' + options.depth + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
                 // cmd = 'find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
                 console.log(cmd)
 
@@ -6649,6 +6658,244 @@ function find_init() {
 
 }
 
+
+
+async function find() {
+
+    get('../src/find.html', (find_page) => {
+
+        let sidebar_items       = document.getElementById('sidebar_items');
+        sidebar_items.innerHTML = find_page;
+
+        let find           = document.getElementById('find');
+        let search_info    = document.getElementById('search_info');
+        let search_results = document.getElementById('search_results');
+        let find_folders   = document.getElementById('find_folders');
+        let find_files     = document.getElementById('find_files');
+
+        let options = {
+            show_folders: 1,
+            show_files: 1,
+            case: 0,
+            depth: 1,
+            start_date: '',
+            end_date: '',
+            size: ''
+        }
+
+        options.show_folders       = parseInt(localStorage.getItem('find_folders'))
+        options.show_files         = parseInt(localStorage.getItem('find_files'))
+
+        // if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
+
+        find_folders.checked        = options.show_folders;
+        find_files.checked          = options.show_files;
+
+        console.log(options.show_folders, options.show_files)
+
+        // FIND FOLDERS
+        find_folders.addEventListener('change', (e) => {
+            if (find_folders.checked) {
+                localStorage.setItem('find_folders', 1);
+                options.show_folders = 1
+                console.log('setting find to 1');
+            } else {
+                localStorage.setItem('find_folders', 0);
+                options.show_folders = 0
+                console.log('setting find to 0');
+            }
+        })
+
+        // FIND FILES
+        find_files.addEventListener('change', (e) => {
+            if (find_files.checked) {
+                localStorage.setItem('find_files', 1);
+                options.show_files = 1
+                console.log('setting find to 1');
+
+            } else {
+                localStorage.setItem('find_files', 0);
+                options.show_files = 0
+                console.log('setting find to 0');
+
+            }
+
+        })
+
+        let search_arr = []
+
+        let inputs = find_options.querySelectorAll('.find_input')
+        inputs.forEach(input => {
+
+            options[input.id] = input.value
+
+            input.addEventListener('change', (e) => {
+                localStorage.setItem(input.id, input.value)
+                options[input.id] = input.value
+
+            })
+
+            if (localStorage.getItem(input.id) != '') {
+                input.value = localStorage.getItem(input.id)
+            }
+        })
+
+        let recursive = 0;
+        find.addEventListener('keyup', (e) => {
+
+            if (e.key == 'Enter') {
+
+                search_info.innerHTML = 'searching..'
+                search_results.innerHTML = ''
+
+                function get_files_recursive(filename) {
+
+                    // let dirents = fs.readdirSync(filename)
+                    fs.readdir(filename, (err, dirents) => {
+
+                        if (!err) {
+
+                            try {
+
+                                let files = dirents.filter(item => !fs.statSync(path.join(filename, item)).isDirectory())
+                                if (files.length > 0) {
+
+                                    files.forEach((file, idx) => {
+
+                                        if (file.toLocaleLowerCase().indexOf(find.value) > -1) {
+
+                                            let cfilename = path.join(filename, file)
+
+                                            search_arr.push(cfilename)
+                                            console.log('files search array', search_arr)
+
+                                            let options = {
+                                                id: 0,
+                                                href: cfilename,
+                                                linktext: file
+                                            }
+                                            add_card(options).then((card) => {
+                                                search_info.innerHTML = ''
+                                                search_results.append(card)
+                                                update_card(card.dataset.href)
+                                            })
+
+                                        }
+
+                                    })
+
+                                } else {
+
+                                    search_info.innerHTML = '';
+
+                                }
+
+                            } catch (err) {
+                                // console.log(err)
+                            }
+
+                        } else {
+                            // console.log(err);
+                        }
+
+                    })
+
+                }
+
+                let c = 0;
+                function get_folders_recursive(filename) {
+
+                    c++
+                    console.log(filename, c, options.depth)
+
+                    fs.readdir(filename, (err, dirents) => {
+
+                        if (!err) {
+
+                            try {
+
+                                let folders = dirents.filter(item => fs.statSync(path.join(filename, item)).isDirectory())
+                                if (folders.length > 0) {
+
+                                    console.log('folders', folders)
+
+                                    search_info.innerHTML = ''
+                                    folders.forEach((folder, idx) => {
+
+                                        // Get folders recursive
+                                        let cursource = path.join(filename, folder)
+                                        if (options.show_folders) {
+
+                                            if (folder.toLocaleLowerCase().indexOf(find.value) > -1) {
+
+                                                search_arr.push(cursource)
+                                                console.log('folders search array', search_arr)
+
+                                                let options = {
+                                                    id: 0,
+                                                    href: cursource,
+                                                    linktext: path.basename(cursource),
+                                                    is_folder: 1,
+                                                    grid: ''
+                                                }
+
+                                                add_card(options).then((card) => {
+
+                                                    search_info.innerHTML = ''
+                                                    search_results.append(card)
+                                                    update_card(card.dataset.href)
+
+                                                })
+
+                                            }
+
+                                            // // console.log(idx)
+                                            // if (c <= options.depth) {
+                                            //     get_folders_recursive(cursource)
+                                            // }
+
+                                        }
+
+                                        // Get files recursive
+                                        if (options.show_files) {
+                                            // console.log('get files recursive', cursource)
+                                            get_files_recursive(cursource);
+                                        }
+
+                                    })
+
+                                } else {
+                                    // search_info.innerHTML = 'no results found..'
+                                }
+
+                            } catch (err) {
+                                // console.log(err)
+                            }
+
+                        } else {
+                            // console.log(err)
+                        }
+
+                    })
+
+                }
+
+                console.log(search_arr)
+
+                if (find.value != "") {
+
+                    get_files_recursive(breadcrumbs.value);
+                    get_folders_recursive(breadcrumbs.value)
+                }
+
+            }
+
+        })
+
+        find.focus()
+    })
+}
+
 // FIND FILES
 var search_res = '';
 async function find_files() {
@@ -6656,30 +6903,30 @@ async function find_files() {
     // console.log('running find files')
     notification('running find files')
 
+    if (process.os === 'Win32') {
+        find();
+    }
+
     let cmd = '';
     get('../src/find.html', (find_page) => {
 
         let sidebar_items           = document.getElementById('sidebar_items');
         sidebar_items.innerHTML     = find_page;
-        // console.log(find_page)
         let cards = sidebar_items.querySelectorAll('.nav_item')
-        // console.log(cards.length)
         cards.forEach(card => {
 
-            console.log(card.dataset.href)
+            console.log(card.dataset.href);
 
-            let img = card.querySelector('.img')
-            img.classList.remove('lazy')
-            img.src = img.dataset.src
+            let img = card.querySelector('img');
+            img.classList.remove('lazy');
+            img.src = img.dataset.src;
 
-            // update_card(card.dataset.href);
+            update_card(card.dataset.href);
 
         })
 
         // Search view
-        let search_content          = document.getElementById('search_content');
         let search_results          = document.getElementById('search_results');
-        let find_div                = document.getElementById('find_div');
         let find                    = document.getElementById('find');
         let find_options            = document.getElementById('find_options');
         let find_folders            = document.getElementById('find_folders')
@@ -6689,61 +6936,77 @@ async function find_files() {
         let find_size               = document.getElementById('find_size');
         let start_date              = document.getElementById('start_date');
         let end_date                = document.getElementById('end_date');
-        let grid                    = add_grid();
-        let input                   = add_input('text', 'sb_find_input');
         let mb_find                 = document.getElementById('mb_find');
 
-        let show_options            = localStorage.getItem('find_options');
+        let options = {
+            show_folders: 1,
+            show_files: 1,
+            case: 0,
+            depth: 1,
+            start_date: '',
+            end_date: '',
+            size: ''
+        }
 
-        let show_folders            = localStorage.getItem('find_folders');
-        let show_files              = localStorage.getItem('find_files');
+        // let show_options            = localStorage.getItem('find_options');
+
+        options.show_folders            = parseInt(localStorage.getItem('find_folders'));
+        options.show_files              = parseInt(localStorage.getItem('find_files'));
 
         clear_minibar();
         mb_find.style = 'color: #ffffff !important';
 
-        if (show_options == null) {
-            localStorage.setItem('find_options', 0);
-        }
+        // if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
 
-        if (show_folders == null) {
-            localStorage.setItem('find_folders', 1);
-        }
+        find_folders.checked        = options.show_folders;
+        find_files.checked          = options.show_files;
 
-        if (show_files == null) {
-            localStorage.setItem('find_files', 1);
-        }
-
-        if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
-
-        find_folders.checked        = show_folders;
-        find_files.checked          = show_files;
-
-        localStorage.setItem('minibar', 'mb_find')
+        console.log(options.show_folders, options.show_files)
 
         // FIND FOLDERS
         find_folders.addEventListener('change', (e) => {
             if (find_folders.checked) {
                 localStorage.setItem('find_folders', 1);
+                options.show_folders = 1
                 console.log('setting find to 1');
             } else {
                 localStorage.setItem('find_folders', 0);
+                options.show_folders = 0
                 console.log('setting find to 0');
             }
         })
 
         // FIND FILES
         find_files.addEventListener('change', (e) => {
-
             if (find_files.checked) {
-
                 localStorage.setItem('find_files', 1);
+                options.show_files = 1
                 console.log('setting find to 1');
 
             } else {
-
                 localStorage.setItem('find_files', 0);
+                options.show_files = 0
                 console.log('setting find to 0');
 
+            }
+
+        })
+
+        localStorage.setItem('minibar', 'mb_find')
+
+        let inputs = find_options.querySelectorAll('.find_input')
+        inputs.forEach(input => {
+
+            options[input.id] = input.value
+
+            input.addEventListener('change', (e) => {
+                localStorage.setItem(input.id, input.value)
+                options[input.id] = input.value
+
+            })
+
+            if (localStorage.getItem(input.id) != '') {
+                input.value = localStorage.getItem(input.id)
             }
 
         })
@@ -6779,15 +7042,14 @@ async function find_files() {
 
                     console.log('storage find files', find_files)
 
-                    let options = {
-                        d: find_folders,
-                        f: find_files,
-                        start_date: start_date.value,
-                        end_date: end_date.value,
-                        size: find_size.value, //localStorage.getItem('find_by_size'),
-                        o: ' -o ',
-                        s: find.value
-                    }
+                    options.d = find_folders,
+                    options.f = find_files,
+                    options.start_date = start_date.value,
+                    options.end_date = end_date.value,
+                    options.size = find_size.value, //localStorage.getItem('find_by_size'),
+                    options.o = ' -o ',
+                    options.s = find.value
+
 
                     //  SIZE
                     if (options.size != '') {
@@ -6837,8 +7099,13 @@ async function find_files() {
                     console.log(options)
 
                     //  FIND FILES
-                    cmd = ' find "' + breadcrumbs.value + '" -maxdepth 5 ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
-                    // cmd = 'find "' + breadcrumbs.value + '" ' + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+                    cmd = ' find "' + breadcrumbs.value + '" -maxdepth ' + options.depth + options.d + options.start_date + options.end_date + options.o + options.f + options.start_date + options.end_date
+
+                    if (process.platform === 'Win32') {
+                        notification('find is not yet implemented on window');
+                        cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
+                    }
+
                     console.log(cmd)
 
                     let child = exec(cmd)
@@ -6971,58 +7238,7 @@ contextBridge.exposeInMainWorld('darkMode', {
     system: () => ipcRenderer.invoke('dark-mode:system')
 })
 
-// moved to bottom
-// // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
-// window.addEventListener('contextmenu', function (e) {
 
-//     if (active_href) {
-
-//         let stats = fs.statSync(active_href);
-
-//         if (stats) {
-
-//             let filetype = mime.lookup(active_href);
-//             let associated_apps = get_available_launchers(filetype, active_href);
-
-//             // CHECK FOR FOLDER CARD CLASS
-//             if (stats.isDirectory()) {
-
-//                 ipcRenderer.send('show-context-menu-directory', associated_apps);
-
-//                 // CHECK IF FILE CARD
-//             } else if (stats.isFile()) {
-
-//                 ipcRenderer.send('show-context-menu-files', associated_apps);
-
-//                 // EMPTY AREA
-//                 // todo this needs to be looked
-//             } else {
-
-//                 ipcRenderer.send('show-context-menu');
-
-//             }
-
-//             active_href = '';
-
-//         }
-
-//     } else {
-
-//         let data = {
-//             source: path.join(__dirname, 'assets/templates/'),
-//             destination: breadcrumbs.value + '/'
-//         }
-
-//         ipcRenderer.send('show-context-menu', data);
-
-//         // // ON COPY COMPLETE
-//         // ipcRenderer.on('copy-complete', function (e) {
-//         //     get_files(breadcrumbs.value, { sort: localStorage.getItem('sort') })
-//         // })
-
-//     }
-
-// })
 
 // FUNCTIONS //
 
@@ -7032,9 +7248,11 @@ async function get_devices() {
     console.log('running get devices');
     let devices             = [];
     let sidebar_items       = document.getElementById('sidebar_items');
+    let device_view         = add_div();
     link_div                = add_div();
     remove_div              = add_div();
 
+    device_view.style = 'padding-top: 20px;'
 
     sidebar_items.innerHTML = '';
 
@@ -7068,8 +7286,7 @@ async function get_devices() {
             let link    = add_link( item.href, item.name);
             let icon    = add_icon('hdd');
             let umount  = add_icon('eject');
-
-            let div = add_div()
+            let div     = add_div()
 
             let col1 = add_div().innerHTML = (icon)
             let col2 = add_div().innerHTML = (link)
@@ -7079,7 +7296,7 @@ async function get_devices() {
             col2.style = 'width: 100%'
 
             div.append(col1, col2, col3)
-            div.style = 'display: flex; padding: 5px; width: 100%;'
+            div.style = 'display: flex; padding: 6px; width: 100%;'
             div.classList.add('item')
 
 
@@ -7107,7 +7324,8 @@ async function get_devices() {
                 get_view(item.href);
             })
 
-            sidebar_items.append(device)
+            device_view.append(device)
+            sidebar_items.append(device_view)
 
         })
 
@@ -7406,32 +7624,6 @@ function hide_progress(card_id) {
             progress[i].classList.add('hidden')
         }
     }
-}
-
-// ANOTHER GET ALL FILES
-const get_files_recursive = function (source) {
-
-    // files = fs.readdir(dirPath, (err, files)){
-
-    files_arr = []
-    fs.readdir(source, (err, files) => {
-        if (err)
-            console.log(err);
-        else {
-            console.log("\nCurrent directory filenames:");
-            files.forEach(file => {
-
-                if (fs.statSync(source).isDirectory()) {
-                    files_arr = get_files_recursive(source)
-                } else {
-                    files_arr.push(file)
-                }
-
-                console.log(file);
-            })
-        }
-    })
-
 }
 
 // PASTE
@@ -9644,6 +9836,8 @@ window.addEventListener('DOMContentLoaded', () => {
         // find_files();
         localStorage.setItem('sidebar', 1);
         show_sidebar();
+
+        // find();
         find_files();
 
     })

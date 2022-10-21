@@ -900,6 +900,8 @@ function get_icon_path(href) {
 
         win.send('icon_path',data);
 
+    }).catch((err) => {
+        
     })
 }
 

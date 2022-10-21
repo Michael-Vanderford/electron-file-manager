@@ -16,7 +16,7 @@ let network         = document.getElementById('network')
 let footer          = document.getElementById('footer')
 let btn_disk_usage  = document.getElementById('btn_disk_usage')
 let minibar         = document.getElementById('minibar')
-let minibar_items    = minibar.querySelectorAll('.item')
+let minibar_items   = minibar.querySelectorAll('.item')
 
 // TOGGLE VIEWS
 let btn_settings_view   = document.getElementById('btn_settings_view')
@@ -41,16 +41,6 @@ function clear_active() {
 
     let header_menu = $('#header_menu, .item')
     header_menu.removeClass('active')
-
-    // home.classList.remove('active')
-    // documents.classList.remove('active')
-    // downloads.classList.remove('active')
-    // pictures.classList.remove('active')
-    // videos.classList.remove('active')
-    // music.classList.remove('active')
-    // devices.classList.remove('active')
-    // network.classList.remove('active')
-
 }
 
 // ADD DIV
@@ -78,9 +68,6 @@ if (localStorage.getItem('sidebar_width')) {
 
 //
 if (element) {
-
-    // var resizer = document.createElement('div')
-    // resizer.className = 'draghandle'
 
     let resizer = document.getElementById('draghandle')
 
@@ -111,12 +98,7 @@ function initResize(e) {
 /* Resize sidebar */
 function Resize(e) {
     element.style.width = (e.clientX - element.offsetLeft) + 'px';
-
     main_view.style.marginLeft = (e.clientX - (element.offsetLeft - 40)) + 'px'
-    // main_view.style.marginLeft = '(max(75%, min (' + (e.clientX - (element.offsetLeft - 40)) + 'px, 100%))'
-    // $('#main_view').css('margin-left', (e.clientX - (element.offsetLeft - 40)) + 'px');
-    // $('#sidebar').css('margin-left', (element.offsetLeft) + 'px');
-
 }
 
 /* Stop resize of sidebar */
@@ -212,11 +194,6 @@ btn_list_view.addEventListener('click', (e) => {
     localStorage.setItem('view', 'list');
     window.api.get_view(localStorage.getItem('folder'));
 
-    // list_view.classList.remove('hidden')
-    // grid_view.classList.add('hidden')
-
-    // get_files(localStorage.getItem('folder'))
-
     btn_list_view.classList.add('active')
     btn_grid_view.classList.remove('active')
 
@@ -229,13 +206,6 @@ btn_grid_view.addEventListener('click', (e) => {
 
     localStorage.setItem('view', 'grid');
     window.api.get_view(localStorage.getItem('folder'));
-
-    // grid_view.classList.remove('hidden')
-    // list_view.classList.add('hidden')
-
-    // get_files(localStorage.getItem('folder'))
-
-    // window.api.get_files(breadcrumbs.value)
     btn_list_view.classList.remove('active')
     btn_grid_view.classList.add('active')
 
@@ -249,205 +219,6 @@ btn_disk_view.addEventListener('click', (e) => {
 })
 
 $(function() {
-
-    // $('.ui.dropdown')
-    // .dropdown({
-    //     on:'hover'
-    // })
-
-    // $('.ui.accordion').on({
-    //     exclusive:false
-    // })
-
-
-    //////////////////////////////////////////////////
-    // FIND
-
-    // let find = $('#find')
-    // let find_options = $('#find_options')
-    // $(document).on('click', '#find', function(e) {
-    //     find_options.removeClass('hidden')
-    // })
-
-    // find.on('keyup', function(e) {
-
-        // console.log(e.key)
-
-        // if (e.key == 'Enter') {
-        //     find_options.addClass('hidden')
-
-        // }
-
-    // })
-
-
-    // FIND FOLDERS
-    // let find_folders = document.getElementById('find_folders')
-    // let find_folders_option = localStorage.getItem('find_folders')
-    // if (find_folders_option == 1) {
-    //     // find_folders.checkzed = true
-    // }
-    // find_folders.addEventListener('change', (e) => {
-    //     if (find_folders.checked) {
-    //         localStorage.setItem('find_folders', 1)
-    //         console.log('setting find to 1')
-    //     } else {
-    //         localStorage.setItem('find_folders', 0)
-    //         console.log('setting find to 0')
-    //     }
-
-    // })
-
-    // // FIND FILES
-    // let find_files = document.getElementById('find_files')
-    // let find_files_options = localStorage.getItem('find_files')
-    // if (find_files_options == 1) {
-    //     find_files.checked = true
-    // }
-    // find_files.addEventListener('change', (e) => {
-    //     if (find_files.checked) {
-
-    //         localStorage.setItem('find_files', 1)
-    //         console.log('setting find to 1')
-
-    //     } else {
-
-    //         localStorage.setItem('find_files', 0)
-    //         console.log('setting find to 0')
-
-    //     }
-    // })
-
-
-
-    // // $(document).on('click','#find_files',function(e) {
-    // //     if (localStorage.getItem('find_files') == '') {
-    // //         localStorage.setItem('find_files', 1)
-    // //     } else {
-    // //         localStorage.setItem('find_files', '')
-    // //     }
-    // // })
-
-
-    // // FIND BY SIZE
-    // let find_by_size = $('#find_by_size')
-    // let find_by_size_options = localStorage.getItem('find_by_size')
-    // if (find_by_size_options == 1) {
-    //     find_by_size.attr('checked','checked')
-    // }
-
-    // $(document).on('click','#find_by_size',function(e) {
-
-    //     if (localStorage.getItem('find_by_size') == '') {
-    //         localStorage.setItem('find_by_size', 1)
-    //     } else {
-    //         localStorage.setItem('find_by_size', '')
-    //     }
-    // })
-
-
-    // FIND BY DATE
-    // let start_date = document.getElementById('start_date')
-    // let end_date = document.getElementById('end_date')
-    // start_date.addEventListener('change', (e) => {
-
-    // })
-    // end_date.addEventListener('change', (e) => {
-
-    // })
-
-
-        // find_files()
-
-        // if (localStorage.getItem('find_by_size') == '') {
-        //     localStorage.setItem('find_by_size', 1)
-        // } else {
-        //     localStorage.setItem('find_by_size', '')
-        // }
-    // })
-
-
-
-
-    ////////////////////////////////////////////////////
-
-
-    // let find = document.getElementById('find')
-    // let find_options = document.getElementById('find_options')
-    // let find_directory = document.getElementById('find_directory')
-
-    // find_directory.setAttribute('checked', localStorage.getItem('find_directory'))
-    // find_directory.addEventListener('click', function(e) {
-    //     if (localStorage.getItem('find_directory') == '') {
-    //         localStorage.setItem('find_directory','1')
-    //     } else {
-    //         localStorage.setItem('find_directory','')
-    //     }
-    // })
-
-    // find.addEventListener('click', function(e) {
-
-    //     find_options.classList.remove('hidden')
-
-    // })
-
-    // find.addEventListener('change',function (e) {
-
-    //     find_options.classList.add('hidden')
-
-    // })
-
-
-    // var element = document.getElementById('sidebar');
-    // let sidebar_width = localStorage.getItem('sidebar_width')
-    // console.log('sidebar width ' + sidebar_width)
-
-    // if (element) {
-
-    //     var resizer = document.createElement('div')
-    //     resizer.className = 'draghandle'
-
-    //     resizer.style.color = 'red !important'
-    //     resizer.style.width = '5px'
-    //     resizer.style.height = '100vh'
-    //     element.appendChild(resizer)
-    //     resizer.addEventListener('mousedown', initResize, false)
-
-    // }
-
-    // function initResize(e) {
-
-    //     console.log('running')
-
-    //     window.addEventListener('mousemove', Resize, false);
-    //     window.addEventListener('mouseup', stopResize, false);
-    //     // $('#main_view, #sidebar iframe').addClass('marginLeft');
-
-    //     $('#main, #sidebar').addClass('margin-left');
-
-    // }
-
-    // function Resize(e) {
-    //     element.style.width = (e.clientX - element.offsetLeft) + 'px';
-    //     $('#main').css('margin-left', (e.clientX - element.offsetLeft) + 'px');
-    //     $('#sidebar').css('margin-left', (element.offsetLeft) + 'px');
-
-    //     console.log('setting width')
-    //     localStorage.setItem('sidebar_width', element.offsetLeft + 'px')
-
-    // }
-
-    // function stopResize(e) {
-    //     window.removeEventListener('mousemove', Resize, false);
-    //     window.removeEventListener('mouseup', stopResize, false);
-    //     $('#sidebar').css('margin-left', element.offsetLeft + 'px');
-
-    // }
-
-
-
-
-
 
     // SCROLL WHILE DRAGGING OVER
     $("#navigation_menu").bind("dragover", function(e){
@@ -465,51 +236,13 @@ $(function() {
         // alert($(this).height())
     })
 
-    // LOAD INITIAL TREE VIEW
-    // window.api.get_tree(home_folder)
-
-    // LOAD INITIAL TREE VIEW
-    // window.api.get_tree(home_folder)
-
-    // LOAD INITIAL FILES / FOLDER VIEW
-    // let st = Date.now()
-
-    // console.log('running too many times here')
-
     if (!localStorage.getItem('folder')) {
         localStorage.setItem('folder', home_folder)
     }
 
     // LOAD FILES
-    // get_files(localStorage.getItem('folder'))
-    // localStorage.setItem('view', 'disk_summary')
     window.api.get_view(localStorage.getItem('folder'))
-    // window.api.get_sidebar_view()
 
-    // window.api.get_files(localStorage.getItem('folder'), () => {
-    // })
-
-    // window.api.get_files_list(localStorage.getItem('folder'))
-    // console.log(Date.now() - st)
-
-    // SHOW MODAL DIALOG
-    // $('.ui.modal').modal({
-    //     centered: true
-    // })
-    // .modal('show')
-    // console.log('show modal')
-
-
-    // if ('serviceWorker' in navigator) {
-    //     navigator.serviceWorker.register('sw.js', {scope: ''})
-    //     .then((reg) => {
-    //       // registration worked
-    //       console.log('Registration succeeded. Scope is ' + reg.scope);
-    //     }).catch((error) => {
-    //       // registration failed
-    //       console.log('Registration failed with ' + error);
-    //     });
-    //   }
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -529,11 +262,6 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-
-        // GET GIO DEVICES
-        // window.api.get_gio_devices()
-
-        // window.api.get_tree('/media/michael')
 
     })
 
@@ -640,24 +368,6 @@ $(function() {
 
     })
 
-    // // SHOW SIDE BAR
-    // $(document).on('click', '#btn_show_sidebar', function (e){
-    //     let sidebar = $('#sidebar')
-    //     let main = $('#main')
-    //     if(sidebar.width() == 0){
-    //         sidebar.width(250)
-    //         main.css('margin-left','2880px')
-    //         $(this).addClass('active')
-    //         localStorage.setItem('sidebar', '1')
-    //         localStorage.setItem('sidebar_width', '250px')
-    //     }else {
-    //         sidebar.width(0)
-    //         main.css('margin-left','0px')
-    //         $(this).removeClass('active')
-    //         localStorage.setItem('sidebar', '0')
-    //     }
-    // })
-
     $(document).on('click', '.header_link', function(e) {
 
         e.preventDefault()
@@ -702,10 +412,6 @@ $(function() {
 
         }
     }
-
-
-
-
 
     // SORT BY DATE
     $(document).on('click', '#sort_by_date', function(e){
@@ -800,231 +506,17 @@ $(function() {
 
 })
 
-// ON LOAD
-// window.api.get_files(dir,options)
-
-
-// document.getElementById('btn_show_hidden_folders').addEventListener('click', async () => {
-//     await window.darkMode.system()
-//     document.getElementById('theme-source').innerHTML = 'System'
-// })
-
-
-
-// const loader = document.getElementById('loader')
-// loader.classList.remove('active')
-
-
-
-// let spinner = document.getElementById('spinner')
-
-// let footer = document.createElement('div')
-// footer.classList.add('footer')
-
-
-// FIND
-// $(document).on('keydown', '#find, #find_size, #start_date, #end_date', function(e) {
-
-//     // console.log($(this).val())
-//     // OPEN SEARCH RESULTS
-//     $('.ui.accordion').accordion('close', 0)
-//     $('.ui.accordion').accordion('open', 1)
-
-//     // $('#find_options').addClass('hidden')
-
-//     window.api.find_files()
-
-//     // $('#find_options').addClass('hidden')
-
-// })
-
-// $('#find').on('mouseover', function(e) {
-//     // $('#find_options').removeClass('hidden')
-// })
-
-// $('#find_options').on('mouseover', function (e) {
-//     $(this).removeClass('hidden')
-// })
-
-// $('#find_options').on('mouseout', function (e) {
-//     $(this).addClass('hidden')
-// })
-
-// // find.focus()
-// find.addEventListener('keyup',function(e){
-//     e.preventDefault()
-
-//     // GET CURRENT DIRECTORY
-//     dir = breadcrumbs.value
-
-//     // let options = {
-//     //     sort: localStorage.getItem('sort'),
-//     //     search: this.value
-//     // }
-
-//     // OPEN SEARCH RESULTS
-//     $('.ui.accordion').accordion('close', 0)
-//     $('.ui.accordion').accordion('open', 1)
-
-//     $('#find_options').addClass('hidden')
-
-//     // console.log(this.value + ' ' + dir)
-//     // let titles = $('#accordion').find('.title')
-//     //  for(let i = 0; i < titles.length; i++){
-
-//     //     console.log(titles[i].innerHTML)
-//     //     // if(titles[i].Results'){
-//     //         // console.log('wwhwhwhwrhwrhwh')
-//     //         // titles[i].addClass.add('active')
-//     //     // }
-//     //  }
-
-//     window.api.find_files()
-
-//     // window.api.find_files()
-
-// })
-
-
 breadcrumbs.addEventListener('keydown', (e) => {
     if (e.key == 'Enter') {
         window.api.get_view(breadcrumbs.value);
     }
 })
 
-// BREADCRUMBS
-// breadcrumbs.addEventListener('keyup', (e) => {
-
-//     if (e.key == 'Enter') {
-//         e.preventDefault()
-//         clear_active()
-//         dir = breadcrumbs.value
-//         window.api.get_view(dir)
-//     }
-
-// })
-
-// HOME
-// home.addEventListener('click', function(e){
-
-//     // e.preventDefault()
-//     // e.stopImmediatePropagation()
-
-//     // clear_active()
-
-//     // home.classList.add('active')
-//     // window.api.get_files(home_folder, options)
-
-
-// })
-
-// // DOCUMENTS
-// documents.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     // documents.classList.add('active')
-//     // localStorage.setItem('folder', home_folder + '/Documents')
-//     // window.api.get_files(home_folder + '/Documents',options)
-
-//     documents.classList.add('active')
-//     // localStorage.setItem('folder', home_folder + '/Documents')
-//     get_data(home_folder + '/Documents')
-
-
-// })
-
-// // DOWNLOADS
-// downloads.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     downloads.classList.add('active')
-
-//     let dir = home_folder + '/Downloads'
-//     localStorage.setItem('folder', dir)
-
-//     // console.log(dir)
-
-//     get_data(dir)
-
-//     // localStorage.setItem('folder', home_folder + '/Downloads')
-//     // window.api.get_files(home_folder + '/Downloads',options)
-
-// })
-
-// // PICTURES
-// pictures.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     pictures.classList.add('active')
-
-//     // spinner.classList.add('active')
-//     // console.log('spinner active')
-
-//     localStorage.setItem('folder', home_folder + '/Pictures')
-//     get_data(home_folder + '/Pictures')
-
-//     // window.api.get_files(home_folder + '/Pictures',options)
-
-//     // spinner.classList.remove('active')
-
-// })
-
-// // VIDEOS
-// videos.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     videos.classList.add('active')
-//     localStorage.setItem('folder', home_folder + '/Videos')
-//     window.api.get_files(home_folder + '/Videos', options)
-// })
-
-// // MUSIC
-// music.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     music.classList.add('active')
-//     localStorage.setItem('folder', home_folder + '/Music')
-//     window.api.get_files(home_folder + '/Music', options)
-// })
-
-
-// // NETWORK
-// // devices.addEventListener('click', function(e){
-
-// //     // e.preventDefault()
-// //     // clear_active()
-// //     // devices.classList.add('active')
-
-// //     // // todo: this needs to be the users home dir name in /media
-// //     // localStorage.setItem('folder', '/run/user/1000/gvfs')
-// //     // window.api.get_files('/run/user/1000/gvfs', options)
-
-// // })
-
-
-// // NETWORK
-// network.addEventListener('click', function(e){
-//     e.preventDefault()
-//     clear_active()
-//     network.classList.add('active')
-//     localStorage.setItem('folder', '/media')
-//     window.api.get_files('/media/',options)
-// })
-
 
 // GET TERMINAL
 terminal.addEventListener('click', function(e){
     window.api.get_terminal()
 })
-// const terminal = document.getElementById('terminal')
-// if(terminal){
-
-//   terminal.addEventListener('click', function(e){
-    // window.api.get_terminal()
-//   })
-
-// }
-
 
 // GO BACK
 document.getElementById('left')
@@ -1053,100 +545,6 @@ function httpGet(theUrl) {
     xmlHttp.send( null );
     return xmlHttp.responseText;
 }
-
-// let btn = document.getElementById('btn')
-// btn.addEventListener('click',function(e){
-//     document.getElementById('footer').innerHTML = 'working'
-//     const http = new XMLHttpRequest()
-//     const url = '../src/main_view.html'
-//     http.open("GET", url)
-//     http.send()
-//     http.onreadystatechange=(e)=> {
-//         document.getElementById('main').innerHTML = http.responseText
-//         console.log(http.responseText)
-//         window.api.get_files(home_folder, options)
-//     }
-//     // document.getElementById('footer').innerText = 'w<gowgo[kwgko[wg'
-//     // window.api.get_files(breadcrumbs.value,options)
-//     // setTimeout(() => {
-//     //     document.getElementById('footer').innerText = 'hmoshekothkohstko[drthko[drthko[thdrthpdrthp[rthl'
-//     // }, 3000);
-// })
-
-
-// // SHOW HIDDEN FOLDER
-// let btn_show_hidden_folders = document.getElementById('btn_show_hidden_folders')
-// let hidden_directory = document.getElementById('hidden_folder_grid')
-// let hidden_files = document.getElementById('hidden_file_grid')
-
-// btn_show_hidden_folders.addEventListener('click',function(e){
-
-//     if(hidden_directory.classList.contains('hidden')){
-//         this.style.backgroundColor = ''
-//         hidden_directory.classList.remove('hidden')
-//         hidden_files.classList.remove('hidden')
-
-//         localStorage.setItem('show', 1)
-
-//     }else {
-//         this.style.backgroundColor = ''
-//         hidden_directory.classList.add('hidden')
-//         hidden_files.classList.add('hidden')
-
-//         localStorage.setItem('show', 0)
-//     }
-
-// })
-
-
-// // SORT BY NAME
-// let sort_by_name = document.getElementById('sort_by_name')
-// sort_by_name.addEventListener('click',function(e){
-//     e.preventDefault()
-//     e.stopPropagation()
-
-//     dir = breadcrumbs.value
-
-//     localStorage.setItem('sort', 2)
-
-//     // console.log('testing')
-
-//     let options = {
-//         sort: 2,
-//         search: ''
-//     }
-
-//     window.api.get_files(dir,options)
-// })
-
-
-// // SORT BY DATE
-// let sort_by_date = document.getElementById('sort_by_date')
-// sort_by_date.addEventListener('click',function(e){
-//     e.preventDefault()
-
-//     dir = breadcrumbs.value
-//     localStorage.setItem('sort', 1)
-
-//     let options = {
-//     sort: 1,
-//     search: ''
-//     }
-
-//     window.api.get_files(dir,options)
-// })
-
-
-////////////////////////////////////////////////////////////////////
-
-// window.addEventListener('contextmenu', (e) => {
-//     e.preventDefault()
-//     ipcRenderer.send('show-context-menu')
-//   })
-
-//   ipcRenderer.on('context-menu-command', (e, command) => {
-//     // ...
-//   })
 
 
 
