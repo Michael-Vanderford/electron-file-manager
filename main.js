@@ -846,7 +846,7 @@ ipcMain.on('clear_clipboard', (a, data) => {
 })
 
 // RELOAD WINDOW
-ipcMain.on('z',function(e){
+ipcMain.on('reload',function(e){
     win.loadFile('src/index.html')
 })
 
@@ -901,7 +901,7 @@ function get_icon_path(href) {
         win.send('icon_path',data);
 
     }).catch((err) => {
-        
+
     })
 }
 
@@ -3268,9 +3268,9 @@ ipcMain.on('quit', () => {
     app.quit()
 })
 
-ipcMain.on('reload',()=> {
+// ipcMain.on('reload',()=> {
 
-  // let folder = localStorage.getItem('folder')
+//     let folder = localStorage.getItem('folder')
 
-})
+// })
 

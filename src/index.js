@@ -106,7 +106,7 @@ function stopResize(e) {
     console.log('running')
     window.removeEventListener('mousemove', Resize, false);
     window.removeEventListener('mouseup', stopResize, false);
-    localStorage.setItem('sidebar_width', element.clientWidth)
+    localStorage.setItem('sidebar_width', element.clientWidth);
 }
 
 /* Clear minibar highlight */
@@ -218,6 +218,10 @@ btn_disk_view.addEventListener('click', (e) => {
     this.classList.add('active')
 })
 
+// LOAD FILES
+window.api.get_view(localStorage.getItem('folder'))
+
+
 $(function() {
 
     // SCROLL WHILE DRAGGING OVER
@@ -240,8 +244,8 @@ $(function() {
         localStorage.setItem('folder', home_folder)
     }
 
-    // LOAD FILES
-    window.api.get_view(localStorage.getItem('folder'))
+    // // LOAD FILES
+    // window.api.get_view(localStorage.getItem('folder'))
 
 
 

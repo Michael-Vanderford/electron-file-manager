@@ -20,6 +20,7 @@ const readline                                  = require('readline');
 const mime                                      = require('mime-types');
 const im                                        = require('imagemagick');
 
+
 /* Arrays */
 let chart_labels    = []
 let chart_data      = []
@@ -1627,7 +1628,7 @@ ipcRenderer.on('icon_path', (e, data) => {
 
             } else {
 
-                img.src     = data.icon_path;
+                img.src = data.icon_path;
                 img.classList.add('icon');
 
             }
@@ -2525,6 +2526,8 @@ var cardindex = 0
 // ADD CARD //////////////////////////////////////////////////////////////////////
 async function add_card(options) {
 
+    console.log('adding card', options.grid.id)
+
     try {
 
         /* Options */
@@ -2573,8 +2576,10 @@ async function add_card(options) {
         // Set Index for Navigation
         if (grid) {
             if (
-                grid.id == 'folder_grid' ||
-                grid.id == 'file_grid'
+                grid.id === 'folder_grid' ||
+                grid.id === 'file_grid' ||
+                grid.id === 'hidden_folder_grid' ||
+                grid.id === 'hidden_file_grid'
                 ) {
                 cardindex       += 1
                 card.dataset.id = cardindex
@@ -5521,7 +5526,9 @@ async function get_files(dir, callback) {
 
                         }
 
-                        add_card(options)
+                        add_card(options).then((card) => {
+                            update_card(card.dataset.href);
+                        })
                         ++folder_count
 
                         // FILES
@@ -5543,7 +5550,7 @@ async function get_files(dir, callback) {
                             href: filepath,
                             linktext: filename,
                             is_folder: false,
-                            card_counter: card_counter
+                            // card_counter: card_counter
                         }
 
                         if (!regex.test(file)) {
@@ -5552,7 +5559,9 @@ async function get_files(dir, callback) {
                             options.grid = hidden_file_grid
                         }
 
-                        add_card(options)
+                        add_card(options).then((card) => {
+                            update_card(card.dataset.href);
+                        })
                         ++file_count
 
                     }
@@ -5593,7 +5602,7 @@ async function get_files(dir, callback) {
             }
 
             // UPDATE CARDS
-            update_cards(grid_view)
+            // update_cards(grid_view)
 
             // let header = document.getElementsByClassName('.header_link')
             // header[0].focus()
@@ -6691,7 +6700,7 @@ async function find() {
         find_folders.checked        = options.show_folders;
         find_files.checked          = options.show_files;
 
-        console.log(options.show_folders, options.show_files)
+        // console.log(options.show_folders, options.show_files)
 
         // FIND FOLDERS
         find_folders.addEventListener('change', (e) => {
@@ -6903,7 +6912,7 @@ async function find_files() {
     // console.log('running find files')
     notification('running find files')
 
-    if (process.os === 'Win32') {
+    if (process.platform === 'win32') {
         find();
     }
 
@@ -6961,7 +6970,7 @@ async function find_files() {
         find_folders.checked        = options.show_folders;
         find_files.checked          = options.show_files;
 
-        console.log(options.show_folders, options.show_files)
+        // console.log(options.show_folders, options.show_files)
 
         // FIND FOLDERS
         find_folders.addEventListener('change', (e) => {
@@ -6997,7 +7006,7 @@ async function find_files() {
         let inputs = find_options.querySelectorAll('.find_input')
         inputs.forEach(input => {
 
-            options[input.id] = input.value
+            options[input.id] = localStorage.getItem(input.id)
 
             input.addEventListener('change', (e) => {
                 localStorage.setItem(input.id, input.value)
@@ -7005,9 +7014,9 @@ async function find_files() {
 
             })
 
-            if (localStorage.getItem(input.id) != '') {
+            // if (localStorage.getItem(input.id) != '') {
                 input.value = localStorage.getItem(input.id)
-            }
+            // }
 
         })
 
@@ -7889,26 +7898,38 @@ function get_icon_theme() {
 
     try {
 
-        icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+        console.log('os', process.platform);
 
-        let search_path = [];
-        search_path.push(path.join(get_home(), '.local/share/icons'), path.join(get_home(), '.icons'), '/usr/share/icons');
+        if (process.platform === 'linux') {
 
-        search_path.every(icon_path => {
+            icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
 
-            if (fs.existsSync(path.join(icon_path, icon_theme))) {
-                icon_dir = path.join(icon_path, icon_theme);
-                console.log('icon path ', icon_dir);
-                return false;
+            let search_path = [];
+            search_path.push(path.join(get_home(), '.local/share/icons'), path.join(get_home(), '.icons'), '/usr/share/icons');
 
-            } else {
+            search_path.every(icon_path => {
 
-                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
-                return true;
+                if (fs.existsSync(path.join(icon_path, icon_theme))) {
 
-            }
+                    icon_dir = path.join(icon_path, icon_theme);
+                    console.log('icon path ', icon_dir);
+                    return false;
 
-        })
+                } else {
+
+                    icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                    return true;
+
+                }
+
+            })
+
+        } else if (process.platform === 'win32' || process.platform === 'darwin') {
+
+        } else {
+
+        }
+
 
     } catch (err) {
 
@@ -8794,7 +8815,7 @@ function navigate(direction) {
 // UPDATE CARD
 function update_card(href) {
 
-    // console.log('running update card');
+    console.log('running update card');
     let cards = document.querySelectorAll('[data-href="' + href + '"]')
 
     cards.forEach(card => {
@@ -9332,7 +9353,8 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
     // RELOAD
     if (command === 'reload') {
-        mainWindow.loadURL(mainAddr);
+
+        // mainWindow.loadURL(mainAddr);
     }
 
     // NEW WINDOW
@@ -9878,6 +9900,8 @@ window.addEventListener('DOMContentLoaded', () => {
     Mousetrap.bind(settings.keyboard_shortcuts.ShowSettings.toLocaleLowerCase(), () => {
         get_settings_view()
     })
+
+    get_view(breadcrumbs.value)
 
     /* Toggle sidebar */
     try {
