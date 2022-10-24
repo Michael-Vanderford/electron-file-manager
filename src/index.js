@@ -18,6 +18,10 @@ let btn_disk_usage  = document.getElementById('btn_disk_usage')
 let minibar         = document.getElementById('minibar')
 let minibar_items   = minibar.querySelectorAll('.item')
 
+// Icon size
+let icon_size_selector  = document.getElementById('icon_size_selector')
+
+
 // TOGGLE VIEWS
 let btn_settings_view   = document.getElementById('btn_settings_view')
 let btn_list_view       = document.getElementById('btn_list_view')
@@ -32,9 +36,84 @@ let info_view       = document.getElementById('info_view')
 
 let home_folder     = window.api.get_home()
 
-if (localStorage.getItem('folder') == '') {
+// Init local storage
+
+// Set inital directory in local storage
+if (localStorage.getItem('folder') == null) {
     localStorage.setItem('folder', home_folder)
+    breadcrumbs.value = home_folder;
 }
+
+// Set find options loacl storage
+if (localStorage.getItem('find_folders') == null) {
+    localStorage.setItem('find_folders', 1)
+}
+
+if (localStorage.getItem('find_files') == null) {
+    localStorage.setItem('find_files', 1)
+}
+
+if (localStorage.getItem('find_files') == null) {
+    localStorage.setItem('find_files', 1)
+}
+
+if (localStorage.getItem('depth') == null) {
+    localStorage.setItem('depth', 1)
+}
+
+// Set local storage for icon size
+if (localStorage.getItem('icon_size') == null) {
+    localStorage.setItem('icon_size', '2')
+}
+
+
+let css_class = 'icon16'
+let css_class0 = ''
+function resize_icons (icon_size) {
+
+    css_class0 = css_class
+    // let icon_size = localStorage.getItem('icon_size')
+    switch (icon_size) {
+        case '0': {
+            css_class = 'icon16'
+            break;
+        }
+        case '1': {
+            css_class = 'icon24'
+            break;
+        }
+        case '2': {
+            css_class = 'icon32'
+            break;
+        }
+        case '3': {
+            css_class = 'icon48'
+            break;
+        }
+    }
+
+    let items = document.querySelectorAll('.nav_item')
+    items.forEach((item, idx) => {
+        let icon = item.querySelector('.icon');
+        let img = item.querySelector('.img');
+        let image = item.querySelector('.image');
+
+        if (icon) {
+            icon.classList.remove(css_class0)
+            icon.classList.add(css_class)
+        }
+        if (img) {
+            img.classList.remove(css_class0)
+            img.classList.add(css_class)
+        }
+        if (image) {
+            image.classList.remove(css_class0)
+            image.classList.add(css_class)
+        }
+    })
+}
+
+icon_size_selector.value = localStorage.getItem('icon_size')
 
 // HANDLES HEADER MENU //////////////////////////////////////////
 function clear_active() {
@@ -114,6 +193,14 @@ function clear_minibar() {
     minibar_items.forEach(item => {
         item.style = '';
     })
+}
+
+icon_size_selector.oninput = () => {
+
+    localStorage.setItem('icon_size', icon_size_selector.value)
+    // console.log('icon size', icon_size_selector.value)
+    resize_icons(icon_size_selector.value)
+
 }
 
 /* Update sidebar_items */
@@ -218,10 +305,6 @@ btn_disk_view.addEventListener('click', (e) => {
     this.classList.add('active')
 })
 
-// LOAD FILES
-window.api.get_view(localStorage.getItem('folder'))
-
-
 $(function() {
 
     // SCROLL WHILE DRAGGING OVER
@@ -240,9 +323,9 @@ $(function() {
         // alert($(this).height())
     })
 
-    if (!localStorage.getItem('folder')) {
-        localStorage.setItem('folder', home_folder)
-    }
+    // if (!localStorage.getItem('folder')) {
+    //     localStorage.setItem('folder', home_folder)
+    // }
 
     // // LOAD FILES
     // window.api.get_view(localStorage.getItem('folder'))
@@ -550,7 +633,8 @@ function httpGet(theUrl) {
     return xmlHttp.responseText;
 }
 
-
+// LOAD FILES
+// window.api.get_view(localStorage.getItem('folder'))
 
 
 

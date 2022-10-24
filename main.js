@@ -2545,7 +2545,8 @@ let launcher_menu
 function add_launcher_menu(menu, e, args) {
 
     launcher_menu = menu.getMenuItemById('launchers')
-    if (args.length > 0) {
+
+    // if (args.length > 0) {
         for(let i = 0; i < args.length; i++) {
 
             launcher_menu.submenu.append(new MenuItem({
@@ -2566,7 +2567,7 @@ function add_launcher_menu(menu, e, args) {
                 }
             }))
         }
-    }
+    // }
 
 }
 
@@ -2776,7 +2777,7 @@ ipcMain.on('show-context-menu', (e, options) => {
       label: 'Terminal',
       click: () => {
         e.sender.send(
-          'context-menu-command', 'menu_terminal'
+          'context-menu-command', 'open_terminal'
         )
       }
     },
@@ -3152,7 +3153,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
         label: 'Terminal',
         click: () => {
             e.sender.send(
-            'context-menu-command', 'menu_terminal'
+            'context-menu-command', 'open_terminal'
             )
         }
         },

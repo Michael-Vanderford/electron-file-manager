@@ -272,6 +272,10 @@
     height:20px !important; width: 100% !important;
 }
 
+[contenteditable] {
+    outline: 0px solid transparent;
+}
+
 #find_div {
     padding-top: 10px;
 }

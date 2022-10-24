@@ -700,22 +700,50 @@ a {
 
 .img {
 
-    height: 32px !important;
-    width: 32px !important;
+    /* height: 48px !important; */
+    /* width: 48px !important; */
     border:2px solid #000000 !important;
     background:#000000 !important;
 }
 
 .image {
 
-    height: 34px !important;
-    width: 34px !important;
-    /* border:2px solid #000000 !important; */
-    /* background:#000000 !important; */
+    /* height: 48px !important; */
+    /* width: 48px !important; */
+
+}
+
+.icon16 {
+    height: 16px !important;
+    width: 16px !important;
+}
+
+.icon24 {
+    height: 24px !important;
+    width: 24px !important;
+}
+
+.icon32 {
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.icon48 {
+    height: 48px !important;
+    width: 48px !important;
+}
+
+.myslider {
+    -webkit-appearance: none;
+    color:#069;
+}
+
+.slider {
+    height: 10px;
 }
 
 video {
-    border: 4px solid #000;
+    border: 48px solid #000;
     height: 48px;
 }
 
@@ -1024,7 +1052,7 @@ h5 {
 
 
 #info_view {
-    border: 1px solid black;
+    /* border: 1px solid black; */
     margin-right: 110px !important;
     overflow: hidden;
     /* margin-top: 20px; */
@@ -1395,10 +1423,29 @@ input:focus {
     pointer-events: none;
 }
 
+.fixed {
+    position: fixed;
+}
 
+.absolute {
+    position: absolute;
+}
 
+.bottom {
+    bottom: 0;
+}
 
+.middle {
+    left: 50%;
+}
 
+.right {
+    right: 0;
+}
+
+.left {
+    left: 0;
+}
 
 
 /* STYLES FROM VSCODE STATUS BAR */

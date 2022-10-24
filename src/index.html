@@ -11,7 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="../assets/css/semantic.min.css" />
     <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="../node_modules/uikit/dist/css/uikit.min.css">
+    <!-- <link rel="stylesheet" href="../node_modules/uikit/dist/css/uikit.min.css"> -->
     <link rel="stylesheet" href="../assets/css/style.css" />
     <link rel="stylesheet" href="../assets/css/grid.css" />
     <link rel="stylesheet" href="../assets/css/sidebar.css" />
@@ -198,13 +198,23 @@
                 </a>
 
                 <!-- Settings -->
-                <a class="item right settings" id="btn_settings_view">
-                    <i class="ui icon cog"></i>
-                    <!-- <div class="settings_menu"> -->
-                        <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
-                        <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
-                    <!-- </div> -->
-                </a>
+                <div class="item right settings">
+
+                    <input class="slider" type="range" id="icon_size_selector" value="1" min="0" max="3" step="0" title="Adjust icon size"></ipnut>
+
+                    <a class="item" id="btn__view">
+                        <!-- <i class="ui icon align justify"></i> -->
+                    </a>
+
+                    <a class="item" id="btn_settings_view">
+                        <i class="ui icon cog"></i>
+                        <!-- <div class="settings_menu"> -->
+                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
+                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
+                        <!-- </div> -->
+                    </a>
+
+                </div>
 
             </div>
 
@@ -388,6 +398,10 @@
 
             </div>
 
+            <div class="fixed middle bottom">
+                <!-- <input type="range" id="icon_size_selector" value="1" min="0" max="3" step="0" title="Adjust icon size"></ipnut> -->
+            </div>
+
 
         </div>
 
@@ -398,7 +412,7 @@
 <script type="" src="../assets/js/jquery-3.6.0.min.js"></script>
 <script type="" src="../assets/js/semantic.min.js"></script>
 <script type="" src="../assets/js/popup.min.js"></script>
-<script type="" src="../node_modules/dragselect/dist/ds.min.js"></script>
+<!-- <script type="" src="../node_modules/dragselect/dist/ds.min.js"></script> -->
 <script type="" src="index.js"></script>
 
 
