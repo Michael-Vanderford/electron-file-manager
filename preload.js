@@ -14,7 +14,7 @@ const path                                      = require('path')
 const Mousetrap                                 = require('mousetrap');
 const os                                        = require('os');
 const Chart                                     = require('chart.js')
-const DragSelect                                = require('dragselect')
+const DragSelect                                = require('dragselect2')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
@@ -5731,51 +5731,56 @@ async function get_files(dir, callback) {
 
                 // GETTING FILE DROPED FROM EXTERNAL SOURCE
                 if (file_data.length > 0) {
+
                     console.log(file_data)
                     for (let i = 0; i < file_data.length; i++) {
-                        // add_copy_file(file_data[i].path, 'card_' + i)
-                    }
-                }
-
-                // COPY FILES
-                if (e.ctrlKey == true) {
-
-                    console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
-                    if (breadcrumbs.value == destination) {
-                        console.log('dropping on main')
-                        ipcRenderer.send('is_main_view', 1)
-                        state = 2
-                    } else {
-                        console.log('dropping on card')
-                        ipcRenderer.send('is_main_view', 0)
-                        state = 0
+                        add_copy_file(file_data[i].path, 'card_' + i)
                     }
 
-                    console.log('state', state)
-
-                    // THIS IS RUNNING COPY FOLDERS TOO
-                    copy_files(destination, state);
-
-                    clear_items();
-                    console.log('destination ' + destination);
-
-                // MOVE FILE
                 } else {
 
-                    console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
-                    if (breadcrumbs.value == destination) {
-                        console.log('dropping on main')
-                        ipcRenderer.send('is_main_view', 1)
-                        state = 2
+                    // COPY FILES
+                    if (e.ctrlKey == true) {
+
+                        console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
+                        if (breadcrumbs.value == destination) {
+                            console.log('dropping on main')
+                            ipcRenderer.send('is_main_view', 1)
+                            state = 2
+                        } else {
+                            console.log('dropping on card')
+                            ipcRenderer.send('is_main_view', 0)
+                            state = 0
+                        }
+
+                        console.log('state', state)
+
+                        // THIS IS RUNNING COPY FOLDERS TOO
+                        copy_files(destination, state);
+
+                        clear_items();
+                        console.log('destination ' + destination);
+
+                    // MOVE FILE
                     } else {
-                        console.log('dropping on card')
-                        ipcRenderer.send('is_main_view', 0)
-                        state = 0
+
+                        console.log('bread crumb', breadcrumbs.value, 'destination', destination, 'state', state)
+                        if (breadcrumbs.value == destination) {
+                            console.log('dropping on main')
+                            ipcRenderer.send('is_main_view', 1)
+                            state = 2
+                        } else {
+                            console.log('dropping on card')
+                            ipcRenderer.send('is_main_view', 0)
+                            state = 0
+                        }
+
+                        // notification('changing state to 0')
+                        move_to_folder(destination, state)
                     }
 
-                    // notification('changing state to 0')
-                    move_to_folder(destination, state)
                 }
+
 
                 clear_items();
                 return false;
@@ -9382,10 +9387,12 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // INITIALIZE DRAG SELECT
     try {
+
         ds = new DragSelect({
             // area: document.getElementById('main_view'),
             selectorClass: 'drag_select',
-    })
+        })
+
     } catch (err) {
         console.log(err);
     }
