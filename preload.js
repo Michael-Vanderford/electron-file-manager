@@ -5855,6 +5855,8 @@ async function get_files(dir, callback) {
     // RIGHT
     Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), (e) => {
 
+        clear_highlight();
+
         let items = main_view.querySelectorAll('.nav_item')
         console.log(items.length)
 
@@ -5901,6 +5903,8 @@ async function get_files(dir, callback) {
 
     // LEFT
     Mousetrap.bind(settings.keyboard_shortcuts.Left.toLocaleLowerCase(), (e) => {
+
+        clear_highlight();
 
         keycounter0 = keycounter
 
@@ -5979,15 +5983,22 @@ async function get_files(dir, callback) {
 
     })
 
+    async function clear_highlight() {
+
+        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        items.forEach(item => {
+            item.classList.remove('highlight')
+            item.classList.remove('highlight_select')
+            item.classList.remove('ds-selected')
+        })
+    }
+
     // HANDLE KEYBOARD DOWN. DONT CHANGE
     Mousetrap.bind(settings.keyboard_shortcuts.Down.toLocaleLowerCase(), (e) => {
 
+        clear_highlight()
 
         let items = main_view.querySelectorAll('.nav_item')
-
-        // highlight.forEach(item => {
-        //     item.classList.remove('highlight')
-        // })
 
         keycounter0 = keycounter
 
@@ -6040,6 +6051,8 @@ async function get_files(dir, callback) {
     // todo: check hidden files
     // Handle Keyboard Up.
     Mousetrap.bind(settings.keyboard_shortcuts.Up.toLocaleLowerCase(), (e) => {
+
+        clear_highlight()
 
         keycounter0 = keycounter
 
@@ -8982,6 +8995,17 @@ function compress() {
 
     })
 
+    // let cmd_size = 'cd "' + breadcrumbs.value + '"; tar czf "' + file_name + '" ' + file_list + ' | wc -c';
+    // exec(cmd_size, (err, stdout) => {
+    //     stdout.on('data', (res) => {
+    //         console.log('compressed size', res)
+    //     })
+    // })
+
+    // console.log(cmd_size)
+
+    get_progress(max, file_name)
+
     // Create compressed file
     let cmd = 'cd "' + breadcrumbs.value + '"; tar czf "' + file_name + '" ' + file_list;
     console.log(cmd);
@@ -9023,11 +9047,11 @@ function compress() {
     })
 
 
-    let intervalid = setInterval(() => {
-        update_card(path.join(breadcrumbs.value, file_name));
-        max = max / cards.length
-        // get_progress(max, path.join(breadcrumbs.value, file_name))
-    }, 500);
+    // let intervalid = setInterval(() => {
+    //     update_card(path.join(breadcrumbs.value, file_name));
+    //     max = max / cards.length
+    //     // get_progress(max, path.join(breadcrumbs.value, file_name))
+    // }, 500);
 
 
     clear_items()

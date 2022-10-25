@@ -2546,7 +2546,8 @@ function add_launcher_menu(menu, e, args) {
 
     launcher_menu = menu.getMenuItemById('launchers')
 
-    // if (args.length > 0) {
+    try {
+
         for(let i = 0; i < args.length; i++) {
 
             launcher_menu.submenu.append(new MenuItem({
@@ -2567,7 +2568,10 @@ function add_launcher_menu(menu, e, args) {
                 }
             }))
         }
-    // }
+
+    } catch (err) {
+
+    }
 
 }
 
