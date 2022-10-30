@@ -438,10 +438,8 @@ ipcRenderer.on('copy-complete', function (e) {
     get_files(breadcrumbs.value)
 })
 
-// CONFIRM MOVE
+// Confirm move dialog
 ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
-
-    console.log('here i am')
 
     let btn_cancel  = add_button('btn_cancel', 'Cancel')
     let btn_ok      = add_button('btn_ok', 'Move')
@@ -453,7 +451,6 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
     footer.append(btn_ok)
 
     let source_stats = fs.statSync(data.source)
-
     let header = add_header('<br />Confirm Move:  ' + path.basename(data.source) + '<br /><br />')
 
     let description = ''
@@ -469,28 +466,25 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
             '<br />'
         )
 
-    } else
-    {
+    } else {
+
         description = add_p('Move files ' + data.source)
         source_data = add_p(
             add_header('').outerHTML +
-            add_img(get_icon_path(data.source)).outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
             'Size:' + get_file_size(localStorage.getItem(data.source)) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
             '<br />' +
             '<br />'
         )
+
     }
-
-
 
     let chk_div = add_div()
     let chk_move_all = add_checkbox('chk_replace', 'Apply this action to all files and folders')
     chk_div.append(chk_move_all)
 
-
     let confirm_dialog = document.getElementById('confirm')
     confirm_dialog.append(header, description, source_data, chk_div, add_br(), add_br(), add_br(), footer)
-
 
     chk = document.getElementById('chk_replace');
 
@@ -545,25 +539,17 @@ ipcRenderer.on('confirming_move', (e, data, copy_files_arr) => {
 
     })
 
-
-    // confirm_dialog.append(header,description,source_data,chk_div,add_br(),add_br(),add_br(),btn_cancel,btn_ok)
-
 })
 
 // CONFIRM OVERWRITE MOVE DIALOG
 ipcRenderer.on('confirming_overwrite_move', (e, data) => {
-    // function confirming_overwrite(data) {
-
-    console.log('running confirming move overwrite')
 
     let confirm_dialog = document.getElementById('confirm')
 
     let source_stats = fs.statSync(data.source)
     let destination_stats = fs.statSync(data.destination)
 
-    // let chk_replace_label = add_label('Apply this action to all files and folders')
     let chk_replace_div = add_checkbox('chk_replace', 'Apply this action to all files and folders')
-
 
     let footer = add_div();
     let btn_cancel = add_button('btn_cancel', 'Cancel');
@@ -575,9 +561,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
     footer.append(btn_cancel)
     footer.append(btn_replace)
     footer.append(btn_skip)
-    // btn_replace.style = ';
-    // btn_skip.style = 'position:absolute; bottom: 15; left: 150';
-    // btn_cancel.style = 'position:absolute; bottom: 15, left: 300';
 
     //
     let confirm_msg = add_div();
@@ -605,14 +588,14 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         destination_data = add_p(
             description +
             add_header('Merge with').outerHTML +
-            add_img(get_icon_path(data.source)).outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
             'Size:' + get_file_size(destination_stats.size) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(destination_stats.mtime) +
             '<br />' +
             '<br />'
         )
         source_data = add_p(
             add_header('Original folder').outerHTML +
-            add_img(get_icon_path(data.source)).outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
             'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified: ' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime) +
             '<br />' +
             '<br />'
@@ -635,14 +618,14 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
         destination_data = add_p(
             description +
             add_header('Original file').outerHTML +
-            add_img(get_icon_path(data.source)).outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
             'Size:' + get_file_size(destination_stats.size) + '<br />' + 'Last modified:' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(destination_stats.mtime) +
             '<br />' +
             '<br />'
         )
         source_data = add_p(
             add_header('Replace with').outerHTML +
-            add_img(get_icon_path(data.source)).outerHTML +
+            // add_img(get_icon_path(data.source)).outerHTML +
             'Size:' + get_file_size(source_stats.size) + '<br />' + 'Last modified:' + new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(source_stats.mtime)
             // '<br />' +
             // '<br />'
@@ -650,13 +633,8 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
 
     }
 
-
     // HANDLE CHECKBOX
     let replace_all = add_div()
-    // let br = document.createElement('br')
-    // let br1 = document.createElement('br')
-    // replace_all.append(br)
-    // replace_all.append(br1)
     replace_all.append(chk_replace_div)
 
     confirm_dialog.append(header, destination_data, source_data, add_br(), replace_all, add_br(), footer)
@@ -698,7 +676,6 @@ ipcRenderer.on('confirming_overwrite_move', (e, data) => {
             ipcRenderer.send('overwrite_move_skip')
         }
     })
-
 
 })
 
@@ -781,8 +758,6 @@ ipcRenderer.on('move_confirmed', (e, data) => {
     let source = data.source
     let destination = data.destination
 
-    console.log(destination, source)
-
     fs.copyFile(source, destination, (err) => {
 
         if (err) {
@@ -795,7 +770,7 @@ ipcRenderer.on('move_confirmed', (e, data) => {
             let col = card.closest('.column')
             col.remove()
 
-            delete_file(source)
+            delete_file(source);
 
         }
     })
@@ -1438,8 +1413,12 @@ ipcRenderer.on('gio_files', (e, data) => {
 // ADD CARD VIA IPC
 ipcRenderer.on('add_card', (e, options) => {
 
-    let duplicate = 0;
-    let items = main_view.querySelectorAll('.nav_item')
+    let duplicate   = 0;
+    let items       = main_view.querySelectorAll('.nav_item')
+    let info_view   = document.getElementById('info_view')
+
+    info_view.innerHTML = ''
+
     items.forEach(item => {
         if (options.href == item.dataset.href) {
             duplicate = 1
@@ -1463,6 +1442,8 @@ ipcRenderer.on('add_card', (e, options) => {
             let col = add_column('three');
             col.append(card);
             options.grid.insertBefore(col, options.grid.firstChild);
+
+            update_card(card.dataset.href);
 
         })
 
@@ -1565,7 +1546,7 @@ ipcRenderer.on('icon_path', (e, data) => {
 
                 is_image = 1;
                 img.style = 'border: 2px solid #cfcfcf; background-color: #cfcfcf';
-                img.src = filename
+                img.src = href
                 img.classList.add('img');
 
             } else {
@@ -1739,7 +1720,6 @@ async function get_sidebar_view() {
 
 }
 
-
 // Get image properties
 async function get_image_properties(image) {
 
@@ -1884,7 +1864,6 @@ async function get_properties(file_properties_obj) {
     for (const prop in file_properties_obj) {
 
         ++c;
-
         let div             = add_div();
         div.style           = 'display: flex; padding: 5px; word-break: break-all';
 
@@ -2469,66 +2448,48 @@ async function add_card(options) {
 
     try {
 
-        /* Options */
+        // Options
         let id              = options.id
         let href            = options.href
         let linktext        = options.linktext
-        let icon_path       = '' //get_icon_path(href) //options.image
         let is_folder       = options.is_folder
         let size            = ''
         let grid            = options.grid
 
-        /* Create elements */
+        // Create elements
         let col             = add_div()
         let card            = add_div()
         let items           = add_div()
         let item            = add_div()
         let image           = add_div()
+        let content         = add_div()
+        let extra           = add_div()
+        let progress        = add_div()
+        let form_field      = add_div()
+        let popovermenu     = add_div()
+        let form_control    = add_div()
+        let progress_bar    = add_progress()
+        let header          = document.createElement('a')
         let img             = document.createElement('img')
         let audio           = document.createElement('audio')
         let video           = document.createElement('video')
         let source          = document.createElement('source')
-        let content         = add_div()
-        let extra           = add_div()
-        let progress        = add_div()
-        let progress_bar    = add_progress()
-        let header          = document.createElement('a')
         let input           = document.createElement('input')
-        let form_field      = add_div()
-        let popovermenu     = add_div()
-        let form_control    = add_div()
         let form            = document.createElement('form')
 
-        /* ADD CSS */
+        // ADD CSS
         input.setAttribute          ('required', 'required')
         col.classList.add           ('column', 'three', 'wide')
         popovermenu.classList.add   ('popup')
 
-        /* Card */
+        // Card
         card.classList.add  ('ui', 'card', 'fluid', 'nav_item', 'nav')
-        // card.classList.add  ('uk-card', 'nav_item', 'nav')
         card.draggable      = 'true'
         card.id             = id
         card.dataset.href   = href
         input.spellcheck    = false
 
-        // Set Index for Navigation
-        // if (grid) {
-        //     if (
-        //         grid.id === 'folder_grid' ||
-        //         grid.id === 'file_grid'
-        //         ) {
-        //         cardindex       += 1
-        //         card.dataset.id = cardindex
-        //     } else if (
-        //         grid.id === 'hidden_folder_grid' ||
-        //         grid.id === 'hidden_file_grid') {
-        //     } else {
-        //         console.log('grid not defined')
-        //     }
-        // }
-
-        /* Get Extension Name */
+        // Get Extension Name
         let ext = path.extname(href)
 
         image.appendChild(img);
@@ -2576,28 +2537,7 @@ async function add_card(options) {
             img.classList.add('icon');
         }
 
-        // /* Handle Audio Files */
-        // let is_audio = 0;
-        // if (
-        //     ext === '.m4a' ||
-        //     ext === '.mp3' ||
-        //     ext === '.wav' ||
-        //     ext === '.ogg'
-        // ) {
-        //     is_audio = 1;
-        // }
-
-        // if (ext === '.mp4') {
-        //     source.src = href
-        //     video.append(source)
-        //     image.append(video)
-        // }
-
-        // if (is_video) {
-
-        // }
-
-        /* Create items */
+        // Create items
         items.classList.add('ui', 'items')
 
         // CREATE ITEM
@@ -6527,6 +6467,7 @@ async function find_files() {
 
         let sidebar_items           = document.getElementById('sidebar_items');
         sidebar_items.innerHTML     = find_page;
+
         let cards = sidebar_items.querySelectorAll('.nav_item')
         cards.forEach(card => {
 
@@ -6565,9 +6506,6 @@ async function find_files() {
         options.show_folders            = parseInt(localStorage.getItem('find_folders'));
         options.show_files              = parseInt(localStorage.getItem('find_files'));
         options.depth                   = parseInt(localStorage.getItem('depth'));
-
-        clear_minibar();
-        mb_find.style = 'color: #ffffff !important';
 
         find_folders.checked        = options.show_folders;
         find_files.checked          = options.show_files;
@@ -6771,7 +6709,7 @@ async function find_files() {
                                 files_arr = [];
 
                             } else {
-                                search_results.innerHTML = ''
+                                search_results.innerHTML = 'Sorry, I could not find anything for you!'
                                 // fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
                             }
 
@@ -6788,6 +6726,8 @@ async function find_files() {
 
         })
 
+        clear_minibar();
+        mb_find.style = 'color: #ffffff !important';
         find.focus();
 
         // find.addEventListener('keyup', (e) => {
@@ -6877,8 +6817,6 @@ async function get_disk_space() {
     let status = document.getElementById('status')
     status.innerHTML = ''
     status.append(add_icon('spinner'), 'Getting disk space..')
-
-
 
     ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
@@ -7603,8 +7541,6 @@ let folder_icon = get_folder_icon();
 
 function get_icon_path(file) {
 
-    // console.log('get icon path', file)
-
     try {
 
         let stats = fs.statSync(file)
@@ -7803,7 +7739,6 @@ async function create_folder(folder) {
         if (err) {
 
             notification(err)
-            // alert(err)
 
         } else {
 
@@ -7835,19 +7770,17 @@ async function create_folder(folder) {
                 /* Add Card */
                 add_card(options).then(card => {
 
-                    let col = add_column('three');
-                    col.append(card);
+                    let header  = document.getElementById('header_' + card_id);
+                    let input   = card.querySelector('input');
+                    let col     = add_column('three');
 
+                    input.classList.remove('hidden');
+
+                    col.append(card);
                     folder_grid.insertBefore(col, folder_grid.firstChild);
 
-                    let header = document.getElementById('header_' + card_id);
-                    header.classList.add('hidden');
-
-                    let input = card.querySelector('input');
-                    input.classList.remove('hidden');
                     input.focus();
-                    input.select();
-
+                    header.classList.add('hidden');
                     update_card(card.dataset.href);
 
                 })
@@ -7863,8 +7796,10 @@ async function create_folder(folder) {
 
     })
 
-    clear_items()
     ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
+    clear_items();
+
+
 
 }
 
@@ -8223,6 +8158,8 @@ function create_file_from_template(filename) {
 // RENAME FILE OR FOLDER
 function rename_file(source, destination_name) {
 
+    let main_view = document.getElementById('main_view')
+
     if (destination_name == "") {
         alert('Enter a file name');
     } else {
@@ -8246,8 +8183,11 @@ function rename_file(source, destination_name) {
                 } else {
                     console.log('File/folder renamed successfully!');
                     notification('Renamed ' + path.basename(source) + ' to ' + destination_name);
-                    // update_cards(document.getElementById('main_view'))
-                    update_card(destination_name)
+
+                    update_card(destination_name);
+
+                    let card = main_view.querySelector("[data-href='" + filename + "']");
+                    card.querySelector('.header_link').focus();
 
                 }
 

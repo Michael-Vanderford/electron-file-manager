@@ -423,7 +423,7 @@ function get_file_properties(filename) {
 }
 
 /* Get disk space */
-async function get_disk_space(href, callback) {
+async function get_disk_space(href) {
 
     df = []
     // RUN DISK FREE COMMAND
@@ -883,15 +883,13 @@ function get_icon_path(href) {
 
     app.getFileIcon(href).then(icon => {
 
-        let win = window.getFocusedWindow();
-
         icon_path = icon.toDataURL()
         let data = {
             href: href,
             icon_path: icon_path
         }
 
-        win.send('icon_path',data);
+        active_window.send('icon_path',data);
 
     }).catch((err) => {
 
@@ -1485,25 +1483,15 @@ function createMoveDialog(data, copy_files_arr) {
 
 // MOVE
 ipcMain.on('move', (e) => {
-
-    // console.log('running on move');
     move();
-
 })
 
 /* Move files */
 function move() {
 
-    // console.log('running move', copy_files_arr);
-
-    // Set destination1 since destination (active_folder) will change on mouseover events
-    // let destination1 = destination;
-
     copy_files_arr.every((item, idx) => {
 
         let source = item.source
-        // let destination = item.destination
-
         let source_stats = fs.statSync(source)
         let destination_file = path.join(destination, path.basename(source))
 
@@ -1591,7 +1579,6 @@ function move() {
                         destination: destination_file
                     }
 
-                    // console.log('create move data', data, copy_files_arr);
                     createMoveDialog(data,copy_files_arr);
                     return false;
 
@@ -1677,6 +1664,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                     }
 
                     active_window.webContents.send('add_card', options);
+                    get_disk_space(data.destination)
 
                 }
 

@@ -58,12 +58,12 @@ if (localStorage.getItem('find_files') == null) {
 }
 
 if (localStorage.getItem('depth') == null) {
-    localStorage.setItem('depth', 1)
+    localStorage.setItem('depth', '')
 }
 
 // Set local storage for icon size
-if (localStorage.getItem('icon_size') == null) {
-    localStorage.setItem('icon_size', '2')
+if (localStorage.getItem('icon_size') == null) {    
+    localStorage.setItem('icon_size', '3')
 }
 
 
