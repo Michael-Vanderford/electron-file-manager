@@ -6530,18 +6530,11 @@ async function find_files() {
         let cards = sidebar_items.querySelectorAll('.nav_item')
         cards.forEach(card => {
 
-            if (fs.existsSync(card.datase.href)) {
+            let img = card.querySelector('img');
+            img.classList.remove('lazy');
+            img.src = img.dataset.src;
 
-                let img = card.querySelector('img');
-                img.classList.remove('lazy');
-                img.src = img.dataset.src;
-
-                update_card(card.dataset.href);
-
-            } else {
-                card.remove()
-            }
-
+            update_card(card.dataset.href);
 
         })
 
@@ -6772,14 +6765,14 @@ async function find_files() {
 
                                 // Write search resuts back to find.html
                                 search_res = sidebar_items.innerHTML
-                                fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
+                                // fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
 
                                 // Clear files array
                                 files_arr = [];
 
                             } else {
                                 search_results.innerHTML = ''
-                                fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
+                                // fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
                             }
 
                         })
@@ -6854,6 +6847,8 @@ async function find_files() {
 
 
     })
+
+
 
 
 }
