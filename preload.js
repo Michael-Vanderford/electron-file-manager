@@ -9326,10 +9326,6 @@ window.addEventListener('DOMContentLoaded', () => {
             keyboardDrag: false,
         })
 
-        ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) =>
-            isDragging && ds.stop(true, true)
-        )
-
     } catch (err) {
         console.log(err);
     }

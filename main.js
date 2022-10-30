@@ -3310,7 +3310,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
 
     // ADD LAUNCHER MENU
     add_launcher_menu(menu, e, args.associated_apps)
-    console.log(args)
+    // console.log(args)
 
     // Run as program
     if (args.access) {
