@@ -14,67 +14,23 @@ const path                                      = require('path')
 const Mousetrap                                 = require('mousetrap');
 const os                                        = require('os');
 const Chart                                     = require('chart.js')
-const DragSelect                                = require('dragselect2')
+const DragSelect                                = require('dragselect')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
 const im                                        = require('imagemagick');
 
-
-/* Arrays */
+// Arrays
 let chart_labels    = []
 let chart_data      = []
 let directories     = []
 let files           = []
 
-// HISTORY OBJECT
-class history {
-    dir
-    idx
-}
-
-// FILE OBJECT
-class fileinfo {
-
-    filename
-    is_dir
-    dir
-    extension
-    size
-    is_hidden
-    filecount
-    mtime
-    ctime
-    count
-    is_sym_link
-    idx
-
-}
-
-class selected_file_obj {
-
-    card_id
-    source
-
-}
-
-// ITEM OPTIONS
-class card_options {
-
-    id = 0
-    href = ''
-    image = ''
-    linktext = ''
-    description = ''
-    extra = ''
-    is_directory = false
-}
-
 // todo: check if this is being used
-let options = {
-    sort:   1,
-    search: ''
-}
+// let options = {
+//     sort:   1,
+//     search: ''
+// }
 
 // todo: check if this is being used
 let prev_target = '';
@@ -98,14 +54,9 @@ let intervalid          = 0;
 let history_arr         = []
 let files_arr           = []
 
-// SELECTED FILES ARRAY
-let selected_files      = []
-let find_files_arr      = []
-
 // CUT / COPY
 let state               = 0;
 let cut_files           = 0;
-
 
 let prev_card
 let destination
@@ -126,7 +77,6 @@ let hidden_file_count   = 0
 let pagesize            = 1000
 let page                = 1
 let start_path          = ''
-// let main_view           = document.getElementById('main_view')
 
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 
@@ -154,14 +104,16 @@ ipcRenderer.on('start_path', (e, res) => {
     }
 })
 
-/**
- * Load view from main
- */
+ipcRenderer.on('get_view', (e, dir) => {
+    console.log('running on get view', dir)
+    get_view(dir)
+})
+
 ipcRenderer.on('view', (e, view) => {
     get_view(view)
 })
 
-/* On notification */
+// On notification
 ipcRenderer.on('notification', (e, msg) => {
     notification(msg)
 })
@@ -171,7 +123,7 @@ ipcRenderer.on('get_copy_files_arr' , (e, copy_files_arr) => {
     // copy_files()
 })
 
-/* Update Card */
+// Update Card
 ipcRenderer.on('update_card', (e, href) => {
     // console.log('updating card')
     try {
@@ -181,9 +133,7 @@ ipcRenderer.on('update_card', (e, href) => {
     }
 })
 
-/**
- * On update cards
- */
+// On update cards
 ipcRenderer.on('update_cards', (e) => {
     // console.log('updating cards')
     let view = document.getElementById('main_view')
@@ -191,7 +141,7 @@ ipcRenderer.on('update_cards', (e) => {
 
 })
 
-// CLEAR COPY ARRAY
+// On clear copy array
 ipcRenderer.on('clear_copy_arr', (e) => {
     clear_copy_arr();
 })
@@ -914,13 +864,21 @@ ipcRenderer.on('disk_space', (e, data) => {
 
     console.log('running on disk space')
 
-    let folders_card    = document.getElementById('folders_card');
-    let files_card      = document.getElementById('files_card');
-    let main_view       = document.getElementById('main_view')
     let info_view       = document.getElementById('info_view')
-
     let folder_count    = get_folder_count();
     let file_count      = get_file_count();
+
+    if (folder_count === 0 && file_count === 0) {
+
+        let msg = add_div()
+
+        msg.append('Folder is empty')
+        msg.style = 'font-size: 23px; position: absolute; top: 50%; left: 50%; margin-top: -50px; margin-left: -100px;';
+
+        info_view.classList.remove('hidden');
+        info_view.append(msg);
+
+    }
 
     if (data.length > 0) {
 
@@ -933,12 +891,15 @@ ipcRenderer.on('disk_space', (e, data) => {
         let foldercount = add_div()
         let filecount = add_div()
 
+        foldersize.id = 'du_folder_size'
+
         data.forEach(item => {
 
             disksize.innerHTML = '<div class="item">Disk size: <b>&nbsp' + item.disksize + '</b></div>'
             usedspace.innerHTML = '<div class="item">Used space: <b>&nbsp' + item.usedspace + '</b></div>'
             availablespace.innerHTML = '<div class="item">Available space: <b>&nbsp' + item.availablespace + '</b></div>'
-            foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
+            // foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
+            foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbspCalculating.... </b></div>'
             foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + folder_count + '</b></div>'
             filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + file_count + '</b></div>'
 
@@ -951,33 +912,17 @@ ipcRenderer.on('disk_space', (e, data) => {
 
         })
 
-        if (folder_count == 0 && file_count == 0) {
-            info_view.innerHTML = 'Folder is empty'
-        }
-
 
     } else {
         console.log('no data found')
     }
 
+})
 
-    // if (!folder_count) {
-    //     folders_card.classList.add('hidden')
-    // } else {
-    //     folders_card.classList.remove('hidden')
-    // }
-
-    // if (!file_count) {
-    //     files_card.classList.add('hidden')
-    // } else {
-    //     files_card.classList.remove('hidden')
-    // }
-
-    // if (!folder_count && !file_count) {
-    //     main_view.append('Folder is empty !!!!!')
-    // }
-
-
+ipcRenderer.on('du_folder_size', (e, folder_size) => {
+    console.log(folder_size)
+    let du_folder_size = document.getElementById('du_folder_size')
+    du_folder_size.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + folder_size + '</b></div>'
 })
 
 // ON FOLDER SIZE
@@ -1493,9 +1438,17 @@ ipcRenderer.on('gio_files', (e, data) => {
 // ADD CARD VIA IPC
 ipcRenderer.on('add_card', (e, options) => {
 
-    console.log('on adding card', options);
+    let duplicate = 0;
+    let items = main_view.querySelectorAll('.nav_item')
+    items.forEach(item => {
+        if (options.href == item.dataset.href) {
+            duplicate = 1
+        }
+    })
 
-    try {
+    if (!duplicate) {
+
+        console.log('on adding card', options);
 
         let stats = fs.statSync(options.href);
         if (stats.isDirectory()) {
@@ -1505,30 +1458,16 @@ ipcRenderer.on('add_card', (e, options) => {
         }
 
         console.log('running add_card', options);
-
         add_card(options).then(card => {
 
             let col = add_column('three');
             col.append(card);
-
-
-            console.log(card);
             options.grid.insertBefore(col, options.grid.firstChild);
-
-            update_card(card.dataset.href);
-
-            // update_cards(document.getElementById('main_view'))
-            // let item = card.querySelector('[data-href="' + options.href + '"]')
-            // item.classList.add('highlight_select')
 
         })
 
-        // update_cards(document.getElementById('main_view'))
-        // ui card fluid nav_item nav file_card
-        // ui card fluid nav_item nav file_card ds-selectable
-
-    } catch (err) {
-        console.log(err);
+    } else {
+        console.log('error: duplicate found. this needs to be fixed')
     }
 
 })
@@ -1780,7 +1719,6 @@ async function get_sidebar_view() {
                 get_workspace();
                 break;
             case 'mb_find':
-                console.log('running find files')
                 find_files()
                 // find()
                 break;
@@ -1795,12 +1733,10 @@ async function get_sidebar_view() {
                 break;
         }
 
-        // show_sidebar()
-
     } catch (err) {
 
     }
-    // show_sidebar();
+
 }
 
 
@@ -2741,8 +2677,8 @@ async function add_card(options) {
 
                 console.log('ctlr pressed');
 
-                if (card.classList.contains('highlight_select')) {
-                    card.classList.remove('highlight_select');
+                if (card.classList.contains('highlight_select', 'highlight', 'ds-selected')) {
+                    card.classList.remove('highlight_select', 'highlight', 'ds-selected');
                 } else {
                     card.classList.add('highlight_select');
                 }
@@ -2789,19 +2725,18 @@ async function add_card(options) {
             console.log('setting global card_id to ' + card.id)
             card_id = card.id
 
-            // todo: this needs work add selected files here has unintended results
             // !! DO NOT USE ADD_SELECTED_FILES HERE. YOU MIGHT DELETE SOMETHING IMPORTANT!!!
             source = href
 
             if (is_folder) {
 
                 // SHOW FOLDER MENU
-                card.classList.add('folder_card', 'highlight_select')
+                card.classList.add('folder_card', 'ds-selected')
 
             } else {
 
                 // SHOW FILE MENU
-                card.classList.add('file_card', 'highlight_select')
+                card.classList.add('file_card', 'ds-selected')
 
             }
 
@@ -2829,11 +2764,6 @@ async function add_card(options) {
             nc2 = parseInt(card.dataset.id);
 
             active_href = href;
-            // console.log('active href', active_href)
-            // if (is_folder) {
-            //     ipcRenderer.send('active_folder', href);
-            //     ipcRenderer.send('is_main_view', 0);
-            // }
 
             /* Add audio controls on mouse over */
             if (is_audio) {
@@ -2846,10 +2776,14 @@ async function add_card(options) {
 
             }
 
+            notification(path.basename(href))
+
         }
 
         //  OUT
         card.onmouseout = (e) => {
+
+            notification(path.basename(breadcrumbs.value))
 
             // clearTimeout(timer);
             card.classList.remove('highlight');
@@ -2910,13 +2844,6 @@ async function add_card(options) {
                 card_id = id
             }
         })
-
-        // HEADER MOUSE OUT
-        // header.addEventListener('mouseout', function (e) {
-        //     // img.src = icon_path
-        // })
-
-        // form_field.classList.add('one', 'fields')
 
         // FOR EDIT MODE
         input.id = 'edit_' + id
@@ -4489,9 +4416,6 @@ async function get_view(dir) {
         }
     })
 
-    autocomplete()
-    // ds.start();
-
 }
 
 // Settings View
@@ -5321,6 +5245,7 @@ async function get_files(dir, callback) {
         if (err) {
             notification('error: ' + err)
         }
+
         if (dirents.length > 0) {
 
             /* Get sort direction */
@@ -5551,26 +5476,22 @@ async function get_files(dir, callback) {
                 folders_card.classList.remove('hidden')
             }
 
-            if (!folder_count && !file_count) {
-                main_view.append('Folder is empty !!!!!')
-            }
-
             hide_loader()
 
-            if (dir.indexOf('/gvfs') === -1) {
-                ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
-            } else {
-                document.getElementById('status').innerHTML = ''
-            }
+            // if (dir.indexOf('/gvfs') === -1) {
+            //     ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
+            // } else {
+            //     document.getElementById('status').innerHTML = ''
+            // }
 
             callback(1)
 
-            let filename0 = ''
-            fs.watch(dir, (e, filename) => {
-                if (filename0 != filename) {
-                    filename0 = filename
-                }
-            })
+            // let filename0 = ''
+            // fs.watch(dir, (e, filename) => {
+            //     if (filename0 != filename) {
+            //         filename0 = filename
+            //     }
+            // })
 
             // LAZY LOAD IMAGES
             lazyload()
@@ -5737,6 +5658,8 @@ async function get_files(dir, callback) {
                         add_copy_file(file_data[i].path, 'card_' + i)
                     }
 
+                    copy_files(destination, state);
+
                 } else {
 
                     // COPY FILES
@@ -5781,7 +5704,6 @@ async function get_files(dir, callback) {
 
                 }
 
-
                 clear_items();
                 return false;
 
@@ -5795,15 +5717,8 @@ async function get_files(dir, callback) {
 
         } else {
 
-            hide_loader()
-
-            info_view.classList.remove('hidden')
-            info_view.append('Folder is empty')
-            info_view.style = 'font-size: 23px; height: 100%; position:fixed; left: 50%; top: 50%'
-
+            hide_loader();
         }
-
-        ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
         // For keyboard navigation
         let items = main_view.querySelectorAll('.nav_item')
@@ -5814,7 +5729,10 @@ async function get_files(dir, callback) {
         let date2 = new Date();
         console.log('get files elapsed time', date2.getTime() - date1.getTime());
 
+        get_disk_space();
+
     })
+
 
     ///////////////////////////////////////////////////////////////////////
 
@@ -6588,6 +6506,9 @@ async function find_win32() {
 
         find.focus()
     })
+
+
+
 }
 
 // FIND FILES
@@ -6608,8 +6529,6 @@ async function find_files() {
         sidebar_items.innerHTML     = find_page;
         let cards = sidebar_items.querySelectorAll('.nav_item')
         cards.forEach(card => {
-
-            console.log(card.dataset.href);
 
             let img = card.querySelector('img');
             img.classList.remove('lazy');
@@ -6913,7 +6832,20 @@ async function find_files() {
 
         })
 
+        search_results.oncontextmenu = (e) => {
+            let target = e.target
+            let card = target.closest('.nav_item')
+            let href = card.dataset.href
+
+            card.classList.add('highlight_select')
+
+            ipcRenderer.send('context-menu-find', href)
+
+        }
+
+
     })
+
 
 }
 
@@ -6936,6 +6868,18 @@ contextBridge.exposeInMainWorld('darkMode', {
 
 // FUNCTIONS //
 
+async function get_disk_space() {
+
+    let status = document.getElementById('status')
+    status.innerHTML = ''
+    status.append(add_icon('spinner'), 'Getting disk space..')
+
+
+
+    ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
+
+}
+
 /* Get devices */
 async function get_devices() {
 
@@ -6946,7 +6890,12 @@ async function get_devices() {
     link_div                = add_div();
     remove_div              = add_div();
 
-    device_view.style = 'padding-top: 20px;'
+
+    device_view.style = 'padding-top: 20px; height: 100%'
+    device_view.id = 'device_view'
+    device_view.addEventListener('contextmenu', function (e) {
+        ipcRenderer.send('show-context-menu-devices');
+    })
 
     sidebar_items.innerHTML = '';
 
@@ -6970,8 +6919,6 @@ async function get_devices() {
         devices.push({name: item, href: path.join(gvfs_path, item), type: 'gvfs'});
     })
 
-    // sidebar_items.append(add_header('Devices'))
-
     if (devices.length > 0) {
 
         devices.forEach(item => {
@@ -6992,8 +6939,6 @@ async function get_devices() {
             div.append(col1, col2, col3)
             div.style = 'display: flex; padding: 6px; width: 100%;'
             div.classList.add('item')
-
-
 
             // device.classList.add('item')
             // device.style    = 'display: flex';
@@ -7024,9 +6969,7 @@ async function get_devices() {
         })
 
     } else {
-
         sidebar_items.append('No devices found.')
-
     }
 
     // if (devices.length == 0) {
@@ -7073,14 +7016,12 @@ function autocomplete() {
     let folders                 = fs.readdirSync(breadcrumbs.value);
     let folders_arr             = folders.filter(a => fs.statSync(path.join(breadcrumbs.value, a)).isDirectory());
 
-    // breadcrumbs.addEventListener('keydown', (e) => {})
-
     breadcrumbs.addEventListener('keyup', (e) => {
 
-        if (e.key === 'Backspace') {
-            console.log('backspace');
-            return false;
-        }
+        // if (e.key === 'Backspace') {
+        //     console.log('backspace');
+        //     return false;
+        // }
 
         breadcrumb_items.innerHTML = '';
         let search_results = []
@@ -7106,17 +7047,13 @@ function autocomplete() {
                 if (idx == 0) {
 
                     console.log('l1', breadcrumbs.value.length, 'l2',  breadcrumb_item.length);
-
-                    let length0         = breadcrumbs.value.length
-                    // breadcrumbs.value   = breadcrumb_item
+                    let length0 = breadcrumbs.value.length
                     breadcrumbs.setSelectionRange(parseInt(length0), parseInt(breadcrumb_item.length));
-
-                    // breadcrumbs.focus()
-                    // breadcrumbs.selectionEnd(breadcrumbs.value.length);
 
                 }
 
                 let item = add_item(breadcrumb_item)
+                item.tabIndex = idx
                 breadcrumb_items.append(item)
                 autocomplete.append(breadcrumb_items)
 
@@ -7136,24 +7073,10 @@ function autocomplete() {
 
 
         } else {
-            // breadcrumb_items.classList.add('hidden');
-            // return false
+
         }
 
-        // if (e.key == 'Enter') {
-        //     get_view(breadcrumbs.value);
-        // }
-
     })
-
-    // breadcrumbs.addEventListener('change', (e) => {
-    //     // BREADCRUMBS
-    //     if (e.key === 'Enter') {
-    //         get_view(breadcrumbs.value)
-    //         // clear_selected_files()
-    //     }
-    // })
-
 
 }
 
@@ -7253,9 +7176,11 @@ function select_all() {
 
         let main_view = document.getElementById('main_view')
         let nav_item = main_view.querySelectorAll('.nav_item')
+
         nav_item.forEach(item => {
             item.classList.add('highlight_select')
         })
+
         info(nav_item.length + ' items selected')
 
     }
@@ -7552,6 +7477,7 @@ function add_progress() {
 // ADD IMG
 function add_img(src) {
     let img = document.createElement('img')
+    let icon_dir = path.join(__dirname, 'assets', 'icons');
     img.style = 'float:left; padding-right: 5px; vertical-align: middle !important'
     img.width = 32
     img.height = 32
@@ -8388,8 +8314,7 @@ function delete_confirmed() {
         delete_arr = [];
         clear_items();
 
-        // UPDATE CARDS
-        // update_cards(main_view);
+        ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
     } else {
         // console.log('nothing to delete');
@@ -8397,7 +8322,7 @@ function delete_confirmed() {
         // indexOf('Nothing to delete.')
     }
 
-    ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
+
 
 }
 
@@ -8412,7 +8337,7 @@ function get_folder_count() {
     let main_view = document.getElementById('main_view');
     let folder_cards = main_view.querySelectorAll('.folder_card');
     folder_count = folder_cards.length;
-    console.log('folder_count', folder_cards.length);
+    // console.log('folder_count', folder_cards.length);
     return folder_count;
 }
 
@@ -8422,7 +8347,7 @@ function get_file_count() {
     let main_view = document.getElementById('main_view');
     let file_cards = main_view.querySelectorAll('.file_card');
     file_count = file_cards.length;
-    console.log('file count',file_cards.length);
+    // console.log('file count',file_cards.length);
     return file_count;
 }
 
@@ -8577,6 +8502,7 @@ function update_card(href) {
                     'Modified: ' + mtime +
                     '\n' +
                     'Created: ' + ctime
+
             })
 
             // DRAG AMD DROP
@@ -8658,23 +8584,11 @@ function update_cards(view) {
         let file_counter = 0
         cards_arr.forEach((card, idx) => {
 
-            // console.log(card)
-
             // DRAG AMD DROP
-            // ds.addSelectables(card, false)
-
-            // ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
-            //     console.log('dragging', isDragging)
-            //     if (isDragging) {
-            //         ds.stop(false, true)
-            //         // setTimeout(ds.start)
-            //     }
-            // })
+            ds.addSelectables(card, false)
 
             let header = card.querySelector('.header_link')
             let img = card.querySelector('.image')
-
-            // console.log('img',img)
 
             // PROGRESS
             let progress = card.querySelector('.progress')
@@ -8771,14 +8685,6 @@ function update_cards(view) {
             }
 
         })
-
-        // ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) => {
-        //     console.log('dragging', isDragging)
-        //     if (isDragging || isDraggingKeyboard) {
-        //         ds.stop(false, false)
-        //         // setTimeout(ds.start)
-        //     }
-        // })
 
         // clear_selected_files()
 
@@ -9085,6 +8991,13 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         // mainWindow.loadURL(mainAddr);
     }
 
+    if (command === 'open_in_new_window') {
+        // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        // items.forEach(item => {
+            ipcRenderer.send('new_window');
+        // })
+    }
+
     // NEW WINDOW
     if (command === 'new_window') {
         ipcRenderer.send('new_window');
@@ -9292,16 +9205,22 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
 })
 
-
 // RUN ON CONTEXT MENU CLOSE
 ipcRenderer.on('clear_selected_files', (e, res) => {
-
     clear_items()
-
 })
 
 // ON DOCUMENT LOAD
 window.addEventListener('DOMContentLoaded', () => {
+
+    let breadcrumbs = document.getElementById('breadcrumbs');
+    breadcrumbs.addEventListener('keyup', (e) => {
+        try {
+            autocomplete();
+        } catch (err) {
+
+        }
+    })
 
     /* Initialize sort */
     let sort = localStorage.getItem('sort');
@@ -9394,28 +9313,18 @@ window.addEventListener('DOMContentLoaded', () => {
         })
     }
 
-    // CHECK WHAT THIS IS
-    // ipcRenderer.on('devices', (_event, text) => replaceText('devices', text))
-
-    // GET GIO DEVICE LIST
-    // let device_grid = document.getElementById('device_grid')
-    // device_grid.innerHTML = ''
-    // ipcRenderer.send('get_gio_devices')
-
-    // GET WORKSPACE
-    // workspace_arr = []
-    // get_workspace()
-
-    // GET NETWORK
-    // get_network()
-
     // INITIALIZE DRAG SELECT
     try {
 
         ds = new DragSelect({
-            // area: document.getElementById('main_view'),
+            area: document.getElementById('main_view'),
             selectorClass: 'drag_select',
+            keyboardDrag: false,
         })
+
+        ds.subscribe('predragstart', ({ isDragging, isDraggingKeyboard }) =>
+            isDragging && ds.stop(true, true)
+        )
 
     } catch (err) {
         console.log(err);
@@ -9820,4 +9729,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // } else {
             //     // Possibly fall back to event handlers here
-            // }
+// }

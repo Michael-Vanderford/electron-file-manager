@@ -1053,6 +1053,7 @@ h5 {
 
 #info_view {
     /* border: 1px solid black; */
+    border: 0px;
     margin-right: 110px !important;
     overflow: hidden;
     /* margin-top: 20px; */

@@ -423,9 +423,7 @@ function get_file_properties(filename) {
 }
 
 /* Get disk space */
-function get_disk_space(href, callback) {
-
-    // console.log('running get disk space')
+async function get_disk_space(href, callback) {
 
     df = []
     // RUN DISK FREE COMMAND
@@ -453,8 +451,6 @@ function get_disk_space(href, callback) {
 
             if (size != '') {
 
-                // console.log('size', size);
-
                 // 0 DISK
                 // 6 SIZE OF DISK
                 // 7 USED SPACE
@@ -480,31 +476,28 @@ function get_disk_space(href, callback) {
             }
         })
 
+        options.foldercount = href.folder_count
+        options.filecount = href.file_count
+
+        df.push(options)
+
+        // SEND DISK SPACE
+        active_window.send('disk_space', df)
+
         cmd = 'cd "' + href.href + '"; du -s'
         du = exec(cmd)
 
         du.stdout.on('data', function (res) {
 
-            let win = window.getFocusedWindow();
-
             let size = parseInt(res.replace('.', '') * 1024)
             size = get_file_size(size)
-
-            options.foldersize = size
-
-            options.foldercount = href.folder_count
-            options.filecount = href.file_count
-
-            df.push(options)
-
-            // SEND DISK SPACE
-            active_window.send('disk_space', df)
+            active_window.send('du_folder_size', size)
 
         })
 
     }
 
-    callback(options)
+    // callback(options)
 
 }
 
@@ -1011,7 +1004,7 @@ function copy(state) {
                         }
 
                         active_window.send('add_card', options)
-                        active_window.send('update_cards')
+                        // active_window.send('update_cards')
 
                     }
                     copy_files_arr.shift()
@@ -1024,8 +1017,8 @@ function copy(state) {
                 options.linktext = path.basename(destination_file)
 
                 // console.log('copy files array ', copy_files_arr.length())
+                // active_window.send('add_card', options)
 
-                active_window.send('add_card', options)
                 return true
 
             } else {
@@ -2706,6 +2699,140 @@ function add_scripts_menu(menu, e, args) {
     })
 }
 
+// Find context menu
+ipcMain.on('context-menu-find', (e, args) => {
+
+    let stats = fs.statSync(args)
+
+    if (stats.isDirectory()) {
+
+        find_menu_template = [
+            {
+                label: 'Open location',
+                click: () => {
+                    active_window.send('get_view', path.dirname(args))
+                }
+            },
+            {
+                type: 'separator'
+            },
+
+        ]
+
+    } else {
+
+        find_menu_template = [
+            {
+                label: 'Open location',
+                click: () => {
+                    active_window.send('get_view', path.dirname(args))
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                id: 'launchers',
+                label: 'Open with',
+                // click: () => {
+                //     e.sender.send('open_with')
+                // },
+                submenu: []
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Add to workspace',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+                click: () => {
+                    e.sender.send('add_workspace')
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Cut',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+                click: () => {
+                e.sender.send('context-menu-command', 'cut')
+                }
+            },
+            {
+                label: 'Copy',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+                click: () => {
+                    e.sender.send('context-menu-command', 'copy')
+                }
+            },
+            {
+                label: '&Rename',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+                click: () => { e.sender.send('context-menu-command', 'rename') }
+            },
+            {
+                type: 'separator'
+            },
+            {
+            type: 'separator'
+            },
+            {
+                label: 'Delete file',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+                click: () => {
+                    // e.sender.send('context-menu-command', 'delete_file')
+                    e.sender.send('context-menu-command', 'delete')
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Properties',
+                accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+                click:()=>{
+                    // createPropertiesWindow()
+                    e.sender.send('context-menu-command', 'props')
+                }
+            },
+
+        ]
+
+    }
+
+
+
+    let menu = Menu.buildFromTemplate(find_menu_template);
+    menu.popup(BrowserWindow.fromWebContents(e.sender));
+
+})
+
+
+// Devices menu
+ipcMain.on('show-context-menu-devices', (e, args) => {
+
+    device_menu_template = [
+        // {
+        //     label: 'Unmount',
+        //     click: () => {
+
+        //     }
+        // },
+        {
+            label: 'Connect',
+            click: () => {
+
+            }
+        }
+    ]
+
+    let menu = Menu.buildFromTemplate(device_menu_template)
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
+
 // MAIN MENU
 ipcMain.on('show-context-menu', (e, options) => {
 
@@ -2956,12 +3083,12 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
                             e.sender.send('context-menu-command', 'compress_folder')
                         }
                     },
-                    {
-                        label: 'zip',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress_folder')
-                        }
-                    },
+                    // {
+                    //     label: 'zip',
+                    //     click: () => {
+                    //         e.sender.send('context-menu-command', 'compress_folder')
+                    //     }
+                    // },
                 ]
         },
         {
@@ -3131,12 +3258,12 @@ ipcMain.on('show-context-menu-files', (e, args) => {
                             e.sender.send('context-menu-command', 'compress_folder')
                         }
                     },
-                    {
-                        label: 'zip',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress_folder')
-                        }
-                    },
+                    // {
+                    //     label: 'zip',
+                    //     click: () => {
+                    //         e.sender.send('context-menu-command', 'compress_folder')
+                    //     }
+                    // },
                 ]
         },
         {

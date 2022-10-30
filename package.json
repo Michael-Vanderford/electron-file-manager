@@ -33,7 +33,8 @@
         "mime-types": "^2.1.35",
         "mousetrap": "^1.6.5",
         "open": "^8.4.0",
-        "uikit": "^3.15.6"
+        "uikit": "^3.15.6",
+        "dragselect2": "git+https://github.com/michael-vanderford/dragselect2.git"
     },
     "devDependencies": {
         "electron": "^19.0.10"
