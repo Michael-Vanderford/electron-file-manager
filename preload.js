@@ -6530,11 +6530,18 @@ async function find_files() {
         let cards = sidebar_items.querySelectorAll('.nav_item')
         cards.forEach(card => {
 
-            let img = card.querySelector('img');
-            img.classList.remove('lazy');
-            img.src = img.dataset.src;
+            if (fs.existsSync(card.datase.href)) {
 
-            update_card(card.dataset.href);
+                let img = card.querySelector('img');
+                img.classList.remove('lazy');
+                img.src = img.dataset.src;
+
+                update_card(card.dataset.href);
+
+            } else {
+                card.remove()
+            }
+
 
         })
 
@@ -6608,6 +6615,8 @@ async function find_files() {
                 console.log('keyup')
 
                 if (e.key === 'Enter') {
+
+                    console.log('searching')
 
                     search_results.innerHTML    = 'Searching...';
 
