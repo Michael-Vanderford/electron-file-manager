@@ -14,7 +14,7 @@ const path                                      = require('path')
 const Mousetrap                                 = require('mousetrap');
 const os                                        = require('os');
 const Chart                                     = require('chart.js')
-const DragSelect                                = require('dragselect')
+const DragSelect                                = require('dragselect2')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
@@ -27,10 +27,10 @@ let directories     = []
 let files           = []
 
 // todo: check if this is being used
-// let options = {
-//     sort:   1,
-//     search: ''
-// }
+let options = {
+    sort:   1,
+    search: ''
+}
 
 // todo: check if this is being used
 let prev_target = '';
