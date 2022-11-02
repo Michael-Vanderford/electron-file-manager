@@ -62,7 +62,7 @@ if (localStorage.getItem('depth') == null) {
 }
 
 // Set local storage for icon size
-if (localStorage.getItem('icon_size') == null) {    
+if (localStorage.getItem('icon_size') == null) {
     localStorage.setItem('icon_size', '3')
 }
 
@@ -240,8 +240,6 @@ if (active_minibar_item == null) {
     window.api.get_sidebar_files(window.api.get_home());
 } else {
     document.querySelector('#' + active_minibar_item).style = 'color: #ffffff !important; font-weight:bold;';
-
-    console.log(active_minibar_item)
 
     switch (active_minibar_item) {
         case 'mb_home':

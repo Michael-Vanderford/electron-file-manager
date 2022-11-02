@@ -141,16 +141,21 @@ ipcMain.on('add_system_notification', (e, title, body) => {
     AddSysNotification(title, body);
 })
 
+let destination_folder = ''
+ipcMain.on('destination_folder', (e, directory) => {
+    destination_folder = directory;
+})
+
 function AddSysNotification (title, body) {
     new Notification({ title: title, body: body}).show()
 }
 
 // COPY FILES RECURSIVE
-let recursive = 0
+let recursive = 0;
 async function copyfile(source, target, state, callback) {
 
     // TARGET
-    var targetFile = target
+    var targetFile = target;
     try {
         if (fs.existsSync(target)) {
             if (fs.lstatSync(target).isDirectory()) {
@@ -158,35 +163,12 @@ async function copyfile(source, target, state, callback) {
             }
         }
     } catch (err) {
-        console.log('copy file sync. stat sync err', err)
+        console.log('copy file sync. stat sync err', err);
     }
 
     recursive++
-    let file_exists = fs.existsSync(targetFile)
 
-    // console.log(targetFile, current_directory);
-
-    /* Add card if copying into the current direcoty unless one exists */
-    // if (path.dirname(targetFile) == current_directory) {
-    // if (path.dirname(targetFile) == current_directory) {
-    //     let options = {
-    //         id: 0,
-    //         href: targetFile,
-    //         linktext: path.basename(targetFile),
-    //         is_folder: fs.statSync(source).isDirectory(),
-    //         grid: ''
-    //     }
-    //     // windows.forEach(win => {
-    //         try {
-    //             let win = active_window; //window.getFocusedWindow();
-    //             win.webContents.send('add_card', options);
-    //         } catch {err} {
-    //             // console.log();
-    //         }
-    //     // })
-    // }
-
-    /* Copy file */
+    // Copy file
     fs.copyFile(source, targetFile, (err) => {
 
         if (err) {
@@ -195,31 +177,16 @@ async function copyfile(source, target, state, callback) {
 
             callback(1);
 
-            /* Update cards */
+            // Update cards
             if (--recursive == 0) {
 
-                // if (current_directory == path.dirname(targetFile)) {
-
-                    try {
-
-                        active_window.webContents.send('update_cards');
-                        // callback(1);
-                        return 1;
-
-                        // windows.forEach(win => {
-                        // })
-                        // callback(1);
-                    } catch (err) {``
-                        // console.log(err);
-                        // callback(0)
-                        return 0;
-                    }
-
-                // }
+                try {
+                    return 1;
+                } catch (err) {
+                    return 0;
+                }
 
             }
-
-
 
         }
 
@@ -229,7 +196,7 @@ async function copyfile(source, target, state, callback) {
 
 // COPY FOLDER RECURSIVE
 copy_folder_counter = 0
-function copyfolder(source, destination, state, callback) {
+async function copyfolder(source, destination, state, callback) {
 
     // console.log('reading source', source)
 
@@ -268,14 +235,14 @@ function copyfolder(source, destination, state, callback) {
 
                             // DIRECTORY
                             if (stats.isDirectory() == true) {
-
-                                copyfolder(cursource, curdestination, state, () => {});
-
+                                copyfolder(cursource, curdestination, state, () => {
+                                    active_window.send('update_card', destination_folder);
+                                });
                             // COPY FILES
                             } else if (stats.isFile() == true) {
 
                                 copyfile(cursource, curdestination, state, () => {
-
+                                    active_window.send('update_card', destination_folder);
                                 })
 
                             }
@@ -352,8 +319,6 @@ async function get_folder_count_recursive(filename) {
 /* Get files properties */
 function get_file_properties(filename) {
 
-    // console.log(filename)
-
     let stats           = fs.statSync(filename)
     let cmd             = "xdg-mime query filetype '" + filename + "'"
     let exec_mime       = execSync(cmd).toString()
@@ -372,7 +337,6 @@ function get_file_properties(filename) {
     let mode            = stats.mode;
     let group           = stats.uid;
     let contents        = '';
-
 
     // // todo: need a better way to do this
     // if (type == true) {
@@ -624,66 +588,6 @@ function ClearClipboard() {
     clipboard.clear();
 }
 
-// CREATE MAIN WINDOW
-// let win;
-// function createWindow() {
-
-//     let displayToUse = 0
-//     let lastActive = 0
-//     let displays = screen.getAllDisplays()
-
-//     // Single Display
-//     if (displays.length === 1) {
-//         displayToUse = displays[0]
-//     }
-
-//     // Multi Display
-//     else {
-//         // if we have a last active window, use that display for the new window
-//         if (!displayToUse && lastActive) {
-//             displayToUse = screen.getDisplayMatching(lastActive.getBounds());
-//         }
-
-//         // fallback to primary display or first display
-//         if (!displayToUse) {
-//             displayToUse = screen.getPrimaryDisplay() || displays[3];
-//         }
-//     }
-
-//     // WINDOW OPTIONS
-//     let options = {
-//         minWidth: 1024,
-//         minHeight: 600,
-//         width: 1600,
-//         height: 768,
-//         backgroundColor: '#2e2c29',
-//         x:displayToUse.bounds.x + 50,
-//         y:displayToUse.bounds.y + 50,
-//         frame: true,
-//         webPreferences: {
-//             nodeIntegration: false, // is default value after Electron v5
-//             contextIsolation: true, // protect against prototype pollution
-//             enableRemoteModule: false, // turn off remote
-//             nodeIntegrationInWorker: false,
-//             nativeWindowOpen: false,
-//             preload: path.join(__dirname, 'preload.js'),
-//             sandbox: false
-//         },
-//     }
-
-//     win = new BrowserWindow(options);
-
-//     // win.removeMenu()
-//     // win.webContents.openDevTools();
-
-//     // LOAD INDEX FILE
-//     win.loadFile('src/index.html')
-
-//     win.once('ready-to-show', () => {
-//         win.show();
-//     });
-// }
-
 const createWindow = exports.createWindow = () => {
 
     let displayToUse = 0
@@ -774,39 +678,13 @@ const createWindow = exports.createWindow = () => {
 
     })
 
-    // win.webContents.on('paint', (event, dirty, image) => {
-    //     fs.writeFileSync('ex.png', image.toPNG())
-    //   })
-    // win.webContents.setFrameRate(60)
-
     // console.log('win', win);
     windows.add(win);
-
-    const sess = win.webContents.session
-    // sess.fromPartition(current_directory)
-    // console.log('user agent' ,sess.getUserAgent())
-
 
 };
 
 app.whenReady().then(() => {
-
-    // globalShortcut.register('Escape', (e) => {
-    //     console.log('Escape is pressed');
-    //     let active_window = BrowserWindow.getFocusedWindow()
-    //     active_window.hide()
-
-    // });
-
     createWindow();
-
-    // ACTIVATE EVENTS GO HERE?
-    // app.on('activate', function () {
-    //     // On macOS it's common to re-create a window in the app when the
-    //     // dock icon is clicked and there are no other windows open.
-    //     if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    // })
-
 })
 
 // ipcMain.handle('dark-mode:toggle', () => {
@@ -825,7 +703,6 @@ ipcMain.handle('dark-mode:system', () => {
 })
 
 ipcMain.on('copy_to_clipboard', (a, data) => {
-    // console.log('copying to clipboard', data)
     CopyToClipboard(data);
 });
 
@@ -924,37 +801,18 @@ ipcMain.on('add_copy_files', function( e, data) {
 
 })
 
-
-// COPY
-// ipcMain.on('copy', (e, copy_files_arr, state) => {
-
-//     console.log('on copy', copy_files_arr);
-//     copy(copy_files_arr, state);
-
-// })
-
 ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
-
-    // console.log('on copy', copy_files_arr);
     copy(copy_files_arr, state);
-
 })
 
 // COPY
 function copy(state) {
 
-    // console.log('copy arr length', copy_files_arr.length)
-
     copy_files_arr.every((item, idx) => {
 
         let source = item.source;
-        // let destination = dir; //item.destination
-
         let source_stats = fs.statSync(source)
-        // let destination_stats = fs.statSync(destination)
-
         let destination_file = path.join(destination, path.basename(source))
-
         let max = 0
 
         // DIRECTORY - Done
@@ -992,7 +850,6 @@ function copy(state) {
                 state = 0
                 copyfolder(source, destination_file, state, () => {
 
-                    // console.log('running',path.basename(source))
                     if (isMainView) {
 
                         let options = {
@@ -1002,20 +859,20 @@ function copy(state) {
                         }
 
                         active_window.send('add_card', options)
-                        // active_window.send('update_cards')
+                        active_window.send('update_card', destination_file)
 
                     }
+
+                    active_window.send('update_card', destination)
+
                     copy_files_arr.shift()
-                    copy(copy_files_arr,state)
+                    copy(copy_files_arr, state)
 
                 })
 
                 // CREATE FOLDER
                 options.href = destination_file
                 options.linktext = path.basename(destination_file)
-
-                // console.log('copy files array ', copy_files_arr.length())
-                // active_window.send('add_card', options)
 
                 return true
 
@@ -1030,7 +887,6 @@ function copy(state) {
                     }
 
                     createConfirmDialog(data, copy_files_arr)
-
                     return false;
 
                 } else {
@@ -1046,40 +902,35 @@ function copy(state) {
                     let win = window.getFocusedWindow();
                     win.webContents.send('progress', max, destination_file);
 
-                    // if (!canceled) {
+                    // COPY FOLDERS RECURSIVE
+                    copyfolder(source, destination_file, state, () => {
 
-                        // COPY FOLDERS RECURSIVE
-                        copyfolder(source, destination_file, state, () => {
+                        if (isMainView) {
 
-
-                            // console.log('running',path.basename(source))
-                            if (isMainView) {
-
-                                let options = {
-                                    href: destination_file,
-                                    linktext: path.basename(destination_file),
-                                    is_folder: true
-                                }
-
-                                active_window.send('add_card', options)
-                                active_window.send('update_cards')
-
+                            let options = {
+                                href: destination_file,
+                                linktext: path.basename(destination_file),
+                                is_folder: true
                             }
-                            copy_files_arr.shift()
-                            copy(copy_files_arr,state)
 
+                            active_window.send('add_card', options)
+                            active_window.send('update_card', destination_file)
 
+                        }
 
-                        })
-                        return false;
-                    // }
+                        active_window.send('update_card', destination)
+
+                        copy_files_arr.shift()
+                        copy(copy_files_arr,state)
+
+                    })
+
+                    return false;
                 }
             }
 
         // FILES
         } else {
-
-            // console.log(source, destination)
 
             // APPEND COPY TO FILENAME IF SAME
             if (path.dirname(source) == destination) {
@@ -1094,7 +945,6 @@ function copy(state) {
 
                 // COPY FILE
                 state = 1;
-                // let max = parseInt(item.size)
                 copyfile(source, destination_file, state, () => {
 
                     let options = {
@@ -1106,8 +956,11 @@ function copy(state) {
                     }
 
                     active_window.send('add_card', options)
+                    active_window.send('update_card', destination_file);
 
                 })
+
+                active_window.send('update_card', destination);
 
                 copy_files_arr.shift();
                 copy(copy_files_arr, state);
@@ -1143,7 +996,9 @@ function copy(state) {
                     })
 
                     // console.log('copy array', copy_files_arr)
-                    copyfile(source, destination_file, state, () => {});
+                    copyfile(source, destination_file, state, () => {
+                        active_window.send('update_card', destination);
+                    });
 
                     if (isMainView) {
 
@@ -1156,15 +1011,12 @@ function copy(state) {
                         }
 
                         active_window.webContents.send('add_card', options)
+                        active_window.send('update_card', destination_file);
 
                     }
 
-
-
                     copy_files_arr.shift();
                     copy(state);
-
-                    // console.log('copy array', copy_files_arr)
 
                     return true;
 
@@ -2141,13 +1993,9 @@ function create_properties_window(filename) {
                 Created: created
             }
 
-            // console.log('send file properties')
             win.send('file_properties', file_properties)
             // win.webContents.openDevTools()
             console.log(file_properties)
-
-
-
 
     })
 

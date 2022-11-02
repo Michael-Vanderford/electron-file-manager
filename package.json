@@ -23,18 +23,15 @@
         "start": "electron ."
     },
     "dependencies": {
-        "bootstrap": "^5.0.1",
         "bootstrap-icons": "^1.8.2",
-        "bulma": "^0.9.4",
         "chart.js": "^3.5.1",
         "dragselect": "^2.3.1",
+        "dragselect2": "git+https://github.com/michael-vanderford/dragselect2.git",
         "imagemagick": "^0.1.3",
         "jquery": "^3.6.0",
         "mime-types": "^2.1.35",
         "mousetrap": "^1.6.5",
-        "open": "^8.4.0",
-        "uikit": "^3.15.6",
-        "dragselect2": "git+https://github.com/michael-vanderford/dragselect2.git"
+        "open": "^8.4.0"
     },
     "devDependencies": {
         "electron": "^19.0.10"

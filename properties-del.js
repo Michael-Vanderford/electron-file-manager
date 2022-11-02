@@ -3208,60 +3208,60 @@ function get_folder_size(href) {
 
     return new Promise(resolve => {
 
-    console.log('running get folder size')
+        console.log('running get folder size')
 
-    let breadcrumbs = document.getElementById('breadcrumbs')
-    if (breadcrumbs.value.indexOf('gvfs') == -1) {
+        let breadcrumbs = document.getElementById('breadcrumbs')
+        if (breadcrumbs.value.indexOf('gvfs') == -1) {
 
-        // cmd = 'cd "' + dir + '"; du -b'
-        // return du = execSync(cmd)
-        const regex = /^\..*/
-        let folder_card = document.getElementsByClassName('folder_card')
+            // cmd = 'cd "' + dir + '"; du -b'
+            // return du = execSync(cmd)
+            const regex = /^\..*/
+            let folder_card = document.getElementsByClassName('folder_card')
 
-        if (folder_card.length > 0) {
-            for (let i = 0; i < folder_card.length; i++) {
+            if (folder_card.length > 0) {
+                for (let i = 0; i < folder_card.length; i++) {
 
-                // let href = folder_card[i].querySelector('a')
-                // href = href.getAttribute('href')
+                    // let href = folder_card[i].querySelector('a')
+                    // href = href.getAttribute('href')
 
-                // href = dir.replace("'", "/")
+                    // href = dir.replace("'", "/")
 
-                cmd = 'cd "' + href + '"; du -s'
-                du = exec(cmd)
+                    cmd = 'cd "' + href + '"; du -s'
+                    du = exec(cmd)
 
-                console.log(href)
+                    console.log(href)
 
-                du.stdout.on('data', function (res) {
+                    du.stdout.on('data', function (res) {
 
-                    let extra = folder_card[i].querySelector('.extra')
+                        let extra = folder_card[i].querySelector('.extra')
 
-                    let size = parseInt(res.replace('.', '') * 1024)
-                    if (size > 1000000000) {
-                        extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
-                    } else {
-                        extra.innerHTML = get_file_size(size)
-                    }
-
-
-                        resolve(size)
+                        let size = parseInt(res.replace('.', '') * 1024)
+                        if (size > 1000000000) {
+                            extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
+                        } else {
+                            extra.innerHTML = get_file_size(size)
+                        }
 
 
-                })
+                            resolve(size)
 
-                // let extra = folder_card[i].querySelector('.extra')
-                // extra.innerHTML = du
 
-                // let card = document.getElementById(folder_card[i].id)
-                // let extra = card.find()
-                // console.log('what ' + folder_card[i].id)
+                    })
+
+                    // let extra = folder_card[i].querySelector('.extra')
+                    // extra.innerHTML = du
+
+                    // let card = document.getElementById(folder_card[i].id)
+                    // let extra = card.find()
+                    // console.log('what ' + folder_card[i].id)
+                }
             }
+
+        } else {
+            console.log('gvfs folder. dont scan size')
         }
 
-    } else {
-        console.log('gvfs folder. dont scan size')
-    }
-
-})
+    })
 
 }
 
