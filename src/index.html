@@ -137,9 +137,9 @@
                     Music
                 </a>
 
-                <div class="hidden">
+                <div class="ui menu horizontal hidden">
 
-                    <a class="item" id="terminal" title="Open a terminal in the current folder">
+                    <a class="item" id="" title="Open a terminal in the current folder">
                         <!-- <i class="terminal icon"></i> -->
                         <i class="icon bi-terminal small"></i>
                         <!-- Terminal -->
@@ -154,7 +154,7 @@
                     </a>
 
 
-                    <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                    <a class="item button" id="" title="Show hidden files and directories">
                         <!-- todo: enable show data content -->
                         <!-- <div class="button" data-content="Show hidden files and folders"> -->
                         <i class="ui icon eye small"></i>
@@ -162,59 +162,122 @@
                         <!-- </div> -->
                     </a>
 
-                    <a class="item button" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
+                    <a class="item button" id="" title="Sort by Date (Click twice to change sort order)">
                         <i class="small icon sort amount down"></i>
                         <!-- Sort by date -->
                     </a>
 
-                    <a class="item" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
+                    <a class="item" id="" title="Sort by Name (Click twice to change sort order)">
                         <i class="icon sort alphabet down small"></i>
                         <!-- Sort by name -->
                     </a>
 
-                    <a class="item" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
+                    <a class="item" id="" title="Sort by Size (Click twice to change sort order)">
                         <i class="icon sort amount down small"></i>
                         <!-- Sort by size -->
                     </a>
 
-                    <a class="item" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
+                    <a class="item" id="" title="Sort by Type (Click twice to change sort order)">
                         <i class="icon sort file alternative outline down small"></i>
                         <!-- Sort by type -->
                     </a>
 
 
                     <!-- LIST VIEW -->
-                    <a class="item" id="btn_list_view" title="List view.">
+                    <a class="item" id="" title="List view.">
                         <i class="ui icon list small"></i>
                     </a>
 
                     <!-- GRID VIEW -->
-                    <a class="item" id="btn_grid_view" title="Grid view">
+                    <a class="item" id="" title="Grid view">
                         <i class="ui icon th small"></i>
                     </a>
 
                     <!-- DISK SUMMARY VIEW -->
-                    <a class="item" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
+                    <a class="item" id="" title="Disk summary view. Get a summary of disk usage.">
                         <i class="ui icon disk small"></i>
                     </a>
 
                 </div>
+
+                <div class="flex hidden" id="hamburger_menu">
+
+                    <div class="col">
+
+                        <div class="header">View</div>
+
+                        <!-- LIST VIEW -->
+                        <a class="item list" id="btn_list_view" title="List view.">
+                            <i class="ui icon list small"></i> List
+                        </a>
+
+                        <!-- GRID VIEW -->
+                        <a class="item grid" id="btn_grid_view" title="Grid view">
+                            <i class="ui icon th small"></i> Grid
+                        </a>
+
+                        <!-- DISK SUMMARY VIEW -->
+                        <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
+                            <i class="ui icon disk small"></i> Disk Summary
+                        </a>
+
+                        <a class="item button hidden" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                            <i class="ui icon eye small"></i> Show hidden
+                        </a>
+
+                    </div>
+
+                    <div class="col">
+
+                        <div class="header">Sort</div>
+
+                        <a class="item date" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
+                            <i class="small icon sort amount down"></i> Date
+                        </a>
+
+                        <a class="item name" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
+                            <i class="icon sort alphabet down small"></i> Name
+                        </a>
+
+                        <a class="item size" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
+                            <i class="icon sort amount down small"></i> Size
+                        </a>
+
+                        <a class="item type" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
+                            <i class="icon sort file alternative outline down small"></i> Type
+                        </a>
+
+                    </div>
+
+                    <div class="col">
+
+                        <div class="header">Utilities</div>
+
+                        <a class="item terminal" id="terminal" title="Open a terminal in the current folder">
+                            <i class="icon bi-terminal small"></i> Open terminal
+                        </a>
+
+                        <a class="item button gnome_disks" title="Gnome Disks">
+                            <i class="icon bi-hdd small"></i> Gnome disks
+                        </a>
+
+                    </div>
+
+
+                </div>
+
 
                 <!-- Settings -->
                 <div class="item right settings">
 
                     <input class="slider" type="range" id="icon_size_selector" value="1" min="0" max="3" step="0" title="Adjust icon size"></ipnut>
 
-                    <a class="item" id="btn__view">
-                        <!-- <i class="ui icon align justify"></i> -->
+                    <a class="item" id="btn_hamburger_menu">
+                        <i class="ui icon align justify"></i>
                     </a>
 
                     <a class="item" id="btn_settings_view">
                         <i class="ui icon cog"></i>
-                        <!-- <div class="settings_menu"> -->
-                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
-                            <!-- <a class="item" id="btn_keyboard_settings">Keyboard shortcuts</a> -->
-                        <!-- </div> -->
                     </a>
 
                 </div>

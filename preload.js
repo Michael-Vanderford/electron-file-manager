@@ -1436,12 +1436,16 @@ ipcRenderer.on('icon_path', (e, data) => {
 
             } else {
 
-                img.src = data.icon_path;
-                img.classList.add('icon');
+                // img.src = data.icon_path;
+                img.dataset.src = data.icon_path;
+                img.classList.add('icon', 'lazy');
 
             }
 
         })
+
+        lazyload()
+
     }
 })
 
@@ -2139,7 +2143,6 @@ async function add_card(options) {
         let input           = document.createElement('input')
         let form            = document.createElement('form')
 
-        // ADD CSS
         input.setAttribute          ('required', 'required')
         col.classList.add           ('column', 'three', 'wide')
         popovermenu.classList.add   ('popup')
@@ -2244,7 +2247,7 @@ async function add_card(options) {
                 // image.append(video)
 
             } else {
-                img.classList.add('icon');
+                img.classList.add('icon', 'lazy');
             }
 
             card.classList.add('file_card');
@@ -6577,6 +6580,8 @@ function lazyload() {
             // if (entries.length > 1) {
 
             entries.forEach(function (entry) {
+
+                console.log(entry)
 
                 if (entry.isIntersecting) {
 

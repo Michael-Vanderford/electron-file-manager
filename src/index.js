@@ -28,6 +28,10 @@ let btn_list_view       = document.getElementById('btn_list_view')
 let btn_grid_view       = document.getElementById('btn_grid_view')
 let btn_disk_view       = document.getElementById('btn_disk_view')
 
+// Toggle menu
+let btn_hamburger_menu  = document.getElementById('btn_hamburger_menu')
+let hamburger_menu      = document.getElementById('hamburger_menu')
+
 // VIEWS
 let main_view       = document.getElementById('main_view');
 let list_view       = document.getElementById('list_view')
@@ -195,6 +199,14 @@ function clear_minibar() {
     })
 }
 
+btn_hamburger_menu.onmouseover = () => {
+    hamburger_menu.classList.remove('hidden')
+}
+
+hamburger_menu.onmouseleave = (e) => {
+    hamburger_menu.classList.add('hidden')
+}
+
 icon_size_selector.oninput = () => {
 
     localStorage.setItem('icon_size', icon_size_selector.value)
@@ -203,7 +215,7 @@ icon_size_selector.oninput = () => {
 
 }
 
-/* Update sidebar_items */
+// Update sidebar_items
 minibar_items.forEach(item => {
     item.addEventListener('click', (e) => {
         clear_minibar();

@@ -476,8 +476,23 @@ body {
 
 }
 
+#hamburger_menu {
+    position: fixed;
+    padding: 10px;
+    right: 0;
+    margin-top: 25px;
+    margin-right: 25px;
+    background: #252525;
+    width: 400px;
+    height: 150px;
+    color: #fff;
+    z-index: 1000;
+    border-radius: 15px;
+}
 
-
+/* #hamburger_menu a:hover {
+    color:#069 !important;
+} */
 
 /* GLOBALS */
 
@@ -1362,92 +1377,103 @@ input:focus {
 
 }
 
-#statusbar {
-    background-color: rgb(0, 122, 204, .75);
-    color: rgb(255, 255, 255);
-    width: 2304px;
-    height: 16px;
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-}
 
-* {
+
+    #statusbar {
+        background-color: rgb(0, 122, 204, .75);
+        color: rgb(255, 255, 255);
+        width: 2304px;
+        height: 16px;
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+    }
+
+*   {
         -webkit-user-select: none;  /* Chrome all / Safari all */
         -moz-user-select: none;     /* Firefox all */
         -ms-user-select: none;      /* IE 10+ */
         user-select: none;          /* Likely future */
-  }
-  .boxes {
-    display: flex;
-  }
-  .column {
+    }
+
+    .flex {
+        display: flex;
+    }
+    .col {
         display: flex;
         flex-direction: column;
-  }
-  .box {
+        padding: 10px;
+        width: 100%;
+        /* border: 1px solid black; */
+    }
+
+    .column {
+        display: flex;
+        flex-direction: column;
+    }
+    .box {
         display: inline-block;
         background: red;
         margin: 4px;
-  }
-  .selected.box {
-        background: green;
-  }
-  .tiny.box {
-        width: 20px;
-        height: 20px;
-  }
-  .small.box {
-        width: 50px;
-        height: 50px;
-  }
-  .normal.box {
-        width: 100px;
-        height: 100px;
-  }
-  .big.box {
-        width: 150px;
-        height: 150px;
-  }
-  .huge.box {
-        width: 200px;
-        height: 150px;
-  }
-  .overlay {
-        position:relative;
-  }
-.selection-rect {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background: yellow !important;
-    opacity: 0;
-    pointer-events: none;
-}
+    }
+    .selected.box {
+            background: green;
+    }
+    .tiny.box {
+            width: 20px;
+            height: 20px;
+    }
+    .small.box {
+            width: 50px;
+            height: 50px;
+    }
+    .normal.box {
+            width: 100px;
+            height: 100px;
+    }
+    .big.box {
+            width: 150px;
+            height: 150px;
+    }
+    .huge.box {
+            width: 200px;
+            height: 150px;
+    }
+    .overlay {
+            position:relative;
+    }
+    .selection-rect {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background: yellow !important;
+        opacity: 0;
+        pointer-events: none;
+    }
 
-.fixed {
-    position: fixed;
-}
+    .fixed {
+        position: fixed;
+    }
 
-.absolute {
-    position: absolute;
-}
+    .absolute {
+        position: absolute;
+    }
 
-.bottom {
-    bottom: 0;
-}
+    .bottom {
+        bottom: 0;
+    }
 
-.middle {
-    left: 50%;
-}
+    .middle {
+        left: 50%;
+    }
 
-.right {
-    right: 0;
-}
+    .right {
+        right: 0;
+    }
 
-.left {
-    left: 0;
-}
+    .left {
+        left: 0;
+    }
 
 
 /* STYLES FROM VSCODE STATUS BAR */
