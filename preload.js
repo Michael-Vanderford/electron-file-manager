@@ -2328,8 +2328,8 @@ async function add_card(options) {
         // MOUSE OVER
         card.onmouseover = (e) => {
 
-            e.preventDefault();
-            e.stopPropagation();
+            // e.preventDefault();
+            // e.stopPropagation();
 
             // SET GLOBAL CARD ID ON HOVER
             // todo: this needs to be vetted
@@ -6581,7 +6581,7 @@ function lazyload() {
 
             entries.forEach(function (entry) {
 
-                console.log(entry)
+                // console.log(entry)
 
                 if (entry.isIntersecting) {
 
@@ -8634,7 +8634,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
 
         ds = new DragSelect({
-            // area: document.getElementById('main_view'),
+            area: document.getElementById('main_view'),
             selectorClass: 'drag_select',
             keyboardDrag: false,
         })

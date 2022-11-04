@@ -199,7 +199,7 @@ function clear_minibar() {
     })
 }
 
-btn_hamburger_menu.onmouseover = () => {
+btn_hamburger_menu.onmouseover = (e) => {
     hamburger_menu.classList.remove('hidden')
 }
 
