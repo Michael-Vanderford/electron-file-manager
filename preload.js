@@ -4798,23 +4798,18 @@ async function get_files(dir, callback) {
 
                     // DIRECTORY
                     if (stats.isDirectory()) {
-
                         let options = {
                             id: 'folder_card_' + idx,
                             href: filepath,
                             linktext: filename,
                             size: '',
                             is_folder: true
-                            // grid: folder_grid
                         }
-
                         if (!regex.test(file)) {
-
                             options.grid = folder_grid
                             add_card(options).then((card) => {
                                 update_card(card.dataset.href);
                             })
-
                         } else {
 
                             options.grid = hidden_folder_grid
@@ -4822,20 +4817,15 @@ async function get_files(dir, callback) {
                                 update_card(card.dataset.href);
                             })
                         }
-
                         ++folder_count
-
                     // FILES
                     } else {
-
                         let filename = path.basename(file)
                         let filepath = path.join(dir, '/', filename)
-
                         if (groupby) {
                             let ext = path.extname(filename)
                         } else {
                         }
-
                         let options = {
                             id: 'file_card_' + idx,
                             href: filepath,
@@ -4843,7 +4833,6 @@ async function get_files(dir, callback) {
                             is_folder: false
                             // card_counter: card_counter
                         }
-
                         if (!regex.test(file)) {
 
                             options.grid = file_grid
@@ -4858,27 +4847,12 @@ async function get_files(dir, callback) {
                                 update_card(card.dataset.href);
                             })
                         }
-
-
                         ++file_count
-
                     }
-
                 } catch (err) {
-
-                    let options = {
-                        id: 1,
-                        href: filepath,
-                        linktext: filename,
-                        size: '',
-                        is_folder: true
-                    }
-
-                    add_card(options)
-                    console.log('error message for ', err)
-
+                    // add_card(options)
+                    notification('error message for ', err)
                 }
-
             })
 
             if (folder_count == 0) {
