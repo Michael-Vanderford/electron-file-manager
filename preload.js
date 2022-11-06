@@ -14,7 +14,7 @@ const path                                      = require('path')
 const Mousetrap                                 = require('mousetrap');
 const os                                        = require('os');
 const Chart                                     = require('chart.js')
-const DragSelect                                = require('dragselect2')
+const DragSelect                                = require('dragselect')
 const open                                      = require('open')
 const readline                                  = require('readline');
 const mime                                      = require('mime-types');
@@ -122,16 +122,12 @@ ipcRenderer.on('update_card', (e, href) => {
     try {
         update_card(href)
     } catch (err) {
-
     }
 })
 
 // On update cards
 ipcRenderer.on('update_cards', (e) => {
-
-    let view = document.getElementById('main_view');
-    update_cards(view);
-
+    update_cards(document.getElementById('main_view'));
 })
 
 // On clear copy array
@@ -314,16 +310,11 @@ ipcRenderer.on('overwrite', (e, data) => {
     notification('overwriting file ' + destination);
 
     if (destination_stats.isDirectory()) {
-
         copyFolderRecursiveSync(source, destination)
-
     } else {
-
         // COPY FILE
         fs.copyFile(source, destination, (err) => {
-
             let file_grid = document.getElementById('file_grid');
-
             if (err) {
                 console.log(err)
             } else {
@@ -361,14 +352,10 @@ ipcRenderer.on('overwrite', (e, data) => {
                 }
 
             }
-
             // UPDATE CARDS
             update_cards(file_grid);
-
         })
-
     }
-
 })
 
 // OVERWRITE COPY ALL
@@ -826,25 +813,20 @@ ipcRenderer.on('du_folder_size', (e, folder_size) => {
 
 // ON FOLDER SIZE
 ipcRenderer.on('folder_size', (e, data) => {
-
     try {
-
-        let card = document.querySelector('[data-href="' + data.href + '"]')
-        let extra = card.querySelector('.extra')
-
-        if (fs.readdirSync(data.href).length > 0) {
-            extra.innerHTML = get_file_size(data.size)
-        } else {
-            extra.innerHTML = '0 Items'
-        }
-
+        let cards = document.querySelectorAll('[data-href="' + data.href + '"]')
+        cards.forEach(card => {
+            let extra = card.querySelector('.extra')
+            if (fs.readdirSync(data.href).length > 0) {
+                extra.innerHTML = get_file_size(data.size)
+                localStorage.setItem(data.href, data.size)
+            } else {
+                extra.innerHTML = '0 Items'
+            }
+        })
     } catch (err) {
-        // console.log(err)
+        console.log('on get folder size error:', err);
     }
-
-    // SET SIZE TO HREF IN LOCAL STORAGE
-    localStorage.setItem(data.href, data.size)
-
 })
 
 //ON GIO VOLUMES
@@ -1256,9 +1238,7 @@ ipcRenderer.on('gio_files', (e, data) => {
 
     // LOOP OVER FILES / FOLDERS
     files.forEach((item, idx) => {
-
         let href = path.join('/run/user/1000/gvfs', data.data.replace('//', 'host='))
-
         // CREATE CARD OPTIONS
         let options = {
 
@@ -1268,16 +1248,11 @@ ipcRenderer.on('gio_files', (e, data) => {
             grid: folder_grid
 
         }
-
         try {
-
             add_card(options).then(card => {
-
                 folder_grid.insertBefore(card, folder_grid.firstChild)
-
                 let col = add_column('three');
                 col.append(card)
-
                 // let header = document.getElementById('header_' + card_id)
                 // header.classList.add('hidden')
 
@@ -1289,8 +1264,7 @@ ipcRenderer.on('gio_files', (e, data) => {
                 // input.select()
 
                 // //
-                update_cards()
-
+                // update_cards()
             })
 
         } catch (err) {
@@ -1449,7 +1423,7 @@ ipcRenderer.on('icon_path', (e, data) => {
     }
 })
 
-/* On sort */
+// On sort
 ipcRenderer.on('sort', (e, sort) => {
     let breadcrumbs = document.getElementById('breadcrumbs')
     if (sort == 'date') {
@@ -5433,58 +5407,52 @@ function get_folder_size(href) {
 
     return new Promise(resolve => {
 
-        console.log('running get folder size')
-
         let breadcrumbs = document.getElementById('breadcrumbs')
-        if (breadcrumbs.value.indexOf('gvfs') == -1) {
+        // if (breadcrumbs.value.indexOf('gvfs') == -1) {
 
-            // cmd = 'cd "' + dir + '"; du -b'
-            // return du = execSync(cmd)
-            const regex = /^\..*/
-            let folder_card = document.getElementsByClassName('folder_card')
+        // cmd = 'cd "' + dir + '"; du -b'
+        // return du = execSync(cmd)
+        const regex = /^\..*/
+        let folder_card = document.getElementsByClassName('folder_card')
 
-            if (folder_card.length > 0) {
-                for (let i = 0; i < folder_card.length; i++) {
+        if (folder_card.length > 0) {
+            for (let i = 0; i < folder_card.length; i++) {
 
-                    // let href = folder_card[i].querySelector('a')
-                    // href = href.getAttribute('href')
+                // let href = folder_card[i].querySelector('a')
+                // href = href.getAttribute('href')
 
-                    // href = dir.replace("'", "/")
+                // href = dir.replace("'", "/")
 
-                    cmd = 'cd "' + href + '"; du -s'
-                    du = exec(cmd)
+                cmd = 'cd "' + href + '"; du -s'
+                du = exec(cmd)
 
-                    console.log(href)
+                console.log(href)
 
-                    du.stdout.on('data', function (res) {
+                du.stdout.on('data', function (res) {
 
-                        let extra = folder_card[i].querySelector('.extra')
+                    let extra = folder_card[i].querySelector('.extra')
 
-                        let size = parseInt(res.replace('.', '') * 1024)
-                        if (size > 1000000000) {
-                            extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
-                        } else {
-                            extra.innerHTML = get_file_size(size)
-                        }
+                    let size = parseInt(res.replace('.', '') * 1024)
+                    if (size > 1000000000) {
+                        extra.innerHTML = '<span style="color:red">' + get_file_size(size) + '</span>'
+                    } else {
+                        extra.innerHTML = get_file_size(size)
+                    }
+                    resolve(size)
+                })
 
+                // let extra = folder_card[i].querySelector('.extra')
+                // extra.innerHTML = du
 
-                            resolve(size)
-
-
-                    })
-
-                    // let extra = folder_card[i].querySelector('.extra')
-                    // extra.innerHTML = du
-
-                    // let card = document.getElementById(folder_card[i].id)
-                    // let extra = card.find()
-                    // console.log('what ' + folder_card[i].id)
-                }
+                // let card = document.getElementById(folder_card[i].id)
+                // let extra = card.find()
+                // console.log('what ' + folder_card[i].id)
             }
-
-        } else {
-            console.log('gvfs folder. dont scan size')
         }
+
+        // } else {
+        //     console.log('gvfs folder. dont scan size')
+        // }
 
     })
 
@@ -6260,13 +6228,10 @@ contextBridge.exposeInMainWorld('darkMode', {
 // FUNCTIONS //
 
 async function get_disk_space() {
-
-    let status = document.getElementById('status')
-    status.innerHTML = ''
-    status.append(add_icon('spinner'), 'Getting disk space..')
-
+    let status = document.getElementById('status');
+    status.innerHTML = '';
+    status.append(add_icon('spinner'), 'Getting disk space..');
     ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
-
 }
 
 /* Get devices */
@@ -6281,8 +6246,8 @@ async function get_devices() {
         remove_div              = add_div();
 
 
-        device_view.style = 'padding-top: 20px; height: 100%'
-        device_view.id = 'device_view'
+        device_view.style = 'padding-top: 20px; height: 100%';
+        device_view.id = 'device_view';
         device_view.addEventListener('contextmenu', function (e) {
             ipcRenderer.send('show-context-menu-devices');
         })
@@ -6413,7 +6378,6 @@ function autocomplete() {
             }
         })
 
-
         if (search_results.length > 0) {
 
             breadcrumb_items.classList.remove('hidden')
@@ -6447,8 +6411,6 @@ function autocomplete() {
                 })
 
             })
-
-
 
         } else {
 
@@ -6577,25 +6539,16 @@ function lazyload() {
         // GET REFERENCE TO LAZY IMAGE
         let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
 
-            // if (entries.length > 1) {
-
             entries.forEach(function (entry) {
-
-                // console.log(entry)
-
                 if (entry.isIntersecting) {
-
                     let lazyImage = entry.target;
                     lazyImage.src = lazyImage.dataset.src;
-                    // lazyImage.srcset = lazyImage.dataset.src;
                     lazyImage.classList.remove("lazy");
                     lazyImageObserver.unobserve(lazyImage);
 
                 }
 
             })
-
-            // }
 
         })
 
@@ -7644,8 +7597,6 @@ function delete_confirmed() {
         // indexOf('Nothing to delete.')
     }
 
-
-
 }
 
 // Delete file
@@ -7728,15 +7679,12 @@ function navigate(direction) {
     let breadcrumbs = document.getElementById('breadcrumbs');
     let last_index  = history_arr.lastIndexOf(breadcrumbs.value);
 
-    console.log('history array', history_arr, 'last index', last_index)
-
     for (i = 0; i < history_arr.length; i++) {
 
         if (history_arr[i] == breadcrumbs.value) {
 
             // NAVIGATE LEFT
             if (direction == 'left') {
-                console.log('navigating left', history_arr);
                 if (i > 1) {
                     dir = history_arr[last_index - 1];
                 } else {
@@ -7755,8 +7703,6 @@ function navigate(direction) {
         }
 
     };
-
-    console.log('navigate path', dir);
 
     // LOAD VIEW
     get_view(dir);
@@ -8636,8 +8582,15 @@ window.addEventListener('DOMContentLoaded', () => {
         ds = new DragSelect({
             area: document.getElementById('main_view'),
             selectorClass: 'drag_select',
-            keyboardDrag: false,
+            keyboardDragSpeed: 0,
         })
+
+        ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+            if(isDragging || isDraggingKeyboard) {
+              ds.break()
+            }
+        })
+
 
     } catch (err) {
         console.log(err);
@@ -8835,7 +8788,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Backspace
     Mousetrap.bind(settings.keyboard_shortcuts.Backspace.toLocaleLowerCase(), () => {
-        console.log('back pressed');
         navigate('left');
     })
 

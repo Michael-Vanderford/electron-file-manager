@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>efm</title>
+    <title>String File Manager</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 
     <link rel="manifest" href="manifest.json">
@@ -20,7 +20,7 @@
 
 <body data-theme="" id="body">
 
-    <div class="container" style="">
+    <div class="container">
 
         <div class="ui grid hidden" style="margin-bottom: 0px;">
             <div class="column sixteen wide">
@@ -28,7 +28,7 @@
                     style="border-top-left-radius: 15px !important; border-top-right-radius: 15px; background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
 
 
-                    <div class="ui simple dropdown item" style="" id="">
+                    <div class="ui simple dropdown item" id="">
                         File
                         <div class="icon menu" style="background-color: #252525 !important; width:250px; ">
 
@@ -107,12 +107,10 @@
             <!-- FILE MENU -->
             <div class="ui mini fixed menu borderless" id="file_menu" style="height:20px; margin-top:0px;">
                 <a class="item " id="home">
-                    <!-- <i class="home icon"></i> -->
                     <i class="icon bi-house small"></i>
                     Home
                 </a>
                 <a class="item" id="documents">
-                    <!-- <i class="folder icon blue"></i> -->
                     <i class="icon bi-folder small"></i>
                     Documents
                 </a>
@@ -153,7 +151,6 @@
                         <!-- </div> -->
                     </a>
 
-
                     <a class="item button" id="" title="Show hidden files and directories">
                         <!-- todo: enable show data content -->
                         <!-- <div class="button" data-content="Show hidden files and folders"> -->
@@ -181,7 +178,6 @@
                         <i class="icon sort file alternative outline down small"></i>
                         <!-- Sort by type -->
                     </a>
-
 
                     <!-- LIST VIEW -->
                     <a class="item" id="" title="List view.">
@@ -263,9 +259,7 @@
 
                     </div>
 
-
                 </div>
-
 
                 <!-- Settings -->
                 <div class="item right settings">
@@ -407,7 +401,7 @@
             <div class="view" id="grid_view" style="margin-top: 10px">
 
                 <!-- FOLDERS -->
-                <div class="ui card fluid folders_card border-none" id="folders_card" style="">
+                <div class="ui card fluid folders_card border-none" id="folders_card">
 
                     <div class="content fluid">
 
@@ -423,7 +417,7 @@
                 </div>
 
                 <!-- FILES -->
-                <div class="ui card fluid files_card border-none" style="" id="files_card">
+                <div class="ui card fluid files_card border-none" id="files_card">
 
                     <div class="content">
                         <div class="ui grid navigate" id="file_grid"></div>
@@ -446,7 +440,7 @@
             <!-- NOTICE -->
             <div class="hidden" id="notice"></div>
 
-            <div class="inlinesearch" style="">
+            <div class="inlinesearch">
                 <input spellcheck="true" type="text" id="txt_search" class="hidden" style="moz-border: 1px solid grey; background-color:#252525 !important;color:#ffffff" value="" placeholder="quick search">
             </div>
 
