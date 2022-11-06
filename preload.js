@@ -2207,6 +2207,7 @@ async function add_card(options) {
             ) {
                 // audio
                 is_audio = 1;
+                img.classList.add('icon', 'lazy');
 
             } else if (
                 ext === '.mp4' ||
@@ -4851,7 +4852,7 @@ async function get_files(dir, callback) {
                     }
                 } catch (err) {
                     // add_card(options)
-                    notification('error message for ', err)
+                    notification('get_files error:', err)
                 }
             })
 
