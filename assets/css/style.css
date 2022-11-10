@@ -348,6 +348,10 @@ body {
 }
 
 /* GLOBALS */
+.card {
+    border-radius: 5px;
+}
+
 #header_menus {
 }
 
@@ -498,8 +502,8 @@ a {
 .img:hover {
   opacity: 0.95;
   border: 1px solid #069;
-  width: 200px;
-  transform: scale(4);
+  /* width: 200px; */
+  transform: scale(2);
   position:relative;
   z-index: 2 !important;
 }

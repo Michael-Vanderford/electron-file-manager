@@ -284,8 +284,8 @@ function get_file_properties(filename) {
     let type            = exec_mime;
     let size            = '';
     let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime);
+    let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime);
     let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
-    let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime);
     let mode            = stats.mode;
     let group           = stats.uid;
     let contents        = '';
@@ -693,13 +693,16 @@ function get_icon_path(href) {
             href: href,
             icon_path: icon_path
         }
-
         active_window.send('icon_path',data);
 
-    }).catch((err) => {
-
-    })
+    }).catch((err) => {})
 }
+
+ipcMain.handle('get_icon', async (e, href) => {
+
+    const res = await app.getFileIcon(href)
+    return res.toDataURL()
+})
 
 // todo: remove
 // // HANDLE DRAG START
@@ -1378,6 +1381,8 @@ ipcMain.on('move_confirmed', (e, data) => {
                             move();
                         }
 
+                        active_window.send('update_card', data.destination)
+
                     })
                 }
             } catch (err) {
@@ -1408,7 +1413,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                     }
 
                     active_window.webContents.send('add_card', options);
-                    get_disk_space(data.destination)
+                    active_window.send('update_card', data.destination)
 
                 }
 
@@ -1509,7 +1514,7 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
                     }
 
-                    active_window.send('update_card', )
+                    active_window.send('update_card', destination)
                     delete_file(data.source, () => {});
 
                 }
@@ -1680,6 +1685,54 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 }
 
 // OVERWRITE MOVE CONFIRMED ALL
+ipcMain.on('overwrite_move_confirmed', (e) => {
+
+    let confirm = window.getFocusedWindow();
+    confirm.hide();
+
+    // SET SIZE FOR PROGRESS
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        max += parseInt(item.size)
+    })
+
+    active_window.send('progress', max);
+
+    // COPY FILES
+    copy_files_arr.forEach((data, idx) => {
+
+        let destination_file = path.join(destination, path.basename(data.source));
+
+        // DIRECTORY - todo: needs work
+        if (fs.statSync(data.source).isDirectory()) {
+
+            copyfolder(data.source, destination_file, 0, () => {
+
+                delete_file(data.source, () => {
+                    active_window.send('remove-card', data.source)
+                })
+            })
+
+        // FILES - done
+        } else {
+
+            // state = 0
+            copyfile(data.source, destination_file, 0, () => {
+
+                copy_files_arr.forEach(data => {
+                    delete_file(data.source, () => {
+                        active_window.send('remove-card', data.source)
+                    })
+                })
+
+            })
+
+        }
+    })
+
+})
+
+// OVERWRITE MOVE CONFIRMED ALL
 ipcMain.on('overwrite_move_confirmed_all', (e) => {
 
     let confirm = window.getFocusedWindow();
@@ -1824,8 +1877,8 @@ function create_properties_window(filename) {
             let contents = '0 items, totalling 0 MB'
             let size = ''
             let accessed = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.atime)
+            let created = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime)
             let modified = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-            let created = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.ctime)
 
             if (type == true) {
 
