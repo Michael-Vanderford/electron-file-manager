@@ -7122,7 +7122,6 @@ async function create_folder(folder) {
             // GET REFERENCE TO FOLDER GRID
             let folder_grid = document.getElementById('folder_grid')
 
-
             let items = document.getElementsByClassName('folder_card')
             let card_id = 'folder_card_' + items.length
 
@@ -7140,7 +7139,7 @@ async function create_folder(folder) {
                 /* Add Card */
                 add_card(options).then(card => {
 
-                    let header  = document.getElementById('header_' + card_id);
+                    let header  = card.querySelector('.header_link');
                     let input   = card.querySelector('input');
                     let col     = add_column('three');
 
@@ -7150,6 +7149,7 @@ async function create_folder(folder) {
                     folder_grid.insertBefore(col, folder_grid.firstChild);
 
                     input.focus();
+                    input.select();
                     header.classList.add('hidden');
                     update_card(card.dataset.href);
 
