@@ -536,8 +536,8 @@ a {
     height: 10px;
 }
 video {
-    border: 48px solid #000;
-    height: 48px;
+    /* border: 48px solid #000; */
+    width: 48px;
 }
 embed {
     overflow: hidden;

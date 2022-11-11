@@ -2205,7 +2205,9 @@ async function add_card(options) {
             ) {
                 // audio
                 is_audio = 1;
-                img.classList.add('icon', 'lazy');
+                ipcRenderer.invoke('get_icon', href).then(res => {
+                    img.src = res;
+                })
 
             } else if (
                 ext === '.mp4' ||
@@ -5696,8 +5698,6 @@ function get_card(href) {
 
             } else {
 
-                // icon.src = path.join(__dirname, 'assets/icons/kora/actions/scalable/viewimage.svg');
-
                 // File event listeners
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
@@ -5726,6 +5726,9 @@ function get_card(href) {
                     ext === '.wav' ||
                     ext === '.ogg'
                 ) {
+                    ipcRenderer.invoke('get_icon', href).then(res => {
+                        icon.src = res;
+                    })
                     is_audio = 1;
                 } else if (
                     ext === '.mp4' ||
