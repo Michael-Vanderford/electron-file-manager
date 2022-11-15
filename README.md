@@ -25,7 +25,7 @@ Install
     <li>Collapsable minibar</li>
     <li>Icon scaling</li>
     <li>Audio playback</li>
-    <li>Audio or Video to Audio converion - Requires ffmpeg</li>
+    <li>Audio or Video to Audio conversion - Requires ffmpeg</li>
     <li>Templates Folder for new file creation</li>
     <li>Native icon support</li>
     <li>Diskspace Summary view</li>
