@@ -194,6 +194,10 @@ body {
     #file_properties .ui.table {
         color: #cfcfcf;
     }
+    .nav_item:hover {
+        background:rgb(0, 0, 0, .2);
+        cursor: pointer;
+    }
 }
 
 @media (prefers-color-scheme: light) {
@@ -955,6 +959,7 @@ input:focus {
 }
 
 .flex {
+    width: 100%;
     display: flex;
 }
 .col {

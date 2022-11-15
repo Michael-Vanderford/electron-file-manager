@@ -26,6 +26,9 @@ let chart_data      = []
 let directories     = []
 let files           = []
 
+// COUNTERS
+let idx             = 0
+
 // todo: check if this is being used
 let options = {
     sort:   1,
@@ -77,6 +80,9 @@ let hidden_file_count   = 0
 let pagesize            = 1000
 let page                = 1
 let start_path          = ''
+
+// Flags
+let historize        = 1
 
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 
@@ -1303,13 +1309,10 @@ ipcRenderer.on('add_card', (e, options) => {
         }
 
         add_card(options).then(card => {
-
             let col = add_column('three');
             col.append(card);
             options.grid.insertBefore(col, options.grid.firstChild);
-
             update_card(card.dataset.href);
-
         })
 
     } else {
@@ -1699,15 +1702,16 @@ async function get_properties(file_properties_obj) {
                     image.append(img);
 
                     col1.append(image);
-
                     div.append(col1, col2)
 
                 // Files
                 } else {
 
-                    let img = add_img('');
-                    img.classList.remove('lazy');
-                    image.append(img);
+                    ipcRenderer.invoke('get_icon', card.dataset.href).then(res => {
+                        let img = document.createElement('img')
+                        img.src = res
+                        image.append(img);
+                    })
 
                     // ipcRenderer.send('get_icon_path', filename);
 
@@ -2081,6 +2085,10 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 
 }
 
+function log(msg) {
+    console.log(msg)
+}
+
 // var cardindex = 0
 
 // ADD CARD //////////////////////////////////////////////////////////////////////
@@ -2093,8 +2101,8 @@ async function add_card(options) {
         let href            = options.href
         let linktext        = options.linktext
         let is_folder       = options.is_folder
-        let size            = ''
         let grid            = options.grid
+        let size            = ''
 
         // Create elements
         let col             = add_div()
@@ -2179,6 +2187,12 @@ async function add_card(options) {
             card.classList.add('folder_card')
             img.classList.add('icon')
             img.src = folder_icon
+
+            // ipcRenderer.invoke('dir_size', href).then(dir_size => {
+            //     console.log(dir_size);
+            // })
+
+
         // File
         } else {
 
@@ -2223,6 +2237,7 @@ async function add_card(options) {
                     img.dataset.src = res;
                 })
             }
+
             card.classList.add('file_card');
 
         }
@@ -2352,6 +2367,8 @@ async function add_card(options) {
         img.addEventListener('click', function (e) {
             e.preventDefault()
 
+            historize = 1;
+
             if (is_folder) {
                 // get_files(href, () => {})
                 get_view(href)
@@ -2381,6 +2398,8 @@ async function add_card(options) {
         header.addEventListener('click', (e) => {
             e.preventDefault()
             e.stopPropagation()
+
+            historize = 1;
 
             if (is_folder) {
                 get_view(href);
@@ -2469,7 +2488,6 @@ async function add_card(options) {
             e.stopPropagation()
             e.preventDefault()
         })
-
 
         form_control = add_div()
 
@@ -3591,7 +3609,7 @@ async function get_workspace() {
 
         localStorage.setItem('minibar', 'mb_workspace')
         workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
-        sidebar_items.append(workspace_msg)
+        // sidebar_items.append(workspace_msg)
 
     } else {
 
@@ -3614,27 +3632,21 @@ async function get_workspace() {
                         grid: workspace
                     }
 
-                    add_card(options).then(card => {
+                    let card = get_card(options.href)
+                    workspace.append(card)
 
-                        workspace.append(card);
+                    let icon = add_icon('times');
+                    icon.classList.add('small');
+                    icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
 
-                        let icon = add_icon('times');
-                        icon.classList.add('small');
-                        icon.style = 'float:right; height:23px; width:23px; cursor: pointer;';
+                    card.append(icon);
 
-                        let content = card.querySelector('.content');
-                        content.prepend(icon);
-
-                        /* Remove card */
-                        icon.addEventListener('click', (e) => {
-                            card.remove();
-                            local_items.splice(idx, 1);
-                            localStorage.setItem('workspace',JSON.stringify(local_items));
-                            get_workspace();
-                        })
-
-                        update_card(card.dataset.href);
-
+                    /* Remove card */
+                    icon.addEventListener('click', (e) => {
+                        card.remove();
+                        local_items.splice(idx, 1);
+                        localStorage.setItem('workspace',JSON.stringify(local_items));
+                        get_workspace();
                     })
 
                 } catch (err) {
@@ -4360,11 +4372,17 @@ async function get_list_view(dir) {
 
                                     case 'Name': {
 
+                                        let icon = document.createElement('img')
                                         let stats = fs.statSync(header_link)
-
                                         if (stats.isDirectory()) {
-                                            box.append(add_img(folder_icon), header_link, input);
+                                            icon.src = folder_icon
+                                            box.append(icon, header_link, input);
                                         } else {
+
+                                            ipcRenderer.invoke('get_icon', filename).then(res => {
+                                                icon.src = res;
+                                                box.append(icon, header_link, input)
+                                            })
                                             // box.append(add_img(get_icon_path(filename)), header_link, input);
                                         }
 
@@ -4412,17 +4430,6 @@ async function get_list_view(dir) {
                                 }
 
                                 tr.append(td)
-                                // tr.addEventListener('click', (e) => {
-                                //     td.classList.add('highlight_select')
-                                // })
-
-                                // tr.addEventListener('mouseover', (e) => {
-                                //     td.classList.add('highlight')
-                                // })
-
-                                // tr.addEventListener('mouseout', (e) => {
-                                //     td.classList.remove('highlight')
-                                // })
 
                             }
 
@@ -4476,11 +4483,6 @@ async function get_list_view(dir) {
                             header_link.addEventListener('click', (e) => {
                                 open(filename, { wait: false })
                             })
-
-                            // tr.append(td)
-                            // tbody.appendChild(tr)
-
-
                         }
 
                     }
@@ -4493,15 +4495,6 @@ async function get_list_view(dir) {
 
             // ADD TABLE BODY  TO TABLE
             table.append(tbody)
-
-            // UPDATE CARDS
-            update_cards(document.getElementById('main_view'))
-
-            // GET DISK USAGE STATS
-            // ipcRenderer.send('get_disk_space', { href: dir, folder_count: folder_count, file_count: file_count })
-
-            // LAZY LOAD IMAGES
-            // lazyload()
 
         }
 
@@ -4548,7 +4541,9 @@ async function get_files(dir, callback) {
     list_view.classList.add('hidden')
 
 
-    add_history(dir)
+    if (historize) {
+        add_history(dir)
+    }
 
     options.sort = localStorage.getItem('sort')
     options.page = localStorage.getItem('page')
@@ -4807,6 +4802,11 @@ async function get_files(dir, callback) {
                             add_card(options).then((card) => {
                                 update_card(card.dataset.href);
                             })
+
+                            // let card = get_card(options.href)
+                            // card.classList.remove('border')
+                            // folder_grid.append(card)
+
                         } else {
 
                             options.grid = hidden_folder_grid
@@ -5358,7 +5358,7 @@ async function get_files(dir, callback) {
         })
     }
 
-
+    autocomplete();
     clear_items()
 
 }
@@ -5468,6 +5468,7 @@ contextBridge.exposeInMainWorld('api', {
         return get_settings_view();
     },
     get_view: (dir) => {
+        historize = 1;
         return get_view(dir);
     },
     get_list_view: (dir) => {
@@ -5504,20 +5505,25 @@ contextBridge.exposeInMainWorld('api', {
 /* Add location to history array */
 function add_history(dir) {
 
-    if (history_arr.length > 0) {
-
-        if (history_arr.every(x => x != dir)) {
-            if (fs.existsSync(dir)) {
-                history_arr.push(dir)
-            }
+    history_arr.forEach(item => {
+        if (!fs.existsSync(item)) {
+            history_arr.shift()
         }
+    })
 
-    } else {
+    history_arr.push(dir)
 
-        if (fs.existsSync(dir)) {
-            history_arr.push(dir)
-        }
-    }
+    // if (history_arr.length > 0) {
+    //     if (history_arr.every(x => x != dir)) {
+    //         if (fs.existsSync(dir)) {
+    //             history_arr.push(dir)
+    //         }
+    //     }
+    // } else {
+    //     if (fs.existsSync(dir)) {
+    //         history_arr.push(dir)
+    //     }
+    // }
 }
 
 // CLEAR SELECTED FILES ARRAY
@@ -5580,6 +5586,7 @@ function clear_items() {
     if (target) {
         let card = document.getElementById(target.id)
         if (card) {
+
             let header = card.querySelector('a')
             let textarea = card.querySelector('textarea')
             let input = card.querySelector('input')
@@ -5608,7 +5615,7 @@ function clear_items() {
     }
 
     /* Set focus on main_view */
-    main_view.focus();
+    // main_view.focus();
 
 }
 
@@ -5696,6 +5703,10 @@ function get_card(href) {
                     get_view(href);
                 })
 
+                // ipcRenderer.invoke('dir_size', href).then(res => {
+                //     log(res);
+                // })
+
             } else {
 
                 // File event listeners
@@ -5747,7 +5758,9 @@ function get_card(href) {
             }
 
             date.innerHTML = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
+
         }
+
     })
 
     let icon_size = localStorage.getItem('icon_size')
@@ -5770,7 +5783,31 @@ function get_card(href) {
         }
     }
 
-    card.classList.add('card', 'flex', 'border')
+    card.addEventListener('contextmenu', function (e) {
+
+        let filetype = mime.lookup(href);
+        let associated_apps = get_available_launchers(filetype, href);
+
+        if (is_dir) {
+            let filetype = mime.lookup(href);
+            let associated_apps = get_available_launchers(filetype, href);
+            ipcRenderer.send('show-context-menu-directory', {associated_apps});
+        } else {
+            let access = 0;
+            try {
+                fs.accessSync(href, fs.X_OK);
+                access = 1;
+                ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: href});
+            } catch (err) {
+                ipcRenderer.send('show-context-menu-files', {associated_apps, href:href});
+            }
+        }
+    })
+
+
+
+    card.draggable = true
+    card.classList.add('card', 'flex', 'border', 'nav_item')
     icon_col.classList.add('col')
     icon_col.style = 'width: 50px'
     info_col.classList.add('col')
@@ -6008,16 +6045,6 @@ async function find_files() {
 
         let sidebar_items           = document.getElementById('sidebar_items');
         sidebar_items.innerHTML     = find_page;
-
-        // let cards = sidebar_items.querySelectorAll('.nav_item')
-        // cards.forEach(card => {
-        //     let img = card.querySelector('img');
-        //     img.classList.remove('lazy');
-        //     img.src = img.dataset.src;
-        //     update_card(card.dataset.href);
-        // })
-
-        // Search view
         let search_results          = document.getElementById('search_results');
         let find                    = document.getElementById('find');
         let find_div                = document.getElementById('find_div');
@@ -6030,15 +6057,16 @@ async function find_files() {
         let start_date              = document.getElementById('start_date');
         let end_date                = document.getElementById('end_date');
         let mb_find                 = document.getElementById('mb_find');
+        let search_progress         = document.getElementById('search_progress')
 
         let options = {
-            show_folders: 1,
-            show_files: 1,
-            case: 0,
-            depth: 1,
-            start_date: '',
-            end_date: '',
-            size: ''
+            show_folders:   1,
+            show_files:     1,
+            case:           0,
+            depth:          1,
+            start_date:     '',
+            end_date:       '',
+            size:           ''
         }
 
         options.show_folders       = parseInt(localStorage.getItem('find_folders'));
@@ -6080,7 +6108,14 @@ async function find_files() {
 
                 if (e.key === 'Enter') {
 
-                    search_info.innerHTML    = 'Searching...';
+                    if (find.value != '') {
+                        search_info.innerHTML    = 'Searching...';
+                        search_progress.classList.remove('hidden')
+                    } else {
+                        search_info.innerHTML    = '';
+                        search_progress.classList.add('hidden')
+                    }
+
                     search_results.innerHTML = '';
 
                     if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
@@ -6154,19 +6189,37 @@ async function find_files() {
                             notification('find is not yet implemented on window');
                             // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
                         }
+                        let data = 0;
+                        let c = 0
                         let child = exec(cmd)
                         child.stdout.on('data', (res) => {
+                            data = 1;
                             search_info.innerHTML = ''
                             let files = res.split('\n')
+                            search_progress.value = 0
+                            search_progress.max = files.length
                             for (let i = 0; i < files.length; i++) {
                                 if (files[i] != '') {
+                                    ++c
+                                    search_progress.value = i
                                     search_results.append(get_card(files[i]));
                                 }
                             }
-
                             lazyload()
 
                         })
+
+                        child.stdout.on('end', (res) => {
+
+                            if (!data) {
+                                search_info.innerHTML = '0 matches found'
+                            } else {
+                                search_info.innerHTML = c + ' matches found'
+                            }
+
+                            search_progress.classList.add('hidden')
+                        })
+
                     } else {
                         search_results.innerHTML    = '';
                         fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
@@ -6210,16 +6263,16 @@ async function find_files() {
 
         })
 
-        search_results.oncontextmenu = (e) => {
-            let target = e.target
-            let card = target.closest('.nav_item')
-            let href = card.dataset.href
+        // search_results.oncontextmenu = (e) => {
+        //     let target = e.target
+        //     let card = target.closest('.nav_item')
+        //     let href = card.dataset.href
 
-            card.classList.add('highlight_select')
+        //     card.classList.add('highlight_select')
 
-            ipcRenderer.send('context-menu-find', href)
+        //     ipcRenderer.send('context-menu-find', href)
 
-        }
+        // }
 
     })
 
@@ -6258,15 +6311,14 @@ async function get_devices() {
 
         let devices             = [];
         let sidebar_items       = document.getElementById('sidebar_items');
+        // let server              = add_input('text', 'txt_server')
         let device_view         = add_div();
-        link_div                = add_div();
-        remove_div              = add_div();
-
+        let msg                 = add_div()
 
         device_view.style = 'padding-top: 20px; height: 100%';
         device_view.id = 'device_view';
         device_view.addEventListener('contextmenu', function (e) {
-            ipcRenderer.send('show-context-menu-devices');
+            // ipcRenderer.send('show-context-menu-devices');
         })
 
         sidebar_items.innerHTML = '';
@@ -6359,6 +6411,13 @@ async function get_devices() {
         //     get_devices();
         // })
 
+        // server.style = 'position: fixed; bottom:0'
+        // server.placeholder = 'Connect to server'
+        // device_view.append(server)
+
+        msg.append('')
+
+
     } catch (err) {
         console.log('error getting devices:', err)
     }
@@ -6370,7 +6429,9 @@ async function get_devices() {
  * Autocomplete for directories in the location textbox (breadcrumbs)
  * refer to style.css for formating options
  */
+ let ac = 0
 function autocomplete() {
+
 
     let autocomplete            = document.getElementById('autocomplete');
     let breadcrumbs             = document.getElementById('breadcrumbs');
@@ -6380,17 +6441,14 @@ function autocomplete() {
 
     breadcrumbs.addEventListener('keyup', (e) => {
 
-        // if (e.key === 'Backspace') {
-        //     console.log('backspace');
-        //     return false;
-        // }
+        console.log('running autocomplete')
 
         breadcrumb_items.innerHTML = '';
         let search_results = []
 
         let search = e.target.value.substring(path.dirname(breadcrumbs.value).length + 1, e.target.value.length)
         folders_arr.forEach(item => {
-            if (item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) > -1 && item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) < 1) {
+            if (item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) > -1 && (item.toLocaleLowerCase().indexOf(search) < 1 || item.toLocaleLowerCase().indexOf(search.toLowerCase()) < 1)) {
                 search_results.push(path.join(path.dirname(breadcrumbs.value),  item));
             }
         })
@@ -6405,29 +6463,46 @@ function autocomplete() {
             search_results.forEach((breadcrumb_item, idx) => {
 
                 if (idx == 0) {
-
                     let length0 = breadcrumbs.value.length
                     breadcrumbs.setSelectionRange(parseInt(length0), parseInt(breadcrumb_item.length));
-
                 }
 
-                let item = add_item(breadcrumb_item)
+                let link = add_link(breadcrumb_item, breadcrumb_item)
+
+                link.classList.add('auto_link')
+
+                let item =  add_item(link)
                 item.tabIndex = idx
                 breadcrumb_items.append(item)
                 autocomplete.append(breadcrumb_items)
 
                 item.addEventListener('click', (e) => {
-
                     get_view(e.target.innerText)
-
                     // let length0         = e.target.innerText.length
                     // breadcrumbs.value   = path.join(search_results[0], '/');
                     // breadcrumbs.focus()
                     // breadcrumbs.setSelectionRange(length0 + 1, e.target.value.length)
-
                 })
-
             })
+
+            if (e.key === 'ArrowDown') {
+
+                console.log(ac)
+
+                let items = breadcrumb_items.querySelectorAll('.item')
+                items[ac].classList.add('highlight')
+
+                // let link = items[ac].querySelector('.auto_link')
+                // link.focus()
+                // link.addEventListener('click', (e) => {
+                //     e.preventDefault()
+                //     let dir = items[ac].innerText
+                //     get_view(dir)
+                // })
+                ++ac;
+            } else {
+                ac = 0;
+            }
 
         } else {
 
@@ -6825,7 +6900,7 @@ function add_img(src) {
     // img.height = 32
     img.classList.add('lazy')
     img.dataset.src = src
-    img.src = img.src = path.join(__dirname, 'assets/icons/kora/actions/scalable/viewimage.svg')
+    img.src = path.join(__dirname, 'assets/icons/kora/actions/scalable/viewimage.svg')
     return img
 }
 
@@ -7061,12 +7136,9 @@ function show_sidebar() {
 
     } else {
 
-        console.log('running show side bar', show);
-
         sidebar.classList.add('hidden');
         main_view.style.marginLeft = (parseInt(0) + 50) + 'px';
 
-        console.log('setting sidebar 0');
         localStorage.setItem('sidebar', 0);
         show = 1;
 
@@ -7679,49 +7751,74 @@ function open_terminal() {
     }
 
 }
-// COUNTERS
-let click_counter = 0
-let history_arr_size = 0
-let idx = 0
-
-// SET FALG FOR HISTORY MANAGEMENT
-let is_navigate = false;
 
 // NAVIGATE FUNCTION LEFT RIGHT UP
+let back_counter = 0;
 function navigate(direction) {
 
-    is_navigate     = true;
     let dir         = get_home();
     let breadcrumbs = document.getElementById('breadcrumbs');
     let last_index  = history_arr.lastIndexOf(breadcrumbs.value);
+    let idx         = 0;
+    historize       = 0;
 
-    for (i = 0; i < history_arr.length; i++) {
-
-        if (history_arr[i] == breadcrumbs.value) {
-
-            // NAVIGATE LEFT
-            if (direction == 'left') {
-                if (i > 1) {
-                    dir = history_arr[last_index - 1];
-                } else {
-                    dir = breadcrumbs.value.substring(0, breadcrumbs.value.length - path.basename(breadcrumbs.value).length - 1)
-                }
-            }
-
-            // NAVIGATE RIGHT
-            if (direction == 'right') {
-
-                if (i < history_arr.length - 1) {
-                    dir = history_arr[last_index + 1];
-                }
-            }
-
+    if (direction === 'left') {
+        ++back_counter;
+        idx = history_arr.length - back_counter;
+        if (idx > 0) {
+            dir = history_arr[idx]
+        } else {
+            idx = 0;
+            back_counter = 0;
         }
+    }
 
-    };
+    if (direction === 'right') {
+        ++back_counter
+        idx = history_arr + back_counter;
+        if (idx < history_arr.length) {
+            dir = history_arr[idx]
+        } else {
+            idx = 0
+            back_counter = 0;
+        }
+    }
 
-    // LOAD VIEW
-    get_view(dir);
+    if (idx > 0) {
+        get_view(dir);
+    } else {
+        get_view(get_home());
+    }
+
+
+    // for (i = 0; i < history_arr.length; i++) {
+
+    //     if (history_arr[i] == breadcrumbs.value) {
+
+    //         // NAVIGATE LEFT
+    //         if (direction == 'left') {
+
+    //             if (i > 1) {
+    //                 dir = history_arr[last_index - 1];
+    //             } else {
+    //                 dir = breadcrumbs.value.substring(0, breadcrumbs.value.length - path.basename(breadcrumbs.value).length - 1)
+    //             }
+    //         }
+
+    //         // NAVIGATE RIGHT
+    //         if (direction == 'right') {
+
+    //             if (i < history_arr.length - 1) {
+    //                 dir = history_arr[last_index + 1];
+    //             }
+    //         }
+
+    //     }
+
+    // };
+
+    // // LOAD VIEW
+    // get_view(dir);
 
 }
 
@@ -7734,7 +7831,7 @@ function update_card(href) {
     cards.forEach(card => {
 
         let img  = card.querySelector('.img')
-        let icon = card.querySelector('icon')
+        let icon = card.querySelector('.icon')
 
         // img.src = img.dataset.src;
 
@@ -7767,7 +7864,6 @@ function update_card(href) {
                 // })
             })
 
-            let icon = card.querySelector('.icon')
             icon.src = folder_icon
 
             // console.log(icon)
@@ -7796,6 +7892,14 @@ function update_card(href) {
 
         // Files
         } else {
+
+            ipcRenderer.invoke('get_icon', card.dataset.href).then(res => {
+                try {
+                    icon.src = res
+                } catch (err) {
+
+                }
+            })
 
             size = get_file_size(stats.size);
             extra.innerHTML = size;
@@ -8433,33 +8537,32 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     // FILE PROPERTIES
     if (command === 'props') {
 
-        let sb_items = document.getElementById('sidebar_items');
-        sb_items.innerHTML = ''
+        // let sb_items = document.getElementById('sidebar_items');
+        // sb_items.innerHTML = ''
 
-        file_properties_arr = []
-        let main_view       = document.getElementById('main_view')
-        let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
-        items.forEach(item => {
+        // file_properties_arr = []
+        // let main_view       = document.getElementById('main_view')
+        // let items           = main_view.querySelectorAll('.highlight_select, .highlight, .ds-selected');
+        // items.forEach(item => {
 
-            switch (path.extname(item.dataset.href)) {
-                case '.jpg':
-                case '.png':
-                case '.jpeg':
-                case '.svg':
-                case '.gif':
-                    get_image_properties(item.dataset.href);
-                break;
-                default: {
-                    file_properties_arr.push(item.dataset.href);
-                    ipcRenderer.send('get_file_properties', file_properties_arr)
-                    console.log('props array', file_properties_arr)
-                    file_properties_arr = []
-                }
-            }
+        //     switch (path.extname(item.dataset.href)) {
+        //         case '.jpg':
+        //         case '.png':
+        //         case '.jpeg':
+        //         case '.svg':
+        //         case '.gif':
+        //             get_image_properties(item.dataset.href);
+        //         break;
+        //         default: {
+        //             file_properties_arr.push(item.dataset.href);
+        //             ipcRenderer.send('get_file_properties', file_properties_arr)
+        //             console.log('props array', file_properties_arr)
+        //             file_properties_arr = []
+        //         }
+        //     }
 
-        })
-
-        clear_items()
+        // })
+        get_file_properties();
 
     }
 
@@ -8473,14 +8576,34 @@ ipcRenderer.on('clear_selected_files', (e, res) => {
 // ON DOCUMENT LOAD
 window.addEventListener('DOMContentLoaded', () => {
 
-    let breadcrumbs = document.getElementById('breadcrumbs');
-    breadcrumbs.addEventListener('keyup', (e) => {
-        try {
-            autocomplete();
-        } catch (err) {
+    // let breadcrumbs     = document.getElementById('breadcrumbs');
+    // breadcrumbs.addEventListener('keyup', (e) => {
+        // try {
 
-        }
-    })
+            // autocomplete();
+
+            // console.log('running')
+            // document.addEventListener('keydown', (e) => {
+            //     let breadcrumb_items = document.getElementById('breadcrumb_items')
+            //     if (e.key === 'ArrowDown') {
+            //         let ac = 0;
+            //         console.log('counter', ++ac)
+            //         // let items = breadcrumb_items.querySelectorAll('.item')
+            //         // items.forEach((item, idx) => {
+            //         //     if (idx == ac) {
+            //         //         item.classList.add('highlight')
+            //         //     }
+            //         // })
+            //     }
+            //     // if (ac > search_results.length) {
+            //     //     ac = 0;
+            //     // }
+            // })
+
+
+        // } catch (err) {
+        // }
+    // })
 
     /* Initialize sort */
     let sort = localStorage.getItem('sort');
@@ -8596,10 +8719,14 @@ window.addEventListener('DOMContentLoaded', () => {
     // Show workspace
     Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {
         get_workspace();
-
         localStorage.setItem('sidebar', 1);
         show_sidebar();
+    })
 
+    Mousetrap.bind(settings.keyboard_shortcuts.ShowDevices.toLocaleLowerCase(), () => {
+        get_devices();
+        localStorage.setItem('sidebar', 1);
+        show_sidebar();
     })
 
     // Get File info

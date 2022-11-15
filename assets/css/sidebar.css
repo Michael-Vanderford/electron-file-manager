@@ -15,6 +15,9 @@
     }
 
     #sidebar_items {
+
+        /* background: #069; */
+        height: 90%;
         /* overflow: hidden; */
     }
 
@@ -74,6 +77,14 @@
     #find_div .label {
         font-weight: normal !important;
         color: #cfcfcf !important;
+    }
+
+    #search_results {
+
+    }
+
+    #search_progress {
+        width: 100%
     }
 
     #search_content {

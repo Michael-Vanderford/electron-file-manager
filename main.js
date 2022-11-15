@@ -25,6 +25,55 @@ let active_window           = '';
 let current_directory       = '';
 let destination_folder      = '';
 
+ipcMain.on('connect', (e) => {
+    createConnectDialog();
+})
+
+// Network connect dialog
+function createConnectDialog() {
+
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
+
+    // DIALOG SETTINGS
+    let connect = new BrowserWindow({
+
+        parent: window.getFocusedWindow(),
+        modal:true,
+        width: 550,
+        height: 275,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    // LOAD FILE
+    connect.loadFile('src/connect.html')
+    // confirm.webContents.openDevTools()
+
+    // SHOW DIALG
+    connect.once('ready-to-show', () => {
+
+        let title = 'Connect to server'
+
+        connect.title = title
+        connect.removeMenu()
+
+        // connect.send('confirming_move', data, copy_files_arr)
+
+    })
+
+}
+
 // Settings
 let settings_file = path.join(__dirname, 'settings.json');
 if (!fs.existsSync(settings_file)) {
@@ -39,6 +88,7 @@ if (!fs.existsSync(settings_file)) {
             Back: "Backspace",
             ShowWorkspace: "Alt+W",
             ShowSidebar: "Ctrl+B",
+            ShowDevices: "Ctrl+D",
             Find: "Ctrl+F",
             Down: "Down",
             Up: "Up",
@@ -428,6 +478,7 @@ function get_diskspace_summary() {
  * @param {int} callback *
  */
 function delete_file(file, callback) {
+    
     let stats = fs.statSync(file)
     if (stats) {
         /* Folder */
@@ -467,7 +518,7 @@ function delete_file(file, callback) {
                     try {
                         active_window.send('remove_card', file);
                     } catch (err) {
-
+                        console.log('error deleting file', err)
                     }
 
                     // Update disk size
@@ -569,6 +620,7 @@ const createWindow = exports.createWindow = () => {
         y: settings.window.y,
         frame: true,
         autoHideMenuBar: true,
+        icon: path.join(__dirname,'/assets/icons/folder.png'),
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -627,6 +679,15 @@ app.whenReady().then(() => {
 })
 
 nativeTheme.themeSource = 'dark'
+
+ipcMain.handle('dir_size', async (e, href) => {
+
+    let cmd = "du -s '" + href + "' | awk '{print $1}'";
+    const {err, stdout, stderr } = await exec(cmd);
+    stdout.on('data', (res) => {
+        return res.replace('.','').trim();
+    })
+})
 
 ipcMain.handle('dark-mode:system', () => {
     nativeTheme.themeSource = 'system'
@@ -700,7 +761,7 @@ function get_icon_path(href) {
 
 ipcMain.handle('get_icon', async (e, href) => {
 
-    const res = await app.getFileIcon(href)
+    const res = await app.getFileIcon(href);
     return res.toDataURL()
 })
 
@@ -731,6 +792,8 @@ ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
 
 // COPY
 function copy(state) {
+
+
     copy_files_arr.every((item, idx) => {
 
         try {
@@ -856,8 +919,8 @@ function copy(state) {
                     // CREATE NEW FILE NAME
                     let c = 0;
                     destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
-                    while (fs.existsSync(destination_file) && c < 2) {
-                        destination_file = destination_file + ' Copy'
+                    while (fs.existsSync(destination_file)) {
+                        destination_file = destination_file.replace(path.extname(source)) + ' Copy' + path.extname(source);
                         ++c;
                     }
 
@@ -869,19 +932,17 @@ function copy(state) {
                             id: 0,
                             href: destination_file,
                             linktext: path.basename(destination_file),
-                            is_folder: false,
+                            is_folder: 0,
                             grid: ''
                         }
 
                         active_window.send('add_card', options)
-                        active_window.send('update_card', destination_file);
+
+                        copy_files_arr.shift();
+                        copy(state);
+                        return true;
 
                     })
-
-                    active_window.send('update_card', destination);
-                    copy_files_arr.shift();
-                    copy(copy_files_arr, state);
-                    return true;
 
                 } else {
 
@@ -925,7 +986,7 @@ function copy(state) {
                                 grid: ''
                             }
 
-                            active_window.webContents.send('add_card', options)
+                            active_window.send('add_card', options)
                             active_window.send('update_card', destination_file);
 
                         }
@@ -2471,8 +2532,6 @@ ipcMain.on('context-menu-find', (e, args) => {
 
     }
 
-
-
     let menu = Menu.buildFromTemplate(find_menu_template);
     menu.popup(BrowserWindow.fromWebContents(e.sender));
 
@@ -2491,7 +2550,7 @@ ipcMain.on('show-context-menu-devices', (e, args) => {
         {
             label: 'Connect',
             click: () => {
-
+                createConnectDialog()
             }
         }
     ]

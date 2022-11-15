@@ -207,7 +207,7 @@ hamburger_menu.onmouseleave = (e) => {
     hamburger_menu.classList.add('hidden')
 }
 
-icon_size_selector.oninput = () => {
+icon_size_selector.onchange = () => {
 
     localStorage.setItem('icon_size', icon_size_selector.value)
     // console.log('icon size', icon_size_selector.value)

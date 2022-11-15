@@ -1,17 +1,18 @@
 {
     "window": {
         "length": 1400,
-        "width": 1362,
-        "x": 2177,
-        "y": 269,
+        "width": 1353,
+        "x": 2254,
+        "y": 380,
         "height": 600
     },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowWorkspace": "Alt+W",
         "ShowSidebar": "Ctrl+B",
+        "ShowDevices": "Alt+D",
         "Find": "Ctrl+F",
-        "Down": "down",
+        "Down": "Down",
         "Up": "Up",
         "Left": "Left",
         "Right": "Right",
