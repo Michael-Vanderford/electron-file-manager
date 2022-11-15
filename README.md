@@ -18,18 +18,18 @@ Install
 ![Screenshot 3](/screenshots/screenshot3.png?raw=true "Find")
 
 
-<h4>Features</4>
-Typeahead search
-Collapsable minibar
-Icon scaling
+<h4>Features</h4>
 
-Audio playback
-Audio or Video to Audio converion - Requires ffmpeg
-
-Templates Folder for new file creation
-
-Native icon support
-Diskspace Summary view
+<ul>
+    <li>Typeahead search</li>
+    <li>Collapsable minibar</li>
+    <li>Icon scaling</li>
+    <li>Audio playback</li>
+    <li>Audio or Video to Audio converion - Requires ffmpeg</li>
+    <li>Templates Folder for new file creation</li>
+    <li>Native icon support</li>
+    <li>Diskspace Summary view</li>
+</ul>
 
 <h4>Keboard Shortcuts</h4>
 
