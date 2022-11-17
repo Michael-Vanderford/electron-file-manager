@@ -478,7 +478,7 @@ function get_diskspace_summary() {
  * @param {int} callback *
  */
 function delete_file(file, callback) {
-    
+
     let stats = fs.statSync(file)
     if (stats) {
         /* Folder */
@@ -761,7 +761,7 @@ function get_icon_path(href) {
 
 ipcMain.handle('get_icon', async (e, href) => {
 
-    const res = await app.getFileIcon(href);
+    const res = await app.getFileIcon(path.extname(href));
     return res.toDataURL()
 })
 

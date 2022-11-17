@@ -4560,7 +4560,7 @@ async function get_files(dir, callback) {
         options.page = 1
     }
 
-    const breadcrumbs = document.getElementById('breadcrumbs')
+    // const breadcrumbs = document.getElementById('breadcrumbs')
     breadcrumbs.value = dir
     breadcrumbs.title = dir
 
@@ -5071,7 +5071,7 @@ async function get_files(dir, callback) {
 
             }
 
-            document.getElementById('main_view').focus();
+            // document.getElementById('main_view').focus();
 
             /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
             cardindex = 0;
@@ -5358,8 +5358,8 @@ async function get_files(dir, callback) {
         })
     }
 
+    clear_items();
     autocomplete();
-    clear_items()
 
 }
 
@@ -5532,18 +5532,20 @@ function clear_items() {
     let main_view           = document.getElementById('main_view');
     let pager               = document.getElementById('pager');
     let txt_search          = document.getElementById('txt_search');
-    let nav_items           = document.querySelectorAll('.nav_item')
-    let input               = document.getElementById('edit_' + card_id)
-    let header              = document.getElementById('header_' + card_id)
-    // let file_properties     = document.getElementById('file_properties');
+    let nav_items           = document.querySelectorAll('.nav_item');
+    let input               = document.getElementById('edit_' + card_id);
+    let header              = document.getElementById('header_' + card_id);
+    // let file_properties  = document.getElementById('file_properties');
     let breadcrumb_items    = document.getElementById('breadcrumb_items');
-    let info_view           = document.getElementById('info_view')
+    let info_view           = document.getElementById('info_view');
+
 
     /* Reset nav counters */
-    nc              = 1
-    nc2             = 0
-    adj             = 0
-    is_folder_card  = true
+    nc              = 1;
+    nc2             = 0;
+    adj             = 0;
+    ac              = 0;
+    is_folder_card  = true;
 
     /* Clear arrays */
     delete_arr      = [];
@@ -5553,8 +5555,7 @@ function clear_items() {
     /* Clear elements */
     pager.innerHTML             = '';
     txt_search.value            = '';
-    // info_view.innerHTML         = '';
-
+    // info_view.innerHTML      = '';
 
     /* Hidden elements */
     txt_search.classList.add          ('hidden');
@@ -5664,6 +5665,7 @@ function get(href, callback) {
     xmlHttp.send(null);
 }
 
+// Get card
 function get_card(href) {
 
     let card        = add_div();
@@ -5815,8 +5817,7 @@ function get_card(href) {
     return card
 }
 
-
-
+// Find for win32
 async function find_win32() {
 
     get('../src/find.html', (find_page) => {
@@ -6192,6 +6193,7 @@ async function find_files() {
                         let data = 0;
                         let c = 0
                         let child = exec(cmd)
+                        console.log(cmd)
                         child.stdout.on('data', (res) => {
                             data = 1;
                             search_info.innerHTML = ''
@@ -6233,7 +6235,7 @@ async function find_files() {
 
         clear_minibar();
         mb_find.style = 'color: #ffffff !important';
-        find.focus();
+        // find.focus();
 
         // FIND OPTIONS
         btn_find_options.addEventListener('click', (e) => {
@@ -6469,7 +6471,7 @@ function autocomplete() {
 
                 let link = add_link(breadcrumb_item, breadcrumb_item)
 
-                link.classList.add('auto_link')
+                link.classList.add('header_link')
 
                 let item =  add_item(link)
                 item.tabIndex = idx
@@ -6485,23 +6487,28 @@ function autocomplete() {
                 })
             })
 
+            let items = breadcrumb_items.querySelectorAll('.item')
+
             if (e.key === 'ArrowDown') {
-
-                console.log(ac)
-
-                let items = breadcrumb_items.querySelectorAll('.item')
-                items[ac].classList.add('highlight')
-
-                // let link = items[ac].querySelector('.auto_link')
-                // link.focus()
-                // link.addEventListener('click', (e) => {
-                //     e.preventDefault()
-                //     let dir = items[ac].innerText
-                //     get_view(dir)
-                // })
                 ++ac;
-            } else {
+                console.log(ac)
+                items[ac - 1].classList.add('highlight')
+                if (ac > items.length) {
+                    ac = 0;
+                }
+            }
+
+            if (e.key === 'ArrowUp') {
+                --ac;
+                items[ac].classList.add('highlight')
+            }
+
+            if (e.key === 'Enter') {
+                let dir = items[ac - 1].innerText
                 ac = 0;
+                get_view(dir)
+                breadcrumb_items.classList.add('hidden')
+                breadcrumbs.focus()
             }
 
         } else {
@@ -8634,60 +8641,6 @@ window.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('sidebar', 1);
     }
 
-    // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
-    let main_view = document.getElementById('main_view')
-    if (main_view) {
-        main_view.addEventListener('contextmenu', function (e) {
-
-            if (active_href) {
-                let stats = fs.statSync(active_href);
-                if (stats) {
-
-                    let filetype = mime.lookup(active_href);
-                    let associated_apps = get_available_launchers(filetype, active_href);
-
-                    // CHECK FOR FOLDER CARD CLASS
-                    if (stats.isDirectory()) {
-
-                        ipcRenderer.send('show-context-menu-directory', associated_apps);
-
-                    // CHECK IF FILE CARD
-                    } else if (stats.isFile()) {
-
-                        let access = 0;
-                        try {
-                            fs.accessSync(active_href, fs.X_OK);
-                            access = 1;
-                            ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: active_href});
-                        } catch (err) {
-                            ipcRenderer.send('show-context-menu-files', {associated_apps, href:active_href});
-                        }
-
-
-
-                    // EMPTY AREA
-                    } else {
-                        ipcRenderer.send('show-context-menu');
-                    }
-
-                    active_href = '';
-                }
-
-            } else {
-
-                let data = {
-                    source: path.join(__dirname, 'assets/templates/'),
-                    destination: breadcrumbs.value + '/'
-                }
-
-                ipcRenderer.send('show-context-menu', data);
-
-            }
-
-        })
-
-    }
-
     let minibar = document.getElementById('minibar')
     if (minibar) {
         minibar.addEventListener('click', (e) => {
@@ -8887,7 +8840,10 @@ window.addEventListener('DOMContentLoaded', () => {
         show_sidebar();
 
         // find();
-        find_files();
+        find_files().then(res => {
+            let find = document.getElementById('find')
+            // find.focus()
+        })
 
     })
 
@@ -8915,7 +8871,6 @@ window.addEventListener('DOMContentLoaded', () => {
         navigate('left');
     })
 
-
     // Add worksoace
     Mousetrap.bind(settings.keyboard_shortcuts.AddWorkspace.toLocaleLowerCase(), () => {
         add_workspace()
@@ -8933,6 +8888,60 @@ window.addEventListener('DOMContentLoaded', () => {
         show_sidebar()
     } catch (err) {
 
+    }
+
+    // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
+    let main_view = document.getElementById('main_view')
+    if (main_view) {
+        main_view.addEventListener('contextmenu', function (e) {
+
+            if (active_href) {
+                let stats = fs.statSync(active_href);
+                if (stats) {
+
+                    let filetype = mime.lookup(active_href);
+                    let associated_apps = get_available_launchers(filetype, active_href);
+
+                    // CHECK FOR FOLDER CARD CLASS
+                    if (stats.isDirectory()) {
+
+                        ipcRenderer.send('show-context-menu-directory', associated_apps);
+
+                    // CHECK IF FILE CARD
+                    } else if (stats.isFile()) {
+
+                        let access = 0;
+                        try {
+                            fs.accessSync(active_href, fs.X_OK);
+                            access = 1;
+                            ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: active_href});
+                        } catch (err) {
+                            ipcRenderer.send('show-context-menu-files', {associated_apps, href:active_href});
+                        }
+
+
+
+                    // EMPTY AREA
+                    } else {
+                        ipcRenderer.send('show-context-menu');
+                    }
+
+                    active_href = '';
+                }
+
+            } else {
+
+                let data = {
+                    source: path.join(__dirname, 'assets/templates/'),
+                    destination: breadcrumbs.value + '/'
+                }
+
+                ipcRenderer.send('show-context-menu', data);
+
+            }
+
+        })
+        main_view.focus();
     }
 
 
