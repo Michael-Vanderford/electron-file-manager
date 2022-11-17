@@ -80,7 +80,9 @@
     }
 
     #search_results {
-
+        height:100%;
+        overflow: auto;
+        margin-bottom: 50px;
     }
 
     #search_progress {

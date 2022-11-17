@@ -5537,6 +5537,7 @@ function clear_items() {
     let header              = document.getElementById('header_' + card_id);
     // let file_properties  = document.getElementById('file_properties');
     let breadcrumb_items    = document.getElementById('breadcrumb_items');
+    let hamburger_menu      = document.getElementById('hamburger_menu')
     let info_view           = document.getElementById('info_view');
 
 
@@ -5560,6 +5561,7 @@ function clear_items() {
     /* Hidden elements */
     txt_search.classList.add          ('hidden');
     breadcrumb_items.classList.add    ('hidden');
+    hamburger_menu.classList.add      ('hidden');
 
     if (input) {
         input.classList.add ('hidden');
@@ -5917,16 +5919,18 @@ async function find_win32() {
                                             let cfilename = path.join(filename, file)
 
                                             search_arr.push(cfilename)
-                                            let options = {
-                                                id: 0,
-                                                href: cfilename,
-                                                linktext: file
-                                            }
-                                            add_card(options).then((card) => {
-                                                search_info.innerHTML = ''
-                                                search_results.append(card)
-                                                update_card(card.dataset.href)
-                                            })
+                                            // let options = {
+                                            //     id: 0,
+                                            //     href: cfilename,
+                                            //     linktext: file
+                                            // }
+                                            // add_card(options).then((card) => {
+                                            //     search_info.innerHTML = ''
+                                            //     search_results.append(card)
+                                            //     update_card(card.dataset.href)
+                                            // })
+
+
 
                                         }
 
@@ -6033,7 +6037,7 @@ async function find_win32() {
 
 // FIND FILES
 var search_res = '';
-async function find_files() {
+async function find_files(callback) {
 
     notification('running find files')
 
@@ -6078,6 +6082,29 @@ async function find_files() {
         find_files.checked         = options.show_files;
 
         localStorage.setItem('minibar', 'mb_find')
+
+        // FIND FOLDERS
+        find_folders.addEventListener('change', (e) => {
+            if (find_folders.checked) {
+                localStorage.setItem('find_folders', 1);
+                options.show_folders = 1
+            } else {
+                localStorage.setItem('find_folders', 0);
+                options.show_folders = 0
+            }
+        })
+
+        // FIND FILES
+        find_files.addEventListener('change', (e) => {
+            if (find_files.checked) {
+                localStorage.setItem('find_files', 1);
+                options.show_files = 1
+            } else {
+                localStorage.setItem('find_files', 0);
+                options.show_files = 0
+            }
+
+        })
 
         let inputs = find_div.querySelectorAll('.find_input')
         inputs.forEach(input => {
@@ -6275,6 +6302,7 @@ async function find_files() {
         //     ipcRenderer.send('context-menu-find', href)
 
         // }
+        callback(1)
 
     })
 
@@ -6431,9 +6459,9 @@ async function get_devices() {
  * Autocomplete for directories in the location textbox (breadcrumbs)
  * refer to style.css for formating options
  */
- let ac = 0
-function autocomplete() {
+ function autocomplete() {
 
+    let ac = 0
 
     let autocomplete            = document.getElementById('autocomplete');
     let breadcrumbs             = document.getElementById('breadcrumbs');
@@ -8840,9 +8868,9 @@ window.addEventListener('DOMContentLoaded', () => {
         show_sidebar();
 
         // find();
-        find_files().then(res => {
+        find_files(res => {
             let find = document.getElementById('find')
-            // find.focus()
+            find.focus()
         })
 
     })
