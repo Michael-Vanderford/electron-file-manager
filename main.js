@@ -1307,97 +1307,103 @@ function move() {
         let source_stats = fs.statSync(source)
         let destination_file = path.join(destination, path.basename(source))
 
-        // DIRECTORY
-        if (source_stats.isDirectory()) {
+        if (source != destination) {
 
-            let options = {
-                id: 0,
-                href: destination_file,
-                linktext: path.basename(destination_file),
-                grid: ''
-            }
+            // Directory
+            if (source_stats.isDirectory()) {
 
-            if (source == destination_file) {
+                let options = {
+                    id: 0,
+                    href: destination_file,
+                    linktext: path.basename(destination_file),
+                    grid: ''
+                }
 
-                active_window.webContents.send('notification', 'select a different directory')
+                if (source == destination_file) {
 
-            } else {
-
-                if (fs.existsSync(destination_file)) {
-
-                    // CREATE CONFIRM COPY OVERWRITE
-                    let data = {
-                        state: 0,
-                        source: source,
-                        destination: destination_file
-                    }
-
-                    createConfirmDialog(data, copy_files_arr)
-                    return false;
+                    active_window.webContents.send('notification', 'select a different directory')
 
                 } else {
 
-                    let data = {
-                        state: 0,
-                        source: source,
-                        destination: destination_file
+                    if (fs.existsSync(destination_file)) {
+
+                        // CREATE CONFIRM COPY OVERWRITE
+                        let data = {
+                            state: 0,
+                            source: source,
+                            destination: destination_file
+                        }
+
+                        createConfirmDialog(data, copy_files_arr)
+                        return false;
+
+                    } else {
+
+                        let data = {
+                            state: 0,
+                            source: source,
+                            destination: destination_file
+                        }
+
+                        // REMOVE ITEM FROM ARRAY
+                        // copy_files_arr.splice(idx,1)
+
+                        // CREATE MOVE DIALOG
+                        createMoveDialog(data, copy_files_arr)
+
+                        // EXIT LOOP
+                        return false
+
                     }
 
-                    // REMOVE ITEM FROM ARRAY
-                    // copy_files_arr.splice(idx,1)
+                }
+
+            // FILES
+            } else {
+
+                // APPEND COPY TO FILENAME IF SAME
+                if (path.dirname(source) == destination_file) {
+
+                    // CREATE NEW FILE NAME
+                    destination_file = path.join(destination1, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
+
+                    // COPY FILE
+                    copyfile(source, destination_file, 0, () => {})
+
+                } else {
+
+                    // CHECK IF FILE EXISTS
+                    // CREATE OVERWRITE MOVE DIALOG
+                    if (fs.existsSync(destination_file)) {
+
+                        // CREATE CONFIRM COPY OVERWRITE
+                        let data = {
+                            source: source,
+                            destination: destination_file
+                        }
+
+                        createOverwriteMoveDialog(data, copy_files_arr)
 
                     // CREATE MOVE DIALOG
-                    createMoveDialog(data, copy_files_arr)
+                    } else {
 
-                    // EXIT LOOP
-                    return false
+                        let data = {
+                            state: 0,
+                            source: source,
+                            destination: destination_file
+                        }
+
+                        createMoveDialog(data,copy_files_arr);
+                        return false;
+
+                    }
 
                 }
 
             }
 
-        // FILES
         } else {
-
-            // APPEND COPY TO FILENAME IF SAME
-            if (path.dirname(source) == destination_file) {
-
-                // CREATE NEW FILE NAME
-                destination_file = path.join(destination1, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
-
-                // COPY FILE
-                copyfile(source, destination_file, 0, () => {})
-
-            } else {
-
-                // CHECK IF FILE EXISTS
-                // CREATE OVERWRITE MOVE DIALOG
-                if (fs.existsSync(destination_file)) {
-
-                    // CREATE CONFIRM COPY OVERWRITE
-                    let data = {
-                        source: source,
-                        destination: destination_file
-                    }
-
-                    createOverwriteMoveDialog(data, copy_files_arr)
-
-                // CREATE MOVE DIALOG
-                } else {
-
-                    let data = {
-                        state: 0,
-                        source: source,
-                        destination: destination_file
-                    }
-
-                    createMoveDialog(data,copy_files_arr);
-                    return false;
-
-                }
-
-            }
-
+            active_window.send('notification', 'destination already exists ' + destination_file);
         }
 
     })

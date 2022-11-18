@@ -1461,17 +1461,23 @@ function info(msg) {
 // NOTIFICATIONS
 function notification(msg) {
 
-    notice(msg)
-    info(msg)
+    let notification = document.getElementById('notification')
+    notification.innerHTML = ''
+    notification.append(msg)
+    notification.classList.remove('hidden')
+    notification.classList.add('right')
 
-    let status = document.getElementById('notification')
-    let msg_div = add_div()
+    // notice(msg)
+    // info(msg)
 
-    // status.style = 'overflow:auto'
-    msg_div.style = 'overflow:auto; margin-bottom: 10px;'
+    // let status = document.getElementById('notification')
+    // let msg_div = add_div()
 
-    msg_div.innerHTML = ''
-    msg_div.innerHTML = msg
+    // // status.style = 'overflow:auto'
+    // msg_div.style = 'overflow:auto; margin-bottom: 10px;'
+
+    // msg_div.innerHTML = ''
+    // msg_div.innerHTML = msg
 
     // status.innerHTML = ''
     // status.appendChild(msg_div)
@@ -2245,6 +2251,8 @@ async function add_card(options) {
         // CARD CLICK
         card.addEventListener('click', function (e) {
 
+            e.stopPropagation()
+
             // CRTRL+SHIFT ADD TO WORKSPACE
             if (e.ctrlKey == true && e.shiftKey == true) {
 
@@ -2344,7 +2352,7 @@ async function add_card(options) {
 
             }
 
-            notification(path.basename(href))
+            // notification(path.basename(href))
 
         }
 
@@ -4959,6 +4967,11 @@ async function get_files(dir, callback) {
 
             let isMainView = 0;
             let active_folder = ''
+
+            main_view.onclick = (e) => {
+                console.log('main_view clicked')
+            }
+
             main_view.onmouseover = (e) => {
 
                 e.preventDefault();
@@ -5052,6 +5065,8 @@ async function get_files(dir, callback) {
                     // MOVE FILE
                     } else {
 
+
+
                         if (breadcrumbs.value == destination) {
                             ipcRenderer.send('is_main_view', 1)
                             state = 2
@@ -5062,6 +5077,7 @@ async function get_files(dir, callback) {
 
                         // notification('changing state to 0')
                         move_to_folder(destination, state)
+
                     }
 
                 }
@@ -8871,6 +8887,7 @@ window.addEventListener('DOMContentLoaded', () => {
         find_files(res => {
             let find = document.getElementById('find')
             find.focus()
+            find.select()
         })
 
     })
