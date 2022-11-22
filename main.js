@@ -4,7 +4,7 @@ const path                  = require('path')
 const fs                    = require('fs')
 const ipcMain               = require('electron').ipcMain
 const nativeTheme           = require('electron').nativeTheme
-const nativeImage           = require('electron')
+const nativeImage           = require('electron').nativeImage
 const shell                 = require('electron').shell
 const move_windows          = new Set()
 const window                = require('electron').BrowserWindow;
@@ -114,6 +114,15 @@ if (!fs.existsSync(settings_file)) {
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 ipcMain.on('reload_settings', (e) => {
     settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
+})
+
+let thumbnails_dir  = path.join(app.getPath('userData'), 'thumbnails')
+if (!fs.existsSync(thumbnails_dir)) {
+    fs.mkdirSync(thumbnails_dir)
+}
+
+ipcMain.handle('get_thumbnails_directory', (e) => {
+    return thumbnails_dir;
 })
 
 ipcMain.on('cancel', (e) => {
@@ -231,11 +240,14 @@ function copyfile(source, target, state, callback) {
         if (!err) {
             // Update cards
             if (--recursive == 0) {
-                callback(1);
+
             }
         } else {
             console.log('copy file sync err', err)
         }
+
+        callback(1);
+
     })
 }
 
@@ -760,9 +772,13 @@ function get_icon_path(href) {
 }
 
 ipcMain.handle('get_icon', async (e, href) => {
+    const res = await app.getFileIcon(href);
+    return res.toDataURL();
+})
 
-    const res = await app.getFileIcon(path.extname(href));
-    return res.toDataURL()
+ipcMain.handle('get_thumbnail', async (e, href) => {
+    const res = await nativeImage.createFromPath(href);
+    return res;
 })
 
 // todo: remove
@@ -1498,9 +1514,6 @@ ipcMain.on('move_confirmed', (e, data) => {
 // MOVE CONFIRMED ALL - done
 ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
-    let confirm = BrowserWindow.getFocusedWindow()
-    confirm.hide()
-
     // SET SIZE FOR PROGRESS
     let max = 0;
     copy_files_arr.forEach(item => {
@@ -1508,9 +1521,9 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
     })
 
     // SHOW PROGRESS
-    windows.forEach(win => {
-        win.webContents.send('progress', max);
-    })
+    // windows.forEach(win => {
+    active_window.send('progress', max);
+    // })
 
     // SET STATE TO 1 IF PASTE
     // todo: state has been replaced with ismainview
@@ -1532,7 +1545,6 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
 
                         if (isMainView) {
                             active_window.send('remove_card', data.source);
-
                             let options = {
                                 id: 0,
                                 href: destination_file,
@@ -1541,20 +1553,13 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
                                 grid: ''
 
                             }
-
                             active_window.send('add_card', options);
-
+                            active_window.send('update_card', destination_file);
                         }
-
 
                     })
 
                 }
-
-                move_windows.forEach(win => {
-                    win.hide();
-                })
-                move_windows.clear();
 
             })
 
@@ -1563,38 +1568,48 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
         } else {
 
             // state = 0
-            copyfile(data.source, destination_file, state, (res) => {
+            copyfile(data.source, destination_file, state, () => {
 
                 if (fs.existsSync(destination_file)) {
 
-                    if (isMainView) {
+                    delete_file(data.source, () => {
 
-                        let options = {
-                            id: 0,
-                            href: destination_file,
-                            linktext: path.basename(destination_file),
-                            is_folder: false,
-                            grid: ''
+                        if (isMainView) {
+
+                            let options = {
+                                id: 0,
+                                href: destination_file,
+                                linktext: path.basename(destination_file),
+                                is_folder: 0,
+                                grid: ''
+                            }
+
+                            active_window.webContents.send('add_card', options);
+                            active_window.send('update_card', destination_file);
+
                         }
 
-                        active_window.webContents.send('add_card', options);
-
-                    }
-
-                    active_window.send('update_card', destination)
-                    delete_file(data.source, () => {});
+                    });
 
                 }
 
-                move_windows.forEach(win => {
-                    win.hide();
-                })
-                move_windows.clear();
+                // move_windows.forEach(win => {
+                //     win.hide();
+                // })
+                // move_windows.clear();
 
             })
 
         }
     })
+
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+
+    // move_windows.forEach(win => {
+    //     win.hide();
+    // })
+    // move_windows.clear();
 
 })
 

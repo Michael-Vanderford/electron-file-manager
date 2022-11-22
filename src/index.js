@@ -21,7 +21,6 @@ let minibar_items   = minibar.querySelectorAll('.item')
 // Icon size
 let icon_size_selector  = document.getElementById('icon_size_selector')
 
-
 // TOGGLE VIEWS
 let btn_settings_view   = document.getElementById('btn_settings_view')
 let btn_list_view       = document.getElementById('btn_list_view')
@@ -69,7 +68,6 @@ if (localStorage.getItem('depth') == null) {
 if (localStorage.getItem('icon_size') == null) {
     localStorage.setItem('icon_size', '3')
 }
-
 
 let css_class = 'icon16'
 let css_class0 = ''
@@ -322,12 +320,10 @@ $(function() {
         $(window).scrollTop($(window).scrollTop()-20);
     });
 
-
     let accordion = $('.ui.accordion')
     accordion.accordion({
         exclusive:false
     })
-
 
     accordion.on('mouseover', function (e) {
         // alert($(this).height())
@@ -370,7 +366,6 @@ $(function() {
         window.api.get_view(home_folder)
 
     })
-
 
     /* Documents */
     $(document).on('click', '#documents',function(e){
@@ -431,7 +426,6 @@ $(function() {
 
     })
 
-
     // NETWORK
     $(document).on('click', '#network',function(e){
 
@@ -440,7 +434,6 @@ $(function() {
         window.api.get_view('/media')
 
     })
-
 
     $(document).on('click', '#btn_network ', function (e) {
 
@@ -554,7 +547,6 @@ $(function() {
 
     })
 
-
     // SORT BY SIZE
     $(document).on('click', '#sort_by_size', function(e){
 
@@ -577,7 +569,6 @@ $(function() {
 
     })
 
-
     // SORT BY TYPE
     $(document).on('click', '#sort_by_type', function(e){
 
@@ -599,7 +590,6 @@ $(function() {
         window.api.get_view(dir)
 
     })
-
 
 })
 

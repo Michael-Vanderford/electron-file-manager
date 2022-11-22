@@ -965,8 +965,9 @@ input:focus {
 .col {
     display: flex;
     flex-direction: column;
-    padding: 10px;
+    padding: 5px;
     width: 100%;
+    flex-wrap: wrap;
     /* border: 1px solid black; */
 }
 
