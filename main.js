@@ -1,5 +1,7 @@
 const { app, globalShortcut, Notification, BrowserWindow, Menu, screen, dialog, accelerator, WebContents, webContents, MenuItem, ipcRenderer} = require('electron')
 const { exec, execSync, spawn, execFileSync } = require("child_process");
+const util                  = require('util')
+const exec1                 = util.promisify(require('child_process').exec)
 const path                  = require('path')
 const fs                    = require('fs')
 const ipcMain               = require('electron').ipcMain
@@ -75,7 +77,7 @@ function createConnectDialog() {
 }
 
 // Settings
-let settings_file = path.join(__dirname, 'settings.json');
+let settings_file = path.join(app.getPath('userData'), 'settings.json');
 if (!fs.existsSync(settings_file)) {
     let data = {
         window: {
@@ -215,6 +217,24 @@ function get_folder_size(href) {
     }
 }
 
+/**
+ * I dont think this is being used
+ * Get folder size. Runs du -Hs command
+ * @param {string} href
+ */
+function get_folder_size1(href) {
+    try {
+        cmd = "cd '" + href + "'; du -Hs"
+        du = exec(cmd)
+        du.stdout.on('data', function (res) {
+            let size = parseInt(res.replace('.', '') * 1024)
+            active_window.send('folder_size', {href: href, size: size})
+        })
+    } catch (err) {
+        // console.log(err)
+    }
+}
+
 function AddSysNotification (title, body) {
     new Notification({ title: title, body: body}).show()
 }
@@ -226,7 +246,7 @@ function AddSysNotification (title, body) {
  * @param {int} state
  * @param {*} callback
  */
-function copyfile(source, target, state, callback) {
+function copyfile(source, target, callback) {
     // TARGET
     var targetFile = target;
     if (fs.existsSync(target)) {
@@ -237,11 +257,13 @@ function copyfile(source, target, state, callback) {
     recursive++
     // Copy file
     fs.copyFile(source, targetFile, (err) => {
+
         if (!err) {
             // Update cards
             if (--recursive == 0) {
 
             }
+
         } else {
             console.log('copy file sync err', err)
         }
@@ -258,7 +280,7 @@ function copyfile(source, target, state, callback) {
  * @param {int} state
  * @param {*} callback
  */
-function copyfolder(source, destination, state, callback) {
+function copyfolder(source, destination, destination_folder, callback) {
     try {
         fs.readdir(source, function (err, files) {
             if (err) {
@@ -277,13 +299,15 @@ function copyfolder(source, destination, state, callback) {
                         fs.stat(cursource, (err, stats) => {
                             if (!err) {
                                 // Directory
-                                if (stats.isDirectory() == true) {
-                                    copyfolder(cursource, curdestination, state, () => {
-                                        active_window.send('update_card', destination_folder);
+                                if (stats.isDirectory()) {
+                                    copyfolder(cursource, curdestination, destination_folder, () => {
+                                        // active_window.send('update_card', destination_folder);
                                     });
                                 // Copy files
-                                } else if (stats.isFile() == true) {
-                                    copyfile(cursource, curdestination, state, () => {
+                                // } else if (stats.isFile() == true) {
+                                } else {
+                                    copyfile(cursource, curdestination, () => {
+                                        // console.log('updating', destination_folder)
                                         active_window.send('update_card', destination_folder);
                                     })
                                 }
@@ -307,17 +331,19 @@ async function get_file_count_recursive(href) {
     try {
         let files = dirents.filter(item => !fs.statSync(path.join(href, item)).isDirectory())
         file_count_recursive += files.length
+        return file_count_recursive;
     } catch (err) {
 
     }
+
 }
 
 async function get_folder_count_recursive(href) {
+
     let dirents = fs.readdirSync(href)
     try {
         let folders = dirents.filter(item => fs.statSync(path.join(href, item)).isDirectory())
         folders.forEach((folder, idx) => {
-
             let cursource = path.join(href, folder)
             get_folder_count_recursive(cursource)
             ++folder_count_recursive;
@@ -325,11 +351,22 @@ async function get_folder_count_recursive(href) {
                 get_file_count_recursive(cursource);
             }
         })
+
+        return folder_count_recursive;
+
     } catch (err) {
 
     }
 }
 
+ipcMain.handle('get_folder_count_recursive', async (e, href) => {
+    folder_count_recursive = 0;
+    file_count_recursive = 0;
+    return await get_folder_count_recursive(href);
+})
+ipcMain.handle('get_file_count_recursive', async (e, href) => {
+    return await get_file_count_recursive(href);
+})
 /* Get files properties */
 function get_file_properties(filename) {
 
@@ -497,6 +534,7 @@ function delete_file(file, callback) {
         if (stats.isDirectory()) {
             fs.rm(file, {recursive: true}, (err) => {
                 if (err) {
+                    active_window.send('notification', err)
                     console.log(err);
                 } else {
 
@@ -507,6 +545,7 @@ function delete_file(file, callback) {
                         })
 
                     } catch (err) {
+                        active_window.send('notification', err)
                         console.log(err);
                     }
 
@@ -523,6 +562,7 @@ function delete_file(file, callback) {
             fs.unlink(file, err => {
 
                 if (err) {
+                    active_window.send('notification', err)
                     console.log('error deleteing file', file);
                     callback(0);
                 } else {
@@ -530,6 +570,7 @@ function delete_file(file, callback) {
                     try {
                         active_window.send('remove_card', file);
                     } catch (err) {
+                        active_window.send('notification', err)
                         console.log('error deleting file', err)
                     }
 
@@ -623,8 +664,8 @@ const createWindow = exports.createWindow = () => {
 
     // WINDOW OPTIONS
     let options = {
-        minWidth: 1024,
-        minHeight: 600,
+        // minWidth: 1024,
+        // minHeight: 600,
         width: settings.window.width,
         height: settings.window.height,
         backgroundColor: '#2e2c29',
@@ -797,18 +838,20 @@ ipcMain.handle('get_thumbnail', async (e, href) => {
 
 // Add files to copy array
 ipcMain.on('add_copy_files', function( e, data) {
+
     copy_files_arr = data;
+    console.log(copy_files_arr)
     e.sender.send('clear_copy_arr');
+
 })
 
 // todo: remove old copy file array reference from preload
-ipcMain.on('copy', (e, copy_files_arr_old, state = 0) => {
-    copy(copy_files_arr, state);
+ipcMain.on('copy', (e) => {
+    copy();
 })
 
 // COPY
-function copy(state) {
-
+function copy() {
 
     copy_files_arr.every((item, idx) => {
 
@@ -817,6 +860,7 @@ function copy(state) {
             let source = item.source;
             let source_stats = fs.statSync(source)
             let destination_file = path.join(destination, path.basename(source))
+
             // DIRECTORY - Done
             if (source_stats.isDirectory()) {
                 let options = {
@@ -832,24 +876,19 @@ function copy(state) {
                     let max = 0;
                     copy_files_arr.forEach(item => {
                         max += parseInt(item.size);
+                        // console.log(item.size)
                     })
 
                     // SHOW PROGRESS
-                    // windows.forEach(win => {
-                    //     win.webContents.send('progress', max);
-                    // })
                     active_window.send('progress', max);
 
                     // BUILD DESTINATION PATH
-                    let c = 0
                     destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
-                    while (fs.existsSync(destination_file) && c < 2) {
-                        destination_file = destination_file + ' Copy'
-                        ++c;
-                    }
 
-                    state = 0
-                    copyfolder(source, destination_file, state, () => {
+                    // Set update directory
+                    destination_folder = destination_file
+
+                    copyfolder(source, destination_file, destination_folder, () => {
 
                         if (isMainView) {
 
@@ -860,14 +899,14 @@ function copy(state) {
                             }
 
                             active_window.send('add_card', options)
-                            active_window.send('update_card', destination_file)
+                            // active_window.send('update_card', destination_file)
 
                         } else {
-                            active_window.send('update_card', destination)
+                            // active_window.send('update_card', destination)
                         }
 
                         copy_files_arr.shift()
-                        copy(copy_files_arr, state)
+                        copy()
 
                     })
 
@@ -877,6 +916,7 @@ function copy(state) {
                     return true
 
                 } else {
+
                     if (fs.existsSync(destination_file)) {
 
                         let data = {
@@ -901,6 +941,7 @@ function copy(state) {
                         win.webContents.send('progress', max, destination_file);
 
                         // COPY FOLDERS RECURSIVE
+                        state = 0;
                         copyfolder(source, destination_file, state, () => {
 
                             if (isMainView) {
@@ -912,13 +953,13 @@ function copy(state) {
                                 }
 
                                 active_window.send('add_card', options)
-                                active_window.send('update_card', destination_file)
+                                // active_window.send('update_card', destination_file)
 
                             }
 
-                            active_window.send('update_card', destination)
+                            // active_window.send('update_card', destination)
                             copy_files_arr.shift()
-                            copy(copy_files_arr,state)
+                            copy()
 
                         })
 
@@ -935,14 +976,10 @@ function copy(state) {
                     // CREATE NEW FILE NAME
                     let c = 0;
                     destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
-                    while (fs.existsSync(destination_file)) {
-                        destination_file = destination_file.replace(path.extname(source)) + ' Copy' + path.extname(source);
-                        ++c;
-                    }
 
                     // COPY FILE
                     state = 1;
-                    copyfile(source, destination_file, state, () => {
+                    copyfile(source, destination_file, () => {
 
                         let options = {
                             id: 0,
@@ -954,8 +991,9 @@ function copy(state) {
 
                         active_window.send('add_card', options)
 
+
                         copy_files_arr.shift();
-                        copy(state);
+                        copy();
                         return true;
 
                     })
@@ -983,14 +1021,8 @@ function copy(state) {
                         })
 
                         // SHOW PROGRESS
-                        windows.forEach(win => {
-                            // let win = window.getFocusedWindow();
-                            win.webContents.send('progress', max, destination_file);
-                        })
-
-                        copyfile(source, destination_file, state, () => {
-                            active_window.send('update_card', destination);
-                        });
+                        active_window.send('progress', max, destination_file);
+                        active_window.send('notification', 'Copying File ' + destination_file)
 
                         if (isMainView) {
 
@@ -1003,12 +1035,15 @@ function copy(state) {
                             }
 
                             active_window.send('add_card', options)
-                            active_window.send('update_card', destination_file);
 
                         }
 
+                        copyfile(source, destination_file, () => {
+                            active_window.send('notification', 'Done Copying File')
+                        });
+
                         copy_files_arr.shift();
-                        copy(state);
+                        copy();
                         return true;
 
                     }
@@ -1018,7 +1053,7 @@ function copy(state) {
             }
 
         } catch (err) {
-
+            console.log('Error Copying File', err)
         }
 
     })
@@ -1055,6 +1090,7 @@ function createConfirmDialog(data, copy_files_arr) {
         x: x,
         y: y,
         frame: true,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -1076,7 +1112,7 @@ function createConfirmDialog(data, copy_files_arr) {
             confirm.title = 'Copy File Conflict'
         }
 
-        confirm.removeMenu()
+        // confirm.removeMenu()
         confirm.show()
 
         // confirm.webContents.openDevTools()
@@ -1116,7 +1152,7 @@ ipcMain.on('overwrite_confirmed_all', (e) => {
 
         // COPY FILES - done
         } else {
-            copyfile(data.source, destination_file, data.state, () => {
+            copyfile(data.source, destination_file, () => {
 
             })
         }
@@ -1162,7 +1198,7 @@ ipcMain.on('overwrite_confirmed', (e, data) => {
     // COPY FILE - done
     } else {
 
-        copyfile(data.source, destination_file, 0, () => {
+        copyfile(data.source, destination_file, () => {
 
             // REMOVE ITEM FROM ARRAY
             copy_files_arr.shift()
@@ -1384,7 +1420,7 @@ function move() {
                     destination_file = path.join(destination1, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
 
                     // COPY FILE
-                    copyfile(source, destination_file, 0, () => {})
+                    copyfile(source, destination_file, () => {})
 
                 } else {
 
@@ -1479,7 +1515,7 @@ ipcMain.on('move_confirmed', (e, data) => {
     } else {
 
         // state = 0
-        copyfile(data.source, data.destination, data.state, (res) => {
+        copyfile(data.source, data.destination, (res) => {
 
             // REMOVE ITEM FROM ARRAY
             copy_files_arr.shift();
@@ -1568,7 +1604,7 @@ ipcMain.on('move_confirmed_all', (e, data, copy_files_arr) => {
         } else {
 
             // state = 0
-            copyfile(data.source, destination_file, state, () => {
+            copyfile(data.source, destination_file, () => {
 
                 if (fs.existsSync(destination_file)) {
 
@@ -1719,7 +1755,7 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
         // FILES - done
         } else {
 
-            copyfile(data.source, data.destination, data.state, () => {
+            copyfile(data.source, data.destination, () => {
 
                 // REMOVE ITEM FROM ARRAY
                 copy_files_arr.shift()
@@ -1799,7 +1835,7 @@ ipcMain.on('overwrite_move_confirmed', (e) => {
         } else {
 
             // state = 0
-            copyfile(data.source, destination_file, 0, () => {
+            copyfile(data.source, destination_file, () => {
 
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
@@ -1863,7 +1899,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
         } else {
 
             // state = 0
-            copyfile(data.source, destination_file, 0, () => {
+            copyfile(data.source, destination_file, () => {
 
                 copy_files_arr.forEach(data => {
                     delete_file(data.source, () => {
@@ -1913,6 +1949,65 @@ ipcMain.on('overwrite_move_canceled', (e) => {
     confirm.hide();
     copy_files_arr = [];
 
+})
+
+// Create Delete Dialog
+function createDeleteDialog(delete_files_arr) {
+
+    let bounds = screen.getPrimaryDisplay().bounds;
+    let x = bounds.x + ((bounds.width - 400) / 2);
+    let y = bounds.y + ((bounds.height - 400) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+
+        parent: window.getFocusedWindow(),
+        modal:true,
+        width: 550,
+        height: 275,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: false, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    // LOAD FILE
+    confirm.loadFile('src/confirm_delete.html')
+
+    // SHOW DIALG
+    confirm.once('ready-to-show', () => {
+
+        let title = 'Confirm Delete'
+        confirm.title = title
+        confirm.removeMenu()
+
+        confirm.send('confirm_delete', delete_files_arr)
+        delete_files_arr = []
+
+    })
+
+}
+
+ipcMain.on('delete_confirmed', (e, delete_files_arr) => {
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+    delete_files_arr.forEach(item => {
+        delete_file(item.source, () => {
+            active_window.send('remove_card', item.source)
+        })
+    })
+})
+
+ipcMain.on('delete_canceled', (e) => {
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
 })
 
 // FILE PROPERTIES WINDOW
@@ -2145,6 +2240,22 @@ ipcMain.on('get_folder_size', (e , args) => {
     get_folder_size(args.href);
 })
 
+// GET FOLDER SIZE
+ipcMain.handle('get_folder_size1', async (e , href) => {
+
+    try {
+        cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
+        const {err, stdout, stderr } = await exec1(cmd);
+        return stdout;
+    } catch (err) {
+        // console.log(err)
+    }
+
+    // stdout.on('data', (res) => {
+    //      res //parseInt(res.replace('.', '') * 1024)
+    // })
+})
+
 // GET DISK SPACE
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
@@ -2334,14 +2445,12 @@ function add_launcher_menu(menu, e, args) {
 
 // Run as Program
 function add_execute_menu(menu, e, args) {
-
     menu.append(new MenuItem({
         label: 'Run as Program',
         click: () => {
+            exec1(args.href)
         }
-
     }))
-
 }
 
 // Run as Program
@@ -3050,7 +3159,7 @@ ipcMain.on('show-context-menu-files', (e, args) => {
     add_templates_menu(menu, e, args)
 
     // ADD LAUNCHER MENU
-    add_launcher_menu(menu, e, args.associated_apps)
+    add_launcher_menu(menu, e, args.apps)
 
     // Run as program
     if (args.access) {
@@ -3098,27 +3207,29 @@ ipcMain.on('find', function (e, args) {
 })
 
 // CONFIRM DELETE FILES DIALOG
-ipcMain.on('confirm_file_delete', function (e, target_name) {
+ipcMain.on('confirm_file_delete', function (e, delete_arr) {
 
-    let res = dialog.showMessageBoxSync(null, {
+    createDeleteDialog(delete_arr)
 
-        type: 'warning',
-        title: 'Warning',
-        buttons: ['Delete', 'Cancel'],
-        // type: 'question',
-        normalizeAccessKeys: true,
-        message: 'Are you sure you want to permanently delete',
-        detail: target_name
+    // let res = dialog.showMessageBoxSync(null, {
 
-    })
+    //     type: 'warning',
+    //     title: 'Warning',
+    //     buttons: ['Delete', 'Cancel'],
+    //     // type: 'question',
+    //     normalizeAccessKeys: true,
+    //     message: 'Are you sure you want to permanently delete',
+    //     detail: target_name
 
-    if (res == 0) {
-        e.sender.send('delete_file_confirmed', res)
-    }
+    // })
 
-    if(res == 1){
-        e.sender.send('clear_selected_files')
-    }
+    // if (res == 0) {
+    //     e.sender.send('delete_file_confirmed', res)
+    // }
+
+    // if(res == 1){
+    //     e.sender.send('clear_selected_files')
+    // }
 
 })
 

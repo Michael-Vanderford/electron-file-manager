@@ -92,6 +92,10 @@ function resize_icons (icon_size) {
             css_class = 'icon48'
             break;
         }
+        case '4': {
+            css_class = 'icon64'
+            break;
+        }
     }
 
     let items = document.querySelectorAll('.nav_item')

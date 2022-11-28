@@ -1,10 +1,10 @@
 {
     "window": {
         "length": 1400,
-        "width": 1285,
-        "x": 2223,
-        "y": 248,
-        "height": 650
+        "width": 1440,
+        "x": 2129,
+        "y": 175,
+        "height": 803
     },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
