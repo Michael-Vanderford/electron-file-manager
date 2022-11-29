@@ -1847,30 +1847,30 @@ function get_progress(total, destination_file) {
     // max = max / 1024
     total = total / 1024
 
-    if (breadcrumbs.value.indexOf('gvfs') > -1) {
+    // if (breadcrumbs.value.indexOf('gvfs') > -1) {
 
-        progress.max = max + 0;
-        let current_size0 = 0;
-        let current_size = 0;
-        let interval_id = setInterval(() => {
+    //     progress.max = max + 0;
+    //     let current_size0 = 0;
+    //     let current_size = 0;
+    //     let interval_id = setInterval(() => {
 
-            let stats = fs.statSync(destination_file);
-            current_size0 = current_size
-            current_size = parseInt(stats.size);
+    //         let stats = fs.statSync(destination_file);
+    //         current_size0 = current_size
+    //         current_size = parseInt(stats.size);
 
-            progress.value = current_size;
-            if (current_size0 >= current_size) {
+    //         progress.value = current_size;
+    //         if (current_size0 >= current_size) {
 
-                progress.value = 0
-                progress_div.classList.add('hidden')
-                progress.classList.add('hidden')
+    //             progress.value = 0
+    //             progress_div.classList.add('hidden')
+    //             progress.classList.add('hidden')
 
-                clearInterval(interval_id);
-            }
+    //             clearInterval(interval_id);
+    //         }
 
-        }, 1000);
+    //     }, 1000);
 
-    } else {
+    // } else {
 
         let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
         exec(cmd, (err, stdout) => {
@@ -1925,7 +1925,7 @@ function get_progress(total, destination_file) {
 
         })
 
-    }
+    // }
 
 }
 
@@ -3113,10 +3113,14 @@ function update_card(href) {
                 // ipcRenderer.send('get_folder_size', { href: href })
                 icon.src = folder_icon
 
-                ipcRenderer.invoke('get_folder_size1', href).then(res => {
-                    extra.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
-                    localStorage.setItem(href, parseInt(res.replace('.', '') * 1024))
-                })
+                try {
+                    ipcRenderer.invoke('get_folder_size1', href).then(res => {
+                        extra.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
+                        localStorage.setItem(href, parseInt(res.replace('.', '') * 1024))
+                    })
+                } catch (err) {
+                    
+                }
 
                 // icon.src = folder_icon
 
