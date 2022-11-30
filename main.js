@@ -265,7 +265,8 @@ function copyfile(source, target, callback) {
             }
 
         } else {
-            console.log('copy file sync err', err)
+            active_window.send('notification', err);
+            active_window.send('remove_card', targetFile)
         }
 
         callback(1);
@@ -1077,9 +1078,10 @@ function createConfirmDialog(data, copy_files_arr) {
 
     let win = window.getFocusedWindow();
 
-    let bounds = screen.getPrimaryDisplay().bounds;
-    let x = bounds.x + ((bounds.width - 400) / 2);
-    let y = bounds.y + ((bounds.height - 400) / 2);
+    let bounds = active_window.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 500) / 2);
+    let y = bounds.y + parseInt((bounds.height - 400) / 2);
 
     const confirm = new BrowserWindow({
         parent: win,
@@ -1277,9 +1279,10 @@ ipcMain.on('overwrite_canceled', (e) => {
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
 
-    let bounds = screen.getPrimaryDisplay().bounds;
-    let x = bounds.x + ((bounds.width - 400) / 2);
-    let y = bounds.y + ((bounds.height - 400) / 2);
+    let bounds = active_window.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 550) / 2);
+    let y = bounds.y + parseInt((bounds.height - 275) / 2);
 
     // DIALOG SETTINGS
     let confirm = new BrowserWindow({
@@ -1698,9 +1701,10 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 // let confirm = ''
 function createOverwriteMoveDialog(data, copy_files_arr) {
 
-    let bounds = screen.getPrimaryDisplay().bounds;
-    let x = bounds.x + ((bounds.width - 400) / 2);
-    let y = bounds.y + ((bounds.height - 400) / 2);
+    let bounds = active_window.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 550) / 2);
+    let y = bounds.y + parseInt((bounds.height - 350) / 2);
 
     let confirm = new BrowserWindow({
         parent: window.getFocusedWindow(),
@@ -1954,9 +1958,10 @@ ipcMain.on('overwrite_move_canceled', (e) => {
 // Create Delete Dialog
 function createDeleteDialog(delete_files_arr) {
 
-    let bounds = screen.getPrimaryDisplay().bounds;
-    let x = bounds.x + ((bounds.width - 400) / 2);
-    let y = bounds.y + ((bounds.height - 400) / 2);
+    let bounds = active_window.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
 
     // DIALOG SETTINGS
     let confirm = new BrowserWindow({
@@ -1976,7 +1981,10 @@ function createDeleteDialog(delete_files_arr) {
             nodeIntegrationInWorker: false,
             preload: path.join(__dirname, 'preload.js'),
         },
+
     })
+
+    // confirm.center()
 
     // LOAD FILE
     confirm.loadFile('src/confirm_delete.html')

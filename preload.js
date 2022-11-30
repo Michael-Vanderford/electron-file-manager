@@ -3119,7 +3119,7 @@ function update_card(href) {
                         localStorage.setItem(href, parseInt(res.replace('.', '') * 1024))
                     })
                 } catch (err) {
-                    
+
                 }
 
                 // icon.src = folder_icon
@@ -7030,8 +7030,10 @@ async function get_devices() {
 
                     if (item.type == 'media' || item.type == 'mnt') {
                         execSync("umount '" + item.href + "'")
+                        get_devices();
                     } else if (item.type == 'gvfs') {
                         execSync("gio mount -u -f '" + item.href + "'")
+                        get_devices();
                     }
 
                 })
@@ -7826,7 +7828,7 @@ function show_sidebar() {
 
         sidebar.classList.remove('hidden');
         sidebar.style.width = sidebar_width + 'px';
-        sidebar.style.maxWidth = '25%';
+        // sidebar.style.maxWidth = '25%';
 
         draghandle.style.height = parseInt(main_view.clientHeight + 30) + 'px';
 

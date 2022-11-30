@@ -182,8 +182,12 @@ function initResize(e) {
 
 /* Resize sidebar */
 function Resize(e) {
-    element.style.width = (e.clientX - element.offsetLeft) + 'px';
-    main_view.style.marginLeft = (e.clientX - (element.offsetLeft - 40)) + 'px'
+
+    if (e.clientX < 400) {
+        element.style.width = (e.clientX - element.offsetLeft) + 'px';
+        main_view.style.marginLeft = (e.clientX - (element.offsetLeft - 40)) + 'px'
+    }
+
 }
 
 /* Stop resize of sidebar */
