@@ -4341,10 +4341,10 @@ async function get_workspace() {
                         grid: workspace
                     }
 
-                    // let card = get_card(options.href)
-                    add_card(options, (card) => {
+                    let card = get_card(options.href)
+                    // add_card(options, (card) => {
                         workspace.append(card)
-                    })
+                    // })
 
                     let icon = add_icon('times');
                     icon.classList.add('small');
