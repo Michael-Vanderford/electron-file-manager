@@ -27,6 +27,8 @@ let active_window           = '';
 let current_directory       = '';
 let destination_folder      = '';
 
+app.disableHardwareAcceleration();
+
 ipcMain.on('connect', (e) => {
     createConnectDialog();
 })
@@ -38,13 +40,10 @@ function createConnectDialog() {
     let x = bounds.x + ((bounds.width - 400) / 2);
     let y = bounds.y + ((bounds.height - 400) / 2);
 
-    // DIALOG SETTINGS
     let connect = new BrowserWindow({
-
         parent: window.getFocusedWindow(),
-        modal:true,
         width: 550,
-        height: 275,
+        height: 350,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -58,20 +57,15 @@ function createConnectDialog() {
         },
     })
 
-    // LOAD FILE
     connect.loadFile('src/connect.html')
-    // confirm.webContents.openDevTools()
+    // connect.webContents.openDevTools()
 
     // SHOW DIALG
     connect.once('ready-to-show', () => {
-
         let title = 'Connect to server'
-
         connect.title = title
         connect.removeMenu()
-
-        // connect.send('confirming_move', data, copy_files_arr)
-
+        connect.send('connect')
     })
 
 }
@@ -86,11 +80,18 @@ if (!fs.existsSync(settings_file)) {
             x: 0,
             y: 0
         },
+        display: {
+            "Icon Caption": {
+                None: "None",
+                Size: "Size"
+            }
+        },
         keyboard_shortcuts: {
-            Back: "Backspace",
+            Backspace: "Backspace",
             ShowWorkspace: "Alt+W",
             ShowSidebar: "Ctrl+B",
             ShowDevices: "Ctrl+D",
+            ShowSettings: "",
             Find: "Ctrl+F",
             Down: "Down",
             Up: "Up",
@@ -99,7 +100,7 @@ if (!fs.existsSync(settings_file)) {
             Rename: "F2",
             Cut: "Ctrl+X",
             Copy: "Ctrl+C",
-            Paste: "Ctrl+P",
+            Paste: "Ctrl+V",
             SelectAll: "Ctrl+A",
             Delete: "Delete",
             Compress: "Shift+C",
@@ -123,7 +124,11 @@ if (!fs.existsSync(thumbnails_dir)) {
     fs.mkdirSync(thumbnails_dir)
 }
 
-ipcMain.handle('get_thumbnails_directory', (e) => {
+ipcMain.handle('userdata_dir', (e) => {
+    return app.getPath('userData');
+})
+
+ipcMain.handle('get_thumbnails_directory', async (e) => {
     return thumbnails_dir;
 })
 
@@ -665,8 +670,8 @@ const createWindow = exports.createWindow = () => {
 
     // WINDOW OPTIONS
     let options = {
-        // minWidth: 1024,
-        // minHeight: 600,
+        minWidth: 400,
+        minHeight: 600,
         width: settings.window.width,
         height: settings.window.height,
         backgroundColor: '#2e2c29',
@@ -814,8 +819,13 @@ function get_icon_path(href) {
 }
 
 ipcMain.handle('get_icon', async (e, href) => {
-    const res = await app.getFileIcon(href);
-    return res.toDataURL();
+
+    try {
+        const res = await app.getFileIcon(href);
+        return res.toDataURL();
+    } catch (err) {
+        return path.join(__dirname, 'assets/icons/kora/actions/scalable/gtk-file.svg');
+    }
 })
 
 ipcMain.handle('get_thumbnail', async (e, href) => {
@@ -871,6 +881,7 @@ function copy() {
                     is_folder: 1,
                     grid: ''
                 }
+
                 if (source == destination_file) {
 
                     // GET SIZE FOR PROGRESS
@@ -885,8 +896,6 @@ function copy() {
 
                     // BUILD DESTINATION PATH
                     destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
-
-                    // Set update directory
                     destination_folder = destination_file
 
                     copyfolder(source, destination_file, destination_folder, () => {
@@ -898,12 +907,7 @@ function copy() {
                                 linktext: path.basename(destination_file),
                                 is_folder: true
                             }
-
                             active_window.send('add_card', options)
-                            // active_window.send('update_card', destination_file)
-
-                        } else {
-                            // active_window.send('update_card', destination)
                         }
 
                         copy_files_arr.shift()
@@ -918,6 +922,7 @@ function copy() {
 
                 } else {
 
+                    // Overwrite directory
                     if (fs.existsSync(destination_file)) {
 
                         let data = {
@@ -930,20 +935,18 @@ function copy() {
 
                     } else {
 
-                        // GET SIZE FOR PROGRESS
+                        // Get progress size
                         let max = 0;
                         copy_files_arr.forEach(item => {
                             max += parseInt(item.size);
                         })
 
-                        // SHOW PROGRESS
-                        // windows.forEach(win => {
+                        // Show progress
                         let win = window.getFocusedWindow();
                         win.webContents.send('progress', max, destination_file);
 
-                        // COPY FOLDERS RECURSIVE
-                        state = 0;
-                        copyfolder(source, destination_file, state, () => {
+                        // state = 0;
+                        copyfolder(source, destination_file, destination_folder, () => {
 
                             if (isMainView) {
 
@@ -954,11 +957,9 @@ function copy() {
                                 }
 
                                 active_window.send('add_card', options)
-                                // active_window.send('update_card', destination_file)
 
                             }
 
-                            // active_window.send('update_card', destination)
                             copy_files_arr.shift()
                             copy()
 
@@ -1040,6 +1041,7 @@ function copy() {
                         }
 
                         copyfile(source, destination_file, () => {
+                            active_window.send('update_card', destination_folder)
                             active_window.send('notification', 'Done Copying File')
                         });
 
@@ -3194,9 +3196,7 @@ ipcMain.on('new_window', function (e, args) {
 
 // GET HOME FOLDER
 ipcMain.on('get_home_folder',function(e) {
-
     e.sender.send('home_folder', app.getPath('home'))
-
 })
 
 // FIND ON PAGE

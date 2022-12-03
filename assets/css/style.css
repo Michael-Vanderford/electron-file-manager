@@ -211,7 +211,56 @@ body {
     .icon {
         /* filter: drop-shadow(5px 5px 2px #cfcfcf); */
     }
-
+    .dropdown {
+        position: relative;
+        display: inline-block;
+        z-index: 1000000;
+    }
+    .dropdown_content {
+        position: fixed;
+        height:500px;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        padding: 12px 16px;
+        z-index: 1;
+    }
+    /* .dropdown:hover {
+        position: absolute;
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        padding: 12px 16px;
+        z-index: 1;
+    } */
+    .connect {
+        padding: 25px;
+    }
+    .connect > .label {
+        display:block;
+        margin-bottom: 2px;
+    }
+    .connect > .input {
+        border: none;
+        height: 23px;
+        background: #222222;
+        color: #fff;
+        display: block;
+        margin-bottom: 15px;
+    }
+    .connect > .button {
+        margin-top: 25px;
+        margin-bottom: 25px;
+        height: 30px;
+        width: 150px;
+        /* background: #222222; */
+    }
+    .connect > .msg {
+        /* height: 100%; */
+        color: #069;
+        padding: 5px;
+        /* background: rgb(0, 0, 0, .2) */
+    }
 }
 
 @media (prefers-color-scheme: light) {

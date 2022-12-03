@@ -66,35 +66,110 @@ let prev_card
 let destination
 
 // COUNTERS FOR NAVIGATION
-let nc                  = 1
-let nc2                 = 0
-let adj                 = 0
-let is_folder_card      = 1
+let nc                  = 1;
+let nc2                 = 0;
+let adj                 = 0;
+let is_folder_card      = 1;
 
 // FOLDER / FILE COUNTERS
-let folder_count        = 0
-let hidden_folder_count = 0
-let file_count          = 0
-let hidden_file_count   = 0
+let folder_count        = 0;
+let hidden_folder_count = 0;
+let file_count          = 0;
+let hidden_file_count   = 0;
 
 // PAGING VARIABLES
-let pagesize            = 100
-let page                = 1
-let start_path          = ''
+let pagesize            = 100;
+let page                = 1;
+let start_path          = '';
 
 // Flags
-let historize           = 1
+let historize           = 1;
 
 // LOAD VIEW
-let view = ''
-let view0 = ''
+let view                = '';
+let view0               = '';
 
-let thumbnails_dir      = ''
+let thumbnails_dir      = '';
+let userdata_dir        = "";
+let settings            = "";
+
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
     thumbnails_dir = res
 })
 
-let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
+// ipcRenderer.invoke('userdata_dir').then(res => {
+//     settings = JSON.parse(fs.readFileSync(path.join(res, 'settings.json'), {encoding:'utf8', flag:'r'}));
+// })
+
+// let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
+
+ipcRenderer.on('connect', (e) => {
+
+    // Init
+    let cmd = '';
+    let btn_connect = document.getElementById('button_connect')
+    btn_connect.onclick = (e) => {
+
+        e.preventDefault()
+
+        // Inputs
+        let state = 0;
+        let conntection_type = document.getElementById('connection_type')
+        let server = document.getElementById('txt_server')
+        let username = document.getElementById('txt_username')
+        let password = document.getElementById('txt_password')
+        let connect_msg = document.getElementById('connect_msg')
+
+        connect_msg.innerHTML = `Connecting to ${server.value}`
+
+        // Process
+        let inputs = [].slice.call(document.querySelectorAll('.input'))
+        inputs.every(input => {
+
+            if (input.value == '') {
+                connect_msg.innerHTML = `${input.placeholder} Required.`, add_br()
+                state = 0;
+                return false
+            } else {
+                state = 1
+                return true
+            }
+
+        })
+
+        // Output
+        if (state == 1) {
+
+            if (conntection_type.value == 'ssh') {
+                // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
+                cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+            } else if (conntection_type.value == 'smb') {
+                cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
+            }
+            // connect_msg.innerHTML = cmd
+            exec(cmd, (err, stdout, stderr) => {
+                if (!err) {
+                    connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+                    setTimeout(() => {
+                        get_devices();
+                    }, 1000);
+                } else {
+                    if (stderr) {
+                        connect_msg.innerHTML = stderr
+                    }
+                    if (stdout) {
+                        connect_msg.innerHTML = stdout
+                    }
+                }
+
+            })
+
+        }
+
+        console.log(conntection_type.value)
+
+    }
+})
 
 // Confirm delete
 ipcRenderer.on('confirm_delete', (e, delete_arr) => {
@@ -1341,19 +1416,29 @@ ipcRenderer.on('add_card', (e, options) => {
 
     if (!duplicate) {
 
-        let stats = fs.statSync(options.href);
-        if (stats.isDirectory()) {
-            options.grid = document.getElementById('folder_grid');
-        } else {
-            options.grid = document.getElementById('file_grid');
-        }
+        fs.stat(options.href, (err, stats) => {
 
-        add_card(options).then(card => {
-            let col = add_column('three');
-            col.append(card);
-            options.grid.insertBefore(col, options.grid.firstChild);
-            update_card(card.dataset.href);
-        })
+            if (!err) {
+
+                if (stats.isDirectory()) {
+                    options.grid = document.getElementById('folder_grid');
+                } else {
+                    options.grid = document.getElementById('file_grid');
+                }
+
+                add_card(options).then(card => {
+                    let col = add_column('three');
+                    col.append(card);
+                    options.grid.insertBefore(col, options.grid.firstChild);
+                    update_card(card.dataset.href);
+                })
+
+            } else {
+                notification(err)
+            }
+
+
+        });
 
     } else {
         console.log('error: duplicate found. this needs to be fixed')
@@ -1872,58 +1957,56 @@ function get_progress(total, destination_file) {
 
     // } else {
 
-        let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
-        exec(cmd, (err, stdout) => {
+    let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
+    exec(cmd, (err, stdout) => {
 
-            let start_size = parseInt(stdout);
-            progress.max = total;
-            // progress.max = 100
+        let start_size = parseInt(stdout);
+        progress.max = total;
+        // progress.max = 100
 
-            console.log(start_size, total)
+        console.log(start_size, total)
 
-            let current_size0 = 0;
-            let current_size = 0;
-            let progress_size = 0;
+        let current_size0 = 0;
+        let current_size = 0;
+        let progress_size = 0;
 
-            let interval_id = setInterval(() => {
+        let interval_id = setInterval(() => {
 
-                current_size0 = current_size;
+            current_size0 = current_size;
 
-                cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
-                exec(cmd, (err, stdout, stderr) => {
+            cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
+            exec(cmd, (err, stdout, stderr) => {
 
-                    try {
+                try {
 
-                        // Get new size and subtract the start size
-                        current_size = parseInt(stdout) - start_size;
-                        progress_size = parseInt((current_size / total)) * 100
+                    // Get new size and subtract the start size
+                    current_size = parseInt(stdout) - start_size;
+                    progress_size = parseInt((current_size / total)) * 100
 
-                        console.log('ps',progress_size)
-                        console.log('cs',current_size, 'ts', total)
-                        progress.value = current_size
+                    console.log('ps',progress_size)
+                    console.log('cs',current_size, 'ts', total)
+                    progress.value = current_size
 
-                        if (current_size0 >= current_size) {
-
-                            progress.value = 0
-                            progress_div.classList.add('hidden')
-                            progress.classList.add('hidden')
-
-                            clearInterval(interval_id);
-
-                        }
-
-                        // update_card(destination_file);
-
-                    } catch (err) {
+                    if (current_size0 >= current_size) {
+                        progress.value = 0
+                        progress_div.classList.add('hidden')
+                        progress.classList.add('hidden')
+                        clearInterval(interval_id);
 
                     }
 
+                    // update_card(destination_file);
 
-                })
+                } catch (err) {
 
-            }, 1000);
+                }
 
-        })
+
+            })
+
+        }, 1000);
+
+    })
 
     // }
 
@@ -4568,9 +4651,9 @@ async function get_view(dir) {
 async function get_settings_view() {
 
     let main_view = document.getElementById('main_view');
+    let grid_view = document.getElementById('grid_view')
     let info_view = document.getElementById('info_view');
     let message   = add_message('Be carfull editing these settings. There is currently no protection and you might break something!');
-    // let btn_close = add_icon('times');
     let tabs      = document.getElementById('tabs');
     let tab_view  = add_div();
     let tab       = add_tab('Keyboard Shortuts');
@@ -4579,94 +4662,130 @@ async function get_settings_view() {
     tabs.innerHTML = '';
     info_view.innerHTML = '';
 
-    tabs.append(tab);
+    get('../src/settings.html', (res) => {
 
-    // tab_view.append(tab, tab2)
-    // info_view.append(tab_view)
+        grid_view.classList.add('hidden')
+        info_view.classList.remove('hidden');
+        info_view.innerHTML = res
 
-    info_view.classList.remove('hidden');
-    info_view.classList.add('fm', 'tab-content')
-    message.classList.add('inverted');
-    // btn_close.classList.add('small');
+        let settings_view = document.getElementById('settings_view')
+        let display = document.getElementById('display')
+        let dropdowns = display.querySelectorAll('.dropdown')
 
-    let views = document.querySelectorAll('.view');
-    views.forEach(view => {
-        view.classList.add('hidden');
+        dropdowns.forEach(dropdown => {
+
+            let dropdown_content = dropdown.querySelector('.dropdown_content')
+
+            dropdown_content.onmouseleave = (e) => {
+                // dropdown_content.classList.add('hidden')
+                // dropdown_content.innerHTML = ''
+            }
+
+            dropdown.onmouseover = (e) => {
+                dropdown_content.classList.remove('hidden')
+                for (let caption in settings.display.captions) {
+                    dropdown_content.append(add_link(caption, caption))
+                }
+            }
+        })
     })
 
-    // info_view.innerHTML = '';
-    info_view.classList.remove('hidden');
-    // btn_close.style = 'position: absolute; right: 0;';
 
-    // info_view.append(btn_close);
-    info_view.append(message);
 
-    let div = add_div();
-    let col1 = add_div();
-    let col2 = add_div();
-    let col3 = add_div();
+    // tabs.append(tab);
 
-    div.classList.add('fm', 'grid', 'item');
-    // div.style = 'padding-bottom: 10px';
-    // col1.style = 'width: 250px;';
-    // col2.style = 'width: 350px;';
+    // // tab_view.append(tab, tab2)
+    // // info_view.append(tab_view)
 
-    col1.classList.add('fm', 'col');
-    col2.classList.add('fm', 'col');
-    // col3.classList.add('fm', 'col');
+    // info_view.classList.remove('hidden');
+    // info_view.classList.add('fm', 'tab-content')
+    // message.classList.add('inverted');
+    // // btn_close.classList.add('small');
 
-    col1.append(add_header('Command'));
-    col2.append(add_header('Shortcut'));
-    col3.append(add_header('Set Shortcut'))
+    // let views = document.querySelectorAll('.view');
+    // views.forEach(view => {
+    //     view.classList.add('hidden');
+    // })
 
-    div.append(col1, col2);
-    info_view.append(div);
+    // // info_view.innerHTML = '';
+    // info_view.classList.remove('hidden');
+    // // btn_close.style = 'position: absolute; right: 0;';
 
-    let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
-    for (let shortcut in settings.keyboard_shortcuts) {
+    // // info_view.append(btn_close);
+    // info_view.append(message);
 
-        let div = add_div();
-        div.classList.add('fm', 'grid','item', 'stripe')
-        // div.style = 'display: flex; align-items: center; height: 30px;';
+    // let div = add_div();
+    // let col1 = add_div();
+    // let col2 = add_div();
+    // let col3 = add_div();
 
-        let col1 = add_div();
-        let col2 = add_div();
-        // let col3 = add_div();
+    // div.classList.add('fm', 'grid', 'item');
+    // // div.style = 'padding-bottom: 10px';
+    // // col1.style = 'width: 250px;';
+    // // col2.style = 'width: 350px;';
 
-        let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
-        let input = add_input('text', shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
-        let set_shortcut = add_input('', 0)
+    // col1.classList.add('fm', 'col');
+    // col2.classList.add('fm', 'col');
+    // // col3.classList.add('fm', 'col');
 
-        label.classList.add('settings_label');
-        input.value = settings.keyboard_shortcuts[shortcut];
-        input.classList.add('settings_input');
+    // col1.append(add_header('Command'));
+    // col2.append(add_header('Shortcut'));
+    // col3.append(add_header('Set Shortcut'))
 
-        col1.classList.add('fm', 'col');
-        col2.classList.add('fm', 'col');
+    // div.append(col1, col2);
+    // info_view.append(div);
 
-        col1.append(label);
-        col2.append(input);
+    // // let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
 
-        div.append(col1, col2);
+    // for (let caption in settings.display.captions) {
+    //     console.log(caption)
+    // }
 
-        info_view.append(div);
+    // for (let shortcut in settings.keyboard_shortcuts) {
 
-        input.addEventListener('change', (e) => {
+    //     let div = add_div();
+    //     div.classList.add('fm', 'grid','item', 'stripe')
+    //     // div.style = 'display: flex; align-items: center; height: 30px;';
 
-            let key = input.id;
-            settings.keyboard_shortcuts[key] = input.value;
+    //     let col1 = add_div();
+    //     let col2 = add_div();
+    //     // let col3 = add_div();
 
-            console.log(key, input.value);
-            fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+    //     let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
+    //     let input = add_input('text', shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
+    //     let set_shortcut = add_input('', 0)
 
-            ipcRenderer.send('reload_settings');
+    //     label.classList.add('settings_label');
+    //     input.value = settings.keyboard_shortcuts[shortcut];
+    //     input.classList.add('settings_input');
 
-        })
+    //     col1.classList.add('fm', 'col');
+    //     col2.classList.add('fm', 'col');
 
-        // for (let x in settings[cat]) {
-        //     console.log(settings[cat][x])
-        // }
-    }
+    //     col1.append(label);
+    //     col2.append(input);
+
+    //     div.append(col1, col2);
+
+    //     info_view.append(div);
+
+    //     input.addEventListener('change', (e) => {
+
+    //         let key = input.id;
+    //         settings.keyboard_shortcuts[key] = input.value;
+
+    //         console.log(key, input.value, userdata_dir);
+
+    //         fs.writeFileSync(path.join(userdata_dir, 'settings.json'), JSON.stringify(settings, null, 4));
+
+    //         ipcRenderer.send('reload_settings');
+
+    //     })
+
+    //     // for (let x in settings[cat]) {
+    //     //     console.log(settings[cat][x])
+    //     // }
+    // }
 
 }
 
@@ -4777,9 +4896,10 @@ async function get_disk_summary_view() {
 
                         let href = add_link(item, item);
                         href.addEventListener('click', (e) => {
-                            get_view(item);
+                            e.preventDefault()
+                            // localStorage.setItem('view', 'grid');
+                            get_view(item)
                         })
-
                         data_col2.append(href);
                     } else {
                         data_col2.append(item);
@@ -4817,6 +4937,7 @@ async function get_disk_summary_view() {
             grid.append(col)
 
         }
+
     });
 
     // ADD GRID TO VIEW
@@ -6761,9 +6882,7 @@ async function find_files(callback) {
                         search_info.innerHTML    = '';
                         search_progress.classList.add('hidden')
                     }
-
                     search_results.innerHTML = '';
-
                     if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
                         // CHECK LOCAL STORAGE
@@ -6840,20 +6959,32 @@ async function find_files(callback) {
                         let child = exec(cmd)
                         // console.log(cmd)
                         child.stdout.on('data', (res) => {
+
                             data = 1;
                             search_info.innerHTML = ''
                             let files = res.split('\n')
                             search_progress.value = 0
                             search_progress.max = files.length
-                            for (let i = 0; i < files.length; i++) {
-                                if (files[i] != '') {
-                                    ++c
-                                    search_progress.value = i
-                                    search_results.append(get_card(files[i]));
+
+                            if (files.length > 500) {
+                                search_info.innerHTML = 'Please narrow your search.'
+                                search_progress.classList.add('hidden')
+                            } else {
+
+                                for (let i = 0; i < files.length; i++) {
+                                    if (files[i] != '') {
+                                        ++c
+                                        search_progress.value = i
+                                        search_results.append(get_card(files[i]));
+                                    }
                                 }
+
+                                lazyload()
+
                             }
 
-                            lazyload()
+
+
 
                         })
 
@@ -6898,21 +7029,18 @@ async function find_files(callback) {
 
             /* Remove hidden */
             if (find_options.classList.contains('hidden')) {
-                find_options.classList.remove('hidden')
 
+                find_options.classList.remove('hidden')
                 chevron.classList.add('down')
                 chevron.classList.remove('right')
-
                 localStorage.setItem('find_options', 1);
 
             /* Add hidden */
             } else {
 
                 find_options.classList.add('hidden')
-
                 chevron.classList.add('right')
                 chevron.classList.remove('down')
-
                 localStorage.setItem('find_options', 0);
 
             }
@@ -6968,14 +7096,16 @@ async function get_devices() {
 
         let devices             = [];
         let sidebar_items       = document.getElementById('sidebar_items');
-        // let server              = add_input('text', 'txt_server')
+        let server              = add_input('text', 'txt_server');
+        let username            = add_input('text', 'txt_username');
+        let password            = add_input('password', 'txt_password');
         let device_view         = add_div();
-        let msg                 = add_div()
+        let msg                 = add_div();
 
         device_view.style = 'padding-top: 20px; height: 100%';
         device_view.id = 'device_view';
         device_view.addEventListener('contextmenu', function (e) {
-            // ipcRenderer.send('show-context-menu-devices');
+            ipcRenderer.send('show-context-menu-devices');
         })
 
         sidebar_items.innerHTML = '';
@@ -7066,14 +7196,43 @@ async function get_devices() {
             get_devices();
         })
 
+        server.onkeyup = (e) => {
+
+            if (e.key == 'Enter') {
+                msg.innerHTML = 'Attempting connection'
+                exec('gio mount ' + server.value + ' < ' + get_home() + '/.smbcredentials', (err) => {
+                    if(!err) {
+                        get_devices()
+                    } else {
+                        msg.innerHTML = ''
+                        notification(err)
+                    }
+                 })
+            }
+        }
+
         // fs.watch('/run/usr/gvfs', (e) => {
         //     get_devices();
         // })
 
         // server.style = 'position: fixed; bottom:0'
         // server.placeholder = 'Connect to server'
-        // device_view.append(server)
+        server.placeholder = 'Connect to Server.'
+        username.placeholder = 'Username'
+        password.placeholder = 'Password'
 
+        let grid = add_grid()
+        let col1 = add_column('five')
+        let col2 = add_column('five')
+
+        grid.style = 'paddin: 5px;'
+
+        col1.append(username)
+        col2.append(password)
+
+        grid.append(col1,col2)
+
+        // device_view.append(server, grid)
         msg.append('')
 
 
@@ -7106,7 +7265,9 @@ async function get_devices() {
         let search_results = []
 
         let search = e.target.value.substring(path.dirname(breadcrumbs.value).length + 1, e.target.value.length)
+
         folders_arr.forEach(item => {
+
             if (item.toLocaleLowerCase().indexOf(search.toLocaleLowerCase()) > -1 && (item.toLocaleLowerCase().indexOf(search) < 1 || item.toLocaleLowerCase().indexOf(search.toLowerCase()) < 1)) {
                 search_results.push(path.join(path.dirname(breadcrumbs.value),  item));
             }
@@ -9148,305 +9309,285 @@ ipcRenderer.on('clear_selected_files', (e, res) => {
 // ON DOCUMENT LOAD
 window.addEventListener('DOMContentLoaded', () => {
 
-    // let breadcrumbs     = document.getElementById('breadcrumbs');
-    // breadcrumbs.addEventListener('keyup', (e) => {
-        // try {
+    ipcRenderer.invoke('userdata_dir').then(res => {
 
-            // autocomplete();
+        // Set userdata directory
+        userdata_dir = res
+        settings = JSON.parse(fs.readFileSync(path.join(res, 'settings.json'), {encoding:'utf8', flag:'r'}));
 
-            // console.log('running')
-            // document.addEventListener('keydown', (e) => {
-            //     let breadcrumb_items = document.getElementById('breadcrumb_items')
-            //     if (e.key === 'ArrowDown') {
-            //         let ac = 0;
-            //         console.log('counter', ++ac)
-            //         // let items = breadcrumb_items.querySelectorAll('.item')
-            //         // items.forEach((item, idx) => {
-            //         //     if (idx == ac) {
-            //         //         item.classList.add('highlight')
-            //         //     }
-            //         // })
-            //     }
-            //     // if (ac > search_results.length) {
-            //     //     ac = 0;
-            //     // }
-            // })
+        /* Initialize sort */
+        let sort = localStorage.getItem('sort');
+        if (sort == null || sort == '') {
+            console.log('setting sort');
+            localStorage.setItem('sort', 1);
+        }
 
+        /* Initialize sort direction */
+        let sort_direction = localStorage.getItem('sort_direction');
+        if (sort_direction == null || sort_direction == '') {
+            console.log('setting sort direction')
+            localStorage.setItem('sort_direction', 'desc');
+        }
 
-        // } catch (err) {
-        // }
-    // })
+        /* Initialize view */
+        view = localStorage.getItem('view');
+        if (view == null || view == '') {
+            console.log('setting view');
+            localStorage.setItem('view', 'grid');
+            view = 'grid';
+        }
 
-    /* Initialize sort */
-    let sort = localStorage.getItem('sort');
-    if (sort == null || sort == '') {
-        console.log('setting sort');
-        localStorage.setItem('sort', 1);
-    }
+        /* Initialize side bara */
+        sidebar = localStorage.getItem('sidebar')
+        if (sidebar == null || sidebar == '') {
+            console.log('setting sidebar to 1')
+            localStorage.setItem('sidebar', 1);
+        }
 
-    /* Initialize sort direction */
-    let sort_direction = localStorage.getItem('sort_direction');
-    if (sort_direction == null || sort_direction == '') {
-        console.log('setting sort direction')
-        localStorage.setItem('sort_direction', 'desc');
-    }
-
-    /* Initialize view */
-    view = localStorage.getItem('view');
-    if (view == null || view == '') {
-        console.log('setting view');
-        localStorage.setItem('view', 'grid');
-        view = 'grid';
-    }
-
-    /* Initialize side bara */
-    sidebar = localStorage.getItem('sidebar')
-    if (sidebar == null || sidebar == '') {
-        console.log('setting sidebar to 1')
-        localStorage.setItem('sidebar', 1);
-    }
-
-    let minibar = document.getElementById('minibar')
-    if (minibar) {
-        minibar.addEventListener('click', (e) => {
-            localStorage.setItem('sidebar', 1)
-            show_sidebar()
-        })
-    }
-
-    // INITIALIZE DRAG SELECT
-    try {
-
-        ds = new DragSelect({
-            area: document.getElementById('main_view'),
-            selectorClass: 'drag_select',
-            keyboardDragSpeed: 0,
-        })
-
-        ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
-            if(isDragging || isDraggingKeyboard) {
-              ds.break()
-            }
-        })
-
-
-    } catch (err) {
-        console.log(err);
-    }
-
-    // Show workspace
-    Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {
-        get_workspace();
-        localStorage.setItem('sidebar', 1);
-        show_sidebar();
-    })
-
-    Mousetrap.bind(settings.keyboard_shortcuts.ShowDevices.toLocaleLowerCase(), () => {
-        get_devices();
-        localStorage.setItem('sidebar', 1);
-        show_sidebar();
-    })
-
-    // Get File info
-    Mousetrap.bind(settings.keyboard_shortcuts.Properties.toLocaleLowerCase(), () => {
-        get_file_properties();
-    })
-
-    // Navigate right
-    Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), () => {
-        console.log('back pressed')
-        navigate('right')
-    })
-
-    // ALT+E EXTRACT
-    Mousetrap.bind(settings.keyboard_shortcuts.Extract.toLocaleLowerCase(), (e) => {
-
-        console.log('extracting file')
-        extract();
-
-    })
-
-    // Compress
-    Mousetrap.bind(settings.keyboard_shortcuts.Compress.toLocaleLowerCase(), (e) => {
-
-        compress()
-
-        // let href = ''
-        // if (items.length > 0) {
-        //     for (let i = 0; i < items.length; i++) {
-
-        //         // let item = items[i]
-
-        //         // if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
-        //         //     href = item.dataset.href
-        //         //     console.log('source ' + href)
-        //         //     compress(href)
-        //         // }
-        //     }
-        // }
-
-    })
-
-    // Select all
-    Mousetrap.bind(settings.keyboard_shortcuts.SelectAll.toLocaleLowerCase(), (e) => {
-
-        e.preventDefault();
-        select_all();
-
-    })
-
-    /**
-     * ctrl+b toggle sidebar
-     */
-    // Mousetrap.bind('ctrl+b', (e) => {
-    //     let sidebar = document.getElementById('sidebar')
-    //     if (sidebar.classList.contains('hidden')) {
-    //         localStorage.setItem('sidebar', 1)
-    //         show_sidebar()
-    //     } else {
-    //         localStorage.setItem('sidebar', 0)
-    //         show_sidebar()
-    //     }
-    // })
-
-    // DEL DELETE KEY
-    Mousetrap.bind(settings.keyboard_shortcuts.Delete.toLocaleLowerCase(), (e, res) => {
-
-        delete_files()
-
-        // items = []
-        // items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-
-        // let source = ''
-        // if (items.length > 0) {
-
-        //     for (let i = 0; i < items.length; i++) {
-
-        //         let item = items[i]
-
-        //         source += item.getAttribute('data-href') + '\n'
-
-        //         let file = {
-        //             source: item.getAttribute('data-href'),
-        //             card_id: item.id
-        //         }
-
-        //         delete_arr.push(file)
-        //     }
-
-        //     ipcRenderer.send('confirm_file_delete', source)
-
-        // }
-
-    })
-
-    // CTRL-L - LOCATION
-    Mousetrap.bind('ctrl+l', (e, res) => {
-        let breadcrumb = document.getElementById('breadcrumbs')
-
-        breadcrumb.focus()
-        breadcrumb.select()
-    })
-
-    // CTRL V - PASTE
-    Mousetrap.bind(settings.keyboard_shortcuts.Paste.toLocaleLowerCase(), () => {
-        // PAST FILES
-        paste()
-    })
-
-    // NEW WINDOW
-    Mousetrap.bind('ctrl+n', () => {
-        // window.open('../src/index.html','_blank', 'width=1600,height=800,frame=false')
-        ipcRenderer.send('new_window')
-    })
-
-    // NEW FOLDER
-    Mousetrap.bind(settings.keyboard_shortcuts.NewFolder.toLocaleLowerCase(), () => {
-        create_folder(breadcrumbs.value + '/Untitled Folder')
-    })
-
-    // RENAME
-    Mousetrap.bind(settings.keyboard_shortcuts.Rename.toLocaleLowerCase(), () => {
-
-        console.log('f2 pressed')
-
-        let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-        if (cards.length > 0) {
-            cards.forEach(card => {
-                if (card) {
-                    let header = card.querySelector('a')
-                    header.classList.add('hidden')
-
-                    let input = card.querySelector('input')
-                    input.spellcheck = false
-                    input.classList.remove('hidden')
-                    input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
-                    input.focus()
-
-                    console.log('running focus')
-                }
-
+        let minibar = document.getElementById('minibar')
+        if (minibar) {
+            minibar.addEventListener('click', (e) => {
+                localStorage.setItem('sidebar', 1)
+                show_sidebar()
             })
         }
 
-    })
+        // INITIALIZE DRAG SELECT
+        try {
 
-    // RELOAD
-    Mousetrap.bind('f5', () => {
+            ds = new DragSelect({
+                area: document.getElementById('main_view'),
+                selectorClass: 'drag_select',
+                keyboardDragSpeed: 0,
+            })
 
-        get_view(breadcrumbs.value)
-        localStorage.setItem('folder', breadcrumbs.value)
+            ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+                if(isDragging || isDraggingKeyboard) {
+                ds.break()
+                }
+            })
 
-    })
 
-    // FIND
-    Mousetrap.bind(settings.keyboard_shortcuts.Find.toLocaleLowerCase(), () => {
+        } catch (err) {
+            console.log(err);
+        }
 
-        // find_files();
-        localStorage.setItem('sidebar', 1);
-        show_sidebar();
-
-        // find();
-        find_files(res => {
-            let find = document.getElementById('find')
-            find.focus()
-            find.select()
+        // Show workspace
+        Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {
+            get_workspace();
+            localStorage.setItem('sidebar', 1);
+            show_sidebar();
         })
 
-    })
+        Mousetrap.bind(settings.keyboard_shortcuts.ShowDevices.toLocaleLowerCase(), () => {
+            get_devices();
+            localStorage.setItem('sidebar', 1);
+            show_sidebar();
+        })
 
-    // CTRL C COPY
-    Mousetrap.bind(settings.keyboard_shortcuts.Copy.toLocaleLowerCase(), (e) => {
-        copy();
-    })
+        // Get File info
+        Mousetrap.bind(settings.keyboard_shortcuts.Properties.toLocaleLowerCase(), () => {
+            get_file_properties();
+        })
 
-    // CTRL+X CUT
-    Mousetrap.bind(settings.keyboard_shortcuts.Cut.toLocaleLowerCase(), (e) => {
-        cut();
-    })
+        // Navigate right
+        Mousetrap.bind(settings.keyboard_shortcuts.Right.toLocaleLowerCase(), () => {
+            console.log('back pressed')
+            navigate('right')
+        })
 
-    // ESC KEY
-    Mousetrap.bind('esc', () => {
+        // ALT+E EXTRACT
+        Mousetrap.bind(settings.keyboard_shortcuts.Extract.toLocaleLowerCase(), (e) => {
 
-        notification('');
-        clear_copy_arr();
-        clear_items();
+            console.log('extracting file')
+            extract();
 
-    })
+        })
 
-    // Backspace
-    Mousetrap.bind(settings.keyboard_shortcuts.Backspace.toLocaleLowerCase(), () => {
-        navigate('left');
-    })
+        // Compress
+        Mousetrap.bind(settings.keyboard_shortcuts.Compress.toLocaleLowerCase(), (e) => {
 
-    // Add worksoace
-    Mousetrap.bind(settings.keyboard_shortcuts.AddWorkspace.toLocaleLowerCase(), () => {
-        add_workspace()
-    })
+            compress()
 
-    // Show settings
-    Mousetrap.bind(settings.keyboard_shortcuts.ShowSettings.toLocaleLowerCase(), () => {
-        get_settings_view()
+            // let href = ''
+            // if (items.length > 0) {
+            //     for (let i = 0; i < items.length; i++) {
+
+            //         // let item = items[i]
+
+            //         // if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
+            //         //     href = item.dataset.href
+            //         //     console.log('source ' + href)
+            //         //     compress(href)
+            //         // }
+            //     }
+            // }
+
+        })
+
+        // Select all
+        Mousetrap.bind(settings.keyboard_shortcuts.SelectAll.toLocaleLowerCase(), (e) => {
+
+            e.preventDefault();
+            select_all();
+
+        })
+
+        /**
+         * ctrl+b toggle sidebar
+         */
+        // Mousetrap.bind('ctrl+b', (e) => {
+        //     let sidebar = document.getElementById('sidebar')
+        //     if (sidebar.classList.contains('hidden')) {
+        //         localStorage.setItem('sidebar', 1)
+        //         show_sidebar()
+        //     } else {
+        //         localStorage.setItem('sidebar', 0)
+        //         show_sidebar()
+        //     }
+        // })
+
+        // DEL DELETE KEY
+        Mousetrap.bind(settings.keyboard_shortcuts.Delete.toLocaleLowerCase(), (e, res) => {
+
+            delete_files()
+
+            // items = []
+            // items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+
+            // let source = ''
+            // if (items.length > 0) {
+
+            //     for (let i = 0; i < items.length; i++) {
+
+            //         let item = items[i]
+
+            //         source += item.getAttribute('data-href') + '\n'
+
+            //         let file = {
+            //             source: item.getAttribute('data-href'),
+            //             card_id: item.id
+            //         }
+
+            //         delete_arr.push(file)
+            //     }
+
+            //     ipcRenderer.send('confirm_file_delete', source)
+
+            // }
+
+        })
+
+        // CTRL-L - LOCATION
+        Mousetrap.bind('ctrl+l', (e, res) => {
+            let breadcrumb = document.getElementById('breadcrumbs')
+
+            breadcrumb.focus()
+            breadcrumb.select()
+        })
+
+        // CTRL V - PASTE
+        Mousetrap.bind(settings.keyboard_shortcuts.Paste.toLocaleLowerCase(), () => {
+            console.log('running paste')
+            // PAST FILES
+            paste()
+        })
+
+        // NEW WINDOW
+        Mousetrap.bind('ctrl+n', () => {
+            // window.open('../src/index.html','_blank', 'width=1600,height=800,frame=false')
+            ipcRenderer.send('new_window')
+        })
+
+        // NEW FOLDER
+        Mousetrap.bind(settings.keyboard_shortcuts.NewFolder.toLocaleLowerCase(), () => {
+            create_folder(breadcrumbs.value + '/Untitled Folder')
+        })
+
+        // RENAME
+        Mousetrap.bind(settings.keyboard_shortcuts.Rename.toLocaleLowerCase(), () => {
+
+            console.log('f2 pressed')
+
+            let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+            if (cards.length > 0) {
+                cards.forEach(card => {
+                    if (card) {
+                        let header = card.querySelector('a')
+                        header.classList.add('hidden')
+
+                        let input = card.querySelector('input')
+                        input.spellcheck = false
+                        input.classList.remove('hidden')
+                        input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
+                        input.focus()
+
+                        console.log('running focus')
+                    }
+
+                })
+            }
+
+        })
+
+        // RELOAD
+        Mousetrap.bind('f5', () => {
+
+            get_view(breadcrumbs.value)
+            localStorage.setItem('folder', breadcrumbs.value)
+
+        })
+
+        // FIND
+        Mousetrap.bind(settings.keyboard_shortcuts.Find.toLocaleLowerCase(), () => {
+
+            // find_files();
+            localStorage.setItem('sidebar', 1);
+            show_sidebar();
+
+            // find();
+            find_files(res => {
+                let find = document.getElementById('find')
+                find.focus()
+                find.select()
+            })
+
+        })
+
+        // CTRL C COPY
+        Mousetrap.bind(settings.keyboard_shortcuts.Copy.toLocaleLowerCase(), (e) => {
+            copy();
+        })
+
+        // CTRL+X CUT
+        Mousetrap.bind(settings.keyboard_shortcuts.Cut.toLocaleLowerCase(), (e) => {
+            cut();
+        })
+
+        // ESC KEY
+        Mousetrap.bind('esc', () => {
+
+            notification('');
+            clear_copy_arr();
+            clear_items();
+
+        })
+
+        // Backspace
+        Mousetrap.bind(settings.keyboard_shortcuts.Backspace.toLocaleLowerCase(), () => {
+            navigate('left');
+        })
+
+        // Add worksoace
+        Mousetrap.bind(settings.keyboard_shortcuts.AddWorkspace.toLocaleLowerCase(), () => {
+            add_workspace()
+        })
+
+        // Show settings
+        Mousetrap.bind(settings.keyboard_shortcuts.ShowSettings.toLocaleLowerCase(), () => {
+            get_settings_view()
+        })
+
     })
 
     pagesize = 1000;
@@ -9463,6 +9604,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // LISTEN FOR CONTEXTMENU. DO NOT CHANGE THIS - I MEAN IT !!!!!!!!!!!!!!!!!!!!!!!!!
     let main_view = document.getElementById('main_view')
+    main_view.draggable = false;
     if (main_view) {
         let breadcrumbs = document.getElementById('breadcrumbs')
         ipcRenderer.send('active_folder', breadcrumbs.value, 1);
@@ -9471,6 +9613,8 @@ window.addEventListener('DOMContentLoaded', () => {
         })
         main_view.focus();
     }
+
+    console.log(settings)
 
 
 })

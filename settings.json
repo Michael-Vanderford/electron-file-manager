@@ -1,16 +1,26 @@
 {
     "window": {
         "length": 1400,
-        "width": 1440,
-        "x": 2074,
-        "y": 199,
-        "height": 792
+        "width": 1920,
+        "x": 1920,
+        "y": 64,
+        "height": 1016
+    },
+    "display": {
+        "captions": {
+            "None": "None",
+            "Size": "Size",
+            "Type": "Type",
+            "DateModified": "DateModified",
+            "Owner": "Owner"
+        }
     },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowWorkspace": "Alt+W",
         "ShowSidebar": "Ctrl+B",
-        "ShowDevices": "Alt+D",
+        "ShowDevices": "Ctrl+D",
+        "ShowSettings": "Ctrl+S",
         "Find": "Ctrl+F",
         "Down": "Down",
         "Up": "Up",
@@ -27,7 +37,6 @@
         "Properties": "Ctrl+I",
         "NewFolder": "Ctrl+Shift+N",
         "AddWorkspace": "Ctrl+D",
-        "ShowSettings": "Ctrl+?",
         "OpenNewTab": "Ctrl+Enter"
     }
 }

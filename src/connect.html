@@ -2,22 +2,31 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connect to network</title>
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <title>Connect to Network</title>
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <!-- <link rel="stylesheet" href="../assets/css/semantic.min.css" /> -->
 </head>
 <body>
 
-    <div class="container">
-        <form id="frm_connect" name="frm_connect">
+    <div class="connect">
 
-            <label for="txt_server">Connect to server</label>
-            <input type="text" id="txt_server" placeholder="connect to server">
+        <select class="input" id="connection_type" class="select">
+            <option value="ssh">SSH</option>
+            <option value="smb">Windows Share</option>
+        </select>
+        <label class="label" for="txt_server">Connect to Server / Share</label>
+        <input class="input" type="text" id="txt_server" autocomplete="on" placeholder="IP Address or Machine Name">
+        <label class="label" for="txt_username">Username</label>
+        <input class="input" type="text" id="txt_username" placeholder="User Name">
+        <label class="label" for="txt_password">Password</label>
+        <input class="input" type="password" id="txt_password" placeholder="Password">
 
-            <input type="button" value="Connect">
+        <div class="msg" id="connect_msg"></div>
 
-        </form>
+        <input class="button absolute bottom" id="button_connect" type="button" value="Connect">
+
     </div>
 
 </body>
