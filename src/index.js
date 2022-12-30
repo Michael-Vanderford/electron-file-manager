@@ -3,20 +3,20 @@ let options = {
     search: ''
 }
 
-let find            = document.getElementById('find')
-let breadcrumbs     = document.getElementById('breadcrumbs')
-let home            = document.getElementById('home')
-let documents       = document.getElementById('documents')
-let downloads       = document.getElementById('downloads')
-let pictures        = document.getElementById('pictures')
-let videos          = document.getElementById('videos')
-let music           = document.getElementById('music')
-let devices         = document.getElementById('devices')
-let network         = document.getElementById('network')
-let footer          = document.getElementById('footer')
-let btn_disk_usage  = document.getElementById('btn_disk_usage')
-let minibar         = document.getElementById('minibar')
-let minibar_items   = minibar.querySelectorAll('.item')
+let find                = document.getElementById('find')
+let breadcrumbs         = document.getElementById('breadcrumbs')
+let home                = document.getElementById('home')
+let documents           = document.getElementById('documents')
+let downloads           = document.getElementById('downloads')
+let pictures            = document.getElementById('pictures')
+let videos              = document.getElementById('videos')
+let music               = document.getElementById('music')
+let devices             = document.getElementById('devices')
+let network             = document.getElementById('network')
+let footer              = document.getElementById('footer')
+let btn_disk_usage      = document.getElementById('btn_disk_usage')
+let minibar             = document.getElementById('minibar')
+let minibar_items       = minibar.querySelectorAll('.item')
 
 // Icon size
 let icon_size_selector  = document.getElementById('icon_size_selector')
@@ -26,18 +26,19 @@ let btn_settings_view   = document.getElementById('btn_settings_view')
 let btn_list_view       = document.getElementById('btn_list_view')
 let btn_grid_view       = document.getElementById('btn_grid_view')
 let btn_disk_view       = document.getElementById('btn_disk_view')
+let btn_show_hidden     = document.getElementById('btn_show_hidden_folders')
 
 // Toggle menu
 let btn_hamburger_menu  = document.getElementById('btn_hamburger_menu')
 let hamburger_menu      = document.getElementById('hamburger_menu')
 
 // VIEWS
-let main_view       = document.getElementById('main_view');
-let list_view       = document.getElementById('list_view')
-let grid_view       = document.getElementById('grid_view')
-let info_view       = document.getElementById('info_view')
+let main_view           = document.getElementById('main_view');
+let list_view           = document.getElementById('list_view')
+let grid_view           = document.getElementById('grid_view')
+let info_view           = document.getElementById('info_view')
 
-let home_folder     = window.api.get_home()
+let home_folder         = window.api.get_home()
 
 // Init local storage
 
@@ -205,7 +206,7 @@ function clear_minibar() {
     })
 }
 
-btn_hamburger_menu.onmouseover = (e) => {
+btn_hamburger_menu.onclick = (e) => {
     hamburger_menu.classList.remove('hidden')
 }
 
@@ -472,8 +473,8 @@ $(function() {
 
     })
 
-    let btn_show_hidden_folders = document.getElementById('btn_show_hidden_folders')
-    btn_show_hidden_folders.onclick = (e) => {
+
+    btn_show_hidden.onclick = (e) => {
 
         // e.preventDefault()
 
@@ -482,23 +483,18 @@ $(function() {
 
         if(hidden_directory.classList.contains('hidden')){
 
-            btn_show_hidden_folders.classList.add('active')
-
+            btn_show_hidden.classList.add('active')
             hidden_directory.classList.remove('hidden')
             hidden_files.classList.remove('hidden')
-
             localStorage.setItem('show_hidden', 1)
 
             if (localStorage.getItem('minibar') == 'mb_home') {
                 window.api.get_sidebar_files(breadcrumbs.value)
             }
 
-            // window.api.get_sidebar_files(breadcrumbs.value)
-
         }else {
 
-            btn_show_hidden_folders.classList.remove('active')
-
+            btn_show_hidden.classList.remove('active')
             hidden_directory.classList.add('hidden')
             hidden_files.classList.add('hidden')
 
@@ -627,11 +623,11 @@ document.getElementById('right')
     window.api.navigate('right')
 })
 
-$("#main_view").on("selectableselected selectableunselected", function(){
-    console.log(running)
-    $(".inside").removeClass("yes").addClass("no");
-    $(".ui-selected > .inside").removeClass("no").addClass("yes");
-});
+// $("#main_view").on("selectableselected selectableunselected", function(){
+//     console.log(running)
+//     $(".inside").removeClass("yes").addClass("no");
+//     $(".ui-selected > .inside").removeClass("no").addClass("yes");
+// });
 
 //
 function httpGet(theUrl) {
