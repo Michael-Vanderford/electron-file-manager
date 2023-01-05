@@ -178,7 +178,7 @@ ipcMain.on('active_folder', (e, href, state = 0) => {
 
     // if (href == destination || href == active_folder) {
 
-        // console.log('setting', href)
+        console.log('setting active folder', href, isMainView)
 
         active_folder = href;
         isMainView  = state;
@@ -243,21 +243,17 @@ function get_folder_size(href) {
 }
 
 /**
- * I dont think this is being used
  * Get folder size. Runs du -Hs command
  * @param {string} href
  */
 function get_folder_size1(href) {
-    try {
-        cmd = "cd '" + href + "'; du -Hs"
-        du = exec(cmd)
-        du.stdout.on('data', function (res) {
-            let size = parseInt(res.replace('.', '') * 1024)
-            active_window.send('folder_size', {href: href, size: size})
-        })
-    } catch (err) {
-        // active_window.send('notification', err)
-    }
+    cmd = "cd '" + href + "'; du -Hs"
+    du = exec(cmd)
+    du.stdout.on('data', function (res) {
+        let size = parseInt(res.replace('.', '') * 1024)
+        active_window.send('folder_size', {href: href, size: size})
+    })
+
 }
 
 function AddSysNotification (title, body) {
@@ -266,9 +262,9 @@ function AddSysNotification (title, body) {
 
 function isGioFile(href) {
     if (href.indexOf('smb:') > -1 || href.indexOf('sftp:') > -1 || href.indexOf('mtp:') > -1) {
-        return true
+        return 1
     } else {
-        return false
+        return 0
     }
 }
 
@@ -303,98 +299,180 @@ function do_copy(source, destination, copystate, callback) {
                 is_dir: 1
             }
             active_window.send('get_card', file_obj)
+
         }
 
         copystate = 1;
 
-        let file_arr_obj = {source: source, destination: destination, is_dir: 1}
-        do_copy_arr.push(file_arr_obj)
+        // let file_arr_obj = {source: source, destination: destination, is_dir: 1}
+        // do_copy_arr.push(file_arr_obj)
 
     }
 
     // init
     if (copystate == 1) {
 
-        fs.readdir(source, (err, files) => {
 
-            if (!err) {
+        gio.get_dir(source, files => {
 
-                files.forEach((file, idx) => {
+            files.forEach(file => {
 
-                    let cursource = path.join(source, file);
-                    let curdestination = '' //path.join(destination, source.substring(source_base.length, source.length), file)
+                let cursource = path.join(source, file.name)
+                let curdestination = ''
 
-                    fs.stat(cursource, (err, stats) => {
+                if (file.is_dir) {
+                    curdestination = path.join(destination, path.basename(cursource))
 
-                        if (!err) {
+                    if (!fs.existsSync(curdestination)) {
 
-                            if (stats.isDirectory()) {
+                        gio.mkdir(curdestination, (res) => {
+                            if(res.err) {
+                                console.log(res.err)
+                            }
+                        })
 
-                                curdestination = path.join(destination, path.basename(cursource))
+                        let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 1}
+                        do_copy_arr.push(file_arr_obj)
 
-                                if (!fs.existsSync(curdestination)) {
+                    }
 
-                                    gio.mkdir(curdestination, (res) => {
-                                        if(res.err) {
-                                            console.log(res.err)
-                                        }
-                                    })
+                    do_copy(cursource, curdestination, copystate)
 
-                                    let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 1}
-                                    do_copy_arr.push(file_arr_obj)
+                } else {
 
-                                }
+                    curdestination = path.join(destination, path.basename(cursource))
 
-                                do_copy(cursource, curdestination, copystate)
+                    if (isGioFile(cursource)) {
 
+                        gio.cp(cursource, curdestination, (res) => {
+                            if (res.err) {
+                                console.log(res.err)
+                            }
+                        })
+
+                    } else {
+
+                        fs.copyFile(cursource, curdestination, (err) => {
+                            if (err) {
+                                active_window.send('notification', err)
                             } else {
-
-                                curdestination = path.join(destination, path.basename(cursource))
-
-                                if (isGioFile(cursource)) {
-
-                                    gio.cp(cursource, curdestination, (res) => {
-                                        if (res.err) {
-                                            console.log(res.err)
-                                        }
-                                    })
-
-                                } else {
-
-                                    fs.copyFile(cursource, curdestination, (err) => {
-                                        if (err) {
-                                            active_window.send('notification', err)
-                                        }
-
-                                    })
-
-                                }
-
-                                let file_arr_obj = {source: source, destination: destination, is_dir: 1}
-                                do_copy_arr.push(file_arr_obj)
-
-                                // exec1(`cp "${cursource}" "${curdestination}`).then(res => {
-                                // })
+                                // active_window.send('update_card1', destination)
+                                // get_folder_size1(destination)
                             }
 
-                        } else {
-                            active_window.send('notification', err)
-                        }
+                            ++do_copy_counter
 
-                        // Process done
-                        if (idx == files.length - 1) {
-                            get_folder_size(path.dirname(destination)) // update the size on the primary folder
-                        }
+                        })
 
-                    })
+                    }
 
-                })
+                    // let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 0}
+                    // do_copy_arr.push(file_arr_obj)
 
-            } else {
-                active_window.send('notification', err)
-            }
+                }
+
+            })
+
+
+            // console.log('do copy array', do_copy_arr)
+
+            // do_copy_arr.forEach(item => {
+                // console.log(item)
+                // fs.copyFileSync(item.source, item.destination)
+            // })
 
         })
+
+
+        // fs.readdir(source, (err, files) => {
+
+        //     if (!err) {
+
+        //         files.forEach((file, idx) => {
+
+        //             let cursource = path.join(source, file);
+        //             let curdestination = '' //path.join(destination, source.substring(source_base.length, source.length), file)
+
+        //             fs.lstat(cursource, (err, stats) => {
+
+        //                 if (!err) {
+
+        //                     if (stats.isDirectory()) {
+
+        //                         curdestination = path.join(destination, path.basename(cursource))
+
+        //                         if (!fs.existsSync(curdestination)) {
+
+        //                             gio.mkdir(curdestination, (res) => {
+        //                                 if(res.err) {
+        //                                     console.log(res.err)
+        //                                 }
+        //                             })
+
+        //                             let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 1}
+        //                             do_copy_arr.push(file_arr_obj)
+
+        //                         }
+
+        //                         // let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 0}
+        //                         // do_copy_arr.push(file_arr_obj)
+
+        //                         do_copy(cursource, curdestination, copystate)
+
+        //                     } else {
+
+        //                         curdestination = path.join(destination, path.basename(cursource))
+
+        //                         if (isGioFile(cursource)) {
+
+        //                             gio.cp(cursource, curdestination, (res) => {
+        //                                 if (res.err) {
+        //                                     console.log(res.err)
+        //                                 }
+        //                             })
+
+        //                         } else {
+
+        //                             fs.copyFile(cursource, curdestination, (err) => {
+        //                                 if (err) {
+        //                                     active_window.send('notification', err)
+        //                                 }
+
+        //                             })
+
+        //                         }
+
+        //                         let file_arr_obj = {source: cursource, destination: curdestination, is_dir: 0}
+        //                         do_copy_arr.push(file_arr_obj)
+
+
+
+        //                         // exec1(`cp "${cursource}" "${curdestination}`).then(res => {
+        //                         // })
+        //                     }
+
+        //                 } else {
+        //                     active_window.send('notification', err)
+        //                 }
+
+        //                 // Process done
+        //                 if (idx == files.length - 1) {
+        //                     // get_folder_size(path.dirname(destination)) // update the size on the primary folder
+        //                     active_window.send('update_card1', destination)
+        //                 }
+
+        //             })
+
+        //             // console.log(do_copy_arr)
+
+        //         })
+
+
+        //     } else {
+        //         active_window.send('notification', err)
+        //     }
+
+        // })
 
     }
 
@@ -407,40 +485,46 @@ function do_copy(source, destination, copystate, callback) {
  * @param {int} state
  * @param {*} callback
  */
-let tmp_copy_arr = []
 function copyfile(source, target, callback) {
 
-    // console.log('running copy file')
-
     // TARGET
-    var targetFile = target;
+    var targetfile = target;
     if (fs.existsSync(target)) {
 
         if (fs.lstatSync(target).isDirectory()) {
-            targetFile = path.join(target, path.basename(source));
+            targetfile = path.join(target, path.basename(source));
         }
 
     }
 
-    tmp_copy_arr.push({source: source, destination: targetFile})
+    if (isGioFile(targetfile)) {
 
-    // copy_arr.push({source: source, destination: targetFile})
-    // console.log(copy_arr, recursive0 , recursive)
+        gio.cp(source, targetfile, (res) => {
 
-    // Copy file
-    fs.copyFile(source, targetFile, (err) => {
+            if (res.stderr) {
+                active_window.send('notification', res.sterr)
+                return callback(res)
+            } else {
+                active_window.send('notification', res.stdout)
+            }
+        })
 
-        if (!err) {
+    } else {
 
+        fs.copyFile(source, targetfile, (err) => {
 
-        } else {
-            active_window.send('remove_card', targetFile)
-            active_window.send('notification', err);
-        }
+            if (!err) {
+                return callback(1);
+            } else {
+                active_window.send('remove_card', targetfile)
+                active_window.send('notification', err);
+                return callback(err)
+            }
 
-        callback(1);
+        })
 
-    })
+    }
+
 }
 
 /**
@@ -452,87 +536,65 @@ function copyfile(source, target, callback) {
  */
 function copyfolder(source, destination, callback) {
 
-    console.log(source, destination)
-
+    // console.log(source, destination)
     // todo: fix null folder creation
 
     // try {
 
-        fs.readdir(source, (err, files) => {
+    fs.readdir(source, (err, files) => {
 
-            if (!err) {
+        if (!err) {
 
-                // Check length
-                // if (files.length > 0) {
+            // Check length
+            // if (files.length > 0) {
 
-                    if (!fs.existsSync(destination)) {
+                if (!fs.existsSync(destination)) {
+                    fs.mkdirSync(destination)
+                }
 
-                        // destination0 = destination
-                        // copy_arr.push({source: source, destination: destination})
-                        // try {
+                // Loop over files
+                files.forEach((file, idx) => {
 
-                        fs.mkdirSync(destination)
+                    let cursource = path.join(source, file)
+                    let curdestination = path.join(destination, file)
 
-                        // if (isMainView) {
-                        //     let file_obj = {
-                        //         name: path.basename(destination),
-                        //         href: destination,
-                        //         is_dir: 1,
-                        //         mtime: new Date / 1000,
-                        //         size: 0
-                        //     }
-                        //     active_window.send('get_card', file_obj)
-                        // }
-                        // } catch (err) {
-                            // console.log(err)
-                        // }
+                    fs.stat(cursource, (err, stats) => {
 
-                    }
+                        if (!err) {
 
-                    // Loop over files
-                    files.forEach((file, idx) => {
+                            // Directory
+                            if (stats.isDirectory()) {
 
-                        let cursource = path.join(source, file)
-                        let curdestination = path.join(destination, file)
+                                copyfolder(cursource, curdestination, () => {
 
-                        tmp_copy_arr.push({source: cursource, destination: curdestination})
+                                });
 
-                        fs.stat(cursource, (err, stats) => {
-                        // let stats = fs.statSync(cursource)
-                            if (!err) {
-
-                                // Directory
-                                if (stats.isDirectory()) {
-
-                                    copyfolder(cursource, curdestination, () => {
-
-                                    });
-
-                                // Copy files
-                                // } else if (stats.isFile() == true) {
-                                } else {
-
-                                    copyfile(cursource, curdestination, () => {
-
-                                    })
-
-                                }
-
+                            // Copy files
+                            // } else if (stats.isFile() == true) {
                             } else {
-                                active_window.send('notification', err)
+
+                                copyfile(cursource, curdestination, () => {
+                                    // get_folder_size1(active_folder)
+                                })
+
                             }
-                        })
+
+                        } else {
+                            active_window.send('notification', err)
+                        }
                     })
+                })
 
-                // }
+            // }
 
-                callback(1)
+            return callback(1)
 
-            } else {
-                active_window.send('notification', err)
-            }
+        } else {
+            active_window.send('notification', err)
+            return callback(err)
+        }
 
-        })
+    })
 
     // } catch (err) {
     //     active_window.send('notification', err)
@@ -564,150 +626,316 @@ function copy1() {
 let size = 0;
 function copy() {
 
-    // Get size of copy
+    // // SET SIZE FOR PROGRESS
+    // let max = 0;
+    // copy_files_arr.forEach(item => {
+    //     max += parseInt(item.size)
+    // })
+
+    // // SHOW PROGRESS
+    // // let win = window.getFocusedWindow();
+    // windows.forEach(win => {
+    //     win.webContents.send('progress', max);
+    // })
+
     copy_files_arr.forEach(file => {
-        size += file.size
-    })
 
-    console.log(get_file_size(size))
+        let source = file.href
+        let destination = `${active_folder}/${path.basename(file.href)}`
 
-    // Test code
-    copy_files_arr.every(item => {
+        // if (source != destination) { // trap
 
-        let source = item.href
+            if (!isGioFile(destination)) {
 
-        // Init copy
-        // fs.stat(source, (err, stats) => {
+                // SET SIZE FOR PROGRESS
+                let max = 0;
+                copy_files_arr.forEach(item => {
+                    max += parseInt(item.size)
+                })
 
-            // if (!err) {
-        let destination = path.join(destination_folder, path.basename(source))
+                // SHOW PROGRESS
+                // let win = window.getFocusedWindow();
+                windows.forEach(win => {
+                    win.webContents.send('progress', max);
+                })
 
-        if (destination_folder.indexOf('smb:') > -1 || destination_folder.indexOf('mtp:') > -1 || destination_folder.indexOf('sftp:') > -1) {
-            destination = destination_folder + path.basename(source)
-        } else {
-            destination = path.join(destination_folder, path.basename(source))
-        }
+            }
 
-        if (item.is_dir) {
+            if (file.is_dir) {
 
-            if (source == destination) {
-
-                destination = destination + ' Copy'
-
-            } else {
+                if (source == destination) {
+                    destination = destination + ' Copy'
+                }
 
                 if (fs.existsSync(destination)) {
 
+                    // CREATE CONFIRM COPY OVERWRITE
                     let data = {
                         source: source,
                         destination: destination
                     }
 
-                    copy_files_arr.shift()
                     createConfirmDialog(data, copy_files_arr)
-                    return false;
+
+                } else {
+
+                    copyfolder(source, destination, (res) => {
+
+                        if (res) {
+
+                            if (isMainView) {
+
+                                let file_obj = {
+                                    name: path.basename(destination),
+                                    href: destination,
+                                    is_dir: 1,
+                                    ["time::modified"]: new Date(),
+                                    size: 0
+                                }
+                                active_window.send('get_card', file_obj)
+                                active_window.send('update_cards1', destination)
+
+                                get_folder_size1(destination)
+
+                            } else {
+                                get_folder_size1(active_folder)
+                            }
+
+                        }
+
+                    })
 
                 }
 
-            }
-
-            copystate = 0;
-            do_copy(source, destination, copystate)
-            // console.log('im done')
-
-        } else {
-
-            // copy_arr.push({source:item.source, destination:path.join(destination_folder, path.basename(item.source))})
-            copystate = 1;
-            if (source == destination) {
-
-                // destination = path.join(path.dirname(destination), path.basename(destination).substring(0, path.basename(destination).length - path.extname(destination).length) + ' Copy' + path.extname(destination));
 
             } else {
 
+                if (source == destination) {
+                    console.log(path.extname(source))
+                    destination = `${active_folder}/Copy ${path.basename(destination)}`  //path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
+                }
+
                 if (fs.existsSync(destination)) {
-                    // Create confirm dialog
+
+                    // CREATE CONFIRM COPY OVERWRITE
                     let data = {
                         source: source,
                         destination: destination
                     }
 
-                    copy_files_arr.shift()
                     createConfirmDialog(data, copy_files_arr);
-                    return false;
+
+                } else {
+
+                    if (isMainView) {
+
+                        let file_obj = {
+                            name: path.basename(destination),
+                            href: destination,
+                            is_dir: 0,
+                            ["time::modified"]: new Date / 1000,
+                            size: 0
+                        }
+
+                        active_window.send('get_card', file_obj)
+
+                    }
+
+                    copyfile(source, destination, (res) => {
+
+                        if (res) {
+
+                            if (isMainView) {
+
+                                // let file_obj = {
+                                //     name: path.basename(destination),
+                                //     href: destination,
+                                //     is_dir: 0,
+                                //     mtime: new Date / 1000,
+                                //     size: 0
+                                // }
+
+                                // active_window.send('get_card', file_obj)
+                                active_window.send('update_card', destination)
+                                active_window.send('update_cards1', active_folder)
+
+                            } else {
+                                get_folder_size1(active_folder)
+                            }
+
+
+
+                        }
+
+                    })
+
                 }
 
             }
 
-        }
+        // } else {
+        //     active_window.send('notification', 'Error: Operation not Permitted!')
+        // }
 
-        // Get size for progress
-        let max = 0;
-        copy_files_arr.forEach(item => {
-            max += parseInt(item.size);
-        })
-
-        // Show progress
-        if (isMainView) {
-            active_window.send('progress', max, destination);
-        } else {
-            active_window.send('progress', max, destination_folder);
-        }
-
-        // Copy file
-        if (copystate == 1) {
-
-            if (source == destination) {
-                destination = path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source))
-            }
-
-            if (isMainView) {
-
-                item.href = destination
-                item.name = path.basename(destination)
-                active_window.send('get_card', item)
-
-            }
-
-            let cmd = ''
-            if (destination.indexOf('smb:') > -1 || destination.indexOf('sftp:') > -1 || destination.indexOf('mtp:') > -1) {
-                gio.cp(source, destination, res => {
-
-                    console.log(source, destination, res)
-
-                    if (res.stderr || res.err) {
-                        active_window.send('notification', res.stderr)
-                    } else {
-                        active_window.send('notification', res.stdout)
-                    }
-
-                })
-
-            } else {
-                cmd = `cp "${source}" "${destination}"`
-                // console.log(cmd)
-                exec1(cmd).then(res => {
-                    get_folder_size(path.dirname(destination))
-                    if (res.err) {
-                        active_window.send('notification', res.err)
-                    }
-                })
-            }
-
-        }
-
-            // } else {
-                // active_window.send('notification', err)
-            // }
-
-        // })
-
-        return true;
-        console.log('do copy arr', do_copy_arr)
 
     })
 
     copy_files_arr = []
+
+    // // Get size of copy
+    // copy_files_arr.forEach(file => {
+    //     size += parseInt(file.size)
+    // })
+
+    // copy_files_arr.forEach(file => {
+
+    //     let source = file.href
+
+    //     let destination = ''
+    //     if (isGioFile(active_folder)) {
+    //         destination = `${active_folder}${path.basename(file.href)}`
+    //     } else {
+    //         destination = path.join(active_folder, path.basename(file.href))
+    //     }
+
+    //     // SET SIZE FOR PROGRESS
+    //     let max = 0;
+    //     copy_files_arr.forEach(item => {
+    //         max += parseInt(item.size)
+    //     })
+
+    //     // SHOW PROGRESS
+    //     active_window.send('progress', max);
+
+    //     if (file.is_dir) {
+
+    //         if (source == destination) {
+    //             destination = destination + ' Copy'
+    //         }
+
+    //         if (fs.existsSync(destination)) {
+
+    //             let data = {
+    //                 source: source,
+    //                 destination: destination
+    //             }
+
+    //             createConfirmDialog(data, copy_files_arr)
+    //             // return false;
+
+    //         } else {
+
+    //             copyfolder(source, destination, (res) => {
+
+    //                 if (res) {
+
+    //                     if (isMainView) {
+
+    //                         let file_obj = {
+    //                             name: path.basename(destination),
+    //                             href: destination,
+    //                             is_dir: 1,
+    //                             mtime: new Date() / 1000,
+    //                             size: 0
+    //                         }
+    //                         active_window.send('get_card', file_obj)
+    //                         active_window.send('update_card1', destination)
+    //                         get_folder_size1(destination)
+
+    //                     } else {
+    //                         get_folder_size1(active_folder)
+    //                     }
+
+    //                 }
+
+    //                 // copy_files_arr.shift()
+    //                 // return true
+
+    //             })
+
+    //         }
+
+    //     } else {
+
+    //         if (source == destination) {
+    //             destination = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
+    //         }
+
+    //         if (fs.existsSync(destination)) {
+
+    //             // CREATE CONFIRM COPY OVERWRITE
+    //             let data = {
+    //                 source: source,
+    //                 destination: destination
+    //             }
+
+    //             createConfirmDialog(data, copy_files_arr);
+    //             // return false;
+
+    //         } else {
+
+    //             if (isMainView) {
+
+    //                 let file_obj = {
+    //                     name: path.basename(destination),
+    //                     href: destination,
+    //                     is_dir: 0,
+    //                     mtime: new Date(),
+    //                     size: 0,
+    //                     ext: path.extname(destination)
+    //                 }
+
+    //                 active_window.send('get_card', file_obj)
+
+    //                 let c = 0;
+    //                 let intervalid = setInterval(() => {
+    //                     gio.get_file(destination, file => {
+
+    //                         if (file.size === file.size) {
+    //                             ++c
+    //                         } else {
+    //                             c = 0
+    //                         }
+
+    //                         if (c > 20) {
+    //                             c = 0
+    //                             clearInterval(intervalid)
+    //                         }
+
+    //                         active_window.send('folder_size', {href: destination, size: parseInt(file.size)})
+    //                     })
+    //                 }, 1000);
+    //                 // active_window.send('folder_size', {href: file.href, size: file.size})
+
+    //             }
+
+    //             copyfile(source, destination, (res) => {
+
+    //                 if (res) {
+
+    //                     if (isMainView) {
+    //                         active_window.send('update_card1', destination)
+    //                     } else {
+    //                         get_folder_size1(active_folder)
+    //                     }
+
+    //                 } else {
+    //                     active_window.send('notification', res)
+    //                 }
+
+    //                 // return true
+
+    //             })
+
+    //         }
+
+
+    //     }
+
+    // })
+
+    // tmp_copy_arr = []
+
 
     // active_window.send('notification', 'Done copying file/s')
 
@@ -1552,18 +1780,19 @@ ipcMain.on('overwrite_confirmed_all', (e) => {
     // LOOP OVER COPY ARRAY
     copy_files_arr.forEach((data, idx) => {
 
-        let destination_file = path.join(active_folder, path.basename(data.source));
+        let source = data.href;
+        let destination_file = path.join(active_folder, path.basename(source));
 
         // COPY DIRECTORY
-        if (fs.statSync(data.source).isDirectory()) {
+        if (fs.statSync(source).isDirectory()) {
 
-            copyfolder(data.source, destination_file, data.state, () => {
+            copyfolder(source, destination_file, (res) => {
 
             })
 
         // COPY FILES - done
         } else {
-            copyfile(data.source, destination_file, () => {
+            copyfile(data.source, destination_file, (res) => {
 
             })
         }
@@ -1595,13 +1824,14 @@ ipcMain.on('overwrite_confirmed', (e, data) => {
 
     // COPY FOLDER
     if (fs.statSync(data.source).isDirectory()) {
-        copyfolder(data.source, destination_file, data.state, () => {
+
+        copyfolder(data.source, destination_file, () => {
 
             // REMOVE ITEM FROM ARRAY
             copy_files_arr.shift()
 
             if (copy_files_arr.length > 0) {
-                copy(copy_files_arr, data.state);
+                copy()
             }
 
         })
@@ -1615,9 +1845,7 @@ ipcMain.on('overwrite_confirmed', (e, data) => {
             copy_files_arr.shift()
 
             if (copy_files_arr.length > 0) {
-
-                copy(copy_files_arr, data.state);
-
+                copy()
             }
 
         })
@@ -1770,9 +1998,6 @@ function move() {
 
     console.log('running move')
 
-    // let confirm = BrowserWindow.getFocusedWindow()
-    // confirm.hide()
-
     // SET SIZE FOR PROGRESS
     let max = 0;
     copy_files_arr.forEach(item => {
@@ -1785,76 +2010,129 @@ function move() {
         win.webContents.send('progress', max);
     })
 
-
     copy_files_arr.forEach(file => {
 
         let source = file.href
         let destination = path.join(active_folder, path.basename(file.href))
 
-        if (file.is_dir) {
+        if (source != destination) { // trap
 
-            copyfolder(source, destination, () => {
+            // SET SIZE FOR PROGRESS
+            let max = 0;
+            copy_files_arr.forEach(item => {
+                max += parseInt(item.size)
+            })
 
-                // copy_files_arr.shift()
-                delete_file(source, () => {
+            // SHOW PROGRESS
+            // let win = window.getFocusedWindow();
+            windows.forEach(win => {
+                win.webContents.send('progress', max);
+            })
 
-                    if (isMainView) {
+            if (file.is_dir) {
 
-                        let file_obj = {
-                            name: path.basename(destination),
-                            href: destination,
-                            is_dir: 1,
-                            mtime: new Date / 1000,
-                            size: 0
-                        }
-                        active_window.send('get_card', file_obj)
+                if (fs.existsSync(destination)) {
 
-                        console.log('ahh', destination, file.href ,file.is_dir)
-                        get_folder_size1(destination)
-
-                    } else {
-                        get_folder_size1(active_folder)
+                    // CREATE CONFIRM COPY OVERWRITE
+                    let data = {
+                        source: source,
+                        destination: destination
                     }
 
-                })
+                    createOverwriteMoveDialog(data, copy_files_arr)
 
-            })
+                } else {
+
+                    copyfolder(source, destination, (res) => {
+
+                        if (res) {
+
+                            // copy_files_arr.shift()
+                            delete_file(source, () => {
+
+                                if (isMainView) {
+
+                                    let file_obj = {
+                                        name: path.basename(destination),
+                                        href: destination,
+                                        is_dir: 1,
+                                        mtime: new Date(),
+                                        size: 0
+                                    }
+                                    active_window.send('get_card', file_obj)
+                                    active_window.send('update_cards1', destination)
+
+                                    get_folder_size1(destination)
+
+                                } else {
+                                    get_folder_size1(active_folder)
+                                }
+
+                            })
+
+                        }
+
+                    })
+
+                }
+
+
+            } else {
+
+                if (fs.existsSync(destination)) {
+
+                    // CREATE CONFIRM COPY OVERWRITE
+                    let data = {
+                        source: source,
+                        destination: destination
+                    }
+
+                    createOverwriteMoveDialog(data, copy_files_arr)
+
+                } else {
+
+                    copyfile(source, destination, (res) => {
+
+                        if (res) {
+
+                            delete_file(source, (res) => {
+
+                                if (isMainView) {
+
+                                    let file_obj = {
+                                        name: path.basename(destination),
+                                        href: destination,
+                                        is_dir: 0,
+                                        mtime: new Date / 1000,
+                                        size: 0
+                                    }
+
+                                    active_window.send('get_card', file_obj)
+                                    active_window.send('update_cards1', active_folder)
+
+                                } else {
+                                    get_folder_size1(active_folder)
+                                }
+
+                            })
+
+                        }
+
+                    })
+
+                }
+
+            }
 
         } else {
-
-            copyfile(source, destination, () => {
-
-                // copy_files_arr.shift();
-                delete_file(source, (res) => {
-
-                    if (isMainView) {
-
-                        let file_obj = {
-                            name: path.basename(destination),
-                            href: destination,
-                            is_dir: 0,
-                            mtime: new Date / 1000,
-                            size: 0
-                        }
-
-                        active_window.send('get_card', file_obj)
-                        get_folder_size1(destination)
-
-                        active_window.send('update_card1', destination)
-
-                    } else {
-                        get_folder_size1(active_folder)
-                    }
-
-                })
-
-            })
-
+            active_window.send('notification', 'Error: Operation not Permitted!')
         }
+
 
     })
 
-    tmp_copy_arr = []
+    copy_files_arr = []
+    copy_arr = []
     // console.log(tmp_copy_arr)
     // // DIRECTORY
     // if (fs.statSync(data.source).isDirectory()) {
@@ -2176,7 +2454,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                     }
 
                     active_window.webContents.send('add_card', options);
-                    active_window.send('update_card', data.destination)
+                    active_window.send('update_card1', data.destination)
 
                 }
 
@@ -2359,75 +2637,10 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
 
     })
 
-    // windows.add(confirm)
-
-    // OVERWRITE MOVE CONFIRMED
-    ipcMain.on('overwrite_move_confirmed', (e, data) => {
-
-        let confirm = window.getFocusedWindow();
-        confirm.hide();
-
-        data.destination = active_folder
-
-        // DIRECTORY
-        if (fs.statSync(data.source).isDirectory()) {
-
-            copyfolder(data.source, data.destination, () => {
-                delete_file(data.source);
-            })
-
-        // FILES - done
-        } else {
-
-            copyfile(data.source, data.destination, () => {
-
-                // REMOVE ITEM FROM ARRAY
-                copy_files_arr.shift()
-
-                // DELETE SOURCE FILE
-                delete_file(data.source, () => {
-
-                    // CHECK ARRAY LENGTH
-                    if (copy_files_arr.length > 0) {
-                        move();
-                    }
-
-                })
-
-
-
-            })
-
-        }
-        // REMOVE ITEM FROM ARRAY
-        // copy_files_arr.shift()
-
-        // // CHECK ARRAY LENGTH
-        // if (copy_files_arr.length > 0) {
-
-        //     data = {
-        //         state: 0,
-        //         source: copy_files_arr[0].source,
-        //         destination: copy_files_arr[0].destination
-        //     }
-
-        //     // CREATE MOVE DIALOG
-        //     // todo: this needs to determin if we need createmove or createmoveoverwrite
-        //     // or can they be combined?
-        //     if (fs.existsSync(data.destination)) {
-        //         createOverwriteMoveDialog(data, copy_files_arr)
-        //     } else {
-        //         createMoveDialog(data, copy_files_arr);
-        //     }
-
-        // }
-
-    })
-
 }
 
 // OVERWRITE MOVE CONFIRMED ALL
-ipcMain.on('overwrite_move_confirmed', (e) => {
+ipcMain.on('overwrite_move_confirmed', (e, data) => {
 
     let confirm = window.getFocusedWindow();
     confirm.hide();
@@ -2440,37 +2653,46 @@ ipcMain.on('overwrite_move_confirmed', (e) => {
 
     active_window.send('progress', max);
 
-    // COPY FILES
-    copy_files_arr.forEach((data, idx) => {
+    let source = data.source
+    let destination_file = path.join(active_folder, path.basename(source));
 
-        let destination_file = path.join(active_folder, path.basename(data.source));
+    // DIRECTORY - todo: needs work
+    if (fs.statSync(source).isDirectory()) {
 
-        // DIRECTORY - todo: needs work
-        if (fs.statSync(data.source).isDirectory()) {
+        copyfolder(source, destination_file, (res) => {
 
-            copyfolder(data.source, destination_file, 0, () => {
-
-                delete_file(data.source, () => {
-                    active_window.send('remove-card', data.source)
+            if (res) {
+                delete_file(source, (res) => {
+                    active_window.send('remove-card', source)
                 })
-            })
+                active_window.send('update_card', destination_file)
+            }
 
-        // FILES - done
-        } else {
+        })
 
-            // state = 0
-            copyfile(data.source, destination_file, () => {
+    // FILES - done
+    } else {
 
-                copy_files_arr.forEach(data => {
-                    delete_file(data.source, () => {
-                        active_window.send('remove-card', data.source)
+        // state = 0
+        copyfile(source, destination_file, (res) => {
+
+            if (res) {
+
+                copy_files_arr.forEach(file => {
+                    delete_file(file.href, () => {
+                        active_window.send('remove-card', file.href)
                     })
                 })
 
-            })
+            }
 
-        }
-    })
+
+            active_window.send('update_card', destination_file)
+
+        })
+
+    }
+
 
 })
 

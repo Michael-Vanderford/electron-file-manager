@@ -211,6 +211,10 @@
         font-weight: normal !important;
     }
 
+    #sidebar_items {
+        color: #2c2c2c !important;
+    }
+
     #sidebar_items .header {
         background-color: #cfcfcf;
         border-radius: 4px;
@@ -239,6 +243,15 @@
     #workspace_grid a {
         color: #4183c4 !important;
         font-weight: bold !important;
+    }
+
+    .draghandle {
+        border-right: 2px solid #cfcfcf;
+    }
+
+    .highlight {
+        background: #cfcfcf !important;
+        color: #222222 !important;
     }
 
 }
