@@ -357,7 +357,7 @@ function do_copy(source, destination, copystate, callback) {
                                 active_window.send('notification', err)
                             } else {
                                 // active_window.send('update_card1', destination)
-                                // get_folder_size1(destination)
+                                get_folder_size1(destination)
                             }
 
                             ++do_copy_counter

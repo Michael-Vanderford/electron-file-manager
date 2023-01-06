@@ -429,10 +429,10 @@ body {
     #files_card#folders_card { border:1px solid #444444; /* height: auto; overflow: auto; */ }
 
     .inlinesearch {
-        margin: auto !important;
-        position:fixed;
-        bottom: 0px;
-        width: 300px;
+      margin: auto !important;
+      position:fixed;
+      bottom: 0px;
+      width: 300px;
     }
 
     input[type="text"] .search {
@@ -1078,24 +1078,25 @@ input:focus {
 .flex {
     width: 100%;
     display: flex;
+    flex-basis: max-content;
     margin-bottom: 5px;
+    /* border: 1px solid #cfcfcf; */
+}
+.icon_col {
+
+}
+.info_col {
+    flex-basis: 100%;
 }
 .col {
     display: flex;
     flex-direction: column;
     padding: 2px;
-    overflow-wrap: anywhere;z
+    overflow-wrap: anywhere;
 }
-
-.column {
-    display: flex;
-    flex-direction: column;
-    /* margin-bottom: 10px; */
-}
-.box {
-    display: inline-block;
-    background: red;
-    margin: 4px;
+.header_link {
+    /* border: 1px solid black; */
+    /* display: block; */
 }
 .selected.box {
     background: green;

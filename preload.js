@@ -2888,367 +2888,6 @@ function get_date(date) {
     }
 }
 
-// Get card
-function get_card(href) {
-
-    let card        = add_div();
-    let icon        = document.createElement('img')
-    let link        = add_link(href, path.basename(href));
-    let input       = document.createElement('input')
-    let date        = add_div();
-    let size        = add_div();
-    let icon_col    = add_div();
-    let info_col    = add_div();
-    let audio       = document.createElement('audio')
-    let video       = document.createElement('video')
-    let source      = document.createElement('source')
-    let is_dir      = 0;
-    let is_image    = 0;
-    let is_audio    = 0;
-    let is_video    = 0;
-
-    let icon_size = localStorage.getItem('icon_size')
-
-    icon_col.append(icon);
-    info_col.append(input, link, date, size);
-
-    card.append(icon_col);
-    card.append(info_col);
-    audio.append(source)
-    card.append(audio)
-
-    card.dataset.href = href
-
-    // Mouse over
-    card.onmouseover = (e) => {
-        card_id = 'card_id_0';
-        active_href = href;
-        card.classList.add("highlight");
-    }
-
-    //  OUT
-    card.onmouseout = (e) => {
-        // notification(path.basename(breadcrumbs.value))
-        card.classList.remove('highlight');
-        audio.removeAttribute('controls')
-    }
-
-    // ON DRAG START
-    card.ondragstart = function (e) {
-
-        console.log('on drag start')
-
-        e.dataTransfer.effectAllowed = 'copyMove';
-        let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-
-        if (items.length > 0) {
-
-            items.forEach((item, idx) => {
-                let href = item.dataset.href;
-                add_copy_file(href, 'card_id_' + idx);
-            })
-
-        }
-    }
-
-    // INITIALIZE COUNTER
-    let dragcounter = 0;
-
-    // ON DRAG ENTER
-    card.ondragenter = function (e) {
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        dragcounter++;
-        let target = e.target;
-
-        if (target.id == "") {
-            destination = href
-        } else {
-            destination = breadcrumbs.value
-        }
-
-        let main_view = document.getElementById('main_view');
-        main_view.classList.add('selectableunselected');
-        main_view.draggable = false;
-
-        if (e.ctrlKey == true) {
-            e.dataTransfer.dropEffect = "copy";
-        } else {
-            e.dataTransfer.dropEffect = "move";
-        }
-
-        return false
-
-    }
-
-    // DRAG OVER
-    card.ondragover = function (e) {
-
-        card.classList.add('highlight')
-
-        if (e.ctrlKey == true) {
-            e.dataTransfer.dropEffect = "copy";
-        } else {
-            e.dataTransfer.dropEffect = "move";
-        }
-
-        ipcRenderer.send('active_folder', href);
-        ipcRenderer.send('is_main_view', 0)
-
-        e.preventDefault()
-        e.stopPropagation()
-
-        return false
-
-    }
-
-    // ON DRAG LEAVE
-    card.ondragleave = function (e) {
-
-        e.preventDefault()
-        e.stopPropagation()
-
-        card.classList.remove('highlight')
-        return false
-    }
-
-    // Input change
-    input.addEventListener('change', function (e) {
-        e.preventDefault()
-        if (this.value == "") {
-            alert('enter a name')
-        } else {
-            card.classList.add('highlight_select')
-            source = path.join(path.dirname(href), this.value.trim())
-            if (!fs.existsSync(source)) {
-
-                link.classList.remove('hidden')
-                this.classList.add('hidden')
-
-                rename_file(href, this.value.trim())
-
-                href = path.dirname(href) + '/' + this.value
-                card.dataset.href = href
-                link.text = this.value
-                link.href = href
-                link.title = 'open file? ' + path.dirname(href) + '/' + this.value
-                update_card(source)
-
-            } else {
-                notification(path.basename(href) + ' already exists..')
-            }
-        }
-    })
-
-    // KEYDOWN EVENT
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            clear_items()
-            clear_copy_arr();
-        }
-    })
-
-    // size.innerHTML = get_file_size(localStorage.getItem(href))
-    // fs.stat(href, (err, stats) => {
-
-    //     if (!err) {
-
-    //         // Directory
-    //         if (stats.isDirectory()) {
-
-    //             is_dir = 1;
-
-    //             card.classList.add('folder_card');
-    //             icon.dataset.src = folder_icon;
-
-    //             // Directory event listeners
-    //             link.addEventListener('click', (e) => {
-    //                 e.preventDefault();
-    //                 get_view(href);
-    //             })
-    //             icon.addEventListener('click', (e) => {
-    //                 e.preventDefault();
-    //                 get_view(href);
-    //             })
-
-    //             ipcRenderer.send('active_folder', href)
-
-    //         // Files
-    //         } else {
-
-    //             card.classList.add('file_card')
-
-    //             // File event listeners
-    //             link.addEventListener('click', (e) => {
-    //                 e.preventDefault();
-    //                 open(href, { wait: false });
-    //             })
-    //             icon.addEventListener('click', (e) => {
-    //                 e.preventDefault();
-    //                 open(href, { wait: false });
-    //             })
-
-    //         }
-
-    //         date.innerHTML = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime)
-    //         card.dataset.href = href;
-
-    //         icon.classList.add('icon')
-    //         date.classList.add('date', 'description')
-    //         size.classList.add('size', 'extra')
-
-    //         update_card(href)
-
-    //         card.oncontextmenu = (e) => {
-
-    //             if (is_dir) {
-    //                 card.classList.add('folder_card', 'ds-selectable', 'ds-selected')
-    //             } else {
-    //                 card.classList.add('file_card', 'ds-selectable', 'ds-selected')
-    //             }
-
-    //             getContextMenu(href)
-    //         }
-
-    //     } else {
-    //         // notification(err)
-    //         // console.log('error getting card', err)
-    //     }
-
-    // })
-
-    if (href.indexOf('sftp') > -1 || href.indexOf('mtp') > -1 || href.indexOf('smb') > -1) {
-
-        exec(`gio info -a "*" "${href}"`, (err, stdout) => {
-
-            if (!err) {
-
-                let file = {}
-                let info = stdout.split('\n')
-
-                info.forEach(item => {
-
-                    file_info = item.trim().split(': ')
-
-                    if (file_info[0] == 'size') {
-                        file.size = get_file_size(file_info[1])
-                    }
-
-                    if (file_info[0] == 'time::modified') {
-                        file.date = get_date(parseInt(file_info[1]))
-                    }
-
-                    if (file_info[0] == 'uri') {
-                        file.uri = file_info[1]
-                        // console.log(file_info[1])
-                    }
-
-                    if (file_info[0] == 'type') {
-                        if (file_info[1] == 'directory') {
-                            file.type = 'directory'
-                            icon.src = folder_icon
-                            is_dir = 1
-                        } else {
-                            // console.log('file', path.basename(href))
-                            ipcRenderer.invoke('get_icon', path.basename(href)).then(res => {
-                                icon.src = res
-                                is_dir = 0
-                            })
-
-                        }
-                    }
-
-                })
-
-                if (file.type == 'directory') {
-                    date.innerHTML = file.date
-                    size.innerHTML = ''
-                } else {
-                    date.innerHTML = file.date
-                    size.innerHTML = file.size
-                }
-
-                // console.log(file)
-
-                // console.log((JSON.parse(file_info)))
-
-            }
-        })
-
-        icon.addEventListener('click', (e) => {
-            e.preventDefault()
-            breadcrumbs.value = href
-            get_gio_files(href)
-        })
-
-        link.addEventListener('click', (e) => {
-            e.preventDefault()
-            if (is_dir) {
-                breadcrumbs.value = href
-                get_gio_files(href)
-            } else {
-                open(href)
-            }
-        })
-
-    }
-
-    // let icon_size = localStorage.getItem('icon_size')
-    switch (icon_size) {
-        case '0': {
-            icon.classList.add('icon16')
-            break;
-        }
-        case '1': {
-            icon.classList.add('icon24')
-            break;
-        }
-        case '2': {
-            icon.classList.add('icon32')
-            break;
-        }
-        case '3': {
-            icon.classList.add('icon48')
-            break;
-        }
-        case '4': {
-            icon.classList.add('icon64')
-            break;
-        }
-    }
-
-    card.oncontextmenu = (e) => {
-        if (is_dir) {
-            card.classList.add('folder_card', 'ds-selectable', 'ds-selected')
-            let associated_apps = {}
-            ipcRenderer.send('show-context-menu-directory', associated_apps);
-        } else {
-            card.classList.add('file_card', 'ds-selectable', 'ds-selected')
-            let associated_apps = {}
-            let access = 0
-            ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: href});
-        }
-        // getContextMenu(href)
-    }
-
-    ds.addSelectables(card)
-
-    input.value = path.basename(href)
-    input.classList.add('hidden')
-    link.draggable = false
-    card.draggable = true
-    card.classList.add('card', 'flex', 'nav_item')
-    icon_col.classList.add('col')
-    icon_col.style = 'width: 50px'
-    icon.classList.add('lazy')
-    info_col.classList.add('col')
-
-    // ds.addSelectables(card)
-    return card
-}
-
 /**
  * Create a File Card for the Grid View
  * @param {object} file_obj
@@ -3280,9 +2919,10 @@ function get_card1(file_obj) {
     input.value = path.basename(file_obj.name)
     input.classList.add('hidden', 'input')
     icon.draggable = false;
-    icon_col.classList.add('col')
-    info_col.classList.add('col')
+    icon_col.classList.add('col', 'icon_col')
+    info_col.classList.add('col', 'info_col')
     link.draggable = false
+
     link.classList.add('header_link')
     card.draggable = true
     card.classList.add('card', 'flex', 'nav_item')
@@ -3447,6 +3087,10 @@ function get_card1(file_obj) {
 
     // Mouse over
     card.onmouseover = (e) => {
+
+        e.preventDefault()
+        e.stopPropagation()
+
         // card_id = 'card_id_0';
         active_href = file_obj.href;
         card.classList.add("highlight");
@@ -6445,20 +6089,14 @@ async function get_files(dir, callback) {
                 main_view.onmouseover = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    isMainView = 1;
+
                     ipcRenderer.send('active_window');
                     ipcRenderer.send('active_folder', breadcrumbs.value, 1)
-
                 }
 
                 main_view.onmouseout = (e) => {
-
                     e.preventDefault();
                     e.stopPropagation();
-
-                    isMainView = 0;
-
-
                 }
 
                 // // ON DRAG ENTER
@@ -8000,16 +7638,10 @@ async function get_devices() {
         let devices             = [];
         let sidebar_items       = document.getElementById('sidebar_items');
         let device_view         = add_div();
-        let msg                 = add_div();
         let uid                 = execSync('id -u').toString().replace('\n','');
         let username            = await ipcRenderer.invoke('username')
-        let mnt_path            = '/mnt/'
         let media_path          = `/media/${username}/`
-        let gvfs_path           = `/run/user/${uid}/gvfs/`;
-        let folder_grid         = document.getElementById('folder_grid')
-        let file_grid           = document.getElementById('file_grid')
 
-    //     console.log(media_path)
 
         device_view.style = 'padding-top: 20px; height: 100%';
         device_view.id = 'device_view';
@@ -8025,17 +7657,12 @@ async function get_devices() {
 
                 if (!err) {
 
-                    // console.log(stdout)
                     let output = stdout.split('\n')
                     output.forEach(item => {
 
                         let gio_mounts = item.split(': ')
                         let device = {}
                         gio_mounts.forEach((gio_mount, idx) => {
-
-                            // let obj = {}
-                            // const [key, value] = gio_mount.trim().split(" -> ");
-                            // obj[key] = value;
 
                             if (idx % 2) {
                                 let mounts = gio_mount.trim().split(' -> ')
@@ -8058,8 +7685,6 @@ async function get_devices() {
 
                     })
 
-                    // devices = gio.get_mounts()
-
                     // GIO devices
                     if (devices.length > 0) {
 
@@ -8081,12 +7706,11 @@ async function get_devices() {
                                 let col2    = add_div().innerHTML = (link)
                                 let col3    = add_div().innerHTML = (umount)
 
-                                link.style  = 'display: block'
+                                link.style  = 'display: block; margin-top:15px;'
                                 col2.style  = 'width: 100%'
 
                                 div.append(col1, col2, col3)
-                                div.style = 'display: flex; padding: 6px; width: 100%;'
-                                div.classList.add('item')
+                                div.classList.add('flex','item')
 
                                 device.append(div)
 
@@ -8100,7 +7724,7 @@ async function get_devices() {
                                     exec(`gio mount -u -f "${item.href}"`, (err, stdout) => {
 
                                         if (!err) {
-                                            get_devices();
+                                            div.remove()
                                             notification(stdout)
                                         } else {
                                             notification(err)
@@ -8110,7 +7734,7 @@ async function get_devices() {
 
                                 })
 
-                                link.addEventListener('click', (e) => {
+                                div.addEventListener('click', (e) => {
                                     e.preventDefault();
 
                                     breadcrumbs.value = link.href
@@ -10730,11 +10354,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // ESC KEY
         Mousetrap.bind('esc', () => {
-
             notification('');
             clear_copy_arr();
             clear_items();
-
         })
 
         // Backspace
@@ -10774,7 +10396,7 @@ window.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation()
 
         main_view.focus();
-        main_view.tabIndex = 1
+        main_view.tabIndex = 1;
         // main_view.style = 'border: 1px solid red !important'
         // console.log(e)
 
@@ -10786,7 +10408,7 @@ window.addEventListener('DOMContentLoaded', () => {
         destination = breadcrumbs.value
         target = e.target
 
-        ipcRenderer.send('is_main_view', 1)
+        ipcRenderer.send('is_main_view', 1);
         ipcRenderer.send('active_folder', breadcrumbs.value, 1);
 
     };
@@ -10880,15 +10502,15 @@ window.addEventListener('DOMContentLoaded', () => {
 
     }
 
-    main_view.onscroll = (e) => {
+    // main_view.onscroll = (e) => {
 
-        if (main_view.scrollHeight - parseInt(main_view.scrollTop) === main_view.clientHeight) {
-            page_number += 1
-            get_grid_view(breadcrumbs.value, page_number, 100)
-            console.log('load more pages')
-        }
+    //     if (main_view.scrollHeight - parseInt(main_view.scrollTop) === main_view.clientHeight) {
+    //         page_number += 1
+    //         get_grid_view(breadcrumbs.value, page_number, 100)
+    //         console.log('load more pages')
+    //     }
 
-    }
+    // }
 
     // Handle Quick Search
     main_view.onkeydown = (e) => {

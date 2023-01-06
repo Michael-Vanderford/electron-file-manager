@@ -165,12 +165,12 @@ exports.get_dir = function(dir, callback) {
                             file_obj.href = dir + '/' + files[0]
                         }
 
-                        // // Check for hidden. todo: find out why its not an attribute of gio
-                        // if (files[0].substring(0,1) == '.') {
-                        //     file_obj.is_hidden = 1
-                        // } else {
-                        //     file_obj.is_hidden = 0
-                        // }
+                        // Check for hidden. todo: find out why its not an attribute of gio
+                        if (files[0].substring(0,1) == '.') {
+                            file_obj.is_hidden = 1
+                        } else {
+                            file_obj.is_hidden = 0
+                        }
 
                         if (files[2] == '(directory)') {
                             file_obj.is_dir = 1
