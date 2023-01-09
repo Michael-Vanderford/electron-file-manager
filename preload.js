@@ -96,15 +96,22 @@ let thumbnails_dir      = '';
 let userdata_dir        = "";
 let settings            = "";
 
+// Inputs
+let input_value0        = "";
+
+ipcRenderer.on('get_devices', (e) => {
+    get_devices()
+})
+
+ipcRenderer.on('get_disk_summary_view', (e) => {
+    console.log('running summary view')
+    localStorage.setItem('view', 'disk_summary')
+    get_view(breadcrumbs.value)
+})
+
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
     thumbnails_dir = res
 })
-
-// ipcRenderer.invoke('userdata_dir').then(res => {
-//     settings = JSON.parse(fs.readFileSync(path.join(res, 'settings.json'), {encoding:'utf8', flag:'r'}));
-// })
-
-// let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 
 ipcRenderer.on('get_card', (e, file) => {
 
@@ -125,8 +132,6 @@ ipcRenderer.on('get_card', (e, file) => {
         file_grid.insertBefore(col, file_grid.firstChild)
     }
 
-
-
 })
 
 ipcRenderer.on('connect', (e) => {
@@ -134,6 +139,7 @@ ipcRenderer.on('connect', (e) => {
     // Init
     let cmd = '';
     let btn_connect = document.getElementById('button_connect')
+    btn_connect.tabIndex = 1
     btn_connect.onclick = (e) => {
 
         e.preventDefault()
@@ -177,13 +183,10 @@ ipcRenderer.on('connect', (e) => {
                 if (!err) {
                     connect_msg.style.color = 'green'
                     connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+                    ipcRenderer.send('get_devices')
                 } else {
                     if (stderr) {
                         connect_msg.innerHTML = stderr
-                    }
-                    if (stdout) {
-                        get_devices()
-                        connect_msg.innerHTML = stdout
                     }
                 }
 
@@ -1004,6 +1007,7 @@ ipcRenderer.on('du_folder_size', (e, folder_size) => {
 
 // ON FOLDER SIZE
 ipcRenderer.on('folder_size', (e, data) => {
+    console.log(data)
     try {
         let cards = document.querySelectorAll('[data-href="' + data.href + '"]')
         cards.forEach(card => {
@@ -1612,6 +1616,33 @@ function notice(notice_msg) {
     // let container = document.getElementById('notice')
     // container.innerHTML = ''
     // container.innerHTML = notice_msg
+}
+
+function get_sidebar_home() {
+
+    let my_computer_arr = ['Home','Desktop','Documents','Music','Pictures','Vidoe','Downloads','Recent','File System']
+    let devices_arr = []
+    let network_arr = []
+
+    let sidebar_items = document.getElementById('sidebar_items')
+
+    console.log(my_computer_arr.length)
+    for (let i = 0; i < my_computer_arr.length; i++) {
+
+        console.log(my_computer_arr[i])
+
+        let item = add_div()
+        let link = add_link(my_computer_arr[i], my_computer_arr[i])
+
+        item.classList.add('item')
+
+        item.append(link)
+
+        sidebar_items.append(item)
+
+    }
+
+
 }
 
 // INFO
@@ -2673,11 +2704,12 @@ async function add_card(options) {
                     header.text = this.value
                     header.href = href
                     header.title = 'open file? ' + path.dirname(href) + '/' + this.value
+                    card.classList.remove('highlight_select', 'highlight', 'ds-selected')
                     update_card(source)
 
                 } else {
 
-                    notification(path.basename(href) + ' already exists..')
+                    notification(`err ${path.basename(href)} already exists..`)
 
                 }
 
@@ -2890,16 +2922,14 @@ function get_date(date) {
 
 /**
  * Create a File Card for the Grid View
- * @param {object} file_obj
+ * @param {object} file
  * @returns File Card
  */
-function get_card1(file_obj) {
-
-    console.log(file_obj)
+function get_card1(file) {
 
     let card        = add_div();
     let icon        = document.createElement('img')
-    let link        = add_link(file_obj.href, file_obj.name);
+    let link        = add_link(file.href, file.name);
     let input       = document.createElement('input')
     let date        = add_div();
     let size        = add_div();
@@ -2910,13 +2940,14 @@ function get_card1(file_obj) {
     let source      = document.createElement('source')
 
     let is_image    = 0;
+    let is_svg      = 0;
     let is_audio    = 0;
     let is_video    = 0;
 
     let icon_size   = localStorage.getItem('icon_size')
 
     input.type = 'text'
-    input.value = path.basename(file_obj.name)
+    input.value = path.basename(file.name)
     input.classList.add('hidden', 'input')
     icon.draggable = false;
     icon_col.classList.add('col', 'icon_col')
@@ -2935,10 +2966,10 @@ function get_card1(file_obj) {
 
     audio.append(source);
     card.append(icon_col, info_col, audio);
-    card.dataset.href = file_obj.href;
+    card.dataset.href = file.href;
 
     // Directory
-    if (file_obj.is_dir) {
+    if (file.is_dir) {
 
         card.classList.add('folder_card');
         icon.src = folder_icon;
@@ -2946,67 +2977,77 @@ function get_card1(file_obj) {
         // Directory event listeners
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            get_view(file_obj.href);
+            get_view(file.href);
         })
         icon.addEventListener('click', (e) => {
             e.preventDefault();
-            get_view(file_obj.href);
+            get_view(file.href);
         })
 
         // Setting folder size
-        if (!is_gio_file(file_obj.href)) {
-            ipcRenderer.invoke('get_folder_size1', file_obj.href).then(res => {
+        if (!is_gio_file(file.href)) {
+            ipcRenderer.invoke('get_folder_size1', file.href).then(res => {
+
                 if (parseInt(res) > 4) {
-                    file_obj.size = parseInt(res) * 1024
-                    size.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
-                    localStorage.setItem(file_obj.href, parseInt(res.replace('.', '') * 1024))
+
+                    file.size = parseInt(res) * 1024
+                    size.innerHTML = get_file_size(file.size) //get_file_size(parseInt(res.replace('.', '') * 1024))
+                    localStorage.setItem(file.href, file.size)
+
                 } else {
                     size.innerHTML = '0 Items'
                 }
+
             })
         } else {
-            // size.innerHTML = get_file_size(file.size)
+            size.innerHTML = '' //get_file_size(file.size)
         }
 
     } else {
 
         card.classList.add('file_card');
-        size.innerHTML = get_file_size(file_obj.size)
+        size.innerHTML = get_file_size(file.size)
 
         if (
             // file_obj["standard::content-type"].indexOf('image') > -1 ||
-            file_obj.ext === '.jpg' ||
-            file_obj.ext === '.png' ||
-            file_obj.ext === '.jpeg' ||
-            file_obj.ext === '.webp'
+            file.ext === '.jpg' ||
+            file.ext === '.png' ||
+            file.ext === '.jpeg'
+            // file.ext === '.webp'
         ) {
             is_image = 1
         } else {
             is_image = 0
         }
 
-        if (is_image) {
+        if (file.ext === '.svg') {
+            is_svg = 1
+        } else {
+            is_svg = 0
+        }
 
-            let thumbnail = path.join(thumbnails_dir, path.basename(file_obj.href));
+        if (is_image) {
+            icon.classList.add('img')
+            let thumbnail = path.join(thumbnails_dir, path.basename(file.href));
 
             if (fs.existsSync(thumbnail)) {
 
-                icon.src = thumbnail
-                icon.classList.add('icon', 'lazy')
-                notification('')
+                icon.dataset.src = thumbnail;
+                icon.classList.add('icon', 'lazy');
+
 
             } else {
 
                 if (process.platform === 'linux') {
 
-                    if (is_gio_file(file_obj.href)) {
-                        gio.cp(file_obj.href, thumbnails_dir, (res) => {
+                    if (is_gio_file(file.href)) {
+                        gio.cp(file.href, thumbnails_dir, (res) => {
                             if (res.err) {
                                 notification(err);
                             }
                         })
                     } else {
-                        let cmd = 'gdk-pixbuf-thumbnailer "' + file_obj.href + '" "' + thumbnail + '"'
+                        let cmd = 'gdk-pixbuf-thumbnailer "' + file.href + '" "' + thumbnail + '"'
                         exec(cmd, (err, stdout, stderr) => {
                             if (!err) {
                                 icon.src = thumbnail
@@ -3017,7 +3058,7 @@ function get_card1(file_obj) {
                 } else {
 
                     im.resize({
-                        srcPath: file_obj.href,
+                        srcPath: file.href,
                         dstPath: thumbnail,
                         width: 128
                     }, (err, stdout, stderr) => {
@@ -3029,18 +3070,22 @@ function get_card1(file_obj) {
                 }
             }
 
+        } else if (is_svg) {
+
+            if (is_gio_file(file.href)) {
+                ipcRenderer.invoke('get_icon', path.basename(file.href)).then(res => {
+                    icon.src = res
+                })
+            } else {
+                icon.classList.add('lazy')
+                icon.dataset.src = file.href
+            }
+
         } else {
-            ipcRenderer.invoke('get_icon', path.basename(file_obj.href)).then(res => {
+            ipcRenderer.invoke('get_icon', path.basename(file.href)).then(res => {
                 icon.src = res
             })
         }
-
-        if (file_obj.ext === '.svg') {
-            icon.src = file_obj.href
-        }
-
-
-
     }
 
     card.onclick = (e) => {
@@ -3055,28 +3100,25 @@ function get_card1(file_obj) {
 
         e.preventDefault()
         e.stopPropagation()
-        if (file_obj.is_dir) {
+        if (file.is_dir) {
 
             console.log('dir context menu')
             card.classList.add('folder_card', 'ds-selectable', 'ds-selected')
 
-            let filetype = mime.lookup(file_obj.href);
-            let associated_apps = get_available_launchers(filetype, file_obj.href);
+            let filetype = mime.lookup(file.href);
+            let associated_apps = get_available_launchers(filetype, file.href);
             ipcRenderer.send('show-context-menu-directory', associated_apps);
 
         } else {
 
-            console.log('file context menu', file_obj)
+            console.log('file context menu', file)
             card.classList.add('file_card', 'ds-selectable', 'ds-selected')
-            // card.style = 'background: red'
 
+            let filetype = mime.lookup(file.href);
+            let associated_apps = get_available_launchers(filetype, file.href);
 
-
-            let filetype = mime.lookup(file_obj.href);
-            let associated_apps = get_available_launchers(filetype, file_obj.href);
-
-            let access = file_obj['access::can-execute']
-            ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: file_obj.href});
+            let access = file['access::can-execute']
+            ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: file.href});
         }
 
     }
@@ -3092,31 +3134,20 @@ function get_card1(file_obj) {
         e.stopPropagation()
 
         // card_id = 'card_id_0';
-        active_href = file_obj.href;
+        active_href = file.href;
         card.classList.add("highlight");
 
-        size = get_file_size(localStorage.getItem(file_obj.href));
+        size = get_file_size(localStorage.getItem(file.href));
         card.title =
-            'Name: ' + file_obj.href +
+            'Name: ' + file.href +
             '\n' +
             'Size: ' + size +
             '\n' +
-            'Accessed: ' + gio.getDateTime(file_obj["time::access"]) +
+            'Accessed: ' + gio.getDateTime(file["time::access"]) +
             '\n' +
-            'Modified: ' + gio.getDateTime(file_obj["time::modified"]) +
+            'Modified: ' + gio.getDateTime(file["time::modified"]) +
             '\n' +
-            'Created: ' + gio.getDateTime(file_obj.ctime)
-
-        // card.dataset.title =
-        //     'Name: ' + file_obj.href +
-        //     '\n' +
-        //     'Size: ' + size +
-        //     '\n' +
-        //     'Accessed: ' + gio.getDateTime(file_obj.atime) +
-        //     '\n' +
-        //     'Modified: ' + gio.getDateTime(file_obj.mtime) +
-        //     '\n' +
-        //     'Created: ' + gio.getDateTime(file_obj.ctime)
+            'Created: ' + gio.getDateTime(file["time::created"])
 
     }
 
@@ -3131,16 +3162,8 @@ function get_card1(file_obj) {
 
         console.log('on drag start');
         e.dataTransfer.effectAllowed = 'copyMove';
-
         add_copy_file()
 
-        // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-        // if (items.length > 0) {
-        //     items.forEach((item, idx) => {
-        //         let href = file.href;
-        //         add_copy_file(href, 'card_id_' + idx);
-        //     })
-        // }
     }
 
     // On drag enter
@@ -3149,16 +3172,8 @@ function get_card1(file_obj) {
         e.preventDefault();
         e.stopPropagation();
 
-        // dragcounter++;
         let target = e.target;
-
-        console.log('target id', target.id)
-
-        // if (target.id == "") {
         destination = card.dataset.href;
-        // } else {
-            // destination = breadcrumbs.value;
-        // }
 
         if (e.ctrlKey == true) {
             e.dataTransfer.dropEffect = "copy";
@@ -3173,7 +3188,7 @@ function get_card1(file_obj) {
     // Drag over
     card.ondragover = (e) => {
 
-        if (file_obj.is_dir) {
+        if (file.is_dir) {
 
             card.classList.add('highlight');
 
@@ -3205,35 +3220,9 @@ function get_card1(file_obj) {
         return false
     }
 
-    // Input change
-    input.onchange = (e) => {
-        e.preventDefault()
-
-        // if (input.value == "") {
-        //     alert('enter a name')
-        // } else {
-        //     card.classList.add('highlight_select')
-        //     source = path.join(path.dirname(file.href), input.value.trim())
-        //     if (!fs.existsSync(source)) {
-        //         let input_value = input.value.trim()
-        //         input.classList.add('hidden')
-        //         href = path.dirname(file.href) + '/' + input_value
-        //         card.dataset.href = href
-        //         link.classList.remove('hidden')
-        //         link.text = input_value
-        //         link.href = href
-        //         link.title = 'open file? ' + href
-        //         rename_file(file.href,g input_value)
-        //         update_card(href)
-        //     } else {
-        //         notification(path.basename(href) + ' already exists..')
-        //     }
-        // }
-
-    }
-
-    let old_input_value = input.value
     input.onkeyup = (e) => {
+
+        e.stopPropagation()
 
         if (e.key === 'Enter' || e.key === 'Tab') {
 
@@ -3242,7 +3231,7 @@ function get_card1(file_obj) {
             } else {
 
                 // card.classList.add('highlight_select')
-                source = path.join(path.dirname(file_obj.href), input.value.trim())
+                source = path.join(path.dirname(file.href), input.value.trim())
 
                 if (!fs.existsSync(source)) {
 
@@ -3250,13 +3239,13 @@ function get_card1(file_obj) {
                     input.classList.add('hidden')
                     link.classList.remove('hidden')
 
-                    rename_file(file_obj.href, input_value, (res) => {
+                    rename_file(file.href, input_value, (res) => {
 
                         if (res) {
 
-                            href = path.dirname(file_obj.href) + '/' + input_value
+                            href = path.dirname(file.href) + '/' + input_value
                             card.dataset.href = href
-                            file_obj.href = href
+                            file.href = href
 
                             update_card1(href)
 
@@ -3265,39 +3254,36 @@ function get_card1(file_obj) {
                     })
 
                 } else {
-                    notification(path.basename(href) + ' already exists..')
+                    notification(`Error: ${path.basename(file.href)} already exists..`)
                 }
 
             }
 
         }
 
-        if (e.key == 'Escape') {
-            input.value = old_input_value
-        }
     }
 
     // Directory event listeners
     link.onclick = (e) => {
         e.preventDefault();
-        if (file_obj.is_dir) {
-            get_view(file_obj.href);
-            console.log(file_obj)
+        if (file.is_dir) {
+            get_view(file.href);
+            console.log(file)
         } else {
-            open(file_obj.href);
+            open(file.href);
         }
     }
 
     icon.onclick = (e) => {
         e.preventDefault();
-        if (file_obj.is_dir) {
-            get_view(file_obj.href);
+        if (file.is_dir) {
+            get_view(file.href);
         } else {
-            open(file_obj.href);
+            open(file.href);
         }
     }
 
-    date.innerHTML = gio.getDateTime(file_obj['time::modified'])
+    date.innerHTML = gio.getDateTime(file['time::modified'])
 
     switch (icon_size) {
         case '0': {
@@ -3356,16 +3342,42 @@ function update_card1(href) {
 
             // console.log(file)
 
-            if (file.type == 'directory') {
-                ipcRenderer.invoke('get_folder_size1', href).then(res => {
-                    size.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
-                    localStorage.setItem(href, parseInt(res.replace('.', '') * 1024))
-                })
+            if (!is_gio_file(href)) {
+
+                if (file.type == 'directory') {
+                    ipcRenderer.invoke('get_folder_size1', href).then(res => {
+                        size.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
+                        localStorage.setItem(href, parseInt(res.replace('.', '') * 1024))
+                    })
+                } else {
+                    size.innerHTML = get_file_size(file.size)
+                }
+
             } else {
-                size.innerHTML = get_file_size(file.size)
+                size.innerHTML = ''
+            }
+
+
+            card.onmouseover = (e) => {
+                active_href = file.href;
+                card.classList.add("highlight");
+
+                size = get_file_size(localStorage.getItem(file.href));
+                card.title =
+                    'Name: ' + file.href +
+                    '\n' +
+                    'Size: ' + size +
+                    '\n' +
+                    'Accessed: ' + gio.getDateTime(file["time::access"]) +
+                    '\n' +
+                    'Modified: ' + gio.getDateTime(file["time::modified"]) +
+                    '\n' +
+                    'Created: ' + gio.getDateTime(file["time::created"])
             }
 
         })
+
+
 
     })
 
@@ -3681,11 +3693,11 @@ function show_loader() {
 
         if (loader.classList.contains('active')) {
 
-            loader.classList.remove('active')
+            hide_loader()
             alert('Oh no. Operation timed out!')
         }
 
-    }, 20000);
+    }, 10000);
 }
 
 /**
@@ -4014,6 +4026,8 @@ function add_tree_item(options) {
  * @param {string} dir // Path to Directory
  */
 async function get_sidebar_files(dir) {
+
+    // get_sidebar_home()
 
     let sidebar_items       = document.getElementById('sidebar_items');
     let sb_breadcrumbs      = document.createElement('ul') //add_div();
@@ -4590,7 +4604,7 @@ async function get_workspace() {
     workspace.id            = 'workspace';
     workspace_msg.id        = 'workspace_msg'
 
-    workspace.classList.add('grid')
+    // workspace.classList.add('grid')
     mb_workspace.style = 'color: #ffffff !important'
     workspace.style.height = '100%'
 
@@ -4609,17 +4623,20 @@ async function get_workspace() {
 
             local_items.forEach((item, idx) => {
 
-                console.log(item)
+                // console.log(item)
 
                 let card = get_card1(item)
                 workspace.append(card)
 
-                let icon = add_icon('times');
-                icon.classList.add('small');
-                icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
+                let icon = card.querySelector('.icon')
+                icon.src = item.href
 
-                card.append(icon);
-                icon.addEventListener('click', (e) => {
+                let rm_icon = add_icon('times');
+                rm_icon.classList.add('small');
+                rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
+
+                card.append(rm_icon);
+                rm_icon.addEventListener('click', (e) => {
 
                     card.remove();
                     local_items.splice(idx, 1);
@@ -4850,8 +4867,6 @@ async function get_settings_view() {
             }
         })
     })
-
-
 
     // tabs.append(tab);
 
@@ -5519,7 +5534,11 @@ function get_grid_view(dir, page_number = 1, page_size = 1000) {
     document.title                      = path.basename(dir)
     clear_items()
 
+    show_loader();
+
     gio.get_dir(dir, dirents => {
+
+        console.log(dir)
 
         let main_view                   = document.getElementById('main_view')
         let folder_grid                 = document.getElementById('folder_grid');
@@ -5607,7 +5626,7 @@ function get_grid_view(dir, page_number = 1, page_size = 1000) {
             if (idx > page_number - 1 * page_size && idx <= page_number * page_size) {
 
                 let card = get_card1(file)
-                card.classList.add('lazy')
+                // card.classList.add('lazy')
 
                 let col = add_column('three')
                 col.append(card)
@@ -5639,9 +5658,15 @@ function get_grid_view(dir, page_number = 1, page_size = 1000) {
         lazyload1();
         // todo: autocomplete needs work so im disabling it for now
         // autocomplete()
-        get_disk_space();
 
-        file_arr = dirents
+        if (!is_gio_file(dir)) {
+            get_disk_space();
+        } else {
+            let status = document.getElementById('status')
+            status.innerHTML = ''
+        }
+        file_arr = dirents;
+        hide_loader();
 
 
     })
@@ -6668,6 +6693,7 @@ function clear_items() {
     let breadcrumb_items    = document.getElementById('breadcrumb_items');
     let hamburger_menu      = document.getElementById('hamburger_menu')
     let info_view           = document.getElementById('info_view');
+    let notification        = document.getElementById('notification')
 
 
     /* Reset nav counters */
@@ -6692,9 +6718,10 @@ function clear_items() {
     breadcrumb_items.classList.add    ('hidden');
     hamburger_menu.classList.add      ('hidden');
     progress.classList.add            ('hidden');
+    notification.classList.add        ('hidden');
 
     if (input) {
-        input.classList.add ('hidden');
+        input.value = input_value0
     }
 
     if (header) {
@@ -6709,6 +6736,9 @@ function clear_items() {
                 item.classList.remove('highlight_select', 'ds-selected', 'highlight')
                 item.querySelector('input').classList.add('hidden')
                 item.querySelector('a').classList.remove('hidden')
+
+                // This set the previous input value
+                item.querySelector('input').value = item.querySelector('a').innerText
             } catch (err) {
 
             }
@@ -7123,6 +7153,8 @@ async function find_files(callback) {
 
                 if (e.key === 'Enter') {
 
+                    show_loader();
+
                     if (find.value != '') {
                         search_info.innerHTML    = 'Searching...';
                         search_progress.classList.remove('hidden')
@@ -7215,8 +7247,13 @@ async function find_files(callback) {
                             search_progress.max = files.length
 
                             if (files.length > 500) {
+
                                 search_info.innerHTML = 'Please narrow your search.'
                                 search_progress.classList.add('hidden')
+
+                                hide_loader();
+                                return false;
+
                             } else {
 
                                 for (let i = 0; i < files.length; i++) {
@@ -7234,13 +7271,14 @@ async function find_files(callback) {
                                             }
 
                                             search_results.append(get_card1(file_obj))
+                                            update_card1(files[i])
 
                                         })
 
                                     }
                                 }
 
-                                lazyload()
+                                hide_loader();
 
                             }
 
@@ -7255,6 +7293,7 @@ async function find_files(callback) {
                             }
 
                             search_progress.classList.add('hidden')
+
                         })
 
                     } else {
@@ -7629,7 +7668,7 @@ async function get_disk_space() {
  */
 async function get_devices() {
 
-    // console.log('getting devices')
+    console.log('getting devices')
     // gio.get_mounts()
 
     try {
@@ -7657,11 +7696,13 @@ async function get_devices() {
 
                 if (!err) {
 
+                    // let devices = stdout.trim().split('\n').map(x => x.trim().split(': '))
+                    // console.log('dev', devices)
+                    devices = []
                     let output = stdout.split('\n')
                     output.forEach(item => {
-
-                        let gio_mounts = item.split(': ')
                         let device = {}
+                        let gio_mounts = item.split(': ')
                         gio_mounts.forEach((gio_mount, idx) => {
 
                             if (idx % 2) {
@@ -7669,9 +7710,21 @@ async function get_devices() {
 
                                 mounts.forEach((item, idx) => {
 
+                                    // console.log(item)
+
                                     if (!idx % 2) {
                                         device.name = item
                                     } else {
+                                        if (is_gio_file(item)) {
+                                            device.type = 1;
+                                        } else {
+                                            device.type = 0
+                                        }
+
+                                        if (item.substring(item.length, item.length -1) === '/') {
+                                            item = item.substring(0, item.length -1)
+                                        }
+
                                         device.href = item
                                     }
 
@@ -7679,11 +7732,14 @@ async function get_devices() {
 
                             }
 
+
                         })
 
                         devices.push(device)
 
                     })
+
+                    // console.log(devices)
 
                     // GIO devices
                     if (devices.length > 0) {
@@ -7734,13 +7790,13 @@ async function get_devices() {
 
                                 })
 
-                                div.addEventListener('click', (e) => {
+                                div.onclick = (e) => {
                                     e.preventDefault();
 
                                     breadcrumbs.value = link.href
                                     get_view(`${link.href}`)
 
-                                })
+                                }
 
                                 // device_view.append(device)
                                 // sidebar_items.append(device_view)
@@ -7829,10 +7885,10 @@ async function get_devices() {
                             })
 
                             // link.prepend(icon);
-                            link.addEventListener('click', (e) => {
+                            div.onclick = (e) => {
                                 e.preventDefault();
                                 get_view(`${path.join(dir.path, item)}`);
-                            })
+                            }
 
                             // device_view.append(device)
                             // sidebar_items.append(device_view)
@@ -8176,7 +8232,7 @@ let page_size = 100
 function lazyload1() {
 
     let c = 0
-    let cards = [].slice.call(document.querySelectorAll(".nav_item"))
+    let cards = [].slice.call(document.querySelectorAll(".lazy"))
     let pager = document.getElementById('pager')
 
     if ("IntersectionObserver" in window) {
@@ -8186,13 +8242,17 @@ function lazyload1() {
             entries.forEach((e, idx) => {
 
                 if (e.isIntersecting) {
-                    c = c + 1;
-                    if (c >= page_number * page_size - 1) {
-                        page_number += 1
-                        page_size = page_number * page_size
-                        get_grid_view(breadcrumbs.value, page_number, page_size)
+
+                    target = e.target;
+                    target.src = target.dataset.src
+
+                    // c = c + 1;
+                    // if (c >= page_number * page_size - 1) {
+                        // page_number += 1
+                        // page_size = page_number * page_size
+                        // get_grid_view(breadcrumbs.value, page_number, page_size)
                         // c = 1
-                    }
+                    // }
 
                     // target = e.target;
                     // target.src = target.dataset.src
@@ -8761,8 +8821,6 @@ function show_sidebar() {
 
         sidebar.classList.remove('hidden');
         sidebar.style.width = sidebar_width + 'px';
-        // sidebar.style.maxWidth = '25%';
-
         draghandle.style.height = parseInt(main_view.clientHeight + 30) + 'px';
 
         // SET MAIN VIEW SIZE
@@ -8770,7 +8828,6 @@ function show_sidebar() {
 
         localStorage.setItem('sidebar', 1);
         show = 0;
-        // get_sidebar_view();
 
     } else {
 
@@ -9331,6 +9388,8 @@ delete_files_count = 0
 delete_folder_count = 0
 function delete_confirmed() {
 
+    console.log('delete confirmed')
+
     let info_view = document.getElementById('info_view');
 
     // LOOP OVER ITEMS DELETE ARRAY
@@ -9793,28 +9852,43 @@ function compress() {
 
             notification('Done compressinge files.')
 
-            let options = {
-                id: 0,
-                href: path.join(breadcrumbs.value, file_name),
-                linktext: file_name,
-                is_folder: false,
-                grid: file_grid
+            let file_obj = {
+                    href: path.join(breadcrumbs.value, file_name),
+                    name: path.basename(file_name),
+                    is_dir: 0,
+                    ["time::modified"]: get_date(new Date()),
+                    size: 0
             }
 
-            add_card(options).then(card => {
+            let card = get_card1(file_obj)
+            let col = add_column('three')
+            col.append(card)
+            file_grid.insertBefore(col, file_grid.firstChild);
 
-                console.log('what')
+            update_card1(path.join(breadcrumbs.value, file_name))
 
-                let col = add_column('three')
-                col.append(card)
-                file_grid.insertBefore(col, file_grid.firstChild);
+            // let options = {
+            //     id: 0,
+            //     href: path.join(breadcrumbs.value, file_name),
+            //     linktext: file_name,
+            //     is_folder: false,
+            //     grid: file_grid
+            // }
 
-                update_card(card.dataset.href);
-                files_card.classList.remove('hidden')
+            // add_card(options).then(card => {
 
-                card.classList.add('highlight_select')
+            //     console.log('what')
 
-            })
+            //     let col = add_column('three')
+            //     col.append(card)
+            //     file_grid.insertBefore(col, file_grid.firstChild);
+
+            //     update_card1(card.dataset.href);
+            //     files_card.classList.remove('hidden')
+
+            //     card.classList.add('highlight_select')
+
+            // })
 
         }
 
@@ -9876,11 +9950,49 @@ function getContextMenu(href) {
 
 }
 
+function toggle_hidden() {
+
+    let grids = document.querySelectorAll('.navigate')
+    grids.forEach(grid => {
+
+        if (grid.id == 'hidden_folder_grid' || grid.id == 'hidden_file_grid') {
+            if (grid.classList.contains('hidden')) {
+                grid.classList.remove('hidden')
+            } else {
+                grid.classList.add('hidden')
+            }
+        }
+    })
+
+    // let folder_grid = document.getElementById('folder_grid')
+    // let file_grid = document.getElementById('file_grid')
+
+    // let hidden_folder_grid = document.getElementById('hidden_folder_grid')
+    // let hidden_file_grid = document.getElementById('hidden_file_grid')
+
+    // if (hidden_folder_grid.classList.contains('hidden')) {
+    //     hidden_folder_grid.classList.remove('hidden')
+    //     hidden_file_grid.classList.remove('hidden')
+    // } else {
+    //     hidden_folder_grid.classList.add('hidden')
+    //     hidden_file_grid.classList.add('hidden')
+    // }
+
+
+}
+
 //////////////////////////////////////////////////////////////////
 
 // CONTEXT MENU COMMANDS
 // FILES AND BLANK AREA
 ipcRenderer.on('context-menu-command', (e, command, args) => {
+
+    if (command == 'show_hidden') {
+
+        localStorage.setItem('show_hidden', 1)
+        toggle_hidden()
+
+    }
 
     // OPEN TEMPLATES FOLDER
     if (command == 'open_templates_folder') {
@@ -9938,50 +10050,13 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     // DELETE COMMAND
     delete_arr = []
     if (command === 'delete') {
-
         delete_files();
-
-        // // CLEAR ARRAY
-        // delete_arr = []
-        // // CLEAR LIST
-        // let list = ''
-
-        // // GET HIGHLIGHTED ITEMS
-        // // let items = document.getElementsByClassName('highlight_select')
-        // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-        // if (items.length > 0) {
-
-        //     // LOOP OVER ITEMS AND ADD TO DELETE ARRAY
-        //     for (let i = 0; i < items.length; i++) {
-
-        //         let item = items[i];
-        //         let href = item.getAttribute('data-href');
-
-        //         let file = {
-        //             card_id: item.id,
-        //             source: href
-        //         }
-
-        //         delete_arr.push(file);
-        //         list += href + '\n';
-
-        //     }
-
-        //     // ipcRenderer.send('confirm_file_delete', list);
-        //     ipcRenderer.send('confirm_file_delete', delete_arr);
-
-        // }
-
     }
 
     // FILES /////////////////////////////////////////////////////////////////////
 
     // CREATE FILE
     if (command === 'new_file') {
-
-        // alert('test')
-        // console.log(breadcrumbs.value)
-        // create_file()
 
     }
 
@@ -10072,7 +10147,7 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
 
         });
 
-        clear_items()
+        // clear_items()
 
     }
 
@@ -10097,6 +10172,8 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     if (command === 'props') {
         get_file_properties();
     }
+
+    clear_items()
 
 })
 
@@ -10515,6 +10592,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // Handle Quick Search
     main_view.onkeydown = (e) => {
 
+        // e.preventDefault()
+        // e.stopPropagation()
+
         // let regex = /[^A-Za-z0-9-.]/;
         let regex = /^[A-Za-z0-9]*/
 
@@ -10527,6 +10607,7 @@ window.addEventListener('DOMContentLoaded', () => {
             e.key != "PageUp" &&
             !e.ctrlKey &&
             !e.shiftKey &&
+            !e.altKey &&
             e.key != 'F2'
         ) {
 
@@ -10551,16 +10632,15 @@ window.addEventListener('DOMContentLoaded', () => {
                         }
 
                     })
-                    // txt_search.classList.add('hidden')
+                    txt_search.classList.add('hidden')
                 }
 
             }
 
         }
 
-
-
         if (e.key == 'Escape') {
+            console.log('runnng escape')
             clear_items()
         }
 

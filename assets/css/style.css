@@ -143,10 +143,12 @@ body {
         margin-top: 5px;
     }
     .ui.card .highlight {
-        background:#425261 !important;
+        background: var(--primary);
+        /* background:#425261 !important; */
     }
     .ui.card .highlight_select {
-        background:#425261 !important;
+        background: var(--primary);
+        /* background:#425261 !important; */
     }
     .drag_select {
         border: none !important;
@@ -750,10 +752,14 @@ body[data-theme='dark']
     background:rgba(255, 255, 255, 0.2) !important;
     color: #000000
 }
-.icon {
-    margin-right: 5px !important
+.img {
+    /* background: rgb(255, 255, 255, .2); */
+    box-shadow: 2px 1px #000;
 }
-
+.icon {
+    border-radius: 4px;
+    margin-right: 5px !important;
+}
 .row {
     padding: .6em !important;
 }
@@ -1158,4 +1164,8 @@ ul {
 li {
     margin-left: -35px;
     list-style: none ;
+}
+
+:root {
+    --primary: rgb(28, 118, 228)
 }

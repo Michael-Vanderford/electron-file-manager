@@ -95,6 +95,26 @@ function is_gio_file(href) {
 }
 
 /**
+ *
+ * @param {string[]} paths
+ */
+exports.join = function(paths) {
+    let paths_arr = paths.split(',')
+    let gio_path = ''
+    paths_arr.forEach((path, idx) => {
+
+        if (idx > 0) {
+            if (path.indexOf('//') > -1) {
+                path.replace('//', '/')
+            }
+            gio_path += path
+        }
+    });
+
+    return gio_path
+}
+
+/**
  * Get File Information from GIO (gvfs)
  * @param {*} href
  * @param {*} callback
@@ -160,7 +180,7 @@ exports.get_dir = function(dir, callback) {
                         file_obj.name = files[0]
 
                         if (is_gio_file(dir)) {
-                            file_obj.href = dir + files[0]  + '/'
+                            file_obj.href = dir + '/' + files[0]
                         } else {
                             file_obj.href = dir + '/' + files[0]
                         }
@@ -290,6 +310,10 @@ exports.mkdir = function(destination, callback) {
  * @param {*} callback
  */
 exports.rm = function (href, callback) {
+
+
+
+
     exec(`gio remove "${href}"`).then(res => {
         return callback(res)
     }).catch(err => {
