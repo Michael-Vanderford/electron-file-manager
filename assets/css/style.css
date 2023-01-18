@@ -618,15 +618,15 @@ a {
 }
 .img:hover {
   opacity: 0.95;
-  border: 1px solid #069;
-  /* width: 200px; */
+  border: 0px solid #069;
   transform: scale(2);
   position:relative;
   z-index: 2 !important;
 }
 .img {
-    border:2px solid #000000 !important;
-    background:#000000 !important;
+    /* border:2px solid #000000 !important; */
+    /* background:#000000 !important; */
+    box-shadow: 2px 2px #000;
 }
 .icon16 {
     height: 16px !important;
@@ -751,10 +751,6 @@ body[data-theme='dark']
 .highlight_select {
     background:rgba(255, 255, 255, 0.2) !important;
     color: #000000
-}
-.img {
-    /* background: rgb(255, 255, 255, .2); */
-    box-shadow: 2px 1px #000;
 }
 .icon {
     border-radius: 4px;
@@ -1017,7 +1013,7 @@ input:focus {
 
 }
 
-@`media only screen and (min-width: 1280px) {
+@media only screen and (min-width: 1280px) {
 
   body {
         font-size:.9em;

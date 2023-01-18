@@ -1620,7 +1620,8 @@ function notice(notice_msg) {
 
 function get_sidebar_home() {
 
-    let my_computer_arr = ['Home','Desktop','Documents','Music','Pictures','Vidoe','Downloads','Recent','File System']
+    let my_computer_arr = ['Home','Desktop','Documents','Music','Pictures','Video','Downloads','Recent','File System']
+    let my_computer_icons_arr = ['home','desktop','folder','music','image','video','download','history','drive']
     let devices_arr = []
     let network_arr = []
 
@@ -1632,11 +1633,12 @@ function get_sidebar_home() {
         console.log(my_computer_arr[i])
 
         let item = add_div()
+        item.classList.add('flex')
+
         let link = add_link(my_computer_arr[i], my_computer_arr[i])
 
         item.classList.add('item')
-
-        item.append(link)
+        item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
 
         sidebar_items.append(item)
 
@@ -2967,6 +2969,13 @@ function get_card1(file) {
     audio.append(source);
     card.append(icon_col, info_col, audio);
     card.dataset.href = file.href;
+
+    console.log(file)
+
+    if (file["access::can-write"] == "FALSE") {
+        console.log('what')
+        card.style = 'opacity: 0.6 !important';
+    }
 
     // Directory
     if (file.is_dir) {
@@ -10605,6 +10614,10 @@ window.addEventListener('DOMContentLoaded', () => {
             regex.test(e.key) &&
             e.key != "PageDown" &&
             e.key != "PageUp" &&
+            e.key != 'ArrowUp' &&
+            e.key != 'ArrowDown' &&
+            e.key != 'ArrowLeft' &&
+            e.key != 'ArrowRight' &&
             !e.ctrlKey &&
             !e.shiftKey &&
             !e.altKey &&
