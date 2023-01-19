@@ -4632,13 +4632,14 @@ async function get_workspace() {
 
             local_items.forEach((item, idx) => {
 
-                // console.log(item)
+                console.log(item)
 
                 let card = get_card1(item)
                 workspace.append(card)
 
                 let icon = card.querySelector('.icon')
-                icon.src = item.href
+                icon.style = 'transform: scale(.75);'
+                // icon.src = item.hreff
 
                 let rm_icon = add_icon('times');
                 rm_icon.classList.add('small');

@@ -249,12 +249,21 @@ function get_folder_size(href) {
  * @param {string} href
  */
 function get_folder_size1(href) {
-    cmd = "cd '" + href + "'; du -Hs"
-    du = exec(cmd)
-    du.stdout.on('data', function (res) {
-        let size = parseInt(res.replace('.', '') * 1024)
-        active_window.send('folder_size', {href: href, size: size})
-    })
+    // cmd = "cd '" + href + "'; du -Hs"
+    // du = exec(cmd)
+    // du.stdout.on('data', function (res) {
+    //     let size = parseInt(res.replace('.', '') * 1024)
+    //     active_window.send('folder_size', {href: href, size: size})
+    // })
+    // du.stderr
+    try {
+        cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
+        const {err, stdout, stderr } = exec1(cmd);
+        return stdout;
+    } catch (err) {
+        return 0
+        // active_window.send('notification', err)
+    }
 
 }
 
@@ -545,7 +554,7 @@ function copyfolder(source, destination, callback) {
 
             gio.mkdir(destination, (res) => {
                 // active_window.send('notification', res)
-                console.log(res)
+                // console.log(res)
             })
 
             dirents.forEach(file => {
@@ -742,10 +751,10 @@ function copy() {
                                     size: 0
                                 }
 
-                                // active_window.send('get_card', file_obj)
-                                // active_window.send('update_cards1', destination)
-
+                                active_window.send('get_card', file_obj)
                                 get_folder_size1(destination)
+
+                                isMainView = 0;
 
                             } else {
                                 get_folder_size1(active_folder)
@@ -761,7 +770,7 @@ function copy() {
             } else {
 
                 if (source == destination) {
-                    console.log(path.extname(source))
+                    // console.log(path.extname(source))
                     destination = `${active_folder}/Copy ${path.basename(destination)}`  //path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
                 }
 
@@ -1469,7 +1478,7 @@ const get_dir1 = async (dir) => {
 
     return exec1(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}).then(res => {
 
-        console.log(res.length)
+        // console.log(res.length)
 
         if (!res.stderr) {
 
@@ -1531,302 +1540,304 @@ const get_dir1 = async (dir) => {
 
 }
 
-let del_arr_folders = []
-let arr_counter = 1
-/**
- * Delete File or Folder
- * @param {string} href
- */
-function delete_file(href) {
-
-    // del_arr_folders.push(href)
-    // del_arr_folders.forEach(item => {
-    //     console.log(item)
-    // })
-
-    del_arr_folders.push(href)
-    gio.get_dir(href, files => {
-        files.forEach(file => {
-            if (file.is_dir) {
-                delete_file(href + "/" + file.name)
-                ++arr_counter;
-            }
-        })
-        --arr_counter;
-        // console.log(arr_counter, del_arr_folders)
-        if (arr_counter == 0) {
-            del_arr_folders.forEach(href => {
-                gio.get_dir(href, (dirents) => {
-                    dirents.forEach((file, idx) => {
-                        if (!file.is_dir) {
-                            gio.rm(file.href).then((res) => {
-                                if (res.stderr) {
-                                    console.log(res.stderr)
-                                } else {
-                                    console.log('deleted', file.href)
-                                }
-                            })
-                        }
-                        if (dirents.length - 1 == idx) {
-                            console.log('running', href)
-                        }
-                    })
-                })
-            })
-            setTimeout(() => {
-
-                del_arr_folders.slice().reverse().forEach(folder => {
-
-                    gio.rm(folder).then((res) => {
-                        if (res.stderr) {
-                            console.log(res.stderr)
-                        } else {
-                            console.log('deleted', folder)
-                        }
-                    })
-                })
-                del_arr_folders = []
-
-            }, 1000);
-        }
-
-    })
-
-}
-
-// // let delete_arr1 = []
-// // let arr_counter1 = 1
-// // let arr_counter10 = 0
-// // let state = 0
+// let del_arr_folders = []
+// let del_arr_files = []
+// let arr_counter = 1
 // /**
-//  * Delete a file or folder from the filesystem
+//  * Delete File or Folder
 //  * @param {string} href
-//  * @param {int} callback *
 //  */
-// function delete_file(href, callback) {
+// function delete_file(href) {
 
-//     // gio.get_file1(href).then(stats => {
-
-//     //     if (stats.type == 'directory') {
-
-//     //         if (arr_counter1 == 0) {
-//     //             delete_arr1.push(stats)
-//     //         }
-
-//     //         gio.get_dir1(href).then(dirents => {
-
-//     //             if (state == 0) {
-
-//     //                 dir = dirents.filter(x => x.is_dir == 1)
-//     //                 if (dir.length > 0) {
-
-//     //                     dir.forEach(file => {
-
-//     //                         ++arr_counter1
-//     //                         delete_arr1.push(file)
-//     //                         delete_file(href + "/" + file.name, () => {})
-
-//     //                     })
-
-//     //                 }
-//     //                 --arr_counter1
-//     //             }
-
-//     //             if (arr_counter1 == 0) {
-
-//     //                 state = 1
-
-//     //                 delete_arr1.forEach(dir => {
-
-//     //                     // console.log(dir.href)
-//     //                     gio.get_dir1(dir.href).then(res => {
-
-//     //                         res.sort((a, b) => {
-//     //                             if (a.is_dir != b.is_dir) {
-//     //                                 return (a.is_dir ? -1 : 1);
-//     //                             }
-//     //                         })
-
-//     //                         res.forEach(file => {
-
-//     //                             console.log(file.is_dir, file.href)
-//     //                             gio.rm(file.href, () => {
-
-//     //                             })
-
-//     //                         })
-
-//     //                         delete_arr1.forEach(file => {
-//     //                             gio.rm(file.href, () => {
-//     //                                 console.log('deleted folder', file.href)
-//     //                             })
-//     //                         })
-
-//     //                     })
-
-//     //                     delete_arr1.forEach(file => {
-//     //                         gio.rm(file.href, () => {
-//     //                             console.log('deleted folder', file.href)
-//     //                         })
-//     //                     })
-
-
-
-//     //                     if (arr_counter1 == 1) {
-//     //                         console.log('running')
-//     //                     }
-
-
-//     //                 })
-
-//     //                 state = 0;
-//     //                 delete_arr1 = []
-
-//     //             }
-
-//     //         })
-
-
-
-//     //     }
-
-//     //     delete_arr1.push(stats)
-
-//     // })
-
-
-
-//     // gio.get_dir(href, dirents => {
-
-//     //     dirents.forEach(file => {
-//     //         if (file.is_dir) {
-//     //             delete_arr.push(file.href);
-//     //             delete_file(href + '/' + file.href, (res) = {});
-//     //         } else {
-//     //             delete_arr.unshift(file.href);
-//     //         }
-//     //     })
-
-//     //     delete_arr.forEach(href => {
-//     //         gio.rm(href, (res) => {
-//     //             if (res.stderr) {
-//     //                 active_window.send('notification', res.stderr);
-//     //             }
-//     //         })
-//     //     })
-
-//     //     delete_arr = [];
-//     //     return callback(1);
-
-//     // })
-
-
-//     if (!isGioFile(href)) {
-
-//         fs.stat(href, (err, stats) => {
-
-//             if (!err) {
-//                 /* Folder */
-//                 if (stats.isDirectory()) {
-//                     fs.rm(href, {recursive: true}, (err) => {
-//                         if (err) {
-//                             active_window.send('notification', err)
-//                             callback(err)
-//                         } else {
-
-//                             try{
-
-//                                 windows.forEach(win => {
-//                                     win.send('remove_card', href);
-//                                 })
-
-//                             } catch (err) {
-//                                 active_window.send('notification', err)
-//                                 active_window.send('notification', err);
-//                             }
-
-//                             // Update disk size
-//                             get_disk_space({href: current_directory}, (res) => {
-//                                 active_window.send('disk_space', res)
-//                             });
-
-//                             callback(1);
-//                         }
-//                     })
-//                 /* File */
-//                 } else {
-//                     fs.unlink(href, err => {
-
-//                         if (err) {
-//                             active_window.send('notification', err)
-//                             console.log('error deleteing file', href);
-//                             callback(err);
-//                         } else {
-
-//                             try {
-//                                 active_window.send('remove_card', href);
-//                             } catch (err) {
-//                                 active_window.send('notification', err)
-//                                 console.log('error deleting file', err)
-//                             }
-
-//                             // Update disk size
-//                             get_disk_space({href: current_directory}, (res) => {
-//                                 active_window.send('disk_space', res)
-//                             });
-
-//                             callback(1);
-//                         }
-
-//                     })
-//                 }
-
-//             } else {
-
-//                 if (href.indexOf('smb') > -1 || href.indexOf('sftp') > -1) {
-
-//                     gio.rm(href, (res) => {
-//                         if (!res.stderr) {
-//                             active_window.send('remove_card', href);
-//                         } else {
-//                             active_window.send('notification', res.stderr)
-//                         }
-
-//                     })
-
-
-//                     // exec1(`gio remove -f "${file}"`).then(res => {
-//                     //     if (!res.stderr) {
-//                     //         active_window.send('remove_card', file);
-//                     //     } else {
-//                     //         active_window.send('notification', res)
-//                     //     }
-
-//                     // }).catch(err => {
-//                     //     active_window.send('notification', err)
-//                     // })
-//                 }
+//     del_arr_folders.push(href)
+//     gio.get_dir(href, files => {
+//         files.forEach(file => {
+//             if (file.is_dir) {
+//                 delete_file(href + "/" + file.name)
+//                 ++arr_counter;
 //             }
-
 //         })
-
-//     } else {
-//         gio.get_file(href, file => {
-//             if (file.type == 'directory') {
-//                 active_window.send('notification','Error: Deleting Remote Directory is not Implemented')
-//             } else {
-//                 gio.rm(href).then(() => {
-//                     if (isMainView) {
-//                         active_window.send('remove_card', href)
+//         --arr_counter;
+//         if (arr_counter == 0) {
+//             del_arr_folders.reverse().forEach((folder, idx1) => {
+//                 gio.get_dir(folder, (dirents) => {
+//                     if (dirents.length > 0) {
+//                         dirents.forEach((file, idx) => {
+//                             if (!file.is_dir) {
+//                                 del_arr_files.push(file.href)
+//                                 gio.rm(file.href).then((res) => {
+//                                     if (res.stderr) {
+//                                         console.log(res.stderr)
+//                                     } else {
+//                                         console.log('deleted', file.href)
+//                                         if (idx == dirents.length - 1) {
+//                                             gio.rm(folder).then((res) => {
+//                                                 if (res.stderr) {
+//                                                     console.log(res.stderr)
+//                                                 } else {
+//                                                     console.log('deleted', folder)
+//                                                 }
+//                                             })
+//                                         }
+//                                     }
+//                                 })
+//                             }
+//                         })
+//                     } else {
+//                         gio.rm(folder, () => {})
 //                     }
 //                 })
-//             }
-//         })
-//     }
+//                 // if (idx1 == del_arr_folders.length - 1) {
+//                 //     del_arr_folders.forEach(folder => {
+//                 //         gio.rm(folder, () => {
 
+//                 //         })
+//                 //     })
+//                 //     active_window.send('remove_card', folder)
+//                 // }
+//             })
+//             del_arr_folders = []
 
+//             // }, 1000);
+//         }
+
+//     })
 
 // }
+
+// let delete_arr1 = []
+// let arr_counter1 = 1
+// let arr_counter10 = 0
+// let state = 0
+/**
+ * Delete a file or folder from the filesystem
+ * @param {string} href
+ * @param {int} callback *
+ */
+function delete_file(href, callback) {
+
+    // gio.get_file1(href).then(stats => {
+
+    //     if (stats.type == 'directory') {
+
+    //         if (arr_counter1 == 0) {
+    //             delete_arr1.push(stats)
+    //         }
+
+    //         gio.get_dir1(href).then(dirents => {
+
+    //             if (state == 0) {
+
+    //                 dir = dirents.filter(x => x.is_dir == 1)
+    //                 if (dir.length > 0) {
+
+    //                     dir.forEach(file => {
+
+    //                         ++arr_counter1
+    //                         delete_arr1.push(file)
+    //                         delete_file(href + "/" + file.name, () => {})
+
+    //                     })
+
+    //                 }
+    //                 --arr_counter1
+    //             }
+
+    //             if (arr_counter1 == 0) {
+
+    //                 state = 1
+
+    //                 delete_arr1.forEach(dir => {
+
+    //                     // console.log(dir.href)
+    //                     gio.get_dir1(dir.href).then(res => {
+
+    //                         res.sort((a, b) => {
+    //                             if (a.is_dir != b.is_dir) {
+    //                                 return (a.is_dir ? -1 : 1);
+    //                             }
+    //                         })
+
+    //                         res.forEach(file => {
+
+    //                             console.log(file.is_dir, file.href)
+    //                             gio.rm(file.href, () => {
+
+    //                             })
+
+    //                         })
+
+    //                         delete_arr1.forEach(file => {
+    //                             gio.rm(file.href, () => {
+    //                                 console.log('deleted folder', file.href)
+    //                             })
+    //                         })
+
+    //                     })
+
+    //                     delete_arr1.forEach(file => {
+    //                         gio.rm(file.href, () => {
+    //                             console.log('deleted folder', file.href)
+    //                         })
+    //                     })
+
+
+
+    //                     if (arr_counter1 == 1) {
+    //                         console.log('running')
+    //                     }
+
+
+    //                 })
+
+    //                 state = 0;
+    //                 delete_arr1 = []
+
+    //             }
+
+    //         })
+
+
+
+    //     }
+
+    //     delete_arr1.push(stats)
+
+    // })
+
+
+
+    // gio.get_dir(href, dirents => {
+
+    //     dirents.forEach(file => {
+    //         if (file.is_dir) {
+    //             delete_arr.push(file.href);
+    //             delete_file(href + '/' + file.href, (res) = {});
+    //         } else {
+    //             delete_arr.unshift(file.href);
+    //         }
+    //     })
+
+    //     delete_arr.forEach(href => {
+    //         gio.rm(href, (res) => {
+    //             if (res.stderr) {
+    //                 active_window.send('notification', res.stderr);
+    //             }
+    //         })
+    //     })
+
+    //     delete_arr = [];
+    //     return callback(1);
+
+    // })
+
+
+    if (!isGioFile(href)) {
+
+        fs.stat(href, (err, stats) => {
+
+            if (!err) {
+                /* Folder */
+                if (stats.isDirectory()) {
+                    fs.rm(href, {recursive: true}, (err) => {
+                        if (err) {
+                            active_window.send('notification', err)
+                            callback(err)
+                        } else {
+
+                            try{
+
+                                windows.forEach(win => {
+                                    win.send('remove_card', href);
+                                })
+
+                            } catch (err) {
+                                active_window.send('notification', err)
+                                active_window.send('notification', err);
+                            }
+
+                            // Update disk size
+                            get_disk_space({href: current_directory}, (res) => {
+                                active_window.send('disk_space', res)
+                            });
+
+                            callback(1);
+                        }
+                    })
+                /* File */
+                } else {
+                    fs.unlink(href, err => {
+
+                        if (err) {
+                            active_window.send('notification', err)
+                            console.log('error deleteing file', href);
+                            callback(err);
+                        } else {
+
+                            try {
+                                active_window.send('remove_card', href);
+                            } catch (err) {
+                                active_window.send('notification', err)
+                                console.log('error deleting file', err)
+                            }
+
+                            // Update disk size
+                            get_disk_space({href: current_directory}, (res) => {
+                                active_window.send('disk_space', res)
+                            });
+
+                            callback(1);
+                        }
+
+                    })
+                }
+
+            } else {
+
+                if (href.indexOf('smb') > -1 || href.indexOf('sftp') > -1) {
+
+                    gio.rm(href, (res) => {
+                        if (!res.stderr) {
+                            active_window.send('remove_card', href);
+                        } else {
+                            active_window.send('notification', res.stderr)
+                        }
+
+                    })
+
+
+                    // exec1(`gio remove -f "${file}"`).then(res => {
+                    //     if (!res.stderr) {
+                    //         active_window.send('remove_card', file);
+                    //     } else {
+                    //         active_window.send('notification', res)
+                    //     }
+
+                    // }).catch(err => {
+                    //     active_window.send('notification', err)
+                    // })
+                }
+            }
+
+        })
+
+    } else {
+        gio.get_file(href, file => {
+            if (file.type == 'directory') {
+                active_window.send('notification','Error: Deleting Remote Directory is not Implemented')
+            } else {
+                gio.rm(href).then(() => {
+                    if (isMainView) {
+                        active_window.send('remove_card', href)
+                    }
+                })
+            }
+        })
+    }
+
+
+
+}
 
 function clear_copy_arr() {
     copy_files_arr = []
@@ -3481,6 +3492,7 @@ ipcMain.handle('get_folder_size1', async (e , href) => {
         const {err, stdout, stderr } = await exec1(cmd);
         return stdout;
     } catch (err) {
+        return 0
         // active_window.send('notification', err)
     }
 
