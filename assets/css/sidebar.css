@@ -11,6 +11,7 @@
     }
 
     #sidebar a {
+        font-weight: normal !important;
         color: rgb(65, 131, 196, 0.8) !important;
     }
 

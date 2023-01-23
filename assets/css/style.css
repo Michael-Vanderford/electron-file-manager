@@ -89,6 +89,12 @@ body {
         background-color: #425261;
         border-radius: 5px;
     }
+    #notification {
+        background: #252525 !important;
+        color: #cfcfcf !important;
+        border: 1px solid #222222 !important;
+        border-top-left-radius: 5px !important;
+    }
     #chart {
         width: '100px';
         height: '100px';
@@ -144,11 +150,9 @@ body {
     }
     .ui.card .highlight {
         background: var(--primary);
-        /* background:#425261 !important; */
     }
     .ui.card .highlight_select {
         background: var(--primary);
-        /* background:#425261 !important; */
     }
     .drag_select {
         border: none !important;
@@ -348,8 +352,10 @@ body {
         border-radius: 15px;
     }
     #notification {
+        background: #f7f7f7 !important;
         color: #222222 !important;
-        background: rgba(0, 0, 0, .25) !important;
+        border: 1px solid #cdcdcd !important;
+        border-top-left-radius: 5px !important;
     }
     #txt_search {
         background: #cfcfcf !important;
@@ -495,7 +501,7 @@ body {
     background:rgba(0,0,0,.075);
     position: fixed;
     bottom: 0;
-    width: 210px;
+    width: 300px;
     z-index: 1000;
 }
 
@@ -626,7 +632,16 @@ a {
 .img {
     /* border:2px solid #000000 !important; */
     /* background:#000000 !important; */
-    box-shadow: 2px 2px #000;
+    /* box-shadow: 2px 2px #000; */
+    /* box-shadow: 1px 1px 3px #222; */
+    filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
+}
+.svg {
+    background:rgba(250, 250, 250, .2);
+    filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
+}
+.icon {
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
 }
 .icon16 {
     height: 16px !important;
@@ -746,6 +761,7 @@ body[data-theme='dark']
 {
     background:rgba(255, 255, 255, 0.2) !important;
     color: #000000
+
 }
 body[data-theme='dark']
 .highlight_select {

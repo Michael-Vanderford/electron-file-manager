@@ -2,6 +2,8 @@
 const util  = require('util')
 const path  = require('path')
 const exec  = util.promisify(require('child_process').exec)
+const exexSync = require('child_process').exec;
+const spawn = require('child_process').spawn;
 
 let file_arr = []
 
@@ -140,7 +142,7 @@ get_file1 = async (href) => {
 
 }
 
-get_dir1 = async (dir) => {
+get_dir1 = async (dir, callback) => {
 
     let dirents = []
     file_arr    = []
@@ -195,13 +197,12 @@ get_dir1 = async (dir) => {
         })
 
         file_arr = dirents;
-        return dirents
+        return callback(dirents)
 
 
     })
 
 }
-
 
 /**
  * Get File Information from GIO (gvfs)
@@ -314,13 +315,15 @@ get_dir = (dir, callback) => {
  * @param {callback} callback
  *
  */
-exports.cp = function(source, destination, callback) {
+exports.cp = function(source, destination) {
 
-    exec(`gio copy "${source}" "${destination}"`).then(res => {
-        return callback(res);
-    }).catch(err => {
-        return callback(err);
-    })
+    spawn(`gio copy "${source}" "${destination}"`)
+    // exexSync(`gio copy "${source}" "${destination}"`, (err, stdout, stderr) => {})
+    // .then(res => {
+    //     return callback(res);
+    // }).catch(err => {
+    //     return callback(err);
+    // })
 
 };
 
@@ -337,12 +340,16 @@ exports.mkdir = function(destination, callback) {
     })
 }
 
+exports.rename = function(source, destination, callback) {
+    return exexSync(`gio rename "${source}" "${destination}"`)
+}
+
 /**
  * Remote a File or Directory using GIO (gvfs)
  * @param {*} href
  * @param {*} callback
  */
-rm = async (href) => {
+rm = (href) => {
 
     return exec(`gio remove -f "${href}"`)
     // .then(res => {

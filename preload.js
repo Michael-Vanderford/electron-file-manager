@@ -99,6 +99,14 @@ let settings            = "";
 // Inputs
 let input_value0        = "";
 
+ipcRenderer.on('set_progress_msg', (e, msg) => {
+    set_progress_msg(msg)
+})
+
+ipcRenderer.on('set_progress', (e, max, value) => {
+    set_progress(max, value)
+})
+
 ipcRenderer.on('get_devices', (e) => {
     get_devices()
 })
@@ -138,8 +146,19 @@ ipcRenderer.on('connect', (e) => {
 
     // Init
     let cmd = '';
+    let chk_pk = document.getElementById('chk_pk')
     let btn_connect = document.getElementById('button_connect')
+    let password = document.getElementById('txt_password')
     btn_connect.tabIndex = 1
+
+    chk_pk.onchange = () => {
+        if (chk_pk.checked) {
+            password.disabled = true
+        } else {
+            password.disabled = false
+        }
+    }
+
     btn_connect.onclick = (e) => {
 
         e.preventDefault()
@@ -149,16 +168,17 @@ ipcRenderer.on('connect', (e) => {
         let conntection_type = document.getElementById('connection_type')
         let server = document.getElementById('txt_server')
         let username = document.getElementById('txt_username')
-        let password = document.getElementById('txt_password')
+
         let connect_msg = document.getElementById('connect_msg')
 
         connect_msg.innerHTML = `Connecting to ${server.value}`
 
         // Process
-        let inputs = [].slice.call(document.querySelectorAll('.input'))
+        let inputs = [].slice.call(document.querySelectorAll('.input, .checkbox'))
+
         inputs.every(input => {
 
-            if (input.value == '') {
+            if (input.value == '' && input.disabled == false) {
                 connect_msg.innerHTML = `${input.placeholder} Required.`, add_br()
                 state = 0;
                 return false
@@ -197,6 +217,7 @@ ipcRenderer.on('connect', (e) => {
         console.log(conntection_type.value)
 
     }
+
 })
 
 // Confirm delete
@@ -2038,6 +2059,40 @@ function update_progress(val) {
     progress.value = val;
 }
 
+function set_progress_msg (msg) {
+
+    let progress_div = document.getElementById('progress_div')
+    let progress_msg = document.getElementById('progress_msg')
+
+    progress_div.classList.remove('hidden')
+    progress_msg.innerText = msg
+
+}
+
+let prog_state = 0
+function set_progress(max, value) {
+
+    console.log(max, value)
+
+    if (prog_state == 0) {
+        prog_state = 1;
+        let progress_div = document.getElementById('progress_div');
+        let progress = document.getElementById('progress');
+        progress_div.classList.remove('hidden');
+        progress.classList.remove('hidden');
+        progress.value = 0;
+        progress.max = parseInt(max);
+    }
+
+    progress.value = parseInt(value);
+
+    if (value == max) {
+        prog_state = 0;
+        progress.value = 0;
+        progress_div.classList.add('hidden');
+    }
+}
+
 /**
  * Show progress for file operations
  * @param {int} max
@@ -2956,9 +3011,9 @@ function get_card1(file) {
     info_col.classList.add('col', 'info_col')
     link.draggable = false
 
-    link.classList.add('header_link')
     card.draggable = true
     card.classList.add('card', 'flex', 'nav_item')
+    link.classList.add('header_link')
     icon.classList.add('icon')
     size.classList.add('size')
     date.classList.add('date')
@@ -3086,7 +3141,7 @@ function get_card1(file) {
                     icon.src = res
                 })
             } else {
-                icon.classList.add('lazy')
+                icon.classList.add('lazy', 'svg')
                 icon.dataset.src = file.href
             }
 
@@ -3098,10 +3153,11 @@ function get_card1(file) {
     }
 
     card.onclick = (e) => {
-        if (card.classList.contains('highlight_select') || card.classList.contains('ds-selected')) {
+        if (card.classList.contains('highlight_select') && !card.classList.contains('workspace_card')) {
             card.classList.remove('highlight_select', 'ds-selected')
-        } else {
+        } else if (!card.classList.contains('workspace_card')) {
             card.classList.add('highlight_select')
+            notification(`${path.basename(file.href)} Selected. (${get_file_size(file.size)})`)
         }
     }
 
@@ -4635,10 +4691,12 @@ async function get_workspace() {
                 console.log(item)
 
                 let card = get_card1(item)
+                card.classList.add('workspace_card')
                 workspace.append(card)
 
                 let icon = card.querySelector('.icon')
-                icon.style = 'transform: scale(.75);'
+                icon.style = 'width: 16px !important; height: 16px !important'
+
                 // icon.src = item.hreff
 
                 let rm_icon = add_icon('times');
@@ -9373,20 +9431,32 @@ function rename_file(source, destination_name, callback) {
         } else {
 
             console.log(source, filename)
-            fs.rename(source, filename, function (err) {
-                if (!err) {
+            if (is_gio_file(source)) {
+                console.log('shit')
 
+                gio.rename(source, destination_name, () => {
                     notification(`Renamed ${source} to ${filename}`)
-                    return callback(1)
+                })
 
-                } else {
+            } else {
 
-                    notification(err)
-                    return callback(err)
+                fs.rename(source, filename, function (err) {
+                    if (!err) {
 
-                }
+                        notification(`Renamed ${source} to ${filename}`)
+                        return callback(1)
 
-            })
+                    } else {
+
+                        notification(err)
+                        return callback(err)
+
+                    }
+
+                })
+
+            }
+
         }
 
     }
@@ -10073,24 +10143,38 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     // RENAME FILE
     if (command === 'rename') {
 
-        href2 = source
+        let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+        if (cards.length > 0) {
+            cards.forEach(card => {
+                if (card) {
+                    console.log(card)
+                    let header = card.querySelector('a')
+                    header.classList.add('hidden')
 
-        console.log('card id ' + card_id)
-        let card = document.getElementById(card_id)
+                    let input = card.querySelector('input')
+                    input.spellcheck = false
+                    input.classList.remove('hidden')
+                    input.setSelectionRange(0, input.value.length - path.extname(header.href).length)
+                    input.focus()
 
-        if (card) {
+                    console.log('running focus')
+                }
 
-            let header = card.querySelector('a')
-            let input = card.querySelector('input')
-
-            header.classList.add('hidden')
-            input.classList.remove('hidden')
-
-            console.log('running focus')
-            input.focus()
-            input.select()
-
+            })
         }
+
+        // href2 = source
+        // console.log('card id ' + card_id)
+        // let card = document.getElementById(card_id)
+        // if (card) {
+        //     let header = card.querySelector('a')
+        //     let input = card.querySelector('input')
+        //     header.classList.add('hidden')
+        //     input.classList.remove('hidden')
+        //     console.log('running focus')
+        //     input.focus()
+        //     input.select()
+        // }
 
     }
 
