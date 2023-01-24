@@ -643,6 +643,9 @@ a {
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
 }
+.icon:hover {
+    cursor: pointer;
+}
 .icon16 {
     height: 16px !important;
     width: 16px !important;

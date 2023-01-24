@@ -1516,7 +1516,7 @@ function cp_gio_files(source, destination) {
                         copy_arr_files.forEach((file, idx) => {
                             active_window.send('notification', path.basename(file.source), path.basename(file.destination))
                             gio.cp(file.source, file.destination)
-                            active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
+                                active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
                             active_window.send('set_progress', copy_arr_files.length - 1, idx)
                             if (copy_arr_files.length - 1 == idx) {
 

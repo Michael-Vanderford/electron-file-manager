@@ -3022,7 +3022,7 @@ function get_card1(file) {
     info_col.append(input, link, date, size);
 
     audio.append(source);
-    card.append(icon_col, info_col, audio);
+    card.append(icon_col, info_col);
     card.dataset.href = file.href;
 
     console.log(file)
@@ -3083,11 +3083,19 @@ function get_card1(file) {
         } else {
             is_image = 0
         }
-
         if (file.ext === '.svg') {
             is_svg = 1
         } else {
             is_svg = 0
+        }
+
+        if (
+            file.ext === '.m4a' ||
+            file.ext === '.mp3' ||
+            file.ext === '.wav' ||
+            file.ext === '.ogg'
+        ) {
+            is_audio = 0
         }
 
         if (is_image) {
@@ -3213,6 +3221,17 @@ function get_card1(file) {
             'Modified: ' + gio.getDateTime(file["time::modified"]) +
             '\n' +
             'Created: ' + gio.getDateTime(file["time::created"])
+
+        if (is_audio) {
+
+            source.src = file.href;
+            audio.setAttribute('controls', '');
+            audio.style = 'height: 15px; width: 100%;';
+            audio.classList.add('audio')
+            audio.append(source);
+            card.append(audio);
+
+        }
 
     }
 
@@ -7338,7 +7357,10 @@ async function find_files(callback) {
                                                 size: 0
                                             }
 
-                                            search_results.append(get_card1(file_obj))
+                                            let card = get_card1(file_obj)
+                                            let icon = card.querySelector('.icon')
+                                            icon.style = 'width: 16px !important; height: 16px !important'
+                                            search_results.append(card)
                                             update_card1(files[i])
 
                                         })
