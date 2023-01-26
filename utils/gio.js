@@ -318,7 +318,7 @@ get_dir = (dir, callback) => {
 exports.cp = function(source, destination) {
 
     // spawn(`gio copy "${source}" "${destination}"`)
-    exexSync(`gio copy "${source}" "${destination}"`, (err, stdout, stderr) => {})
+    return exexSync(`gio copy "${source}" "${destination}"`, (err, stdout, stderr) => {})
     // .then(res => {
     //     return callback(res);
     // }).catch(err => {

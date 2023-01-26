@@ -970,9 +970,12 @@ ipcRenderer.on('disk_space', (e, data) => {
     if (folder_count === 0 && file_count === 0) {
 
         let msg = add_div()
+        msg.classList.add('empty_folder')
+        let icon = add_icon('folder')
+        // icon.style = 'transform: scale(2.5); display: flex; align-items: center;'
 
-        msg.append('Folder is empty');
-        msg.style = 'font-size: 23px; position: absolute; top: 50%; left: 50%; margin-top: -50px; margin-left: -100px;';
+        msg.append(icon, 'Folder is empty');
+        // msg.style = 'font-size: 23px; position: absolute; top: 50%; left: 50%; margin-top: -50px; margin-left: -100px;';
 
         info_view.classList.remove('hidden');
         info_view.append(msg);

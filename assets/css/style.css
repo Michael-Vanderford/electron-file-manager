@@ -471,6 +471,27 @@ body {
 }
 
 /* GLOBALS */
+.empty_folder {
+    /* display: flex; */
+    font-size: 23px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -50px;
+    margin-left: -100px;
+}
+.empty_folder .icon {
+    position: absolute;
+    top: -200%;
+    left: 50%;
+    transform: scale(3);
+
+    /* margin-top: -40px; */
+    /* margin-left: -100px; */
+    /* align-items: center; */
+    /* justify-content: center; */
+
+}
 .card {
     border-radius: 5px;
 }

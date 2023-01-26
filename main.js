@@ -512,15 +512,18 @@ function copyfile(source, target, callback) {
 
     if (isGioFile(targetfile)) {
 
-        gio.cp(source, targetfile, (res) => {
+        // todo: do error handling
+        gio.cp(source, targetfile);
+        // return callback(res)
+        // gio.cp(source, targetfile, (res) => {
 
-            if (res.stderr) {
-                active_window.send('notification', res.sterr)
-                return callback(res)
-            } else {
-                active_window.send('notification', res.stdout)
-            }
-        })
+        //     if (res.stderr) {
+        //         active_window.send('notification', res.sterr)
+        //         return callback(res)
+        //     } else {
+        //         active_window.send('notification', res.stdout)
+        //     }
+        // })
 
     } else {
 
