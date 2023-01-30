@@ -7,11 +7,11 @@ body {
 @media (prefers-color-scheme: dark) {
 
     body {
-        background-color: #2c2c2c;
+        background-color: var(--main-dark);
         background-repeat: no-repeat;
         background-size: cover;
-        color: #cfcfcf;
-        padding-bottom: 20px;
+        color: var(--light);
+        padding-bottom: 5px;
         height:100% !important;
         overflow: hidden !important;
     }
@@ -29,6 +29,9 @@ body {
     td {
         color: #fff;
     }
+    .ui.icon {
+        color:  #cfcfcf;
+    }
     .settings_label {
         font-weight: bold;
     }
@@ -44,6 +47,7 @@ body {
         -webkit-app-region: no-drag;
     }
     #file_menu .item {
+        /* width:80px; */
         /* box-shadow: 1px 1px 0px #252525; */
     }
     #file_menu {
@@ -91,7 +95,7 @@ body {
     }
     #notification {
         background: #252525 !important;
-        color: #cfcfcf !important;
+        /* color: #cfcfcf !important; */
         border: 1px solid #222222 !important;
         border-top-left-radius: 5px !important;
     }
@@ -301,7 +305,7 @@ body {
         background-repeat: no-repeat;
         background-size: cover;
         color: #000000 !important;
-        padding-bottom: 20px;
+        padding-bottom: 5px;
         height:100% !important;
         overflow:hidden !important;
     }
@@ -519,6 +523,10 @@ body {
 }
 
 #progress_div{
+    padding-top: 10px;;
+    padding-left:10px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
     background:rgba(0,0,0,.075);
     position: fixed;
     bottom: 0;
@@ -1201,7 +1209,13 @@ li {
     margin-left: -35px;
     list-style: none ;
 }
-
 :root {
-    --primary: rgb(28, 118, 228)
+    --main-dark: #2c2c2c;
+    --sidebar-dark: #262626;
+    --minibar-dark: #222;
+    --light: #cfcfcf;
+
+    --primary: rgb(28, 118, 228);
+    --error: rgb(223, 0, 0);
+
 }

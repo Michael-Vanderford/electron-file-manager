@@ -2,8 +2,8 @@
 @media (prefers-color-scheme: dark) {
 
     #sidebar {
-        background-color: #262626 !important;
-        color: #f7f7f7 !important;
+        background-color: var(--sidebar-dark) !important;
+        color: var(--light) !important;
     }
 
     #sidebar .title {
@@ -108,7 +108,7 @@
         padding: 8px;
         width: 38px;
         float:left;
-        background-color: #222222;
+        background-color: var(--minibar-dark);
         height:110%
     }
 
@@ -473,3 +473,13 @@
 }
 
 
+:root {
+    --main-dark: #2c2c2c;
+    --sidebar-dark: #262626;
+    --minibar-dark: #222222;
+    --light: #cfcfcf;
+
+    --primary: rgb(28, 118, 228);
+    --error: rgb(223, 0, 0);
+
+}

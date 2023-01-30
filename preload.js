@@ -22,6 +22,7 @@ const im                                        = require('imagemagick');
 const crypto                                    = require('crypto')
 const gio                                       = require('./utils/gio')
 
+
 // Arrays
 let file_arr        = []
 let copy_files_arr  = []
@@ -1643,30 +1644,108 @@ function notice(notice_msg) {
 }
 
 function get_sidebar_home() {
-
-    let my_computer_arr = ['Home','Desktop','Documents','Music','Pictures','Video','Downloads','Recent','File System']
-    let my_computer_icons_arr = ['home','desktop','folder','music','image','video','download','history','drive']
-    let devices_arr = []
-    let network_arr = []
+    let home_dir                = get_home();
+    let my_computer_arr         = ['Home','Documents','Music','Pictures','Video','Downloads','Recent','File System']
+    let my_computer_paths_arr   = [home_dir, `${path.join(home_dir, 'Documents')}`,`${path.join(home_dir, 'Music')}`,`${path.join(home_dir, 'Pictures')}`,`${path.join(home_dir, 'Video')}`,`${path.join(home_dir, 'Downloads')}`,'Recent','/']
+    let my_computer_icons_arr   = ['home','folder','music','image','video','download','history','hdd']
+    // let devices_arr = []
+    // let network_arr = []
 
     let sidebar_items = document.getElementById('sidebar_items')
+    sidebar_items.append(add_header('Home'))
 
     console.log(my_computer_arr.length)
     for (let i = 0; i < my_computer_arr.length; i++) {
 
+        let href = my_computer_paths_arr[i]
         console.log(my_computer_arr[i])
 
         let item = add_div()
         item.classList.add('flex')
 
-        let link = add_link(my_computer_arr[i], my_computer_arr[i])
+        let link = add_link(my_computer_paths_arr[i], my_computer_arr[i])
+
 
         item.classList.add('item')
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
 
         sidebar_items.append(item)
 
+        item.onclick = () => {
+            gio.get_file(href, (file) => {
+                console.log(file)
+                if (file.type === 'directory') {
+                    get_view(file.href);
+                } else {
+                    open(file.href);
+                }
+            })
+        }
+
     }
+
+    sidebar_items.append(add_header('Devices'))
+
+    let hc = 0
+    gio.get_devices(devices => {
+
+        devices.forEach((device, idx) => {
+
+            let link    = add_link( device.href, device.name);
+            let icon    = add_icon('hdd');
+            let umount  = add_icon('eject');
+            let div     = add_div()
+
+            // icon.classList.add('font-blue')
+
+            let col1 = add_div().innerHTML = (icon)
+            let col2 = add_div().innerHTML = (link)
+            let col3 = add_div().innerHTML = (umount)
+
+            link.style = 'display: block'
+            col2.style = 'width: 100%'
+
+            div.append(col1, col2, col3)
+            div.style = 'display: flex; padding: 6px; width: 100%;'
+            div.classList.add('item')
+
+            umount.addEventListener('click', (e) => {
+
+                if (dir.type == 'media' || dir.type == 'mnt') {
+                    exec(`umount "${path.join(dir.path, item)}"`, (err, stdout) => {
+                        if (!err) {
+                            get_devices();
+                            notification(stdout)
+                        } else {
+                            notification(err)
+                        }
+                    })
+
+                } else if (dir.type == 'gvfs') {
+                    exec(`fusermount -uz "${dir.path}"`, (err, stdout) => {
+                        if (!err) {
+                            get_devices();
+                            notification(stdout)
+                        } else {
+                            notification(err)
+                        }
+                    })
+                }
+
+            })
+
+            div.onclick = (e) => {
+                e.preventDefault();
+                get_view(device.href);
+            }
+
+
+            sidebar_items.append(div)
+
+
+        })
+
+    })
 
 
 }
@@ -1690,8 +1769,10 @@ function notification(msg) {
     notification.innerHTML = ''
 
     if (msg.toString().toLocaleLowerCase().search('error') > -1) {
+        // mag.classList.add('error')
         notification.style.color = '#ff0000'
     } else {
+        // mag.classList.add('light')
         notification.style.color = '#cfcfcf'
     }
 
@@ -3781,7 +3862,8 @@ function show_loader() {
         if (loader.classList.contains('active')) {
 
             hide_loader()
-            alert('Oh no. Operation timed out!')
+            notification("Error Reading the Directory. Operation Timed Out")
+            // alert('Oh no. Operation timed out!')
         }
 
     }, 10000);
@@ -4114,95 +4196,95 @@ function add_tree_item(options) {
  */
 async function get_sidebar_files(dir) {
 
-    // get_sidebar_home()
-
     let sidebar_items       = document.getElementById('sidebar_items');
     let sb_breadcrumbs      = document.createElement('ul') //add_div();
-    let dirents             = fs.readdirSync(dir, { withFileTypes: true });
+    // let dirents             = fs.readdirSync(dir, { withFileTypes: true });
 
     sidebar_items.innerHTML = '';
-    // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
-    sb_breadcrumbs.classList.add('uk-breadcrumb');
+    // // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
+    // sb_breadcrumbs.classList.add('uk-breadcrumb');
 
-    if (dirents) {
+    get_sidebar_home()
 
-        /* Make header dir selectable */
-        let dir_arr = dir.split('/')
-        let nav_path = '/'
-        dir_arr.forEach((item, idx) => {
+    // if (dirents) {
 
-            nav_path = path.join(nav_path, item);
+    //     /* Make header dir selectable */
+    //     let dir_arr = dir.split('/')
+    //     let nav_path = '/'
+    //     dir_arr.forEach((item, idx) => {
 
-            let li = document.createElement('li');
+    //         nav_path = path.join(nav_path, item);
 
-            let link = add_link(nav_path, item);
-            link.classList.add('nav_header', 'section');
-            link.dataset.src = nav_path;
-            link.style = 'font-size: 12px; color: red; padding: 2px;';
-            link.style.color = 'red';
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                get_sidebar_files(link.dataset.src);
-                get_view(link.dataset.src);
-            })
+    //         let li = document.createElement('li');
 
-            if (idx > 0) {
-                sidebar_items.append(link, '/');
-            }
+    //         let link = add_link(nav_path, item);
+    //         link.classList.add('nav_header', 'section');
+    //         link.dataset.src = nav_path;
+    //         link.style = 'font-size: 12px; color: red; padding: 2px;';
+    //         link.style.color = 'red';
+    //         link.addEventListener('click', (e) => {
+    //             e.preventDefault();
+    //             get_sidebar_files(link.dataset.src);
+    //             get_view(link.dataset.src);
+    //         })
 
-        })
+    //         if (idx > 0) {
+    //             sidebar_items.append(link, '/');
+    //         }
 
-        sidebar_items.append(add_br(), add_br());
+    //     })
 
-        //SET DEFAULT SORT OPTION
-        if (!options.sort) {
-            options.sort = 1;
-        }
+    //     sidebar_items.append(add_br(), add_br());
 
-        // SORT BY NAME
-        let filter = dirents.sort((a, b) => {
+    //     //SET DEFAULT SORT OPTION
+    //     if (!options.sort) {
+    //         options.sort = 1;
+    //     }
 
-            if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
-                return -1;
-            }
-            if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
-                return 1;
-            }
-            return 0;
-        })
+    //     // SORT BY NAME
+    //     let filter = dirents.sort((a, b) => {
 
-        const regex = /^\..*/
-        filter.forEach((file, idx) => {
+    //         if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
+    //             return -1;
+    //         }
+    //         if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
+    //             return 1;
+    //         }
+    //         return 0;
+    //     })
 
-            if (regex.test(file.name) == false || localStorage.getItem('show_hidden') == 1) {
+    //     const regex = /^\..*/
+    //     filter.forEach((file, idx) => {
 
-                let filename = file.name;
-                let filepath = dir + '/' + filename;
-                let stats = fs.statSync(filepath);
-                let is_dir = stats.isDirectory();
+    //         if (regex.test(file.name) == false || localStorage.getItem('show_hidden') == 1) {
 
-                if (is_dir) {
+    //             let filename = file.name;
+    //             let filepath = dir + '/' + filename;
+    //             let stats = fs.statSync(filepath);
+    //             let is_dir = stats.isDirectory();
 
-                    let options = {
-                        id: 'tree_' + idx,
-                        href: filepath,
-                        linktext: filename,
-                        image: '../assets/icons/vscode/default_folder.svg',
-                        is_folder: true,
-                        grid: sidebar_items,
-                        description: '',
-                        size: 0
-                    }
+    //             if (is_dir) {
 
-                    add_tree_item(options)
+    //                 let options = {
+    //                     id: 'tree_' + idx,
+    //                     href: filepath,
+    //                     linktext: filename,
+    //                     image: '../assets/icons/vscode/default_folder.svg',
+    //                     is_folder: true,
+    //                     grid: sidebar_items,
+    //                     description: '',
+    //                     size: 0
+    //                 }
 
-                }
+    //                 add_tree_item(options)
 
-            }
+    //             }
 
-        })
+    //         }
 
-    }
+    //     })
+
+    // }
 
 }
 
@@ -7922,9 +8004,8 @@ async function get_devices() {
                     if (devices.length > 0) {
 
                         device_view.append("Devices")
+
                         let ul_header = document.createElement('ul')
-
-
                         devices.forEach(item => {
 
                             let li = document.createElement('li')
@@ -8832,11 +8913,27 @@ function get_icon_path(file) {
 
 // ADD LINK
 function add_link(href, text) {
+
     let link = document.createElement('a')
     link.href = href
     link.text = text
     link.title = href
-    // link.classList.add('header_link')
+
+    link.onclick = (e) => {
+        e.preventDefault()
+    //     gio.get_file(href, (file) => {
+
+    //         console.log(href)
+
+    //         // if (file.is_dir) {
+    //         //     get_view(href)
+    //         // } else {
+
+    //         // }
+    //     })
+
+    }
+
     return link
 }
 
@@ -9655,10 +9752,10 @@ function open_terminal() {
     let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
     if (cards.length > 0) {
         cards.forEach(card => {
-            exec('gnome-terminal --working-directory=' + card.dataset.href, (error, data, getter) => {});
+            exec(`gnome-terminal --working-directory="${card.dataset.href}"`, (error, data, getter) => {});
         })
     } else {
-        exec('gnome-terminal --working-directory=' + breadcrumbs.value, (error, data, getter) => {});
+        exec(`gnome-terminal --working-directory="${breadcrumbs.value}"`, (error, data, getter) => {});
     }
 
 }
@@ -10220,11 +10317,9 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     }
 
     // IF WE RECIEVE DELETE CONFIRMED THEN DELETE FILE/S
-    ipcRenderer.on('delete_file_confirmed', (e, res) => {
-
-        delete_confirmed()
-
-    })
+    // ipcRenderer.on('delete_file_confirmed', (e, res) => {
+    //     delete_confirmed()
+    // })
 
     // OPEN TERMINAL
     if (command === 'open_terminal') {

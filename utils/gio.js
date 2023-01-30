@@ -308,6 +308,60 @@ get_dir = (dir, callback) => {
 
 }
 
+exports.get_devices = (callback) => {
+
+    exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {
+
+        if (!err) {
+
+            devices = []
+            let output = stdout.split('\n')
+            output.forEach(item => {
+                let device = {}
+                let gio_mounts = item.split(': ')
+                gio_mounts.forEach((gio_mount, idx) => {
+
+                    if (idx % 2) {
+                        let mounts = gio_mount.trim().split(' -> ')
+
+                        mounts.forEach((item, idx1) => {
+
+                            if (!idx1 % 2) {
+                                device.name = item
+                            } else {
+                                if (is_gio_file(item)) {
+                                    device.type = 1;
+                                } else {
+                                    device.type = 0
+                                }
+
+                                if (item.substring(item.length, item.length -1) === '/') {
+                                    item = item.substring(0, item.length -1)
+                                }
+
+                                device.href = item
+                            }
+
+                        })
+
+                    }
+
+
+                })
+
+                devices.push(device)
+
+            })
+
+            let devs = devices.filter(x => x.name != undefined)
+            return callback(devs)
+
+        }
+
+    })
+
+}
+
 /**
  * Copy File using GIO (gvfs)
  * @param {string} source
@@ -318,7 +372,10 @@ get_dir = (dir, callback) => {
 exports.cp = function(source, destination) {
 
     // spawn(`gio copy "${source}" "${destination}"`)
-    return exexSync(`gio copy "${source}" "${destination}"`, (err, stdout, stderr) => {})
+    return exexSync(`gio copy "${source}" "${destination}"`)
+    // , (err, stdout, stderr) => {
+        // console.log(err, stdout, stderr)
+    // })
     // .then(res => {
     //     return callback(res);
     // }).catch(err => {

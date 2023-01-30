@@ -54,7 +54,7 @@ function createConnectDialog() {
         y: y,
         frame: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -514,6 +514,7 @@ function copyfile(source, target, callback) {
 
         // todo: do error handling
         gio.cp(source, targetfile);
+
         // return callback(res)
         // gio.cp(source, targetfile, (res) => {
 
@@ -741,31 +742,31 @@ function copy() {
 
                 } else {
 
-                    if (isGioFile(destination)) {
+                    // if (isGioFile(destination)) {
 
                         cp_gio_files(source, destination)
 
-                    } else {
+                    // } else {
 
-                        copyfolder(source, destination, (res) => {
-                            if (res) {
-                                if (isMainView) {
-                                    let file_obj = {
-                                        name: path.basename(destination),
-                                        href: destination,
-                                        is_dir: 1,
-                                        ["time::modified"]: new Date(),
-                                        size: 0
-                                    }
-                                    active_window.send('get_card', file_obj)
-                                    get_folder_size1(destination)
-                                    isMainView = 0;
-                                } else {
-                                    get_folder_size1(active_folder)
-                                }
-                            }
-                        })
-                    }
+                    //     copyfolder(source, destination, (res) => {
+                    //         if (res) {
+                    //             if (isMainView) {
+                    //                 let file_obj = {
+                    //                     name: path.basename(destination),
+                    //                     href: destination,
+                    //                     is_dir: 1,
+                    //                     ["time::modified"]: new Date(),
+                    //                     size: 0
+                    //                 }
+                    //                 active_window.send('get_card', file_obj)
+                    //                 get_folder_size1(destination)
+                    //                 isMainView = 0;
+                    //             } else {
+                    //                 get_folder_size1(active_folder)
+                    //             }
+                    //         }
+                    //     })
+                    // }
                 }
 
 
@@ -1517,9 +1518,14 @@ function cp_gio_files(source, destination) {
                         })
 
                         copy_arr_files.forEach((file, idx) => {
-                            active_window.send('notification', path.basename(file.source), path.basename(file.destination))
+
+                            // active_window.send('notification', path.basename(file.source), path.basename(file.destination))
+                            // try {
                             gio.cp(file.source, file.destination)
-                                active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
+                            // } catch (err) {
+                            // }
+
+                            active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
                             active_window.send('set_progress', copy_arr_files.length - 1, idx)
                             if (copy_arr_files.length - 1 == idx) {
 
@@ -1818,7 +1824,7 @@ const createWindow = exports.createWindow = () => {
         autoHideMenuBar: true,
         icon: path.join(__dirname,'/assets/icons/folder.png'),
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -2019,7 +2025,7 @@ function createConfirmDialog(data, copy_files_arr) {
         frame: true,
         autoHideMenuBar: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -2214,7 +2220,7 @@ function createMoveDialog(data, copy_files_arr) {
         y: y,
         frame: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -2895,7 +2901,7 @@ function createOverwriteMoveDialog(data, copy_files_arr) {
         y: y,
         frame: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -3098,7 +3104,7 @@ function createDeleteDialog(delete_files_arr) {
         y: y,
         frame: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -3160,7 +3166,7 @@ function create_properties_window(filename) {
         y: y,
         frame: true,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,
@@ -3418,7 +3424,7 @@ function createChildWindow() {
         y:displayToUse.bounds.y + 50,
         frame: false,
         webPreferences: {
-            nodeIntegration: false, // is default value after Electron v5
+            nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: false,

@@ -322,6 +322,35 @@ btn_disk_view.addEventListener('click', (e) => {
     this.classList.add('active')
 })
 
+// File menu
+
+// Home
+home.onclick = (e) => {
+    window.api.get_view(home_folder)
+}
+
+// Documents
+documents.onclick = (e) => {
+    window.api.get_view(home_folder + '/Documents')
+}
+
+// Downloads
+downloads.onclick = (e) => {
+    window.api.get_view(home_folder + '/Downloads')
+}
+
+pictures.onclick = (e) => {
+    window.api.get_view(home_folder + '/Pictures')
+}
+
+videos.onclick = (e) => {
+    window.api.get_view(home_folder + '/Videos')
+}
+
+music.onclick = (e) => {
+    window.api.get_view(home_folder + '/Music')
+}
+
 $(function() {
 
     // SCROLL WHILE DRAGGING OVER
@@ -364,65 +393,6 @@ $(function() {
 
         clear_active()
         this.classList.add('active')
-
-    })
-
-    // HOME
-    $(document).on('click', '#home, #tree_home',function(e){
-
-        clear_active()
-        this.classList.add('active')
-        window.api.get_view(home_folder)
-
-    })
-
-    /* Documents */
-    $(document).on('click', '#documents',function(e){
-        clear_active()
-        this.classList.add('active')
-        window.api.get_view(home_folder + '/Documents')
-        // get_data(home_folder + '/Documents')
-
-    })
-
-    // DOWNLOADS
-    $(document).on('click', '#downloads',function(e){
-        e.preventDefault()
-        clear_active()
-        this.classList.add('active')
-        // get_data(home_folder + '/Documents')
-        // get_files(home_folder + '/Downloads')
-        window.api.get_view(home_folder + '/Downloads')
-
-    })
-
-    // PICTURES
-    $(document).on('click', '#pictures',function(e){
-
-        e.preventDefault()
-
-        clear_active()
-        this.classList.add('active')
-        // get_data(home_folder + '/Pictures')
-        window.api.get_view(home_folder + '/Pictures')
-
-    })
-
-    // VIDEO
-    $(document).on('click', '#videos',function(e){
-
-        clear_active()
-        this.classList.add('active')
-        window.api.get_view(home_folder + '/Videos')
-
-    })
-
-    // MUSIC
-    $(document).on('click', '#music',function(e){
-
-        clear_active()
-        this.classList.add('active')
-        window.api.get_view(home_folder + '/Music')
 
     })
 
