@@ -499,6 +499,11 @@ body {
 .card {
     border-radius: 5px;
 }
+.header {
+    font-size:12px;
+    font-weight: bold;
+    color: #069 !important;
+}
 .header_link {
     width:100%;
     display:block;
@@ -531,6 +536,7 @@ body {
     position: fixed;
     bottom: 0;
     width: 300px;
+    height: 50px;
     z-index: 1000;
 }
 

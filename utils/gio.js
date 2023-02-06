@@ -369,10 +369,10 @@ exports.get_devices = (callback) => {
  * @param {callback} callback
  *
  */
-exports.cp = function(source, destination) {
+exports.cp = function(source, destination, callback) {
 
     // spawn(`gio copy "${source}" "${destination}"`)
-    return exexSync(`gio copy "${source}" "${destination}"`)
+    return callback(exexSync(`gio copy "${source}" "${destination}"`))
     // , (err, stdout, stderr) => {
         // console.log(err, stdout, stderr)
     // })

@@ -15,6 +15,7 @@ const { clipboard }         = require('electron')
 const os                    = require('os')
 const gio                   = require('./utils/gio')
 
+
 let copy_files_arr          = [];
 let canceled                = 0;
 let isMainView              = 1;
@@ -263,8 +264,8 @@ function get_folder_size1(href) {
         const {err, stdout, stderr } = exec1(cmd);
         return stdout;
     } catch (err) {
+        active_window.send('notification', err)
         return 0
-        // active_window.send('notification', err)
     }
 
 }
@@ -500,6 +501,8 @@ function do_copy(source, destination, copystate, callback) {
  */
 function copyfile(source, target, callback) {
 
+    // active_window.send('set_progress_msg', `Moving File ${path.basename(source)}`)
+
     // TARGET
     var targetfile = target;
     if (fs.existsSync(target)) {
@@ -510,10 +513,14 @@ function copyfile(source, target, callback) {
 
     }
 
+
+
     if (isGioFile(targetfile)) {
 
         // todo: do error handling
-        gio.cp(source, targetfile);
+        gio.cp(source, targetfile, (res) => {
+            return callback(1)
+        });
 
         // return callback(res)
         // gio.cp(source, targetfile, (res) => {
@@ -687,21 +694,24 @@ function copy1() {
 let size = 0;
 function copy() {
 
-    // // SET SIZE FOR PROGRESS
-    // let max = 0;
-    // copy_files_arr.forEach(item => {
-    //     max += parseInt(item.size)
-    // })
+    // SET SIZE FOR PROGRESS
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        max += parseInt(item.size)
+    })
 
-    // // SHOW PROGRESS
-    // // let win = window.getFocusedWindow();
-    // windows.forEach(win => {
-    //     win.webContents.send('progress', max);
-    // })
+    // SHOW PROGRESS
+    active_window.send('progress', max);
 
-    copy_files_arr.every(file => {
 
-        let source = file.href
+    let source0 = "";
+    let source = "";
+    copy_files_arr.every((file, idx) => {
+
+        console.log('copying file', file.href)
+
+        source0 = source;
+        source = file.href;
         let destination = path.format({dir: active_folder, base: path.basename(file.href)}) //`${active_folder}/${path.basename(file.href)}`
 
         // if (source != destination) { // trap
@@ -716,10 +726,7 @@ function copy() {
                 })
 
                 // SHOW PROGRESS
-                // let win = window.getFocusedWindow();
-                windows.forEach(win => {
-                    win.webContents.send('progress', max);
-                })
+                active_window.send('progress', max);
 
             }
 
@@ -741,39 +748,19 @@ function copy() {
                     return false
 
                 } else {
+                    cp_gio_files(source, destination)
+                    if (isMainView) {
 
-                    // if (isGioFile(destination)) {
-
-                        cp_gio_files(source, destination)
-
-                    // } else {
-
-                    //     copyfolder(source, destination, (res) => {
-                    //         if (res) {
-                    //             if (isMainView) {
-                    //                 let file_obj = {
-                    //                     name: path.basename(destination),
-                    //                     href: destination,
-                    //                     is_dir: 1,
-                    //                     ["time::modified"]: new Date(),
-                    //                     size: 0
-                    //                 }
-                    //                 active_window.send('get_card', file_obj)
-                    //                 get_folder_size1(destination)
-                    //                 isMainView = 0;
-                    //             } else {
-                    //                 get_folder_size1(active_folder)
-                    //             }
-                    //         }
-                    //     })
-                    // }
+                    } else {
+                        console.log('what')
+                        get_folder_size(active_folder);
+                    }
                 }
 
 
             } else {
 
                 if (source == destination) {
-                    // console.log(path.extname(source))
                     destination = `${active_folder}/Copy ${path.basename(destination)}`  //path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
                 }
 
@@ -792,6 +779,8 @@ function copy() {
 
                     if (isMainView) {
 
+                        console.log('is main view')
+
                         let file_obj = {
                             name: path.basename(destination),
                             href: destination,
@@ -802,50 +791,37 @@ function copy() {
 
                         active_window.send('get_card', file_obj)
 
+                    } else {
+                        console.log('is not main view')
                     }
 
-                    copyfile(source, destination, (res) => {
 
+
+                    copyfile(source, destination, (res) => {
                         // Success
                         if (res) {
 
-                            active_window.send('notification', `Copied File ${destination}`)
+                            active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
 
                             if (isMainView) {
-
-                                // let file_obj = {
-                                //     name: path.basename(destination),
-                                //     href: destination,
-                                //     is_dir: 0,
-                                //     mtime: new Date / 1000,
-                                //     size: 0
-                                // }
-
-                                // active_window.send('get_card', file_obj)
                                 active_window.send('update_card', destination)
                                 active_window.send('update_cards1', active_folder)
-
-
                             } else {
-                                get_folder_size1(active_folder)
+                                console.log(active_folder)
+                                get_folder_size(active_folder)
                             }
 
                         } else {
-
                         }
-
                     })
 
                 }
 
             }
 
-        // } else {
-        //     active_window.send('notification', 'Error: Operation not Permitted!')
         }
 
         return true
-
 
     })
 
@@ -1253,9 +1229,30 @@ ipcMain.handle('get_file_count_recursive', async (e, href) => {
 
 function get_file_properties(filename) {
 
+    gio.get_file(filename, file => {
+
+        folder_count_recursive  = 0;
+        file_count_recursive    = 0;
+
+        let name            = filename;
+        let parent_folder   = path.basename(path.dirname(filename));
+        let type            = file.type;
+        let size            = '';
+        let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(file['time::access']);
+        let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime);
+        let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
+        let mode            = stats.mode;
+        let group           = stats.uid;
+        let contents        = '';
+
+    })
+
+
+
     let stats           = fs.statSync(filename)
-    let cmd             = "xdg-mime query filetype '" + filename + "'"
-    let exec_mime       = execSync(cmd).toString()
+    // let cmd          = "xdg-mime query filetype '" + filename + "'"
+    // let exec_mime       = execSync(cmd).toString()
+
 
     folder_count_recursive  = 0;
     file_count_recursive    = 0;
@@ -1521,29 +1518,32 @@ function cp_gio_files(source, destination) {
 
                             // active_window.send('notification', path.basename(file.source), path.basename(file.destination))
                             // try {
-                            gio.cp(file.source, file.destination)
-                            // } catch (err) {
-                            // }
+                            gio.cp(file.source, file.destination, (res) => {
 
-                            active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
-                            active_window.send('set_progress', copy_arr_files.length - 1, idx)
-                            if (copy_arr_files.length - 1 == idx) {
+                                active_window.send('set_progress_msg', `Copied File ${path.basename(file.source)}`)
+                                active_window.send('set_progress', copy_arr_files.length - 1, idx)
+                                if (copy_arr_files.length - 1 == idx) {
 
-                                console.log(copy_arr_folders.length)
-                                console.log(copy_arr_files.length)
+                                    console.log(copy_arr_folders.length)
+                                    console.log(copy_arr_files.length)
 
-                                active_window.send('notification', `Copied ${copy_arr_folders.length} Folders and ${copy_arr_files.length} Files.`)
+                                    active_window.send('notification', `Copied ${copy_arr_folders.length} Folders and ${copy_arr_files.length} Files.`)
 
-                                gio.get_file(copy_arr_folders[0].destination, (file) => {
-                                    file.is_dir = 1
-                                    active_window.send('get_card', file);
-                                })
+                                    gio.get_file(copy_arr_folders[0].destination, (file) => {
+                                        file.is_dir = 1
+                                        if (isMainView) {
+                                            active_window.send('get_card', file);
+                                        }
+                                    })
 
-                                copy_arr_counter = 1;
-                                copy_arr_counter1 = 1;
-                                copy_arr_files = [];
-                                copy_arr_folders = [];
-                            }
+                                    copy_arr_counter = 1;
+                                    copy_arr_counter1 = 1;
+                                    copy_arr_files = [];
+                                    copy_arr_folders = [];
+                                }
+
+                            })
+
                         })
 
 
@@ -1554,8 +1554,6 @@ function cp_gio_files(source, destination) {
     })
 
 }
-
-
 
 let del_arr_folders = [];
 let del_arr_files = [];
@@ -1582,10 +1580,10 @@ function delete_gio_files(href) {
                 gio.get_dir1(folder, dirents => {
                     files_arr = dirents.filter(x => x.is_dir == 0)
                 }).then(() => {
-                    del_arr_files.push(folder)
+                    del_arr_files.push(folder);
                     files_arr.forEach(file => {
+                        active_window.send('set_progress_msg', `Getting Files to Delete ${path.basename(file.href)}`)
                         del_arr_files.push(file.href)
-                        active_window.send('set_progress_msg', `Getting Files to Delete. ${path.basename(file.href)}` )
                     })
                 }).then(() => {
 
@@ -2297,24 +2295,24 @@ function move() {
         win.webContents.send('progress', max);
     })
 
-    copy_files_arr.forEach(file => {
+    copy_files_arr.forEach((file, idx) => {
 
         let source = file.href
         let destination = path.join(active_folder, path.basename(file.href))
 
         if (source != destination) { // trap
 
-            // SET SIZE FOR PROGRESS
-            let max = 0;
-            copy_files_arr.forEach(item => {
-                max += parseInt(item.size)
-            })
+            // // SET SIZE FOR PROGRESS
+            // let max = 0;
+            // copy_files_arr.forEach(item => {
+            //     max += parseInt(item.size)
+            // })
 
-            // SHOW PROGRESS
-            // let win = window.getFocusedWindow();
-            windows.forEach(win => {
-                win.webContents.send('progress', max);
-            })
+            // // SHOW PROGRESS
+            // // let win = window.getFocusedWindow();
+            // windows.forEach(win => {
+            //     win.webContents.send('progress', max);
+            // })
 
             if (file.is_dir) {
 
@@ -2381,6 +2379,8 @@ function move() {
                     copyfile(source, destination, (res) => {
 
                         if (res) {
+
+                            active_window.send('set_progress_msg', `Moving File ${path.basename(source)}`)
 
                             delete_file(source, (res) => {
 

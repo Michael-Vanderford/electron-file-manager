@@ -21,7 +21,7 @@ const mime                                      = require('mime-types');
 const im                                        = require('imagemagick');
 const crypto                                    = require('crypto')
 const gio                                       = require('./utils/gio')
-
+// const gvfs                                      = require('../gio/build/Release/gio')
 
 // Arrays
 let file_arr        = []
@@ -1644,16 +1644,16 @@ function notice(notice_msg) {
 }
 
 function get_sidebar_home() {
+
     let home_dir                = get_home();
     let my_computer_arr         = ['Home','Documents','Music','Pictures','Video','Downloads','Recent','File System']
     let my_computer_paths_arr   = [home_dir, `${path.join(home_dir, 'Documents')}`,`${path.join(home_dir, 'Music')}`,`${path.join(home_dir, 'Pictures')}`,`${path.join(home_dir, 'Video')}`,`${path.join(home_dir, 'Downloads')}`,'Recent','/']
     let my_computer_icons_arr   = ['home','folder','music','image','video','download','history','hdd']
-    // let devices_arr = []
-    // let network_arr = []
 
     let sidebar_items = document.getElementById('sidebar_items')
     sidebar_items.append(add_header('Home'))
 
+    // Get home
     console.log(my_computer_arr.length)
     for (let i = 0; i < my_computer_arr.length; i++) {
 
@@ -1684,9 +1684,42 @@ function get_sidebar_home() {
 
     }
 
-    sidebar_items.append(add_header('Devices'))
+    // Workspace
+    sidebar_items.append(add_header('Workspace'))
+    localStorage.setItem('minibar', 'mb_workspace')
+    local_items = JSON.parse(localStorage.getItem('workspace'))
+    if (local_items.length > 0) {
+        local_items.forEach((item, idx) => {
 
-    let hc = 0
+            let div = add_div()
+            let col1 = add_div()
+            let col2 = add_div()
+            div.style = 'display: flex; padding: 6px; width: 100%;'
+            div.classList.add('item')
+            col1.append(add_icon('bookmark'));
+            col2.append(item.name);
+            div.append(col1, col2);
+            sidebar_items.append(div);
+
+            div.onclick = () => {
+
+                gio.get_file(item.href, file => {
+                    if (file.type == 'directory') {
+                        get_view(item.href)
+                    } else {
+                        open(item.href)
+                    }
+                })
+
+
+            }
+
+
+        })
+    }
+
+    // Get devices
+    sidebar_items.append(add_header('Devices'))
     gio.get_devices(devices => {
 
         devices.forEach((device, idx) => {
@@ -1695,8 +1728,6 @@ function get_sidebar_home() {
             let icon    = add_icon('hdd');
             let umount  = add_icon('eject');
             let div     = add_div()
-
-            // icon.classList.add('font-blue')
 
             let col1 = add_div().innerHTML = (icon)
             let col2 = add_div().innerHTML = (link)
@@ -1738,15 +1769,12 @@ function get_sidebar_home() {
                 e.preventDefault();
                 get_view(device.href);
             }
-
-
             sidebar_items.append(div)
-
-
         })
 
-    })
 
+
+    })
 
 }
 
@@ -1787,7 +1815,7 @@ function notification(msg) {
     // let msg_div = add_div()
 
     // // status.style = 'overflow:auto'
-    // msg_div.style = 'overflow:auto; margin-bottom: 10px;'
+    // msg_div.style = 'overflow:auto; margn-bottom: 10px;'
 
     // msg_div.innerHTML = ''
     // msg_div.innerHTML = msg
@@ -2183,6 +2211,8 @@ function set_progress(max, value) {
  * @param {string} destination_folder // folder to update after progress stops
  */
 function get_progress(total, destination_folder) {
+
+    console.log('progress total', total)
 
     let breadcrumbs     = document.getElementById('breadcrumbs');
     let progress_div    = document.getElementById('progress_div')
@@ -3135,7 +3165,7 @@ function get_card1(file) {
         // Setting folder size
         if (!is_gio_file(file.href)) {
             ipcRenderer.invoke('get_folder_size1', file.href).then(res => {
-
+                console.log('get_folder_size', file.href, res)
                 if (parseInt(res) > 4) {
 
                     file.size = parseInt(res) * 1024
@@ -3316,6 +3346,8 @@ function get_card1(file) {
             card.append(audio);
 
         }
+
+
 
     }
 
@@ -4870,6 +4902,8 @@ function get_time_stamp(date) {
 async function get_view(dir) {
 
     // read_dir(localStorage.getItem('folder'))
+    // gio1('/home/michael/Downloads/test.txt', '/home/michael/Downloads/testing/test.txt');
+    // console.log('what', gvfs);
 
     // Set local storage
     localStorage.setItem('folder', dir);
@@ -9079,6 +9113,7 @@ async function create_folder(folder) {
 
             let main_view = document.getElementById('main_view')
             main_view.tabIndex = -1
+            main_view.preventDefault = true
 
             let card = get_card1(file_obj)
             let col = add_column('three')
@@ -10331,9 +10366,9 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
         let items = document.querySelectorAll('.highlight_select, .highlight, .ds-selected')
         items.forEach(item => {
             if (fs.statSync(item.dataset.href).isDirectory()) {
-                exec('cd "' + item.dataset.href + '"; code .');
+                exec(`cd "${item.dataset.href}"; code .`);
             } else {
-                exec('code ' + item.dataset.href);
+                exec(`code "${item.dataset.href}"`);
             }
 
         })
@@ -10686,7 +10721,7 @@ window.addEventListener('DOMContentLoaded', () => {
         e.preventDefault()
         e.stopPropagation()
 
-        main_view.focus();
+        // main_view.focus();
         main_view.tabIndex = 1;
         // main_view.style = 'border: 1px solid red !important'
         // console.log(e)
