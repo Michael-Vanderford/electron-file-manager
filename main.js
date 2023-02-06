@@ -1229,29 +1229,29 @@ ipcMain.handle('get_file_count_recursive', async (e, href) => {
 
 function get_file_properties(filename) {
 
-    gio.get_file(filename, file => {
+    // gio.get_file(filename, file => {
 
-        folder_count_recursive  = 0;
-        file_count_recursive    = 0;
+    //     folder_count_recursive  = 0;
+    //     file_count_recursive    = 0;
 
-        let name            = filename;
-        let parent_folder   = path.basename(path.dirname(filename));
-        let type            = file.type;
-        let size            = '';
-        let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(file['time::access']);
-        let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime);
-        let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
-        let mode            = stats.mode;
-        let group           = stats.uid;
-        let contents        = '';
+    //     let name            = filename;
+    //     let parent_folder   = path.basename(path.dirname(filename));
+    //     let type            = file.type;
+    //     let size            = '';
+    //     let accessed        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(file['time::access']);
+    //     let created         = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.birthtime);
+    //     let modified        = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(stats.mtime);
+    //     let mode            = stats.mode;
+    //     let group           = stats.uid;
+    //     let contents        = '';
 
-    })
+    // })
 
 
 
     let stats           = fs.statSync(filename)
-    // let cmd          = "xdg-mime query filetype '" + filename + "'"
-    // let exec_mime       = execSync(cmd).toString()
+    let cmd          = "xdg-mime query filetype '" + filename + "'"
+    let exec_mime       = execSync(cmd).toString()
 
 
     folder_count_recursive  = 0;
