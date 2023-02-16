@@ -2,7 +2,7 @@
 const util  = require('util')
 const path  = require('path')
 const exec  = util.promisify(require('child_process').exec)
-const exexSync = require('child_process').exec;
+const execSync = require('child_process').exec;
 const spawn = require('child_process').spawn;
 
 let file_arr = []
@@ -142,7 +142,7 @@ get_file1 = async (href) => {
 
 }
 
-get_dir1 = async (dir, callback) => {
+exports.get_dir_async = async (dir, callback) => {
 
     let dirents = []
     file_arr    = []
@@ -372,7 +372,7 @@ exports.get_devices = (callback) => {
 exports.cp = function(source, destination, callback) {
 
     // spawn(`gio copy "${source}" "${destination}"`)
-    return callback(exexSync(`gio copy "${source}" "${destination}"`))
+    return callback(execSync(`gio copy "${source}" "${destination}"`))
     // , (err, stdout, stderr) => {
         // console.log(err, stdout, stderr)
     // })
@@ -398,7 +398,7 @@ exports.mkdir = function(destination, callback) {
 }
 
 exports.rename = function(source, destination, callback) {
-    return exexSync(`gio rename "${source}" "${destination}"`)
+    return execSync(`gio rename "${source}" "${destination}"`)
 }
 
 /**
@@ -406,17 +406,17 @@ exports.rename = function(source, destination, callback) {
  * @param {*} href
  * @param {*} callback
  */
-rm = (href) => {
+exports.rm = (href, callback) => {
+    return callback(execSync(`gio remove -f "${href}"`))
+}
 
-    return exec(`gio remove -f "${href}"`)
-    // .then(res => {
-    //     return callback(res)
-    // }).catch(err => {
-    //     return callback(err)
-    // })
-
-    // return callback(1)
-
+/**
+ * Remote a File or Directory using GIO (gvfs)
+ * @param {*} href
+ * @param {*} callback
+ */
+exports.rm_async = (href, callback) => {
+    return callback(exec(`gio remove -f "${href}"`))
 }
 
 exports.get_mounts = function () {
@@ -475,8 +475,8 @@ exports.getDateTime = function (date) {
 }
 
 
-exports.rm = rm
+// exports.rm = rm
 exports.get_file1 = get_file1
-exports.get_dir1 = get_dir1
+// exports.get_dir1 = get_dir1
 exports.get_file = get_file
 exports.get_dir = get_dir

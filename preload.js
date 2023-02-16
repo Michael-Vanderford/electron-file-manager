@@ -1650,7 +1650,10 @@ function get_sidebar_home() {
     let my_computer_paths_arr   = [home_dir, `${path.join(home_dir, 'Documents')}`,`${path.join(home_dir, 'Music')}`,`${path.join(home_dir, 'Pictures')}`,`${path.join(home_dir, 'Video')}`,`${path.join(home_dir, 'Downloads')}`,'Recent','/']
     let my_computer_icons_arr   = ['home','folder','music','image','video','download','history','hdd']
 
+    localStorage.setItem('minibar', 'mb_home')
+
     let sidebar_items = document.getElementById('sidebar_items')
+    sidebar_items.innerHTML = ''
     sidebar_items.append(add_header('Home'))
 
     // Get home
@@ -1686,36 +1689,39 @@ function get_sidebar_home() {
 
     // Workspace
     sidebar_items.append(add_header('Workspace'))
-    localStorage.setItem('minibar', 'mb_workspace')
+    // localStorage.setItem('minibar', 'mb_workspace')
     local_items = JSON.parse(localStorage.getItem('workspace'))
-    if (local_items.length > 0) {
-        local_items.forEach((item, idx) => {
+    if (local_items != undefined) {
+        if (local_items.length > 0 && local_items != undefined) {
+            local_items.forEach((item, idx) => {
 
-            let div = add_div()
-            let col1 = add_div()
-            let col2 = add_div()
-            div.style = 'display: flex; padding: 6px; width: 100%;'
-            div.classList.add('item')
-            col1.append(add_icon('bookmark'));
-            col2.append(item.name);
-            div.append(col1, col2);
-            sidebar_items.append(div);
+                let div = add_div()
+                let col1 = add_div()
+                let col2 = add_div()
+                div.style = 'display: flex; padding: 6px; width: 100%;'
+                div.classList.add('item')
+                col1.append(add_icon('bookmark'));
+                col2.append(item.name);
+                div.append(col1, col2);
+                sidebar_items.append(div);
 
-            div.onclick = () => {
+                div.onclick = () => {
 
-                gio.get_file(item.href, file => {
-                    if (file.type == 'directory') {
-                        get_view(item.href)
-                    } else {
-                        open(item.href)
-                    }
-                })
-
-
-            }
+                    gio.get_file(item.href, file => {
+                        if (file.type == 'directory') {
+                            get_view(item.href)
+                        } else {
+                            open(item.href)
+                        }
+                    })
 
 
-        })
+                }
+
+
+            })
+        }
+
     }
 
     // Get devices
@@ -1851,7 +1857,8 @@ function get_sidebar_view() {
 
         switch (localStorage.getItem('minibar')) {
             case 'mb_home':
-                get_sidebar_files(get_home());
+                // get_sidebar_files(get_home());
+                get_sidebar_home()
                 break;
             case 'mb_workspace':
                 get_workspace();
@@ -4230,93 +4237,93 @@ async function get_sidebar_files(dir) {
 
     let sidebar_items       = document.getElementById('sidebar_items');
     let sb_breadcrumbs      = document.createElement('ul') //add_div();
-    // let dirents             = fs.readdirSync(dir, { withFileTypes: true });
+    let dirents             = fs.readdirSync(dir, { withFileTypes: true });
 
     sidebar_items.innerHTML = '';
-    // // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
-    // sb_breadcrumbs.classList.add('uk-breadcrumb');
+    // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
+    sb_breadcrumbs.classList.add('uk-breadcrumb');
 
-    get_sidebar_home()
+    // get_sidebar_home()
 
-    // if (dirents) {
+    if (dirents) {
 
-    //     /* Make header dir selectable */
-    //     let dir_arr = dir.split('/')
-    //     let nav_path = '/'
-    //     dir_arr.forEach((item, idx) => {
+        /* Make header dir selectable */
+        let dir_arr = dir.split('/')
+        let nav_path = '/'
+        dir_arr.forEach((item, idx) => {
 
-    //         nav_path = path.join(nav_path, item);
+            nav_path = path.join(nav_path, item);
 
-    //         let li = document.createElement('li');
+            let li = document.createElement('li');
 
-    //         let link = add_link(nav_path, item);
-    //         link.classList.add('nav_header', 'section');
-    //         link.dataset.src = nav_path;
-    //         link.style = 'font-size: 12px; color: red; padding: 2px;';
-    //         link.style.color = 'red';
-    //         link.addEventListener('click', (e) => {
-    //             e.preventDefault();
-    //             get_sidebar_files(link.dataset.src);
-    //             get_view(link.dataset.src);
-    //         })
+            let link = add_link(nav_path, item);
+            link.classList.add('nav_header', 'section');
+            link.dataset.src = nav_path;
+            link.style = 'font-size: 12px; color: red; padding: 2px;';
+            link.style.color = 'red';
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                get_sidebar_files(link.dataset.src);
+                get_view(link.dataset.src);
+            })
 
-    //         if (idx > 0) {
-    //             sidebar_items.append(link, '/');
-    //         }
+            if (idx > 0) {
+                sidebar_items.append(link, '/');
+            }
 
-    //     })
+        })
 
-    //     sidebar_items.append(add_br(), add_br());
+        sidebar_items.append(add_br(), add_br());
 
-    //     //SET DEFAULT SORT OPTION
-    //     if (!options.sort) {
-    //         options.sort = 1;
-    //     }
+        //SET DEFAULT SORT OPTION
+        if (!options.sort) {
+            options.sort = 1;
+        }
 
-    //     // SORT BY NAME
-    //     let filter = dirents.sort((a, b) => {
+        // SORT BY NAME
+        let filter = dirents.sort((a, b) => {
 
-    //         if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
-    //             return -1;
-    //         }
-    //         if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
-    //             return 1;
-    //         }
-    //         return 0;
-    //     })
+            if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
+                return -1;
+            }
+            if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
+                return 1;
+            }
+            return 0;
+        })
 
-    //     const regex = /^\..*/
-    //     filter.forEach((file, idx) => {
+        const regex = /^\..*/
+        filter.forEach((file, idx) => {
 
-    //         if (regex.test(file.name) == false || localStorage.getItem('show_hidden') == 1) {
+            if (regex.test(file.name) == false || localStorage.getItem('show_hidden') == 1) {
 
-    //             let filename = file.name;
-    //             let filepath = dir + '/' + filename;
-    //             let stats = fs.statSync(filepath);
-    //             let is_dir = stats.isDirectory();
+                let filename = file.name;
+                let filepath = dir + '/' + filename;
+                let stats = fs.statSync(filepath);
+                let is_dir = stats.isDirectory();
 
-    //             if (is_dir) {
+                if (is_dir) {
 
-    //                 let options = {
-    //                     id: 'tree_' + idx,
-    //                     href: filepath,
-    //                     linktext: filename,
-    //                     image: '../assets/icons/vscode/default_folder.svg',
-    //                     is_folder: true,
-    //                     grid: sidebar_items,
-    //                     description: '',
-    //                     size: 0
-    //                 }
+                    let options = {
+                        id: 'tree_' + idx,
+                        href: filepath,
+                        linktext: filename,
+                        image: '../assets/icons/vscode/default_folder.svg',
+                        is_folder: true,
+                        grid: sidebar_items,
+                        description: '',
+                        size: 0
+                    }
 
-    //                 add_tree_item(options)
+                    add_tree_item(options)
 
-    //             }
+                }
 
-    //         }
+            }
 
-    //     })
+        })
 
-    // }
+    }
 
 }
 
@@ -6818,6 +6825,9 @@ contextBridge.exposeInMainWorld('api', {
     },
     get_folders1: (dir) => {
         return get_folders1(dir)
+    },
+    get_sidebar_home: () => {
+        return get_sidebar_home()
     },
     get_sidebar_files: (dir) => {
         return get_sidebar_files(dir)

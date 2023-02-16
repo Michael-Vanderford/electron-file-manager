@@ -229,6 +229,34 @@ function formatDate(date) {
     return new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(date)
 }
 
+let fsr = 1;
+function get_folder_size_recursive (href) {
+    gio.get_dir(href, dirents => {
+        let size = 0;
+        dirents.forEach(file => {
+            if (file.is_dir) {
+                let next_dir = file.href
+                console.log(next_dir)
+                get_folder_size_recursive(next_dir)
+                ++fsr
+            } else {
+                size += parseInt(file.size)
+            }
+
+
+        })
+
+        if (--fsr == 0) {
+           console.log(get_file_size(size))
+        }
+
+        // console.log(fsr)
+
+
+
+    })
+}
+
 /**
  * I dont think this is being used
  * Get folder size. Runs du -Hs command
@@ -682,27 +710,19 @@ ipcMain.on('copy', (e) => {
     copy();
 })
 
-function copy1() {
-    let destination = ''
-    copy_files_arr.forEach(file => {
-        // destination =
-    })
-
-}
 
 // Copy
 let size = 0;
 function copy() {
 
     // SET SIZE FOR PROGRESS
-    let max = 0;
-    copy_files_arr.forEach(item => {
-        max += parseInt(item.size)
-    })
+    // let max = 0;
+    // copy_files_arr.forEach(item => {
+    //     max += parseInt(item.size)
+    // })
 
-    // SHOW PROGRESS
-    active_window.send('progress', max);
-
+    // // SHOW PROGRESS
+    // active_window.send('progress', max);
 
     let source0 = "";
     let source = "";
@@ -761,7 +781,13 @@ function copy() {
             } else {
 
                 if (source == destination) {
-                    destination = `${active_folder}/Copy ${path.basename(destination)}`  //path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
+                    let c = 0;
+                    destination = `${active_folder}/${path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length))}/Copy ${path.extname(source)}`;
+                    while (fs.existsSync(destination)) {
+                        destination = `${active_folder}/${path.basename(destination).replace(`(${c})`, `(${++c})`)}`
+                        console.log(destination)
+                    }
+                    c = 0
                 }
 
                 if (fs.existsSync(destination)) {
@@ -796,12 +822,12 @@ function copy() {
                     }
 
 
-
+                    active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
                     copyfile(source, destination, (res) => {
                         // Success
                         if (res) {
 
-                            active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
+                            active_window.send('set_progress', copy_files_arr.length - 1, idx)
 
                             if (isMainView) {
                                 active_window.send('update_card', destination)
@@ -1472,10 +1498,10 @@ let copy_arr_files = []
 let copy_arr_counter = 1
 let copy_arr_counter1 = 1
 /**
- * Delete File or Folder
+ * Copy GIO Files
  * @param {string} source
  */
-function cp_gio_files(source, destination) {
+async function cp_gio_files(source, destination) {
 
     // source = '/home/michael/Downloads/marsviewer
     // destination = 'sftp://michael@192.168.1.10/home/michael/share/marsviewer
@@ -1498,7 +1524,7 @@ function cp_gio_files(source, destination) {
         if (copy_arr_counter == 0) {
             let files_arr = []
             copy_arr_folders.forEach(folder => {
-                gio.get_dir1(folder.source, dirents => {
+                gio.get_dir_async(folder.source, dirents => {
                     files_arr = dirents.filter(x => x.is_dir == 0)
                     // files_arr.forEach(file => {
                     // })
@@ -1552,71 +1578,70 @@ function cp_gio_files(source, destination) {
             })
         }
     })
-
 }
 
-let del_arr_folders = [];
-let del_arr_files = [];
-let arr_counter = 1;
-let arr_counter1 = 1;
-/**
- * Delete File or Folder
- * @param {string} href
- */
-function delete_gio_files(href) {
+let del_file_arr = []
+let del_folder_arr = []
+let rec = 1;
+let state = 0
+async function rm_gio_files(href, callback) {
 
-    del_arr_folders.push(href)
-    gio.get_dir(href, files => {
-        files.forEach(file => {
-            if (file.is_dir) {
-                delete_gio_files(href + "/" + file.name)
-                ++arr_counter;
+    if (state == 0) {
+        del_folder_arr.push(href)
+        state = 1;
+    }
+
+    gio.get_dir(href, dirents => {
+
+        for (let i = 0; i < dirents.length; i++) {
+            if (dirents[i].is_dir) {
+                rm_gio_files(dirents[i].href)
+                ++rec
+                active_window.send('set_progress_msg', `Getting Folder ${path.basename(dirents[i].href)}`)
+                del_folder_arr.push(dirents[i].href)
+            } else {
+                active_window.send('set_progress_msg', `Getting File ${path.basename(dirents[i].href)}`)
+                del_file_arr.push(dirents[i])
             }
-        })
-        --arr_counter;
-        if (arr_counter == 0) {
-            let files_arr = []
-            del_arr_folders.forEach(folder => {
-                gio.get_dir1(folder, dirents => {
-                    files_arr = dirents.filter(x => x.is_dir == 0)
-                }).then(() => {
-                    del_arr_files.push(folder);
-                    files_arr.forEach(file => {
-                        active_window.send('set_progress_msg', `Getting Files to Delete ${path.basename(file.href)}`)
-                        del_arr_files.push(file.href)
-                    })
-                }).then(() => {
-
-                    if (++arr_counter1 == del_arr_folders.length + 1) {
-
-                        del_arr_files.sort((a,b) => {
-                            return b.length - a.length
-                        })
-
-                        del_arr_files.forEach((file, idx) => {
-                            gio.rm(file)
-                            // console.log('delete', file)
-                            active_window.send('set_progress_msg', `Deleting File ${path.basename(file)}`)
-                            active_window.send('set_progress', del_arr_files.length - 1, idx)
-                            if (del_arr_files.length - 1 == idx) {
-
-                                active_window.send('remove_card', del_arr_folders[0])
-                                active_window.send('notification', `Deleted ${del_arr_files.length} Files`)
-
-                                arr_counter = 1
-                                arr_counter1 = 1
-                                del_arr_files = []
-                                del_arr_folders = []
-
-
-                            }
-
-                        })
-
-                    }
-                })
-            })
         }
+
+        --rec
+        if (rec == 0) {
+            console.log('done', rec)
+
+            for (let i = 0; i < del_file_arr.length; i++) {
+                console.log('file', del_file_arr[i].href)
+                gio.rm(del_file_arr[i].href, () => {
+                    active_window.send('set_progress_msg', `Deleted File ${path.basename(del_file_arr[i].href)}`)
+                    active_window.send('set_progress', del_file_arr.length - 1, i)
+                })
+            }
+
+            del_folder_arr.sort((a,b) => {
+                return b.length - a.length
+            })
+
+            for (let i = 0; i < del_folder_arr.length; i++) {
+                console.log('rm folder', del_folder_arr[i])
+                gio.rm(del_folder_arr[i], () => {
+                    active_window.send('set_progress_msg', `Deleted Folder ${path.basename(del_folder_arr[i])}`)
+                    active_window.send('set_progress', del_folder_arr.length - 1, i);
+                })
+            }
+
+            if (isMainView) {
+                active_window.send('remove_card', del_folder_arr[del_folder_arr.length - 1])
+            }
+
+            del_file_arr = []
+            del_folder_arr = []
+            state = 0
+            rec = 1
+
+            setImmediate(callback)
+
+        }
+
     })
 
 }
@@ -1626,7 +1651,7 @@ function delete_gio_files(href) {
  * @param {string} href
  * @param {int} callback *
  */
-function delete_file(href, callback) {
+async function delete_file(href, callback) {
 
     if (!isGioFile(href)) {
 
@@ -1692,13 +1717,13 @@ function delete_file(href, callback) {
 
                 if (href.indexOf('smb') > -1 || href.indexOf('sftp') > -1) {
 
-                    gio.rm(href, (res) => {
-                        if (!res.stderr) {
-                            active_window.send('remove_card', href);
-                        } else {
-                            active_window.send('notification', res.stderr)
-                        }
-                    })
+                    gio.rm(href, () => {})
+                        // if (!res.stderr) {
+                    active_window.send('remove_card', href);
+                        // } else {
+                            // active_window.send('notification', res.stderr)
+                        // }
+                    // })
 
                     // exec1(`gio remove -f "${file}"`).then(res => {
                     //     if (!res.stderr) {
@@ -1718,7 +1743,8 @@ function delete_file(href, callback) {
     } else {
         gio.get_file(href, file => {
             if (file.type == 'directory') {
-                delete_gio_files(href)
+                rm_gio_files(href, () => {})
+                // delete_gio_files(href)
                 // active_window.send('notification','Error: Deleting Remote Directory is not Implemented')
             } else {
                 gio.rm(href).then(() => {
@@ -1825,7 +1851,7 @@ const createWindow = exports.createWindow = () => {
             nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
-            nodeIntegrationInWorker: false,
+            nodeIntegrationInWorker: true,
             nativeWindowOpen: false,
             preload: path.join(__dirname, 'preload.js'),
             sandbox: false,
@@ -3383,6 +3409,8 @@ ipcMain.on('get_folder_size', (e , args) => {
 
 // GET FOLDER SIZE
 ipcMain.handle('get_folder_size1', async (e , href) => {
+
+    // get_folder_size_recursive(href)
 
     try {
         cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
