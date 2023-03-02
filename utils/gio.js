@@ -3,7 +3,8 @@ const util  = require('util')
 const path  = require('path')
 const exec  = util.promisify(require('child_process').exec)
 const execSync = require('child_process').exec;
-const spawn = require('child_process').spawn;
+const { spawn } = require('child_process');
+
 
 let file_arr = []
 
@@ -120,7 +121,7 @@ exports.join = function(paths) {
  * Get File Information from GIO (gvfs)
  * @param {*} href
  */
-get_file1 = async (href) => {
+exports.get_file1 = async (href) => {
 
     file_obj = {}
     return exec(`gio info "${href}"`).then(res => {
@@ -209,7 +210,7 @@ exports.get_dir_async = async (dir, callback) => {
  * @param {*} href
  * @param {*} callback
  */
-get_file = (href, callback) => {
+exports.get_file = (href, callback) => {
 
     exec(`gio info "${href}"`, (err, stdout, stderr) => {
 
@@ -238,12 +239,12 @@ get_file = (href, callback) => {
     })
 }
 
-get_dir = (dir, callback) => {
+exports.get_dir = (dir, callback) => {
 
     let dirents = []
     file_arr    = []
 
-    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
+    execSync(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
 
         if (!err) {
 
@@ -362,6 +363,35 @@ exports.get_devices = (callback) => {
 
 }
 
+
+/**
+ *
+ * @param {*} sourcePath
+ * @param {*} destinationPath
+ * @returns
+ */
+function copyToGio(sourcePath, destinationPath) {
+  const command = 'gio';
+  const args = ['copy', '-r', sourcePath, destinationPath];
+
+  return new Promise((resolve, reject) => {
+    const process = spawn(command, args);
+
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve('Success');
+      } else {
+        reject(`gio exited with error code ${code}`);
+      }
+    });
+
+    process.on('error', (err) => {
+      reject(`gio failed with error: ${err}`);
+    });
+  });
+}
+
+
 /**
  * Copy File using GIO (gvfs)
  * @param {string} source
@@ -369,10 +399,14 @@ exports.get_devices = (callback) => {
  * @param {callback} callback
  *
  */
-exports.cp = function(source, destination, callback) {
+exports.cp = async(source, destination, callback) => {
+
+    // return callback (spawn('gio', ['copy', '--no-dereference', source, destination]))
+
+    return execSync(`gio copy "${source}" "${destination}"`)
 
     // spawn(`gio copy "${source}" "${destination}"`)
-    return callback(execSync(`gio copy "${source}" "${destination}"`))
+    // return callback(exec(`gio copy "${source}" "${destination}"`))
     // , (err, stdout, stderr) => {
         // console.log(err, stdout, stderr)
     // })
@@ -390,11 +424,12 @@ exports.cp = function(source, destination, callback) {
  * @param {string} callback
  */
 exports.mkdir = function(destination, callback) {
-    exec(`gio mkdir "${destination}"`).then(res => {
-        return callback(res)
-    }).catch(err => {
-        return callback(err)
-    })
+    return callback(execSync(`gio mkdir "${destination}"`))
+    // exec(`gio mkdir "${destination}"`).then(res => {
+    //     return callback(res)
+    // }).catch(err => {
+    //     return callback(err)
+    // })
 }
 
 exports.rename = function(source, destination, callback) {
@@ -407,7 +442,7 @@ exports.rename = function(source, destination, callback) {
  * @param {*} callback
  */
 exports.rm = (href, callback) => {
-    return callback(execSync(`gio remove -f "${href}"`))
+    return callback(spawn ('gio', ['remove', '-f', href]))
 }
 
 /**
@@ -473,10 +508,3 @@ exports.getDateTime = function (date) {
         // console.log('gio getDateTime Format error')
     }
 }
-
-
-// exports.rm = rm
-exports.get_file1 = get_file1
-// exports.get_dir1 = get_dir1
-exports.get_file = get_file
-exports.get_dir = get_dir

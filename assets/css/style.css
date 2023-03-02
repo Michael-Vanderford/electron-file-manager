@@ -532,7 +532,8 @@ body {
     padding-left:10px;
     border-top-left-radius: 5px;
     border-top-right-radius: 5px;
-    background:rgba(0,0,0,.075);
+    /* background:rgba(0,0,0,.9); */
+    background-color: #252525;
     position: fixed;
     bottom: 0;
     width: 300px;
@@ -743,7 +744,7 @@ embed {
     /* width: 100%; */
     padding:5px;
     margin-bottom:2px;
-    background:rgba(0, 0, 0, .75)
+    background:rgba(0, 0, 0, .9)
 
 }
 #breadcrumbs {

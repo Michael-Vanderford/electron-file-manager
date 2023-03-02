@@ -21,6 +21,7 @@ const mime                                      = require('mime-types');
 const im                                        = require('imagemagick');
 const crypto                                    = require('crypto')
 const gio                                       = require('./utils/gio')
+const progressbar = require('progress')
 // const gvfs                                      = require('../gio/build/Release/gio')
 
 // Arrays
@@ -1689,7 +1690,6 @@ function get_sidebar_home() {
 
     // Workspace
     sidebar_items.append(add_header('Workspace'))
-    // localStorage.setItem('minibar', 'mb_workspace')
     local_items = JSON.parse(localStorage.getItem('workspace'))
     if (local_items != undefined) {
         if (local_items.length > 0 && local_items != undefined) {
@@ -1705,6 +1705,7 @@ function get_sidebar_home() {
                 div.append(col1, col2);
                 sidebar_items.append(div);
 
+                div.title = item.href
                 div.onclick = () => {
 
                     gio.get_file(item.href, file => {
@@ -1775,6 +1776,11 @@ function get_sidebar_home() {
                 e.preventDefault();
                 get_view(device.href);
             }
+
+            div.oncontextmenu = (e) => {
+                ipcRenderer.send('show-context-menu-devices');
+            }
+
             sidebar_items.append(div)
         })
 
@@ -3140,6 +3146,10 @@ function get_card1(file) {
     date.classList.add('date')
 
     icon_col.append(icon);
+
+    let badge = add_icon('add')
+    // badge.classList.add('top', 'right', 'corner')
+    // icon_col.append(badge)
     info_col.append(input, link, date, size);
 
     audio.append(source);
