@@ -33,6 +33,11 @@ let active_window           = '';
 let current_directory       = '';
 let destination_folder      = '';
 
+let del_file_arr            = []
+let del_folder_arr          = []
+let rec                     = 1;
+let state                   = 0
+
 app.disableHardwareAcceleration();
 
 ipcMain.on('connect', (e) => {
@@ -131,6 +136,10 @@ let thumbnails_dir  = path.join(app.getPath('userData'), 'thumbnails')
 if (!fs.existsSync(thumbnails_dir)) {
     fs.mkdirSync(thumbnails_dir)
 }
+
+ipcMain.on('get_sidebar_view', (e) => {
+    active_window.send('get_sidebar_view')
+})
 
 ipcMain.on('get_devices', (e) => {
     active_window.send('get_devices')
@@ -543,8 +552,6 @@ function copyfile(source, target, callback) {
 
     }
 
-
-
     if (isGioFile(targetfile)) {
 
         // todo: do error handling
@@ -557,13 +564,13 @@ function copyfile(source, target, callback) {
 
             if (!stats.isSymbolicLink()) {
                 gio.cp(source, targetfile, (res) => {
-                    // return callback(1)
+                    return callback(1)
                 })
             }
 
         })
 
-        // return callback(res)
+        // // return callback(res)
         // gio.cp(source, targetfile, (res) => {
 
         //     if (res.stderr) {
@@ -600,8 +607,6 @@ function copyfile(source, target, callback) {
             }
 
         })
-
-
 
     }
 
@@ -835,7 +840,84 @@ const getNumFilesFolders = (dirPath) => {
 };
 
 
-let cp_counter = 0;
+function copyDirRecursiveAsync(sourceDir, targetDir, max, callback) {
+
+    // Create target directory if it doesn't exist
+    if (!fs.existsSync(targetDir)) {
+    fs.mkdir(targetDir, err => {
+        if (err) {
+            callback(err);
+        return;
+        }
+        copyFiles();
+    });
+    } else {
+        copyFiles();
+    }
+
+    function copyFiles() {
+        // Get a list of files and directories in the source directory
+        fs.readdir(sourceDir, (err, files) => {
+            if (err) {
+                callback(err);
+                return;
+            }
+
+            // Loop through the files and directories and copy them to the target directory
+            let count = 0;
+            files.forEach(file => {
+            const srcPath = path.join(sourceDir, file);
+            const destPath = path.join(targetDir, file);
+
+            fs.lstat(srcPath, (err, stats) => {
+                if (err) {
+                    callback(err);
+                    return;
+                }
+
+                if (stats.isDirectory()) {
+                    // Recursively copy subdirectories
+                    copyDirRecursiveAsync(srcPath, destPath, max, err => {
+                        if (err) {
+                            callback(err);
+                            return;
+                        }
+                        count++;
+                        active_window.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
+                        // active_window.send('set_progress', file.length, count)
+                        if (count === files.length) {
+                            callback();
+                        }
+                    });
+
+                } else {
+
+                    // Copy files
+                    fs.copyFile(srcPath, destPath, err => {
+                        if (err) {
+                            callback(err);
+                            return;
+                        }
+                        count++;
+                        active_window.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
+                        // active_window.send('set_progress', file.length, count)
+                        if (count === files.length) {
+                            callback();
+                        }
+                    });
+                }
+
+            });
+        });
+        });
+    }
+
+}
+
+
+recursive = 1;
+let count = 0;
+state = 0;
 /**
  * Copy folders recursive
  * @param {sting} source
@@ -845,8 +927,6 @@ let cp_counter = 0;
  */
 function copyfolder(source, destination, callback) {
 
-    let max = getNumFilesFolders(source)
-    console.log(max)
 
     if (isGioFile(destination)) {
 
@@ -859,25 +939,61 @@ function copyfolder(source, destination, callback) {
 
             dirents.forEach((file, idx) => {
 
-                const fileCount = dirents.length;
-                console.log(fileCount)
+                    const fileCount = dirents.length;
+                    // console.log(fileCount)
 
-                let cursource = path.format({dir: source, base: file.name}) //source + file.name //path.join(source, file.name)
-                let curdestination = path.format({dir: destination, base: file.name}) //destination + file.name //path.join(destination, file.name)
+                    let cursource = path.format({dir: source, base: file.name}) //source + file.name //path.join(source, file.name)
+                    let curdestination = path.format({dir: destination, base: file.name}) //destination + file.name //path.join(destination, file.name)
 
-                if (file.is_dir) {
-                    copyfolder(cursource, curdestination, (res) => {})
-                    active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
-                    // active_window.send('set_progress', dirents.length, max)
-                } else {
-                    copyfile(cursource, curdestination, () => {})
-                    active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
-                    // active_window.send('set_progress', dirents.length, max)
-                }
+                    if (file.is_dir) {
+                        ++recursive;
+                        count++;
+
+                        if (state == 0) {
+                            orig_dest = destination
+                            state = 1;
+                        }
+
+                        active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
+                        active_window.send('set_progress', dirents.length, count)
+                        copyfolder(cursource, curdestination, callback => {})
+                        // if (count === files.length) {
+                        //     callback();
+                        // }
+                    } else {
+                        count++;
+                        active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
+                        active_window.send('set_progress', dirents.length, count)
+                        copyfile(cursource, curdestination, callback => {})
+                    }
+
+
 
             })
 
-            return callback(1)
+            console.log(recursive)
+            if (--recursive == 0) {
+                active_window.send('set_progress', 1, 1);
+
+                if (isMainView) {
+                    let file_obj = {
+                        name: path.basename(orig_dest),
+                        href: orig_dest,
+                        is_dir: 1,
+                        ["time::modified"]: new Date / 1000,
+                        size: 0
+                    }
+
+                    active_window.send('get_card', file_obj)
+
+                }
+
+                state = 0;
+                recursive = 1;
+                console.log('done');
+                return callback(1)
+            }
+
 
         })
 
@@ -916,8 +1032,7 @@ function copyfolder(source, destination, callback) {
 
                             // Directory
                             if (stats.isDirectory()) {
-
-
+                                ++recursive
                                 copyfolder(cursource, curdestination, () => {
                                     active_window.send('set_progress_msg', `Copying Folder ${path.basename(curdestination)}`)
                                     // active_window.send('set_progress', files.length, max)
@@ -926,14 +1041,18 @@ function copyfolder(source, destination, callback) {
                             // Copy files
                             // } else if (stats.isFile() == true) {
                             } else {
-
                                 copyfile(cursource, curdestination, () => {
-                                    // get_folder_size1(active_folder)
                                     active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
                                     // active_window.send('set_progress', files.length, max)
                                 })
+                            }
+
+                            if (--recursive == 0) {
+                                recursive = 1
+                                return callback(1);
 
                             }
+
 
                         } else {
                             active_window.send('notification', err)
@@ -943,7 +1062,7 @@ function copyfolder(source, destination, callback) {
 
                 // }
 
-                return callback(1)
+
 
             } else {
                 active_window.send('notification', err)
@@ -986,7 +1105,6 @@ function copy() {
 
     // // // SHOW PROGRESS
     // active_window.send('progress', max);
-
     let source0 = "";
     let source = "";
     copy_files_arr.every((file, idx) => {
@@ -995,12 +1113,10 @@ function copy() {
         source = file.href;
         let destination = path.format({dir: active_folder, base: path.basename(file.href)}) //`${active_folder}/${path.basename(file.href)}`
 
-
-
         // if (source != destination) { // trap
         if (copy_files_arr.length > 0) {
 
-            if (!isGioFile(destination)) {
+            // if (!isGioFile(destination)) {
 
                 // SET SIZE FOR PROGRESS
                 let max = 0;
@@ -1011,7 +1127,7 @@ function copy() {
                 // SHOW PROGRESS
                 active_window.send('progress', max);
 
-            }
+            // }
 
             if (file.is_dir) {
 
@@ -1036,21 +1152,33 @@ function copy() {
                     // console.log(`Copying Folder ${source}`)
                     copyfolder(source, destination, (res) => {
 
-                        // if (!isGioFile(source)) {
-                            if (isMainView) {
-                                let file_obj = {
-                                    name: path.basename(destination),
-                                    href: destination,
-                                    is_dir: 1,
-                                    ["time::modified"]: new Date / 1000,
-                                    size: 0
-                                }
-                                active_window.send('get_card', file_obj)
-                                get_folder_size(destination)
-                                isMainView = 0;
+                    // copyDirRecursiveAsync(source, destination, max, err => {
+
+                        if (!res) {
+                            active_window.send('notification', err)
+                            return
+                        }
+
+                        if (isMainView) {
+                            let file_obj = {
+                                name: path.basename(destination),
+                                href: destination,
+                                is_dir: 1,
+                                ["time::modified"]: new Date / 1000,
+                                size: 0
                             }
 
-                        // }
+                            active_window.send('get_card', file_obj)
+                            get_folder_size(destination)
+                            isMainView = 0;
+
+                        } else {
+                            get_folder_size(path.dirname(destination));
+                        }
+
+                        // active_window.send('notification', `Done copying Folder`)
+
+
                     })
 
                 }
@@ -1126,9 +1254,6 @@ function copy() {
         }
 
         return true
-
-
-
     })
 
     // copy_files_arr = []
@@ -1136,27 +1261,21 @@ function copy() {
     // copy_files_arr.forEach(file => {
     //     size += parseInt(file.size)
     // })
-
     // copy_files_arr.forEach(file => {
-
     //     let source = file.href
-
     //     let destination = ''
     //     if (isGioFile(active_folder)) {
     //         destination = `${active_folder}${path.basename(file.href)}`
     //     } else {
     //         destination = path.join(active_folder, path.basename(file.href))
     //     }
-
     //     // SET SIZE FOR PROGRESS
     //     let max = 0;
     //     copy_files_arr.forEach(item => {
     //         max += parseInt(item.size)
     //     })
-
     //     // SHOW PROGRESS
     //     active_window.send('progress', max);
-
     //     if (file.is_dir) {
 
     //         if (source == destination) {
@@ -1486,8 +1605,32 @@ function copy() {
 
     // return true
 
+}
+
+folder_count = 0;
+file_count = 0;
+recursive = 1;
+function get_count_recursive(dir, callback) {
+    let dirents = fs.readdirSync(dir)
+
+    dirents.forEach(file => {
+        if (fs.statSync(path.join(dir, file)).isDirectory() == 1) {
+            ++folder_count;
+            ++recursive
+            get_count_recursive(path.join(dir, file), callback)
+        } else {
+            ++file_count;
+        }
+    })
+
+    if (--recursive == 0) {
+        recursive = 1
+        return callback(file_count + folder_count)
+    }
+
 
 }
+
 
 async function get_file_count_recursive(href) {
     let dirents = fs.readdirSync(href)
@@ -1626,7 +1769,7 @@ function get_file_properties(filename) {
  * Get disk space and send back to preload
  * @param {string} href
  */
-async function get_disk_space(href) {
+function get_disk_space(href) {
 
     // console.log('running get disk space')
 
@@ -1806,10 +1949,6 @@ function get_diskspace_summary() {
 //     })
 // }
 
-let del_file_arr = []
-let del_folder_arr = []
-let rec = 1;
-let state = 0
 /**
  *
  * @param {string} href

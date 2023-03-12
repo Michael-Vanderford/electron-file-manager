@@ -309,6 +309,7 @@ exports.get_dir = (dir, callback) => {
 
 }
 
+
 exports.get_devices = (callback) => {
 
     exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {

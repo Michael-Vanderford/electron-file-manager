@@ -33,7 +33,7 @@ body {
         color:  #cfcfcf;
     }
     .settings_label {
-        font-weight: bold;
+        font-weight: normal;
     }
     .settings_input {
         color: #cfcfcf;
@@ -295,6 +295,12 @@ body {
     }
     [data-title] {
         position: relative;
+    }
+
+    .icon {
+        /* filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4)); */
+        /* background: linear-gradient(to bottom, #000, #000); */
+        filter: drop-shadow(3px 3px 2px #000) !important;
     }
 
 }
@@ -626,10 +632,34 @@ a {
     text-decoration: none !important;
     font-weight: normal !important;
 }
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    text-align: left;
+    padding: 8px;
+    background-color: #222;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    text-align: left;
+    padding: 2px;
+    /* border: 1px solid #ddd; */
+}
+
+tr:nth-child(even) {
+    /* background-color: #f2f2f2; */
+}
+
 .ui.table thead tr:first-child > th {
     color: #cfcfcf;
     background:#2c2c2c;
-    position: sticky !important;
+    /* position: sticky !important; */
     top: 0;
     z-index: 2;
 }
@@ -678,6 +708,7 @@ a {
 }
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
+    /* filter: drop-shadow(3px 3px 2px #505050); */
 }
 .icon:hover {
     cursor: pointer;
@@ -845,16 +876,31 @@ button .button .link {
     position: relative;
     outline: none;
     border: none;
+    /* margin-bottom: 150px; */
+    /* margin-right: 0px; */
+    height: 100%;
+    /* margin-left: 0px; */
+    /* overflow-x: hidden; */
+    /* overflow-y: scroll; */
+    /* padding-left: 20px; */
+    /* padding-top: 25px; */
+    /* padding-bottom: 40px; */
+    z-index: 0;
+}
+#grid_view {
     margin-bottom: 150px;
     margin-right: 0px;
-    height: 100%;
-    margin-left: 0px;
-    overflow-x: hidden;
-    overflow-y: scroll;
     padding-left: 20px;
     padding-top: 25px;
     padding-bottom: 40px;
-    z-index: 0;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+#list_view {
+    padding: 5px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 100%;
 }
 #main_view:hover {
   border:none !important;

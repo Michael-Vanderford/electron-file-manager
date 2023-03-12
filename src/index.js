@@ -598,6 +598,38 @@ document.getElementById('right')
     window.api.navigate('right')
 })
 
+var resizeableColumns = document.querySelectorAll('.resizable');
+var table = document.querySelector('table');
+
+for (var i = 0; i < resizeableColumns.length; i++) {
+    var column = resizeableColumns[i];
+    var columnWidth = 0;
+    var cursorStartX = 0;
+    var tableStartX = 0;
+
+    column.addEventListener('mousedown', function(e) {
+        cursorStartX = e.clientX;
+        tableStartX = table.offsetLeft;
+        columnWidth = this.offsetWidth;
+
+        document.addEventListener('mousemove', resizeColumn);
+        document.addEventListener('mouseup', stopResize);
+    });
+
+    function resizeColumn(e) {
+        var cursorMoveX = e.clientX - cursorStartX;
+        var newWidth = columnWidth + cursorMoveX;
+
+        column.style.width = newWidth + 'px';
+        table.style.width = table.offsetWidth + cursorMoveX + 'px';
+    }
+
+    function stopResize() {
+        document.removeEventListener('mousemove', resizeColumn);
+        document.removeEventListener('mouseup', stopResize);
+    }
+}
+
 // $("#main_view").on("selectableselected selectableunselected", function(){
 //     console.log(running)
 //     $(".inside").removeClass("yes").addClass("no");

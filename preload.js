@@ -109,6 +109,10 @@ ipcRenderer.on('set_progress', (e, max, value) => {
     set_progress(max, value)
 })
 
+ipcRenderer.on('get_sidebar_view', (e) => {
+    get_sidebar_view()
+})
+
 ipcRenderer.on('get_devices', (e) => {
     get_devices()
 })
@@ -205,7 +209,8 @@ ipcRenderer.on('connect', (e) => {
                 if (!err) {
                     connect_msg.style.color = 'green'
                     connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
-                    ipcRenderer.send('get_devices')
+                    // ipcRenderer.send('get_devices')
+                    ipcRenderer.send('get_sidebar_view')
                 } else {
                     if (stderr) {
                         connect_msg.innerHTML = stderr
@@ -1644,6 +1649,39 @@ function notice(notice_msg) {
     // container.innerHTML = notice_msg
 }
 
+function createFlexTable(containerId, tableData) {
+    const container = document.getElementById(containerId);
+    const table = document.createElement('div');
+    table.className = 'table';
+
+    // Create table header
+    const header = document.createElement('div');
+    header.className = 'table-row header';
+    for (let i = 0; i < tableData[0].length; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'table-cell header-cell';
+        cell.innerText = tableData[0][i];
+        header.appendChild(cell);
+    }
+    table.appendChild(header);
+
+    // Create table rows
+    for (let i = 1; i < tableData.length; i++) {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        for (let j = 0; j < tableData[i].length; j++) {
+            const cell = document.createElement('div');
+            cell.className = 'table-cell';
+            cell.innerText = tableData[i][j];
+            row.appendChild(cell);
+        }
+        table.appendChild(row);
+        }
+
+        container.appendChild(table);
+}
+
+
 function get_sidebar_home() {
 
     let home_dir                = get_home();
@@ -1716,9 +1754,11 @@ function get_sidebar_home() {
                         }
                     })
 
-
                 }
 
+                div.oncontextmenu = (e) => {
+                    ipcRenderer.send('show-context-menu-workspace');
+                }
 
             })
         }
@@ -2203,6 +2243,8 @@ function set_progress(max, value) {
         prog_state = 1;
         let progress_div = document.getElementById('progress_div');
         let progress = document.getElementById('progress');
+        let progress_msg = document.getElementById('progress_msg')
+
         progress_div.classList.remove('hidden');
         progress.classList.remove('hidden');
         progress.value = 0;
@@ -2214,6 +2256,7 @@ function set_progress(max, value) {
     if (value == max) {
         prog_state = 0;
         progress.value = 0;
+        progress_msg = "";
         progress_div.classList.add('hidden');
     }
 }
@@ -2223,7 +2266,7 @@ function set_progress(max, value) {
  * @param {int} max
  * @param {string} destination_folder // folder to update after progress stops
  */
-function get_progress(total, destination_folder) {
+function get_progress(total) {
 
     console.log('progress total', total)
 
@@ -5063,128 +5106,128 @@ async function get_settings_view() {
     tabs.innerHTML = '';
     info_view.innerHTML = '';
 
-    get('../src/settings.html', (res) => {
+    // get('../src/settings.html', (res) => {
 
-        grid_view.classList.add('hidden')
-        info_view.classList.remove('hidden');
-        info_view.innerHTML = res
+    //     grid_view.classList.add('hidden')
+    //     info_view.classList.remove('hidden');
+    //     info_view.innerHTML = res
 
-        let settings_view = document.getElementById('settings_view')
-        let display = document.getElementById('display')
-        let dropdowns = display.querySelectorAll('.dropdown')
+    //     let settings_view = document.getElementById('settings_view')
+    //     let display = document.getElementById('display')
+    //     let dropdowns = display.querySelectorAll('.dropdown')
 
-        dropdowns.forEach(dropdown => {
+    //     dropdowns.forEach(dropdown => {
 
-            let dropdown_content = dropdown.querySelector('.dropdown_content')
+    //         let dropdown_content = dropdown.querySelector('.dropdown_content')
 
-            dropdown_content.onmouseleave = (e) => {
-                // dropdown_content.classList.add('hidden')
-                // dropdown_content.innerHTML = ''
-            }
+    //         dropdown_content.onmouseleave = (e) => {
+    //             // dropdown_content.classList.add('hidden')
+    //             // dropdown_content.innerHTML = ''
+    //         }
 
-            dropdown.onmouseover = (e) => {
-                dropdown_content.classList.remove('hidden')
-                for (let caption in settings.display.captions) {
-                    dropdown_content.append(add_link(caption, caption))
-                }
-            }
-        })
-    })
-
-    // tabs.append(tab);
-
-    // // tab_view.append(tab, tab2)
-    // // info_view.append(tab_view)
-
-    // info_view.classList.remove('hidden');
-    // info_view.classList.add('fm', 'tab-content')
-    // message.classList.add('inverted');
-    // // btn_close.classList.add('small');
-
-    // let views = document.querySelectorAll('.view');
-    // views.forEach(view => {
-    //     view.classList.add('hidden');
+    //         dropdown.onmouseover = (e) => {
+    //             dropdown_content.classList.remove('hidden')
+    //             for (let caption in settings.display.captions) {
+    //                 dropdown_content.append(add_link(caption, caption))
+    //             }
+    //         }
+    //     })
     // })
 
-    // // info_view.innerHTML = '';
-    // info_view.classList.remove('hidden');
-    // // btn_close.style = 'position: absolute; right: 0;';
+    tabs.append(tab);
 
-    // // info_view.append(btn_close);
-    // info_view.append(message);
+    // tab_view.append(tab, tab2)
+    // info_view.append(tab_view)
 
-    // let div = add_div();
-    // let col1 = add_div();
-    // let col2 = add_div();
-    // let col3 = add_div();
+    info_view.classList.remove('hidden');
+    info_view.classList.add('fm', 'tab-content')
+    message.classList.add('inverted');
+    // btn_close.classList.add('small');
 
-    // div.classList.add('fm', 'grid', 'item');
-    // // div.style = 'padding-bottom: 10px';
-    // // col1.style = 'width: 250px;';
-    // // col2.style = 'width: 350px;';
+    let views = document.querySelectorAll('.view');
+    views.forEach(view => {
+        view.classList.add('hidden');
+    })
 
-    // col1.classList.add('fm', 'col');
-    // col2.classList.add('fm', 'col');
-    // // col3.classList.add('fm', 'col');
+    // info_view.innerHTML = '';
+    info_view.classList.remove('hidden');
+    // btn_close.style = 'position: absolute; right: 0;';
 
-    // col1.append(add_header('Command'));
-    // col2.append(add_header('Shortcut'));
-    // col3.append(add_header('Set Shortcut'))
+    // info_view.append(btn_close);
+    info_view.append(message);
 
-    // div.append(col1, col2);
-    // info_view.append(div);
+    let div = add_div();
+    let col1 = add_div();
+    let col2 = add_div();
+    let col3 = add_div();
 
-    // // let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
+    div.classList.add('fm', 'grid', 'item');
+    // div.style = 'padding-bottom: 10px';
+    // col1.style = 'width: 250px;';
+    // col2.style = 'width: 350px;';
 
-    // for (let caption in settings.display.captions) {
-    //     console.log(caption)
-    // }
+    col1.classList.add('fm', 'col');
+    col2.classList.add('fm', 'col');
+    // col3.classList.add('fm', 'col');
 
-    // for (let shortcut in settings.keyboard_shortcuts) {
+    col1.append(add_header('Command'));
+    col2.append(add_header('Shortcut'));
+    col3.append(add_header('Set Shortcut'))
 
-    //     let div = add_div();
-    //     div.classList.add('fm', 'grid','item', 'stripe')
-    //     // div.style = 'display: flex; align-items: center; height: 30px;';
+    div.append(col1, col2);
+    info_view.append(div);
 
-    //     let col1 = add_div();
-    //     let col2 = add_div();
-    //     // let col3 = add_div();
+    // let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
 
-    //     let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
-    //     let input = add_input('text', shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
-    //     let set_shortcut = add_input('', 0)
+    for (let caption in settings.display.captions) {
+        console.log(caption)
+    }
 
-    //     label.classList.add('settings_label');
-    //     input.value = settings.keyboard_shortcuts[shortcut];
-    //     input.classList.add('settings_input');
+    for (let shortcut in settings.keyboard_shortcuts) {
 
-    //     col1.classList.add('fm', 'col');
-    //     col2.classList.add('fm', 'col');
+        let div = add_div();
+        div.classList.add('fm', 'grid','item', 'stripe')
+        // div.style = 'display: flex; align-items: center; height: 30px;';
 
-    //     col1.append(label);
-    //     col2.append(input);
+        let col1 = add_div();
+        let col2 = add_div();
+        // let col3 = add_div();
 
-    //     div.append(col1, col2);
+        let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
+        let input = add_input('text', shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
+        let set_shortcut = add_input('', 0)
 
-    //     info_view.append(div);
+        label.classList.add('settings_label');
+        input.value = settings.keyboard_shortcuts[shortcut];
+        input.classList.add('settings_input');
 
-    //     input.addEventListener('change', (e) => {
+        col1.classList.add('fm', 'col');
+        col2.classList.add('fm', 'col');
 
-    //         let key = input.id;
-    //         settings.keyboard_shortcuts[key] = input.value;
+        col1.append(label);
+        col2.append(input);
 
-    //         console.log(key, input.value, userdata_dir);
+        div.append(col1, col2);
 
-    //         fs.writeFileSync(path.join(userdata_dir, 'settings.json'), JSON.stringify(settings, null, 4));
+        info_view.append(div);
 
-    //         ipcRenderer.send('reload_settings');
+        input.addEventListener('change', (e) => {
 
-    //     })
+            let key = input.id;
+            settings.keyboard_shortcuts[key] = input.value;
 
-    //     // for (let x in settings[cat]) {
-    //     //     console.log(settings[cat][x])
-    //     // }
-    // }
+            console.log(key, input.value, userdata_dir);
+
+            fs.writeFileSync(path.join(userdata_dir, 'settings.json'), JSON.stringify(settings, null, 4));
+
+            ipcRenderer.send('reload_settings');
+
+        })
+
+        // for (let x in settings[cat]) {
+        //     console.log(settings[cat][x])
+        // }
+    }
 
 }
 
@@ -5401,9 +5444,8 @@ async function get_list_view(dir) {
     // READ DIRECTORY
     fs.readdir(dir, (err, dirents_arr) => {
 
-        if (err) {
-
-        } else {
+        // if (err) {
+        // } else {
 
             let table = document.createElement('table')
             let thead = document.createElement('thead')
@@ -5411,9 +5453,9 @@ async function get_list_view(dir) {
             let tbody = document.createElement('tbody')
 
             // table.classList.add('ui', 'four', 'selectable', 'sortable', 'compact', 'celled', 'table')
-            table.classList.add('ui', 'table', 'compact', 'small')
+            // table.classList.add('ui', 'table', 'compact', 'small')
             thead.classList.add('full-width')
-            table.style = 'background:transparent !important;'
+            table.style = 'width: 100% ; background:transparent !important;'
 
             table.append(thead)
             thead.append(tr)
@@ -5433,7 +5475,7 @@ async function get_list_view(dir) {
                     })
 
                     if (col.name == 'Name') {
-                        th.classList.add('eight', 'wide')
+                        th.classList.add('eight', 'wide', 'resizable')
                     } else {
                         th.classList.add('two', 'wide')
                     }
@@ -5606,6 +5648,8 @@ async function get_list_view(dir) {
                                         let stats = fs.statSync(header_link)
                                         if (stats.isDirectory()) {
                                             icon.src = folder_icon
+                                            icon.classList.add('incon', 'icon32')
+                                            icon.style = 'margin-right: 15px'
                                             box.append(icon, header_link, input);
                                         } else {
 
@@ -5726,7 +5770,7 @@ async function get_list_view(dir) {
             // ADD TABLE BODY  TO TABLE
             table.append(tbody)
 
-        }
+        // }
 
     })
 
@@ -6910,6 +6954,7 @@ function clear_items() {
 
     let main_view           = document.getElementById('main_view');
     let progress            = document.getElementById('progress')
+    let progress_div        = document.getElementById('progress_div')
     let pager               = document.getElementById('pager');
     let txt_search          = document.getElementById('txt_search');
     let nav_items           = document.querySelectorAll('.nav_item');
@@ -6944,6 +6989,7 @@ function clear_items() {
     breadcrumb_items.classList.add    ('hidden');
     hamburger_menu.classList.add      ('hidden');
     progress.classList.add            ('hidden');
+    progress_div.classList.add        ('hidden');
     notification.classList.add        ('hidden');
 
     if (input) {
