@@ -18,6 +18,9 @@ let btn_disk_usage      = document.getElementById('btn_disk_usage')
 let minibar             = document.getElementById('minibar')
 let minibar_items       = minibar.querySelectorAll('.item')
 
+let terminals           = document.querySelectorAll('.terminal')
+let show_hidden         = document.querySelectorAll('.show_hidden')
+
 // Icon size
 let icon_size_selector  = document.getElementById('icon_size_selector')
 
@@ -353,6 +356,19 @@ videos.onclick = (e) => {
 music.onclick = (e) => {
     window.api.get_view(home_folder + '/Music')
 }
+
+console.log(terminals.length)
+terminals.forEach(terminal => {
+    terminal.onclick = (e) => {
+        window.api.get_terminal()
+    }
+})
+
+show_hidden.forEach(show => {
+    show.onclick = (e) => {
+        window.api.show()
+    }
+})
 
 $(function() {
 

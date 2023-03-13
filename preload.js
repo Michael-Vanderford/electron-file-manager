@@ -3199,7 +3199,7 @@ function get_card1(file) {
     card.append(icon_col, info_col);
     card.dataset.href = file.href;
 
-    console.log(file)
+    // console.log(file)
 
     if (file["access::can-write"] == "FALSE") {
         console.log('what')
@@ -3225,7 +3225,7 @@ function get_card1(file) {
         // Setting folder size
         if (!is_gio_file(file.href)) {
             ipcRenderer.invoke('get_folder_size1', file.href).then(res => {
-                console.log('get_folder_size', file.href, res)
+                // console.log('get_folder_size', file.href, res)
                 if (parseInt(res) > 4) {
 
                     file.size = parseInt(res) * 1024
@@ -3644,6 +3644,7 @@ function update_card1(href) {
 }
 
 function update_cards1(dir) {
+    console.log('running update card');
     let cards = document.querySelectorAll('.nav_item')
     cards.forEach(card => {
         update_card1(card.dataset.href)
@@ -3815,6 +3816,8 @@ function update_card(href) {
  * @param {*} view requires a valid view to update
  */
 function update_cards(view) {
+
+    console.log('running update cards')
 
     try {
 
@@ -5604,7 +5607,7 @@ async function get_list_view(dir) {
                         // CREATE HEADER
                         let header_link = add_link(filename, file);
                         header_link.classList.add('nav_item;', 'header_link')
-                        header_link.style = 'font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important; width: 100%'
+                        // header_link.style = 'font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important; width: 100%'
 
                         // CREATE INPUT
                         let input = document.createElement('input')
@@ -5648,7 +5651,7 @@ async function get_list_view(dir) {
                                         let stats = fs.statSync(header_link)
                                         if (stats.isDirectory()) {
                                             icon.src = folder_icon
-                                            icon.classList.add('incon', 'icon32')
+                                            icon.classList.add('icon', 'icon24')
                                             icon.style = 'margin-right: 15px'
                                             box.append(icon, header_link, input);
                                         } else {
@@ -5680,6 +5683,20 @@ async function get_list_view(dir) {
                                             }
 
                                         })
+
+                                        td.onmousedown = (e) => {
+                                            if (e.button === 2) {
+                                                td.classList.add('highlight_select')
+                                                // ipcRenderer.send('show-context-menu-files');
+                                                // ipcRenderer.send('show-context-menu-files', {apps: null, access: 0, href: filename});
+                                            }
+                                        }
+
+                                        td.onmouseup = (e) => {
+                                            if (e.button === 2) {
+                                                td.classList.remove('highlight_select')
+                                            }
+                                        }
 
                                         td.classList.add('card')
 
@@ -5945,6 +5962,8 @@ function get_grid_view(dir, page_number = 1, page_size = 1000) {
 // MAIN GET FILES FUNCTION
 async function get_files(dir, callback) {
 
+    console.log('running get files')
+
     // Init
     if (fs.existsSync(dir)) {
         state = 1
@@ -6028,6 +6047,7 @@ async function get_files(dir, callback) {
     let gnome_disks = document.querySelectorAll('.gnome_disks')
     gnome_disks.forEach(function (e) {
         e.addEventListener('click', function (e) {
+            console.log('what')
             ipcRenderer.send('gnome_disks')
         })
     })
@@ -10577,6 +10597,13 @@ window.addEventListener('DOMContentLoaded', () => {
         } catch (err) {
             console.log(err);
         }
+
+        // Show workspace
+        Mousetrap.bind(settings.keyboard_shortcuts.ShowHome.toLocaleLowerCase(), () => {
+            get_sidebar_home();
+            localStorage.setItem('sidebar', 1);
+            show_sidebar();
+        })
 
         // Show workspace
         Mousetrap.bind(settings.keyboard_shortcuts.ShowWorkspace.toLocaleLowerCase(), () => {

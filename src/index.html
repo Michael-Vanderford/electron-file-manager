@@ -135,15 +135,15 @@
                     Music
                 </a>
 
-                <div class="ui menu horizontal hidden">
+                <!-- <div class="ui  menu horizontal "> -->
 
-                    <a class="item" id="" title="Open a terminal in the current folder">
+                    <a class="item terminal" id="" title="Open a terminal in the current folder">
                         <!-- <i class="terminal icon"></i> -->
                         <i class="icon bi-terminal small"></i>
                         <!-- Terminal -->
                     </a>
 
-                    <a class="item button gnome_disks" title="Gnome Disks">
+                    <a class="item button gnome_disk" title="Gnome Disks">
                         <!-- <div class="button" > -->
                         <!-- <i class="icon disk"></i> -->
                         <i class="icon bi-hdd small"></i>
@@ -151,15 +151,11 @@
                         <!-- </div> -->
                     </a>
 
-                    <a class="item button" id="" title="Show hidden files and directories">
-                        <!-- todo: enable show data content -->
-                        <!-- <div class="button" data-content="Show hidden files and folders"> -->
+                    <a class="item button show_hidden" id="" title="Show hidden files and directories">
                         <i class="ui icon eye small"></i>
-                        <!-- show/Hide hidden -->
-                        <!-- </div> -->
                     </a>
 
-                    <a class="item button" id="" title="Sort by Date (Click twice to change sort order)">
+                    <a class="item date button" id="" title="Sort by Date (Click twice to change sort order)">
                         <i class="small icon sort amount down"></i>
                         <!-- Sort by date -->
                     </a>
@@ -194,7 +190,7 @@
                         <i class="ui icon disk small"></i>
                     </a>
 
-                </div>
+                <!-- </div> -->
 
                 <div class="flex hidden" id="hamburger_menu">
 
@@ -255,6 +251,10 @@
 
                         <a class="item button gnome_disks" title="Gnome Disks">
                             <i class="icon bi-hdd small"></i> Gnome disks
+                        </a>
+
+                        <a class="item button toggle_theme" title="Toggle Theme">
+                            <i class="icon small"></i> Toggle Theme
                         </a>
 
                     </div>
@@ -381,7 +381,7 @@
         <div id="draghandle" class="draghandle"></div>
 
         <!-- Main view -->
-        <div class="border" id="main_view">
+        <div class="" id="main_view">
 
             <!-- Loader -->
             <div id="loader" class="ui centered loader"></div>
