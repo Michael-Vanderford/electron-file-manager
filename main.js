@@ -2889,9 +2889,10 @@ function move() {
 
                 } else {
 
-                    copyfolder(source, destination, (res) => {
+                    // copyfolder(source, destination, (res) => {
+                    copy_write(source, destination, () => {
 
-                        if (res) {
+                        // if (res) {
 
                             // copy_files_arr.shift()
                             delete_file(source, () => {
@@ -2902,7 +2903,7 @@ function move() {
                                         name: path.basename(destination),
                                         href: destination,
                                         is_dir: 1,
-                                        mtime: new Date(),
+                                        ["time::modified"]: new Date / 1000,
                                         size: 0
                                     }
                                     active_window.send('get_card', file_obj)
@@ -2917,7 +2918,7 @@ function move() {
 
                             })
 
-                        }
+                        // }
 
                     })
 
@@ -2952,7 +2953,7 @@ function move() {
                                         name: path.basename(destination),
                                         href: destination,
                                         is_dir: 0,
-                                        mtime: new Date / 1000,
+                                        ["time::modified"]: new Date / 1000,
                                         size: 0
                                     }
 
