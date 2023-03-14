@@ -86,7 +86,7 @@ function createConnectDialog() {
 
 // Settings
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
-if (!fs.existsSync(settings_file)) {
+// if (!fs.existsSync(settings_file)) {
     let data = {
         window: {
             length: 1400,
@@ -128,7 +128,7 @@ if (!fs.existsSync(settings_file)) {
 
     }
     fs.writeFileSync(settings_file, JSON.stringify(data, null, 4));
-}
+// }
 let settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
 ipcMain.on('reload_settings', (e) => {
     settings = JSON.parse(fs.readFileSync('settings.json', {encoding:'utf8', flag:'r'}));
@@ -1253,10 +1253,14 @@ function copy() {
 
                 if (source == destination) {
                     let c = 0;
-                    destination = `${active_folder}/${path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length))}/Copy ${path.extname(source)}`;
+                    // destination = `${active_folder}/${path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length))}/Copy ${path.extname(source)}`;
+                    filename = path.basename(destination);
+                    destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' Copy' + path.extname(filename);
                     while (fs.existsSync(destination)) {
-                        destination = `${active_folder}/${path.basename(destination).replace(`(${c})`, `(${++c})`)}`
+                        destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' Copy ' + c + path.extname(filename);
+                        // destination = `${active_folder}/${path.basename(destination).replace(`(${c})`, `(${++c})`)}`
                         console.log(destination)
+                        ++c
                     }
                     c = 0
                 }

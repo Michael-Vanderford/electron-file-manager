@@ -3154,6 +3154,8 @@ function get_date(date) {
  */
 function get_card1(file) {
 
+    // this is being used
+
     let card        = add_div();
     let icon        = document.createElement('img')
     let link        = add_link(file.href, file.name);
@@ -3245,6 +3247,7 @@ function get_card1(file) {
 
         card.classList.add('file_card');
         size.innerHTML = get_file_size(file.size)
+        localStorage.setItem(file.href, file.size)
 
         if (
             // file_obj["standard::content-type"].indexOf('image') > -1 ||
@@ -3384,7 +3387,7 @@ function get_card1(file) {
         active_href = file.href;
         card.classList.add("highlight");
 
-        size = get_file_size(localStorage.getItem(file.href));
+        let size = get_file_size(localStorage.getItem(file.href));
         card.title =
             'Name: ' + file.href +
             '\n' +
@@ -5811,7 +5814,7 @@ async function get_list_view(dir) {
  * @param {int} page_number // number of pages
  * @param {int} page_size //
  */
-function get_grid_view(dir, page_number = 1, page_size = 1000) {
+function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
     let breadcrumbs                     = document.getElementById('breadcrumbs');
     breadcrumbs.value                   = dir
@@ -5961,6 +5964,8 @@ function get_grid_view(dir, page_number = 1, page_size = 1000) {
 
 // MAIN GET FILES FUNCTION
 async function get_files(dir, callback) {
+
+    // I dont think this is being used
 
     console.log('running get files')
 
@@ -6345,7 +6350,11 @@ async function get_files(dir, callback) {
                     if (regex.test(e.key) === false && !e.shiftKey && e.key !== 'Delete' && !e.ctrlKey) {
 
                         // MAKE SURE WHERE NOT SOMETHING THAT WE NEED
-                        if (e.target === e.currentTarget || e.target === txt_search || e.target.classList.contains('header_link')) {
+                        if (
+                            e.target === e.currentTarget ||
+                            e.target === txt_search ||
+                            e.target.classList.contains('header_link'))
+                        {
 
                             txt_search.classList.remove('hidden')
                             txt_search.focus()
@@ -9181,9 +9190,10 @@ window.notification = function notification(msg) {
 }
 
 /** Create Folder */
-async function create_folder(folder) {
+function create_folder(folder) {
 
     let folder_grid = document.getElementById('folder_grid')
+    folder_grid.classList.remove('hidden')
 
     let file_obj = {
         name: path.basename(folder),
@@ -9195,11 +9205,16 @@ async function create_folder(folder) {
 
     gio.mkdir(folder, (res) => {
 
+        console.log(res)
+
         if (!res.err) {
 
             let main_view = document.getElementById('main_view')
-            main_view.tabIndex = -1
-            main_view.preventDefault = true
+            // main_view.tabIndex = -1
+            // main_view.preventDefault = true
+
+            let info_view = document.getElementById('info_view')
+            info_view.classList.add('hidden')
 
             let card = get_card1(file_obj)
             let col = add_column('three')
@@ -9210,7 +9225,8 @@ async function create_folder(folder) {
             let header  = card.querySelector('.header_link');
             let input   = card.querySelector('.input');
 
-            // input.value = path.basename(folder)
+            console.log(header)
+
             input.classList.remove('hidden');
             header.classList.add('hidden');
 
@@ -10362,8 +10378,6 @@ ipcRenderer.on('context-menu-command', (e, command, args) => {
     if (command === 'new_folder') {
 
         let folder = breadcrumbs.value;
-        console.log(folder);
-
         if (folder != '') {
             create_folder(folder + '/Untitled Folder');
         }
@@ -10951,6 +10965,8 @@ window.addEventListener('DOMContentLoaded', () => {
             e.key != 'ArrowDown' &&
             e.key != 'ArrowLeft' &&
             e.key != 'ArrowRight' &&
+            e.key != "Delete" &&
+            e.key != "Del" &&
             !e.ctrlKey &&
             !e.shiftKey &&
             !e.altKey &&
