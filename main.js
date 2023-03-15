@@ -39,6 +39,8 @@ let del_folder_arr          = []
 let rec                     = 1;
 let state                   = 0
 
+let is_caneled              = 0;
+
 app.disableHardwareAcceleration();
 
 ipcMain.on('connect', (e) => {
@@ -164,9 +166,9 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
     return thumbnails_dir;
 })
 
-ipcMain.on('cancel', (e) => {
-    canceled = 1;
-})
+// ipcMain.on('cancel', (e) => {
+//     canceled = 1;
+// })
 
 ipcMain.on('delete_file', (e, file) => {
     delete_file(file, () => {});
@@ -1083,8 +1085,6 @@ ipcMain.on('add_copy_files', function( e, data) {
 
 })
 
-
-
 const copy_write = (source, destination, callback) => {
     // get the stats of the source
     const stats = fs.statSync(source);
@@ -1115,17 +1115,32 @@ const copy_write = (source, destination, callback) => {
         const writer = fs.createWriteStream(destination);
         reader.pipe(writer);
 
-        // display completion message
-        reader.on('end', () => {
-            callback();
-        });
+        // Return a function to cancel the copy process
+        cancelCopy = () => {
+            active_window.send('notification', 'Copy Canceled')
+            delete_file(destination, () => {})
+            reader.destroy();
+            pipe.destroy();
+            callback(new Error('Copy process was cancelled'));
+        };
+
+        // readStream.destroy();
+        // pipe.destroy();
+        // callback(new Error('Copy process was cancelled'));
+
     }
-    };
+};
+
+ipcMain.on('cancel', (e) => {
+    cancelCopy()
+})
 
 // todo: remove old copy file array reference from preload
 ipcMain.on('copy', (e) => {
     copy();
 })
+
+
 
 // Copy
 let size = 0;
@@ -1188,7 +1203,8 @@ function copy() {
 
                     } else {
 
-                        copy_write(source, destination, () => {
+                        copy_write(source, destination, (res) => {
+
                             if (isMainView) {
                                 let file_obj = {
                                     name: path.basename(destination),
@@ -1207,6 +1223,8 @@ function copy() {
                                 active_window.send('update_card', base)
                             }
                         })
+
+
 
                     }
 
@@ -1253,12 +1271,10 @@ function copy() {
 
                 if (source == destination) {
                     let c = 0;
-                    // destination = `${active_folder}/${path.join(path.dirname(destination), path.basename(source).substring(0, path.basename(source).length - path.extname(source).length))}/Copy ${path.extname(source)}`;
                     filename = path.basename(destination);
-                    destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' Copy' + path.extname(filename);
+                    destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' (Copy)' + path.extname(filename);
                     while (fs.existsSync(destination)) {
-                        destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' Copy ' + c + path.extname(filename);
-                        // destination = `${active_folder}/${path.basename(destination).replace(`(${c})`, `(${++c})`)}`
+                        destination = path.dirname(destination) + '/' + path.basename(filename, path.extname(filename)) + ' (Copy) ' + c + path.extname(filename);
                         console.log(destination)
                         ++c
                     }
@@ -1298,25 +1314,37 @@ function copy() {
 
 
                     active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
-                    copyfile(source, destination, (res) => {
-                        // Success
-                        if (res) {
-
-                            active_window.send('set_progress', copy_files_arr.length - 1, idx)
-
-                            if (isMainView) {
-                                active_window.send('update_card', destination)
-                                active_window.send('update_cards1', active_folder)
-                            } else {
-                                // console.log(active_folder)
-                                // get_folder_size(active_folder)
-                                let base = path.dirname(destination)
-                                active_window.send('update_card', base)
-                            }
-
+                    const cancel_copy = copy_write(source, destination, () => {
+                        if (isMainView) {
+                            active_window.send('update_card', destination)
+                            active_window.send('update_cards1', active_folder)
                         } else {
+                            // console.log(active_folder)
+                            // get_folder_size(active_folder)
+                            let base = path.dirname(destination)
+                            active_window.send('update_card', base)
                         }
                     })
+
+                    // copyfile(source, destination, (res) => {
+                    //     // Success
+                    //     if (res) {
+
+                    //         active_window.send('set_progress', copy_files_arr.length - 1, idx)
+
+                    //         if (isMainView) {
+                    //             active_window.send('update_card', destination)
+                    //             active_window.send('update_cards1', active_folder)
+                    //         } else {
+                    //             // console.log(active_folder)
+                    //             // get_folder_size(active_folder)
+                    //             let base = path.dirname(destination)
+                    //             active_window.send('update_card', base)
+                    //         }
+
+                    //     } else {
+                    //     }
+                    // })
 
                 }
 

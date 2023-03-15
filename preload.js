@@ -2276,6 +2276,7 @@ function get_progress(total) {
     let cancel          = document.getElementById('cancel_operation')
 
     cancel.onclick = (e) => {
+        console.log('canceling copy')
         ipcRenderer.send('cancel');
     }
 
@@ -4849,7 +4850,8 @@ function add_workspace() {
 
     }
 
-    get_workspace()
+    // get_workspace()
+    get_sidebar_view()
     clear_items();
 
 }
@@ -4883,6 +4885,50 @@ async function get_workspace() {
         workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
 
     } else {
+
+        // Workspace
+        sidebar_items.append(add_header('Workspace'))
+        // local_items = JSON.parse(localStorage.getItem('workspace'))
+        // if (local_items != undefined) {
+        //     if (local_items.length > 0 && local_items != undefined) {
+        //         local_items.forEach((item, idx) => {
+
+        //             let div = add_div()
+        //             let col1 = add_div()
+        //             let col2 = add_div()
+        //             let rm_icon = add_icon('times')
+
+        //             rm_icon.classList.add('small');
+        //             // rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
+
+        //             div.style = 'display: flex; padding: 6px; width: 100%;'
+        //             div.classList.add('item')
+        //             col1.append(add_icon('bookmark'));
+        //             col2.append(item.name);
+        //             div.append(col1, col2, rm_icon);
+        //             sidebar_items.append(div);
+
+        //             div.title = item.href
+        //             div.onclick = () => {
+
+        //                 gio.get_file(item.href, file => {
+        //                     if (file.type == 'directory') {
+        //                         get_view(item.href)
+        //                     } else {
+        //                         open(item.href)
+        //                     }
+        //                 })
+
+        //             }
+
+        //             div.oncontextmenu = (e) => {
+        //                 ipcRenderer.send('show-context-menu-workspace');
+        //             }
+
+        //         })
+        //     }
+
+        // }
 
         localStorage.setItem('minibar', 'mb_workspace')
         local_items = JSON.parse(localStorage.getItem('workspace'))
