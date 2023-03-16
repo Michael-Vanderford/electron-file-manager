@@ -419,6 +419,41 @@ exports.cp = async(source, destination, callback) => {
 
 };
 
+exports.cp1 = (sourcePath, destinationPath, callback) => {
+
+    const gioCopy = spawn('gio', ['copy', sourcePath, destinationPath]);
+
+    gioCopy.stderr.on('data', (data) => {
+        const message = data.toString();
+        if (message.startsWith('Copying')) {
+          const parts = message.split(' ');
+          const copiedBytes = parseInt(parts[1], 10);
+          const totalBytes = parseInt(parts[3], 10);
+          const progress = Math.floor((copiedBytes / totalBytes) * 100);
+          console.log(`Copy progress: ${progress}%`);
+        }
+
+    });
+
+    // Listen for errors
+    gioCopy.on('error', (err) => {
+        console.error(`Failed to copy files: ${err}`);
+    });
+
+    // Listen for the exit event
+    gioCopy.on('exit', (code, signal) => {
+        if (code === 0) {
+            console.log('Files copied successfully');
+            callback(null);
+
+        } else {
+            console.error(`Failed to copy files with code ${code}`);
+            callback(new Error(`Failed to copy files with code ${code}`));
+        }
+    });
+
+}
+
 /**
  * Make a Directory with GIO (gvfs)
  * @param {string} destination

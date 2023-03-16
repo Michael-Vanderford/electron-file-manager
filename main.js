@@ -1165,7 +1165,7 @@ function copy() {
         // if (source != destination) { // trap
         if (copy_files_arr.length > 0) {
 
-            // if (!isGioFile(destination)) {
+            if (!isGioFile(destination)) {
 
                 // SET SIZE FOR PROGRESS
                 let max = 0;
@@ -1176,7 +1176,7 @@ function copy() {
                 // SHOW PROGRESS
                 active_window.send('progress', max);
 
-            // }
+            }
 
             if (file.is_dir) {
 
@@ -1312,19 +1312,37 @@ function copy() {
                         console.log('is not main view')
                     }
 
+                    if (isGioFile(destination)) {
 
-                    active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
-                    const cancel_copy = copy_write(source, destination, () => {
-                        if (isMainView) {
-                            active_window.send('update_card', destination)
-                            active_window.send('update_cards1', active_folder)
-                        } else {
-                            // console.log(active_folder)
-                            // get_folder_size(active_folder)
-                            let base = path.dirname(destination)
-                            active_window.send('update_card', base)
-                        }
-                    })
+                        gio.cp1(source, destination, () => {
+
+                            if (isMainView) {
+                                active_window.send('update_card', destination)
+                                active_window.send('update_cards1', active_folder)
+                            } else {
+                                let base = path.dirname(destination)
+                                active_window.send('update_card', base)
+                            }
+
+                        })
+
+                    } else {
+
+                        active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
+                        copy_write(source, destination, () => {
+                            if (isMainView) {
+                                active_window.send('update_card', destination)
+                                active_window.send('update_cards1', active_folder)
+                            } else {
+                                // console.log(active_folder)
+                                // get_folder_size(active_folder)
+                                let base = path.dirname(destination)
+                                active_window.send('update_card', base)
+                            }
+                        })
+
+                    }
+
 
                     // copyfile(source, destination, (res) => {
                     //     // Success
@@ -4456,12 +4474,12 @@ ipcMain.on('show-context-menu-workspace', (e, file) => {
 
     // console.log(file)
     let workspace_menu_template = [
-        {
-            label: 'Remove From Workspace',
-            click: () => {
-                active_window.send('remove_from_workspace', file.href)
-            }
-        },
+        // {
+        //     label: 'Remove From Workspace',
+        //     click: () => {
+        //         active_window.send('remove_from_workspace', file.href)
+        //     }
+        // },
         {
             label: 'Open Location',
             click: () => {
@@ -4478,7 +4496,12 @@ ipcMain.on('show-context-menu-workspace', (e, file) => {
     // ADD LAUNCHER MENU
     // add_launcher_menu(menu, e, args.apps)
 
+
     menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+    menu.on('menu-will-close', () => {
+        active_window.send('clear_items');
+    });
 
 })
 

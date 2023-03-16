@@ -101,6 +101,11 @@ let settings            = "";
 // Inputs
 let input_value0        = "";
 
+ipcRenderer.on('clear_items', (e) => {
+    console.log('clear_items')
+    clear_items();
+})
+
 ipcRenderer.on('set_progress_msg', (e, msg) => {
     set_progress_msg(msg)
 })
@@ -327,28 +332,42 @@ ipcRenderer.on('remove_from_workspace', (e, href) => {
     console.log('removing from workspace', href)
 
     let workspace = document.getElementById('workspace')
-    let cards = workspace.querySelectorAll('.nav_item')
-    cards.forEach(card => {
-        if (card.dataset.href === href) {
+    let workspace_items = workspace.querySelectorAll('.highlight_select')
 
-            let workspace_items = JSON.parse(localStorage.getItem('workspace'))
 
-            workspace_items.forEach((workspace_item, idx) => {
-                if (workspace_item.href == href) {
-                    console.log(workspace_item)
-                    delete workspace_items[idx]
-                }
-            })
-
-            if (workspace_items.length > 0) {
-                localStorage.setItem('workspace', JSON.stringify(workspace_items))
-            } else {
-                localStorage.removeItem('workspace')
-            }
-
-            card.remove()
-        }
+    workspace_items.forEach(item => {
+        item.remove()
     })
+
+    // div.remove();
+    // local_items.splice(idx, 1);
+    // if (local_items.length > 0) {
+    //     localStorage.setItem('workspace',JSON.stringify(local_items));
+    // } else {
+    //     localStorage.removeItem('workspace')
+    // }
+
+    // cards.forEach(card => {
+    //     if (card.dataset.href === href) {
+
+    //         let workspace_items = JSON.parse(localStorage.getItem('workspace'))
+
+    //         workspace_items.forEach((workspace_item, idx) => {
+    //             if (workspace_item.href == href) {
+    //                 console.log(workspace_item)
+    //                 delete workspace_items[idx]
+    //             }
+    //         })
+
+    //         if (workspace_items.length > 0) {
+    //             localStorage.setItem('workspace', JSON.stringify(workspace_items))
+    //         } else {
+    //             localStorage.removeItem('workspace')
+    //         }
+
+    //         card.remove()
+    //     }
+    // })
 })
 
 // REMOVE CARD
@@ -1736,15 +1755,20 @@ function get_sidebar_home() {
                 let div = add_div()
                 let col1 = add_div()
                 let col2 = add_div()
+                let rm_icon = add_icon('times')
+
+                rm_icon.classList.add('small');
+                rm_icon.style = 'margin-left: auto;';
+
                 div.style = 'display: flex; padding: 6px; width: 100%;'
                 div.classList.add('item')
                 col1.append(add_icon('bookmark'));
                 col2.append(item.name);
-                div.append(col1, col2);
+                div.append(col1, col2, rm_icon);
                 sidebar_items.append(div);
 
                 div.title = item.href
-                div.onclick = () => {
+                div.onclick = (e) => {
 
                     gio.get_file(item.href, file => {
                         if (file.type == 'directory') {
@@ -1753,14 +1777,29 @@ function get_sidebar_home() {
                             open(item.href)
                         }
                     })
+                }
 
+                rm_icon.onclick = (e) => {
+
+                    e.preventDefault()
+                    e.stopPropagation()
+
+                    div.remove();
+                    local_items.splice(idx, 1);
+                    if (local_items.length > 0) {
+                        localStorage.setItem('workspace',JSON.stringify(local_items));
+                    } else {
+                        localStorage.removeItem('workspace')
+                    }
                 }
 
                 div.oncontextmenu = (e) => {
-                    ipcRenderer.send('show-context-menu-workspace');
+                    div.classList.add('highlight_select')
+                    ipcRenderer.send('show-context-menu-workspace', item);
                 }
 
             })
+
         }
 
     }
@@ -4888,93 +4927,109 @@ async function get_workspace() {
 
         // Workspace
         sidebar_items.append(add_header('Workspace'))
-        // local_items = JSON.parse(localStorage.getItem('workspace'))
-        // if (local_items != undefined) {
-        //     if (local_items.length > 0 && local_items != undefined) {
-        //         local_items.forEach((item, idx) => {
-
-        //             let div = add_div()
-        //             let col1 = add_div()
-        //             let col2 = add_div()
-        //             let rm_icon = add_icon('times')
-
-        //             rm_icon.classList.add('small');
-        //             // rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
-
-        //             div.style = 'display: flex; padding: 6px; width: 100%;'
-        //             div.classList.add('item')
-        //             col1.append(add_icon('bookmark'));
-        //             col2.append(item.name);
-        //             div.append(col1, col2, rm_icon);
-        //             sidebar_items.append(div);
-
-        //             div.title = item.href
-        //             div.onclick = () => {
-
-        //                 gio.get_file(item.href, file => {
-        //                     if (file.type == 'directory') {
-        //                         get_view(item.href)
-        //                     } else {
-        //                         open(item.href)
-        //                     }
-        //                 })
-
-        //             }
-
-        //             div.oncontextmenu = (e) => {
-        //                 ipcRenderer.send('show-context-menu-workspace');
-        //             }
-
-        //         })
-        //     }
-
-        // }
-
-        localStorage.setItem('minibar', 'mb_workspace')
         local_items = JSON.parse(localStorage.getItem('workspace'))
-        if (local_items.length > 0) {
+        if (local_items != undefined) {
+            if (local_items.length > 0 && local_items != undefined) {
+                local_items.forEach((item, idx) => {
 
-            local_items.forEach((item, idx) => {
+                    let div = add_div()
+                    let col1 = add_div()
+                    let col2 = add_div()
+                    let rm_icon = add_icon('times')
 
-                console.log(item)
+                    rm_icon.classList.add('small');
+                    rm_icon.style = 'margin-left: auto;';
 
-                let card = get_card1(item)
-                card.classList.add('workspace_card')
-                workspace.append(card)
+                    div.style = 'display: flex; padding: 6px; width: 100%;'
+                    div.classList.add('item')
+                    col1.append(add_icon('bookmark'));
+                    col2.append(item.name);
+                    div.append(col1, col2, rm_icon);
+                    workspace.append(div)
+                    sidebar_items.append(workspace);
 
-                let icon = card.querySelector('.icon')
-                icon.style = 'width: 16px !important; height: 16px !important'
+                    div.title = item.href
+                    div.onclick = (e) => {
 
-                // icon.src = item.hreff
+                        gio.get_file(item.href, file => {
+                            if (file.type == 'directory') {
+                                get_view(item.href)
+                            } else {
+                                open(item.href)
+                            }
+                        })
+                    }
 
-                let rm_icon = add_icon('times');
-                rm_icon.classList.add('small');
-                rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
+                    rm_icon.onclick = (e) => {
 
-                card.append(rm_icon);
-                rm_icon.addEventListener('click', (e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
 
-                    card.remove();
-                    local_items.splice(idx, 1);
-                    if (local_items.length > 0) {
-                        localStorage.setItem('workspace',JSON.stringify(local_items));
-                    } else {
-                        localStorage.removeItem('workspace')
+                        div.remove();
+                        local_items.splice(idx, 1);
+                        if (local_items.length > 0) {
+                            localStorage.setItem('workspace',JSON.stringify(local_items));
+                        } else {
+                            localStorage.removeItem('workspace')
+                        }
+                    }
+
+                    div.oncontextmenu = (e) => {
+                        div.classList.add('highlight_select')
+                        ipcRenderer.send('show-context-menu-workspace', item);
                     }
 
                 })
 
-                card.oncontextmenu = (e) => {
-                    card.classList.add('highlight_select')
-                    ipcRenderer.send('show-context-menu-workspace', item)
-                }
+            }
 
-            })
-
-        } else {
-            workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
-            sidebar_items.append(workspace_msg)
         }
+
+        // localStorage.setItem('minibar', 'mb_workspace')
+        // local_items = JSON.parse(localStorage.getItem('workspace'))
+        // if (local_items.length > 0) {
+
+        //     local_items.forEach((item, idx) => {
+
+        //         console.log(item)
+
+        //         let card = get_card1(item)
+        //         card.classList.add('workspace_card')
+        //         workspace.append(card)
+
+        //         let icon = card.querySelector('.icon')
+        //         icon.style = 'width: 16px !important; height: 16px !important'
+
+        //         // icon.src = item.hreff
+
+        //         let rm_icon = add_icon('times');
+        //         rm_icon.classList.add('small');
+        //         rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
+
+        //         card.append(rm_icon);
+        //         rm_icon.addEventListener('click', (e) => {
+
+        //             card.remove();
+        //             local_items.splice(idx, 1);
+        //             if (local_items.length > 0) {
+        //                 localStorage.setItem('workspace',JSON.stringify(local_items));
+        //             } else {
+        //                 localStorage.removeItem('workspace')
+        //             }
+
+        //         })
+
+        //         card.oncontextmenu = (e) => {
+        //             card.classList.add('highlight_select')
+        //             ipcRenderer.send('show-context-menu-workspace', item)
+        //         }
+
+        //     })
+
+        // } else {
+        //     workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
+        //     sidebar_items.append(workspace_msg)
+        // }
 
     }
 
@@ -5890,6 +5945,9 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         let show_hidden                 = parseInt(localStorage.getItem('show_hidden'))
         let sort_flag                   = 0;
 
+        folder_grid.classList.add('doubling')
+        file_grid.classList.add('doubling')
+
         if (sort_direction == 'asc') {
             sort_flag = 1;
         } else {
@@ -5960,7 +6018,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
                 let card = get_card1(file)
                 // card.classList.add('lazy')
-
                 let col = add_column('three')
                 col.append(card)
 
@@ -7040,6 +7097,7 @@ function clear_items() {
     let hamburger_menu      = document.getElementById('hamburger_menu')
     let info_view           = document.getElementById('info_view');
     let notification        = document.getElementById('notification')
+    let items               = document.querySelectorAll('.item')
 
 
     /* Reset nav counters */
@@ -7066,6 +7124,10 @@ function clear_items() {
     progress.classList.add            ('hidden');
     progress_div.classList.add        ('hidden');
     notification.classList.add        ('hidden');
+
+    items.forEach(item => {
+        item.classList.remove('highlight_select')
+    })
 
     if (input) {
         input.value = input_value0
@@ -7785,6 +7847,8 @@ function get_file(href, callback) {
  * @param {*} callback Retuns a Array of File Object
  */
 function get_dir(dir, callback) {
+
+    // This is not being used
 
     let isGio   = 1;
     let gio_dir = ['smb:', 'sftp:', 'mtp:']
