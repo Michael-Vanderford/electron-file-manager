@@ -1090,9 +1090,11 @@ const copy_write = (source, destination, callback) => {
     const stats = fs.statSync(source);
 
     if (stats.isDirectory()) {
+
         // if it's a directory, create the destination directory if it doesn't exist
         if (!fs.existsSync(destination)) {
             fs.mkdirSync(destination);
+            active_window.send('set_progress_msg', `Copying ${path.basename(destination)}`)
         }
 
         // list all files and subdirectories in the source directory
@@ -1101,15 +1103,17 @@ const copy_write = (source, destination, callback) => {
         files.forEach((file) => {
             const sourcePath = path.join(source, file);
             const destinationPath = path.join(destination, file);
+            active_window.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
             copy_write(sourcePath, destinationPath, () => {
                 count++;
-                active_window.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
                 if (count === files.length) {
                     callback();
                 }
             });
         });
+
     } else {
+
         // if it's a file, copy it to the destination
         const reader = fs.createReadStream(source);
         const writer = fs.createWriteStream(destination);
@@ -1181,7 +1185,7 @@ function copy() {
             if (file.is_dir) {
 
                 if (source == destination) {
-                    destination = destination + ' Copy'
+                    destination = destination + ' (Copy)'
                 }
 
                 if (fs.existsSync(destination)) {
@@ -1205,23 +1209,35 @@ function copy() {
 
                         copy_write(source, destination, (res) => {
 
-                            if (isMainView) {
-                                let file_obj = {
-                                    name: path.basename(destination),
-                                    href: destination,
-                                    is_dir: 1,
-                                    ["time::modified"]: new Date / 1000,
-                                    size: 0
-                                }
+                            console.log('is main view')
 
-                                active_window.send('get_card', file_obj)
-                                get_folder_size(destination)
-                                isMainView = 0;
-
-                            } else {
-                                let base = path.dirname(destination)
-                                active_window.send('update_card', base)
+                            let file_obj = {
+                                name: path.basename(destination),
+                                href: destination,
+                                is_dir: 0,
+                                ["time::modified"]: new Date / 1000,
+                                size: 0
                             }
+
+                            active_window.send('get_card', file_obj)
+
+                            // if (isMainView) {
+                            //     let file_obj = {
+                            //         name: path.basename(destination),
+                            //         href: destination,
+                            //         is_dir: 1,
+                            //         ["time::modified"]: new Date / 1000,
+                            //         size: 0
+                            //     }
+
+                            //     active_window.send('get_card', file_obj)
+                            //     get_folder_size(destination)
+                            //     isMainView = 0;
+
+                            // } else {
+                            //     let base = path.dirname(destination)
+                            //     active_window.send('update_card', base)
+                            // }
                         })
 
 

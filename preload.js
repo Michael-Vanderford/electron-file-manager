@@ -1821,6 +1821,7 @@ function get_sidebar_home() {
 
             link.style = 'display: block'
             col2.style = 'width: 100%'
+            col3.style = 'margin-left: auto'
 
             div.append(col1, col2, col3)
             div.style = 'display: flex; padding: 6px; width: 100%;'
@@ -6058,8 +6059,22 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         file_arr = dirents;
         hide_loader();
 
+        let cards = document.querySelectorAll('.nav_item')
+        let current_card = 0;
+        Mousetrap.bind(settings.keyboard_shortcuts.Down.toLocaleLowerCase(), (e) => {
+            cards[current_card].classList.remove('highlight');
+            current_card = (current_card + 5) % cards.length;
+            cards[current_card].classList.add('highlight');
+        })
+
+        Mousetrap.bind(settings.keyboard_shortcuts.Up.toLocaleLowerCase(), (e) => {
+            cards[current_card].classList.remove('highlight');
+            current_card = (current_card - 5 + cards.length) % cards.length;
+            cards[current_card].classList.add('highlight');
+        })
 
     })
+
 
 
 
@@ -7975,7 +7990,6 @@ function get_dir(dir, callback) {
         })
 
     }
-
 }
 
 function get_gio_files(href) {
@@ -11072,7 +11086,7 @@ window.addEventListener('DOMContentLoaded', () => {
             e.key != "PageDown" &&
             e.key != "PageUp" &&
             e.key != 'ArrowUp' &&
-            e.key != 'ArrowDown' &&
+            // e.key != 'ArrowDown' &&
             e.key != 'ArrowLeft' &&
             e.key != 'ArrowRight' &&
             e.key != "Delete" &&
