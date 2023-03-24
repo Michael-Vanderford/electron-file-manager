@@ -1,26 +1,24 @@
 {
     "window": {
         "length": 1400,
-        "width": 1336,
-        "x": 2192,
-        "y": 255,
-        "height": 671
+        "width": 1383,
+        "x": 2156,
+        "y": 159,
+        "height": 600
     },
     "display": {
-        "captions": {
+        "Icon Caption": {
             "None": "None",
-            "Size": "Size",
-            "Type": "Type",
-            "DateModified": "DateModified",
-            "Owner": "Owner"
+            "Size": "Size"
         }
     },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
+        "ShowHome": "Alt+H",
         "ShowWorkspace": "Alt+W",
         "ShowSidebar": "Ctrl+B",
         "ShowDevices": "Ctrl+D",
-        "ShowSettings": "Ctrl+S",
+        "ShowSettings": "",
         "Find": "Ctrl+F",
         "Down": "Down",
         "Up": "Up",
@@ -31,7 +29,7 @@
         "Copy": "Ctrl+C",
         "Paste": "Ctrl+V",
         "SelectAll": "Ctrl+A",
-        "Delete": "Del",
+        "Delete": "Delete",
         "Compress": "Shift+C",
         "Extract": "Shift+E",
         "Properties": "Ctrl+I",

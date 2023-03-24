@@ -904,21 +904,38 @@ button .button .link {
     /* padding-top: 25px; */
     /* padding-bottom: 40px; */
     z-index: 0;
+    width: 100%;
 }
 #grid_view {
     margin-right: 0px;
     padding-left: 20px;
     padding-top: 25px;
     padding-bottom: 40px;
+    padding-right: 0px;
     overflow-x: hidden;
     overflow-y: scroll;
     height: 100%;
 }
 #list_view {
+    padding: 10px;
     padding-top: 2px;
     overflow-x: hidden;
     overflow-y: scroll;
     height: 100%;
+}
+#list_view {
+    font-weight: normal !important;
+}
+#list_view tbody tr:hover {
+    outline: 1px solid #069 !important;
+    /* border: 1px solid orange; */
+}
+#list_view td {
+    padding: 0px !important;
+}
+#list_view .header_link {
+    font-weight: normal !important;
+    color: #f7f7f7;
 }
 #tabs {
     margin-top: -15px;
@@ -1046,6 +1063,20 @@ a:link, .bold {
     background:#425261 !important;
 }
 
+/* #list_view table { */
+    /* border-collapse: collapse !important; */
+/* } */
+
+/* #list_view th, td  { */
+    /* border: none !important; */
+/* } */
+
+/* #list_view tr .highlight { */
+    /* box-sizing: border-box; */
+    /* outline: 1px solid red !important; */
+/* } */
+
+
 /* FIX HIGHLIGHT */
 .hf {
     border: 1px solid transparent;
@@ -1104,7 +1135,7 @@ input:focus {
     body { background: #ddd; color: black; }
 }
 
-@media only screen and (max-width: 768px) {
+/* @media only screen and (max-width: 768px) {
   .ui.container {
       width: auto;
       padding-right: 0px;
@@ -1137,53 +1168,21 @@ input:focus {
       left: -9999px;
   }
 
-}
+} */
 
-@media only screen and (max-width: 768px) {
+@media only screen and (min-width: 400px) {
     .ui.grid .three.wide.column {
-        width: 25% !important;
+        width: 50% !important;
     }
 }
 
-@media only screen and (max-width: 1279px) {
+@media only screen and (min-width: 768px) {
     .ui.grid .three.wide.column {
-        width: 25% !important;
+        width: 33% !important;
     }
 }
 
-@media only screen and (min-width: 1280px) {
-
-  body {
-        font-size:.9em;
-  }
-
-  .form-control-sm, .btn-link {
-        font-size: 1em;
-  }
-
-  .sb-container {
-        width: 80%;
-  }
-
-}
-
-@media only screen and (max-width: 1280px) {
-
-  body {
-      font-size: 1em;
-  }
-
-  .form-control-sm, .btn-link {
-      font-size:1em;
-  }
-
-  .sb-container {
-      width: 100%;
-  }
-
-}
-
-@media only screen and (max-width: 1024px) {
+@media only screen and (min-width: 1024px) {
 
     body {
         font-size: 1em;
@@ -1197,10 +1196,52 @@ input:focus {
         width: 100%;
     }
     .ui.grid .three.wide.column {
-        width: 50% !important;
+        width: 25% !important;
     }
 
 }
+
+/* @media only screen and (max-width: 1279px) {
+    .ui.grid .three.wide.column {
+        width: 25% !important;
+    }
+} */
+
+/* @media only screen and (min-width: 1280px) {
+
+    body {
+        font-size:.9em;
+    }
+
+    .form-control-sm, .btn-link {
+        font-size: 1em;
+    }
+
+    .sb-container {
+        width: 80%;
+    }
+
+} */
+
+@media only screen and (min-width: 1280px) {
+
+    body {
+        font-size: 1em;
+    }
+
+    .form-control-sm, .btn-link {
+        font-size:1em;
+    }
+
+    .sb-container {
+        width: 100%;
+    }
+
+    .ui.grid .three.wide.column {
+        width: 20% !important;
+    }
+
+  }
 
 #statusbar {
     background-color: rgb(0, 122, 204, .75);

@@ -2922,24 +2922,12 @@ function move() {
         win.webContents.send('progress', max);
     })
 
-    copy_files_arr.forEach((file, idx) => {
+    copy_files_arr.every((file, idx) => {
 
         let source = file.href
         let destination = path.join(active_folder, path.basename(file.href))
 
         if (source != destination) { // trap
-
-            // // SET SIZE FOR PROGRESS
-            // let max = 0;
-            // copy_files_arr.forEach(item => {
-            //     max += parseInt(item.size)
-            // })
-
-            // // SHOW PROGRESS
-            // // let win = window.getFocusedWindow();
-            // windows.forEach(win => {
-            //     win.webContents.send('progress', max);
-            // })
 
             if (file.is_dir) {
 
@@ -2951,7 +2939,8 @@ function move() {
                         destination: destination
                     }
 
-                    createOverwriteMoveDialog(data, copy_files_arr)
+                    createOverwriteMoveDialog(data)
+                    return false
 
                 } else {
 
@@ -3001,7 +2990,8 @@ function move() {
                         destination: destination
                     }
 
-                    createOverwriteMoveDialog(data, copy_files_arr)
+                    createOverwriteMoveDialog(data)
+                    return false
 
                 } else {
 
@@ -3048,11 +3038,12 @@ function move() {
             active_window.send('notification', 'Error: Operation not Permitted!')
         }
 
+        return true
 
     })
 
-    copy_files_arr = []
-    copy_arr = []
+    // copy_files_arr = []
+    // copy_arr = []
     // console.log(tmp_copy_arr)
     // // DIRECTORY
     // if (fs.statSync(data.source).isDirectory()) {
@@ -3517,7 +3508,7 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 
 // CONFIRM OVERWRITE FOR MOVE DIALOG
 // let confirm = ''
-function createOverwriteMoveDialog(data, copy_files_arr) {
+function createOverwriteMoveDialog(data) {
 
     let bounds = active_window.getBounds()
 
@@ -3598,14 +3589,19 @@ ipcMain.on('overwrite_move_confirmed', (e, data) => {
 
             if (res) {
 
-                copy_files_arr.forEach(file => {
-                    delete_file(file.href, () => {
-                        active_window.send('remove-card', file.href)
-                    })
+                delete_file(source, () => {
+                    active_window.send('remove-card', source)
+
+                    // REMOVE ITEM FROM ARRAY
+                    copy_files_arr.shift()
+
+                    if (copy_files_arr.length > 0) {
+                        move()
+                    }
+
                 })
 
             }
-
 
             active_window.send('update_card', destination_file)
 
@@ -3642,17 +3638,17 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
     // }
 
     // COPY FILES
-    copy_files_arr.forEach((data, idx) => {
+    copy_files_arr.forEach((file, idx) => {
 
-        let destination_file = path.join(active_folder, path.basename(data.source));
+        let destination_file = path.join(active_folder, path.basename(file.href));
 
         // DIRECTORY - todo: needs work
-        if (fs.statSync(data.source).isDirectory()) {
+        if (fs.statSync(file.href).isDirectory()) {
 
-            copyfolder(data.source, destination_file, 0, () => {
+            copyfolder(file.href, destination_file, 0, () => {
 
-                delete_file(data.source, () => {
-                    active_window.send('remove-card', data.source)
+                delete_file(file.href, () => {
+                    active_window.send('remove-card', file.href)
                     // windows.forEach(win => {
                     //     win.send('remove_card', data.source);
                     // })
@@ -3665,12 +3661,12 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
         } else {
 
             // state = 0
-            copyfile(data.source, destination_file, () => {
+            copyfile(file.href, destination_file, () => {
 
-                copy_files_arr.forEach(data => {
-                    delete_file(data.source, () => {
+                copy_files_arr.forEach(file => {
+                    delete_file(file.href, () => {
 
-                        active_window.send('remove-card', data.source)
+                        active_window.send('remove-card', file.href)
                         // windows.forEach(win => {
                         //     win.send('remove_card', data.source);
                         // })
@@ -4225,7 +4221,7 @@ function add_launcher_menu(menu, e, args) {
             launcher_menu.submenu.append(new MenuItem({
                 label: args[i].name,
                 click: () => {
-                    e.sender.send('context-menu-command', 'open_with_application', args[i].exec)
+                    e.sender.send('context-menu-command', 'open_with', args[i].exec)
                     let cmd = 'xdg-mime default ' + args[i].desktop + ' ' + args[i].mimetype
                     execSync(cmd)
                 }

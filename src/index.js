@@ -646,6 +646,10 @@ for (var i = 0; i < resizeableColumns.length; i++) {
     }
 }
 
+
+
+
+
 // $("#main_view").on("selectableselected selectableunselected", function(){
 //     console.log(running)
 //     $(".inside").removeClass("yes").addClass("no");
