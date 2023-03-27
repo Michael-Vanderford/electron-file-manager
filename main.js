@@ -17,7 +17,7 @@ const gio                   = require('./utils/gio')
 const { promisify }         = require('util');
 const execPromise           = util.promisify(exec);
 const Gio                   = require('gio');
-
+const { session } = require('electron')
 
 let copy_files_arr          = [];
 let canceled                = 0;
@@ -283,6 +283,21 @@ function get_folder_size_recursive (href) {
 //         callback(null, size);
 //     });
 // }
+
+function show_progress() {
+
+    // SET SIZE FOR PROGRESS
+    let max = 0;
+    copy_files_arr.forEach(item => {
+        max += parseInt(item.size)
+    })
+
+    // SHOW PROGRESS
+    windows.forEach(win => {
+        win.webContents.send('progress', max);
+    })
+
+}
 
 function get_folder_size(href) {
     // try {
@@ -947,6 +962,8 @@ function copyfolder(source, destination, callback) {
             gio.mkdir(destination, (res) => {
                 // active_window.send('notification', res)
                 // console.log(res)
+                active_window.send('set_progress_msg', `Copying File ${path.basename(destination)}`)
+                active_window.send('set_progress', dirents.length, 1)
             })
 
             dirents.forEach((file, idx) => {
@@ -988,15 +1005,11 @@ function copyfolder(source, destination, callback) {
                 active_window.send('set_progress', 1, 1);
 
                 if (isMainView) {
-                    let file_obj = {
-                        name: path.basename(orig_dest),
-                        href: orig_dest,
-                        is_dir: 1,
-                        ["time::modified"]: new Date / 1000,
-                        size: 0
-                    }
 
-                    active_window.send('get_card', file_obj)
+                    gio.get_file(destination, file => {
+                        console.log(file)
+                        active_window.send('get_card', file)
+                    })
 
                 }
 
@@ -1112,6 +1125,8 @@ const copy_write = (source, destination, callback) => {
             });
         });
 
+
+
     } else {
 
         // if it's a file, copy it to the destination
@@ -1128,6 +1143,7 @@ const copy_write = (source, destination, callback) => {
             callback(new Error('Copy process was cancelled'));
         };
 
+        callback()
         // readStream.destroy();
         // pipe.destroy();
         // callback(new Error('Copy process was cancelled'));
@@ -1171,18 +1187,18 @@ function copy() {
 
             if (!isGioFile(destination)) {
 
-                // SET SIZE FOR PROGRESS
-                let max = 0;
-                copy_files_arr.forEach(item => {
-                    max += parseInt(item.size)
-                })
+                // // SET SIZE FOR PROGRESS
+                // let max = 0;
+                // copy_files_arr.forEach(item => {
+                //     max += parseInt(item.size)
+                // })
 
-                // SHOW PROGRESS
-                active_window.send('progress', max);
+                // // SHOW PROGRESS
+                // active_window.send('progress', max);
 
             }
 
-            if (file.is_dir) {
+            if (file.is_dir || file.type == 'directory') {
 
                 if (source == destination) {
                     destination = destination + ' (Copy)'
@@ -1203,41 +1219,27 @@ function copy() {
 
                     if (isGioFile(destination)) {
 
+                        // show_progress()
                         copyfolder(source, destination, () => {})
 
                     } else {
 
+                        show_progress()
                         copy_write(source, destination, (res) => {
 
-                            console.log('is main view')
+                            if (isMainView) {
 
-                            let file_obj = {
-                                name: path.basename(destination),
-                                href: destination,
-                                is_dir: 0,
-                                ["time::modified"]: new Date / 1000,
-                                size: 0
+                                gio.get_file(destination, file => {
+                                    active_window.send('get_card', file_obj)
+                                })
+                                // get_folder_size(destination)
+                                isMainView = 0;
+
+                            } else {
+                                let base = path.dirname(destination)
+                                active_window.send('update_card', base)
                             }
 
-                            active_window.send('get_card', file_obj)
-
-                            // if (isMainView) {
-                            //     let file_obj = {
-                            //         name: path.basename(destination),
-                            //         href: destination,
-                            //         is_dir: 1,
-                            //         ["time::modified"]: new Date / 1000,
-                            //         size: 0
-                            //     }
-
-                            //     active_window.send('get_card', file_obj)
-                            //     get_folder_size(destination)
-                            //     isMainView = 0;
-
-                            // } else {
-                            //     let base = path.dirname(destination)
-                            //     active_window.send('update_card', base)
-                            // }
                         })
 
 
@@ -1310,6 +1312,8 @@ function copy() {
 
                 } else {
 
+                    // show_progress()
+
                     if (isMainView) {
 
                         console.log('is main view')
@@ -1330,6 +1334,9 @@ function copy() {
 
                     if (isGioFile(destination)) {
 
+                        active_window.send('set_progress_msg', destination)
+                        active_window.send('set_progress', 1, 1)
+
                         gio.cp1(source, destination, () => {
 
                             if (isMainView) {
@@ -1343,6 +1350,8 @@ function copy() {
                         })
 
                     } else {
+
+                        show_progress()
 
                         active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
                         copy_write(source, destination, () => {
@@ -1410,29 +1419,20 @@ function copy() {
     //     // SHOW PROGRESS
     //     active_window.send('progress', max);
     //     if (file.is_dir) {
-
     //         if (source == destination) {
     //             destination = destination + ' Copy'
     //         }
-
     //         if (fs.existsSync(destination)) {
-
     //             let data = {
     //                 source: source,
     //                 destination: destination
     //             }
-
     //             createConfirmDialog(data, copy_files_arr)
     //             // return false;
-
     //         } else {
-
     //             copyfolder(source, destination, (res) => {
-
     //                 if (res) {
-
     //                     if (isMainView) {
-
     //                         let file_obj = {
     //                             name: path.basename(destination),
     //                             href: destination,
@@ -1447,37 +1447,25 @@ function copy() {
     //                     } else {
     //                         get_folder_size1(active_folder)
     //                     }
-
     //                 }
-
     //                 // copy_files_arr.shift()
     //                 // return true
-
     //             })
-
     //         }
-
     //     } else {
-
     //         if (source == destination) {
     //             destination = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(source).length) + ' Copy' + path.extname(source));
     //         }
-
     //         if (fs.existsSync(destination)) {
-
     //             // CREATE CONFIRM COPY OVERWRITE
     //             let data = {
     //                 source: source,
     //                 destination: destination
     //             }
-
     //             createConfirmDialog(data, copy_files_arr);
     //             // return false;
-
     //         } else {
-
     //             if (isMainView) {
-
     //                 let file_obj = {
     //                     name: path.basename(destination),
     //                     href: destination,
@@ -1486,69 +1474,46 @@ function copy() {
     //                     size: 0,
     //                     ext: path.extname(destination)
     //                 }
-
     //                 active_window.send('get_card', file_obj)
-
     //                 let c = 0;
     //                 let intervalid = setInterval(() => {
     //                     gio.get_file(destination, file => {
-
     //                         if (file.size === file.size) {
     //                             ++c
     //                         } else {
     //                             c = 0
     //                         }
-
     //                         if (c > 20) {
     //                             c = 0
     //                             clearInterval(intervalid)
     //                         }
-
     //                         active_window.send('folder_size', {href: destination, size: parseInt(file.size)})
     //                     })
     //                 }, 1000);
     //                 // active_window.send('folder_size', {href: file.href, size: file.size})
-
     //             }
-
     //             copyfile(source, destination, (res) => {
-
     //                 if (res) {
-
     //                     if (isMainView) {
     //                         active_window.send('update_card1', destination)
     //                     } else {
     //                         get_folder_size1(active_folder)
     //                     }
-
     //                 } else {
     //                     active_window.send('notification', res)
     //                 }
-
     //                 // return true
-
     //             })
-
     //         }
-
-
     //     }
-
     // })
-
     // tmp_copy_arr = []
-
-
     // active_window.send('notification', 'Done copying file/s')
-
     // copy_files_arr.every((item, idx) => {
-
     //     try {
-
     //         let source = item.source;
     //         let source_stats = fs.statSync(source)
     //         let destination_file = path.join(destination, path.basename(source))
-
     //         // DIRECTORY - Done
     //         if (source_stats.isDirectory()) {
     //             let options = {
@@ -1558,19 +1523,15 @@ function copy() {
     //                 is_folder: 1,
     //                 grid: ''
     //             }
-
     //             if (source == destination_file) {
-
     //                 // GET SIZE FOR PROGRESS
     //                 let max = 0;
     //                 copy_files_arr.forEach(item => {
     //                     max += parseInt(item.size);
     //                     // console.log(item.size)
     //                 })
-
     //                 // SHOW PROGRESS
     //                 active_window.send('progress', max);
-
     //                 // BUILD DESTINATION PATH
     //                 destination_file = path.join(destination, path.basename(source).substring(0, path.basename(source).length - path.extname(path.basename(source)).length)) + ' Copy'
     //                 destination_folder = destination_file
@@ -2292,7 +2253,7 @@ async function delete_file(href, callback) {
 
                         if (err) {
                             active_window.send('notification', err)
-                            console.log('error deleteing file', href);
+                            // console.log('error deleteing file', href);
                             callback(err);
                         } else {
 
@@ -2300,7 +2261,7 @@ async function delete_file(href, callback) {
                                 active_window.send('remove_card', href);
                             } catch (err) {
                                 active_window.send('notification', err)
-                                console.log('error deleting file', err)
+                                // console.log('error deleting file', err)
                             }
 
                             // Update disk size
@@ -2344,11 +2305,15 @@ async function delete_file(href, callback) {
     } else {
         gio.get_file(href, file => {
             if (file.type == 'directory') {
-                rm_gio_files(href, () => {})
+                rm_gio_files(href, () => {
+                    if (isMainView) {
+                        active_window.send('remove_card', href)
+                    }
+                })
                 // delete_gio_files(href)
                 // active_window.send('notification','Error: Deleting Remote Directory is not Implemented')
             } else {
-                gio.rm(href).then(() => {
+                gio.rm(href, (res)  => {
                     if (isMainView) {
                         active_window.send('remove_card', href)
                     }
@@ -2503,6 +2468,14 @@ const createWindow = exports.createWindow = () => {
 
 app.whenReady().then(() => {
     createWindow();
+
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        if (details.responseHeaders['cache-control'] == null) {
+            details.responseHeaders['cache-control'] = 'max-age=3600'
+        }
+        callback({ cancel: false, responseHeaders: details.responseHeaders })
+    })
+
 })
 
 nativeTheme.themeSource = 'dark'
@@ -2910,18 +2883,6 @@ function move() {
 
     console.log('running move')
 
-    // SET SIZE FOR PROGRESS
-    let max = 0;
-    copy_files_arr.forEach(item => {
-        max += parseInt(item.size)
-    })
-
-    // SHOW PROGRESS
-    // let win = window.getFocusedWindow();
-    windows.forEach(win => {
-        win.webContents.send('progress', max);
-    })
-
     copy_files_arr.every((file, idx) => {
 
         let source = file.href
@@ -2943,6 +2904,19 @@ function move() {
                     return false
 
                 } else {
+
+                    // SET SIZE FOR PROGRESS
+                    let max = 0;
+                    copy_files_arr.forEach(item => {
+                        max += parseInt(item.size)
+                    })
+
+                    // SHOW PROGRESS
+                    // let win = window.getFocusedWindow();
+                    windows.forEach(win => {
+                        win.webContents.send('progress', max);
+                    })
+
 
                     // copyfolder(source, destination, (res) => {
                     copy_write(source, destination, () => {
@@ -2994,6 +2968,19 @@ function move() {
                     return false
 
                 } else {
+
+                    // SET SIZE FOR PROGRESS
+                    let max = 0;
+                    copy_files_arr.forEach(item => {
+                        max += parseInt(item.size)
+                    })
+
+                    // SHOW PROGRESS
+                    // let win = window.getFocusedWindow();
+                    windows.forEach(win => {
+                        win.webContents.send('progress', max);
+                    })
+
 
                     copyfile(source, destination, (res) => {
 
@@ -3713,6 +3700,27 @@ ipcMain.on('overwrite_move_canceled', (e) => {
 
 })
 
+ipcMain.handle('get_recent_files', (e, href) => {
+    return getRecentFiles(href, 50);
+})
+
+function getRecentFiles(dirPath, numFiles) {
+    const files = fs.readdirSync(dirPath)
+    .map(file => {
+        const filePath = `${dirPath}/${file}`;
+        const stats = fs.statSync(filePath);
+        return {
+        name: file,
+        path: filePath,
+        time: stats.ctime.getTime()
+        };
+    })
+    .sort((a, b) => b.time - a.time)
+    .slice(0, numFiles)
+    .map(file => file.path);
+    return files;
+}
+
 // Create Delete Dialog
 function createDeleteDialog(delete_files_arr) {
 
@@ -3727,7 +3735,7 @@ function createDeleteDialog(delete_files_arr) {
         parent: window.getFocusedWindow(),
         modal:true,
         width: 550,
-        height: 275,
+        height: 300,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,

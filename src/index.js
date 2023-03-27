@@ -218,7 +218,6 @@ hamburger_menu.onmouseleave = (e) => {
 }
 
 icon_size_selector.onchange = () => {
-
     localStorage.setItem('icon_size', icon_size_selector.value)
     // console.log('icon size', icon_size_selector.value)
     resize_icons(icon_size_selector.value)

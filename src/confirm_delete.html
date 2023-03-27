@@ -10,15 +10,17 @@
 </head>
 <body>
 
-    <div id="confirm_delete">
-        <p class="bold"><i class="icon warning circle"></i> Warning: This operation will permanetly delete</p>
-        <div id="delete_files" class="delete">
+    <div id="confirm_delete" class="container">
+        <div class="ui h5 warning">
+            <i class="icon warning circle"></i> Warning: This operation will permanetly delete
+        </div>
+        <div id="delete_files" class="">
 
         </div>
 
-        <div class="fixed bottom" style="margin-bottom: 25px; padding-top: 60px;">
+        <div class="bottom footer">
             <input id="cancel_delete_button" tabindex="2" class="ui small button default" type="button" value="Cancel">
-            <input id="delete_button" tabindex="1" autofocus class="ui small button default" type="button" value="Delete">
+            <input id="delete_button" tabindex="1" autofocus class="ui small button default red" type="button" value="Delete">
         </div>
 
     </div>

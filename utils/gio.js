@@ -469,7 +469,7 @@ exports.mkdir = function(destination, callback) {
 }
 
 exports.rename = function(source, destination, callback) {
-    return execSync(`gio rename "${source}" "${destination}"`)
+    return callback(execSync(`gio rename "${source}" "${destination}"`))
 }
 
 /**

@@ -145,7 +145,7 @@ ipcRenderer.on('get_card', (e, file) => {
     let card = get_card1(file)
     let col = add_column('three')
     col.append(card)
-    if (file.is_dir) {
+    if (file.is_dir || file.type == 'directory') {
         folder_grid.insertBefore(col, folder_grid.firstChild)
     } else {
         file_grid.insertBefore(col, file_grid.firstChild)
@@ -157,10 +157,22 @@ ipcRenderer.on('connect', (e) => {
 
     // Init
     let cmd = '';
+    let connect = document.querySelector('.connect')
     let chk_pk = document.getElementById('chk_pk')
     let btn_connect = document.getElementById('button_connect')
+    let btn_close = document.getElementById('button_close')
     let password = document.getElementById('txt_password')
     btn_connect.tabIndex = 1
+
+    connect.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            window.close()
+        }
+    })
+
+    btn_close.onclick = (e) => {
+        window.close()
+    }
 
     chk_pk.onchange = () => {
         if (chk_pk.checked) {
@@ -1711,11 +1723,46 @@ function createFlexTable(containerId, tableData) {
 }
 
 
+function get_recent_files(href, call) {
+    ipcRenderer.invoke('get_recent_files', (href)).then(res => {
+
+        let main_view = document.getElementById('main_view')
+        let folder_grid = document.getElementById('folder_grid')
+        let file_grid = document.getElementById('file_grid')
+
+        folder_grid.innerHTML = ''
+        file_grid.innerHTML = ''
+
+        main_view.append(add_header('Recent Files'))
+
+        if (res.length > 0) {
+            res.forEach(href => {
+                gio.get_file(href, (file) => {
+
+                    let card = get_card1(file)
+                    let col = add_column('three')
+                    col.append(card)
+
+                    if (file.type == 'directory') {
+                        folder_grid.append(col)
+                    } else {
+                        file_grid.append(col)
+                    }
+
+                    console.log(file)
+                })
+            })
+        }
+
+    })
+}
+
+
 function get_sidebar_home() {
 
     let home_dir                = get_home();
     let my_computer_arr         = ['Home','Documents','Music','Pictures','Videos','Downloads','Recent','File System']
-    let my_computer_paths_arr   = [home_dir, `${path.join(home_dir, 'Documents')}`,`${path.join(home_dir, 'Music')}`,`${path.join(home_dir, 'Pictures')}`,`${path.join(home_dir, 'Video')}`,`${path.join(home_dir, 'Downloads')}`,'Recent','/']
+    let my_computer_paths_arr   = [home_dir, `${path.join(home_dir, 'Documents')}`,`${path.join(home_dir, 'Music')}`,`${path.join(home_dir, 'Pictures')}`,`${path.join(home_dir, 'Video')}`,`${path.join(home_dir, 'Downloads')}`,'Recent','Recent']
     let my_computer_icons_arr   = ['home','folder','music','image','video','download','history','hdd']
 
     localStorage.setItem('minibar', 'mb_home')
@@ -1723,8 +1770,6 @@ function get_sidebar_home() {
     let sidebar_items = document.getElementById('sidebar_items')
     sidebar_items.innerHTML = ''
     sidebar_items.append(add_header('Home'))
-
-
 
     // Get home
     console.log(my_computer_arr.length)
@@ -1752,14 +1797,17 @@ function get_sidebar_home() {
             })
 
             item.classList.add('active')
-            gio.get_file(href, (file) => {
-                console.log(file)
-                if (file.type === 'directory') {
-                    get_view(file.href);
-                } else {
-                    open(file.href);
-                }
-            })
+            if (href === 'Recent') {
+                get_recent_files(`${get_home()}/Documents`)
+            } else {
+                gio.get_file(href, (file) => {
+                    if (file.type === 'directory') {
+                        get_view(file.href);
+                    } else {
+                        open(file.href);
+                    }
+                })
+            }
         }
 
     }
@@ -1848,31 +1896,26 @@ function get_sidebar_home() {
 
             umount.addEventListener('click', (e) => {
 
-                if (dir.type == 'media' || dir.type == 'mnt') {
-                    exec(`umount "${path.join(dir.path, item)}"`, (err, stdout) => {
-                        if (!err) {
-                            get_devices();
-                            notification(stdout)
-                        } else {
-                            notification(err)
-                        }
-                    })
+                e.preventDefault()
+                e.stopPropagation()
 
-                } else if (dir.type == 'gvfs') {
-                    exec(`fusermount -uz "${dir.path}"`, (err, stdout) => {
-                        if (!err) {
-                            get_devices();
-                            notification(stdout)
-                        } else {
-                            notification(err)
-                        }
-                    })
-                }
+                let cmd = `gio mount -u -f "${item.href}"`
+                console.log(cmd)
+
+                exec(`gio mount -u -f "${item.href}"`, (err, stdout) => {
+
+                    if (!err) {
+                        div.remove()
+                        notification(stdout)
+                    } else {
+                        notification(err)
+                    }
+                })
+
 
             })
 
             div.onclick = (e) => {
-                e.preventDefault();
                 get_view(device.href);
             }
 
@@ -2422,7 +2465,6 @@ function get_progress(total) {
 
                             // update_card(destination_file);
 
-
                         })
 
                     }, 1000);
@@ -2447,6 +2489,7 @@ function get_progress(total) {
  * @returns Array of application launchers
  */
 function get_available_launchers(filetype, source) {
+
 
     let launchers = []
     try {
@@ -2992,7 +3035,7 @@ async function add_card(options) {
                     header.href = href
                     header.title = 'open file? ' + path.dirname(href) + '/' + this.value
                     card.classList.remove('highlight_select', 'highlight', 'ds-selected')
-                    update_card(source)
+                    // update_card(source)
 
                 } else {
 
@@ -3212,7 +3255,7 @@ function get_date(date) {
  * @param {object} file
  * @returns File Card
  */
-function get_card1(file) {
+function get_card1 (file) {
 
     // this is being used
 
@@ -3232,6 +3275,7 @@ function get_card1(file) {
     let is_svg      = 0;
     let is_audio    = 0;
     let is_video    = 0;
+    let is_pdf      = 0;
 
     let icon_size   = localStorage.getItem('icon_size')
 
@@ -3269,7 +3313,7 @@ function get_card1(file) {
     }
 
     // Directory
-    if (file.is_dir) {
+    if (file.is_dir || file.type == 'directory') {
 
         card.classList.add('folder_card');
         icon.src = folder_icon;
@@ -3325,13 +3369,17 @@ function get_card1(file) {
         } else {
             is_svg = 0
         }
-
+        if (file.ext === '.pdf') {
+            is_pdf = 1
+        }
         if (
             file.ext === '.m4a' ||
             file.ext === '.mp3' ||
             file.ext === '.wav' ||
             file.ext === '.ogg'
         ) {
+            is_audio = 1
+        } else {
             is_audio = 0
         }
 
@@ -3395,6 +3443,18 @@ function get_card1(file) {
                 icon.src = res
             })
         }
+
+        if (is_pdf && !is_gio_file(file.href)) {
+            iframe = document.createElement('iframe')
+            // iframe.src = file.href
+            iframe.dataset.src = file.href
+            iframe.style = 'transform: scale(.5); width: 120px; height: 84px; overflow: hidden;'
+            iframe.classList.add('lazy')
+            icon.remove()
+            card.prepend(iframe)
+            // <iframe src="example.pdf" style="transform: scale(0.5); width: 50px; height: 50px;"></iframe>
+        }
+
     }
 
     card.onclick = (e) => {
@@ -3469,8 +3529,6 @@ function get_card1(file) {
             card.append(audio);
 
         }
-
-
 
     }
 
@@ -6082,11 +6140,25 @@ async function get_list_view(dir) {
 function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
     let breadcrumbs                     = document.getElementById('breadcrumbs');
+    let tab_menu                        = document.querySelectorAll('.tabular.menu');
     breadcrumbs.value                   = dir
     document.title                      = path.basename(dir)
     clear_items()
 
     show_loader();
+
+    // tab_menu.forEach(tab => {
+    //     let tab_item = tab.querySelector('.item');
+    //     tab_item.innerHTML = ''
+    //     let close_icon = add_icon('times');
+    //     close_icon.style = 'padding-left: 15px; margin-right: auto';
+    //     tab_item.append(path.basename(dir), close_icon)
+
+    //     tab.ondragover = (e) => {
+    //         console.log('rhrher')
+    //     }
+
+    // })
 
     gio.get_dir(dir, dirents => {
 
@@ -6098,6 +6170,7 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         let file_grid                   = document.getElementById('file_grid');
         let hidden_file_grid            = document.getElementById('hidden_file_grid');
         let options                     = {}
+        let is_dir                      = 0
 
         folder_grid.innerText           = ''
         hidden_folder_grid.innerText    = ''
@@ -6187,6 +6260,7 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
                 col.append(card)
 
                 if (file.is_dir) {
+                    is_dir = 1
                     if (!file.is_hidden) {
                         folder_grid.append(col)
                     } else {
@@ -6214,6 +6288,31 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         // todo: autocomplete needs work so im disabling it for now
         // autocomplete()
 
+        if (is_dir) {
+
+            tab_menu.forEach(tab => {
+                let tab_item = tab.querySelector('.item');
+                tab_item.innerHTML = ''
+                let close_icon = add_icon('times');
+                close_icon.style = 'padding-left: 15px; margin-right: auto';
+                tab_item.append(path.basename(dir), close_icon)
+
+                tab.ondragover = (e) => {
+                    console.log('rhrher')
+                }
+
+                tab.ondrop = (e) => {
+                    let new_tab = document.createElement('a')
+                    new_tab.classList.add('item')
+                    new_tab.innerHTML = dir
+                    tab.append(new_tab)
+                }
+
+            })
+
+
+        }
+
         if (!is_gio_file(dir)) {
             get_disk_space();
         } else {
@@ -6223,18 +6322,18 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         file_arr = dirents;
         hide_loader();
 
-        let cards = document.querySelectorAll('.nav_item')
+        let cards = document.querySelectorAll('.folder_card')
         let current_card = 0;
         Mousetrap.bind(settings.keyboard_shortcuts.Down.toLocaleLowerCase(), (e) => {
-            cards[current_card].classList.remove('highlight');
+            cards[current_card].classList.remove('highlight_select');
             current_card = (current_card + 5) % cards.length;
-            cards[current_card].classList.add('highlight');
+            cards[current_card].classList.add('highlight_select');
         })
 
         Mousetrap.bind(settings.keyboard_shortcuts.Up.toLocaleLowerCase(), (e) => {
-            cards[current_card].classList.remove('highlight');
+            cards[current_card].classList.remove('highlight_select');
             current_card = (current_card - 5 + cards.length) % cards.length;
-            cards[current_card].classList.add('highlight');
+            cards[current_card].classList.add('highlight_select');
         })
 
     })
@@ -9487,45 +9586,68 @@ function create_folder(folder) {
 
     gio.mkdir(folder, (res) => {
 
-        let file_obj = {
-            name: path.basename(folder),
-            href: folder,
-            size: 0,
-            mtime: new Date(),
-            is_dir: 1
-        }
+        gio.get_file(folder, (file) => {
 
-        // console.log(res)
-
-        if (!res.err) {
-
-            let main_view = document.getElementById('main_view')
-            // main_view.tabIndex = -1
-            // main_view.preventDefault = true
+            let card = get_card1(file)
+            let col = add_column('three')
+            col.append(card)
+            folder_grid.prepend(col)
 
             let info_view = document.getElementById('info_view')
             info_view.classList.add('hidden')
 
-            let card = get_card1(file_obj)
-            let col = add_column('three')
-            col.append(card)
+            let header_link = card.querySelector('.header_link')
+            let input = card.querySelector('.input')
 
-            folder_grid.insertBefore(col, folder_grid.firstChild);
+            header_link.classList.add('hidden')
+            input.classList.remove('hidden')
 
-            let header  = card.querySelector('.header_link');
-            let input   = card.querySelector('.input');
+            // input[0].focus()
+            input.select()
 
-            console.log(input, header)
+        })
 
-            input.classList.remove('hidden');
-            header.classList.add('hidden');
 
-            input.focus();
-            input.select();
 
-        } else {
-            notification(res.err)
-        }
+        // let file_obj = {
+        //     name: path.basename(folder),
+        //     href: folder,
+        //     size: 0,
+        //     mtime: new Date(),
+        //     is_dir: 1
+        // }
+
+        // // console.log(res)
+
+        // if (!res.err) {
+
+        //     let main_view = document.getElementById('main_view')
+        //     // main_view.tabIndex = -1
+        //     // main_view.preventDefault = true
+
+        //     let info_view = document.getElementById('info_view')
+        //     info_view.classList.add('hidden')
+
+        //     let card = get_card1(file_obj)
+        //     let col = add_column('three')
+        //     col.append(card)
+
+        //     folder_grid.insertBefore(col, folder_grid.firstChild);
+
+        //     let header  = card.querySelector('.header_link');
+        //     let input   = card.querySelector('.input');
+
+        //     console.log(input, header)
+
+        //     input.classList.remove('hidden');
+        //     header.classList.add('hidden');
+
+        //     input.focus();
+        //     input.select();
+
+        // } else {
+        //     notification(res.err)
+        // }
 
     })
 
@@ -9874,7 +9996,7 @@ function create_file_from_template(filename) {
     let info_view = document.getElementById('info_view')
 
     let template = path.join(__dirname, 'assets/templates/', filename)
-    let destination = path.join(breadcrumbs.value, filename)
+    let destination = `${breadcrumbs.value}/${filename}`
 
     info_view.innerHTML = ''
 
@@ -9883,69 +10005,94 @@ function create_file_from_template(filename) {
 
     if (fs.existsSync(destination) == true) {
         alert('this file already exists')
-
     } else {
 
-        fs.copyFileSync(template, destination)
+        // fs.copyFileSync(template, destination)
         console.log('done')
 
-        if (fs.existsSync(destination) == true) {
+        gio.cp1(template, destination, (res) => {
 
-            watch_count = 1
+            // if (fs.existsSync(destination) == true) {
 
-            // GET REFERENCE TO FOLDERS CARD
-            let files_card = document.getElementById('files_card')
-            files_card.classList.remove('hidden')
-
-            // let file_grid = document.getElementById('file_grid')
-            let card_id = 'file_card_1001'
-
-            // CREATE CARD OPTIONS
-            let options = {
-
-                id: card_id,
-                href: destination,
-                linktext: path.basename(destination),
-                grid: file_grid
-
-            }
-
-            try {
-
-                add_card(options).then(card => {
-
-                    let col = add_column('three');
+                let file_grid = document.getElementById('file_grid')
+                file_grid.classList.remove('hidden')
+                gio.get_file(destination, (file) => {
+                    let card = get_card1(file)
+                    let col = add_column('three')
                     col.append(card)
+                    file_grid.prepend(card)
 
-                    let files_card = document.getElementById('files_card')
-                    files_card.classList.remove('hidden')
+                    let header_link = card.querySelector('.header_link')
+                    let input = card.querySelector('.input')
 
-                    let file_grid = document.getElementById('file_grid')
-                    file_grid.insertBefore(col, file_grid.firstChild)
+                    header_link.classList.add('hidden')
+                    input.classList.remove('hidden')
 
+                    info_view.classList.add('hidden')
 
-                    let input = card.getElementsByTagName('input')
-                    input[0].classList.remove('hidden')
-                    input[0].focus()
-                    // input[0].select()
-                    input[0].setSelectionRange(0, input[0].value.length - path.extname(filename).length)
-
-                    console.log(card_id)
-
-                    let header = document.getElementById('header_' + card_id)
-                    header.classList.add('hidden')
-
-                    update_card(destination)
+                    // input[0].focus()
+                    input.select()
+                    input.setSelectionRange(0, input.value.length - path.extname(filename).length)
 
                 })
 
-            } catch (err) {
+                // watch_count = 1
 
-                notification(err)
+                // // GET REFERENCE TO FOLDERS CARD
+                // let files_card = document.getElementById('files_card')
+                // files_card.classList.remove('hidden')
 
-            }
+                // // let file_grid = document.getElementById('file_grid')
+                // let card_id = 'file_card_1001'
 
-        }
+                // // CREATE CARD OPTIONS
+                // let options = {
+
+                //     id: card_id,
+                //     href: destination,
+                //     linktext: path.basename(destination),
+                //     grid: file_grid
+
+                // }
+
+                // try {
+
+                //     // add_card(options).then(card => {
+
+                //     //     let col = add_column('three');
+                //     //     col.append(card)
+
+                //     //     let files_card = document.getElementById('files_card')
+                //     //     files_card.classList.remove('hidden')
+
+                //     //     let file_grid = document.getElementById('file_grid')
+                //     //     file_grid.insertBefore(col, file_grid.firstChild)
+
+
+                //     //     let input = card.getElementsByTagName('input')
+                //     //     input[0].classList.remove('hidden')
+                //     //     input[0].focus()
+                //     //     // input[0].select()
+                //     //     input[0].setSelectionRange(0, input[0].value.length - path.extname(filename).length)
+
+                //     //     console.log(card_id)
+
+                //     //     let header = document.getElementById('header_' + card_id)
+                //     //     header.classList.add('hidden')
+
+                //     //     update_card(destination)
+
+                //     // })
+
+                // } catch (err) {
+
+                //     notification(err)
+
+                // }
+
+            // }
+        })
+
 
         ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
 
@@ -9982,9 +10129,11 @@ function rename_file(source, destination_name, callback) {
             console.log(source, filename)
             if (is_gio_file(source)) {
                 console.log('shit')
-
                 gio.rename(source, destination_name, () => {
+                    console.log('updating card', destination_name)
+                    update_card1(destination_name)
                     notification(`Renamed ${source} to ${filename}`)
+                    return callback(1)
                 })
 
             } else {
@@ -11260,11 +11409,11 @@ window.addEventListener('DOMContentLoaded', () => {
             !e.ctrlKey &&
             !e.shiftKey &&
             !e.altKey &&
-            e.key != 'F2' &&
-            e.key != 'F5'
+            e.key != 'F2'
+            // e.key != 'F5'
         ) {
 
-            // MAKE SURE WHERE NOT SOMETHING THAT WE NEED
+            // KEEP THIS. THE QUICK SEARCH WILL GRAB FOCUS ON FILE RENAMES. THIS PREVENTS THAT
             if (e.target === e.currentTarget || e.target === txt_search || e.target.classList.contains('header_link')) {
 
                 txt_search.classList.remove('hidden')
