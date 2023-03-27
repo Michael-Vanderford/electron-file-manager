@@ -3719,6 +3719,8 @@ function update_card1(href) {
             let date = card.querySelector('.date')
 
             header.innerHTML = file.name
+            header.href = file.href
+            header.title = file.href
             date.innerHTML = get_date(new Date(parseInt(file["time::modified"]) * 1000))
 
             // console.log(file)
