@@ -3647,7 +3647,7 @@ function get_card1 (file) {
     // Directory event listeners
     link.onclick = (e) => {
         e.preventDefault();
-        if (file.is_dir) {
+        if (file.is_dir || file.type == 'directory') {
             get_view(file.href);
             console.log(file)
         } else {
@@ -3657,7 +3657,7 @@ function get_card1 (file) {
 
     icon.onclick = (e) => {
         e.preventDefault();
-        if (file.is_dir) {
+        if (file.is_dir || file.type == 'directory') {
             get_view(file.href);
         } else {
             open(file.href);
