@@ -141,13 +141,16 @@ ipcRenderer.on('get_card', (e, file) => {
     let info_view   = document.getElementById('info_view')
 
     info_view.innerHTML = ''
+    info_view.classList.add('hidden')
 
     let card = get_card1(file)
     let col = add_column('three')
     col.append(card)
     if (file.is_dir || file.type == 'directory') {
+        folder_grid.classList.remove('hidden')
         folder_grid.insertBefore(col, folder_grid.firstChild)
     } else {
+        file_grid.classList.remove('hidden')
         file_grid.insertBefore(col, file_grid.firstChild)
     }
 
@@ -3349,6 +3352,7 @@ function get_card1 (file) {
 
     } else {
 
+
         card.classList.add('file_card');
         size.innerHTML = get_file_size(file.size)
         localStorage.setItem(file.href, file.size)
@@ -6305,9 +6309,13 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
                 tab.ondrop = (e) => {
                     let new_tab = document.createElement('a')
-                    new_tab.classList.add('item')
-                    new_tab.innerHTML = dir
-                    tab.append(new_tab)
+                    let cards = document.querySelectorAll('.highlight')
+                    cards.forEach(card => {
+                        new_tab.classList.add('item')
+                        new_tab.innerHTML = card.datase.href
+                        tab.append(new_tab)
+                    })
+
                 }
 
             })

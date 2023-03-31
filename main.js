@@ -1143,6 +1143,7 @@ const copy_write = (source, destination, callback) => {
             callback(new Error('Copy process was cancelled'));
         };
 
+
         callback()
         // readStream.destroy();
         // pipe.destroy();
@@ -1233,7 +1234,7 @@ function copy() {
                                     active_window.send('get_card', file_obj)
                                 })
                                 // get_folder_size(destination)
-                                isMainView = 0;
+                                // isMainView = 0;
 
                             } else {
                                 let base = path.dirname(destination)
@@ -1316,17 +1317,18 @@ function copy() {
 
                     if (isMainView) {
 
-                        console.log('is main view')
+                        // console.log('is main view')
+                        // let file_obj = {
+                        //     name: path.basename(destination),
+                        //     href: destination,
+                        //     is_dir: 0,
+                        //     ["time::modified"]: new Date / 1000,
+                        //     size: 0
+                        // }
 
-                        let file_obj = {
-                            name: path.basename(destination),
-                            href: destination,
-                            is_dir: 0,
-                            ["time::modified"]: new Date / 1000,
-                            size: 0
-                        }
+                        // console.log(file)
+                        // active_window.send('get_card', file_obj)
 
-                        active_window.send('get_card', file_obj)
 
                     } else {
                         console.log('is not main view')
@@ -1355,9 +1357,21 @@ function copy() {
 
                         active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
                         copy_write(source, destination, () => {
+
                             if (isMainView) {
+
+                                let file_obj = {
+                                    name: path.basename(destination),
+                                    href: destination,
+                                    is_dir: 0,
+                                    ["time::modified"]: new Date / 1000,
+                                    size: 0
+                                }
+
+                                active_window.send('get_card', file_obj)
                                 active_window.send('update_card', destination)
-                                active_window.send('update_cards1', active_folder)
+                                // active_window.send('update_cards1', active_folder)
+
                             } else {
                                 // console.log(active_folder)
                                 // get_folder_size(active_folder)

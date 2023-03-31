@@ -426,11 +426,11 @@ exports.cp1 = (sourcePath, destinationPath, callback) => {
     gioCopy.stderr.on('data', (data) => {
         const message = data.toString();
         if (message.startsWith('Copying')) {
-          const parts = message.split(' ');
-          const copiedBytes = parseInt(parts[1], 10);
-          const totalBytes = parseInt(parts[3], 10);
-          const progress = Math.floor((copiedBytes / totalBytes) * 100);
-          console.log(`Copy progress: ${progress}%`);
+            const parts = message.split(' ');
+            const copiedBytes = parseInt(parts[1], 10);
+            const totalBytes = parseInt(parts[3], 10);
+            const progress = Math.floor((copiedBytes / totalBytes) * 100);
+            console.log(`Copy progress: ${progress}%`);
         }
 
     });

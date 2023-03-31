@@ -957,6 +957,7 @@ button .button .link {
 
 #list_view {
     /* padding: 10px; */
+    position: relative;
     padding-top: 0px;
     overflow-x: hidden;
     overflow-y: scroll;
