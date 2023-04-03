@@ -274,6 +274,7 @@ exports.get_dir = (dir, callback) => {
 
                     if (files[2] == '(directory)') {
                         file_obj.is_dir = 1
+                        file_obj.type = 'directory'
                     } else {
                         file_obj.is_dir = 0
                         file_obj.ext = path.extname(files[0])

@@ -2459,7 +2459,10 @@ function get_progress(total) {
                                     progress_div.classList.add('hidden')
                                     progress.classList.add('hidden')
 
+                                    update_cards2()
+
                                     // update_card(destination_folder)
+                                    // update_cards(document.getElementById('main_view'))
                                     clearInterval(interval_id);
 
                                 }
@@ -3768,6 +3771,25 @@ function update_card1(href) {
 
     })
 
+}
+
+function update_cards2() {
+    let folder_cards = document.querySelectorAll('.folder_card')
+    folder_cards.forEach(card => {
+        ipcRenderer.invoke('get_folder_size1', card.dataset.href).then(res => {
+            let size = card.querySelector('.size')
+            size.innerHTML = get_file_size(parseInt(res.replace('.', '') * 1024))
+            localStorage.setItem(card.dataset.href, parseInt(res.replace('.', '') * 1024))
+        })
+    })
+    let file_cards = document.querySelectorAll('.file_card')
+    file_cards.forEach(file_card => {
+        gio.get_file(file_card.dataset.href, file => {
+            let size = file_card.querySelector('.size')
+            size.innerHTML = get_file_size(file.size)
+        })
+
+    })
 }
 
 function update_cards1(dir) {
@@ -5968,16 +5990,11 @@ async function get_list_view(dir) {
                             })
 
                             // if (fs.statSync(filename).isDirectory()) {
-
                             // } else {
-
                             //     tr.oncontextmenu = (e) => {
-
                             //         e.preventDefault()
                             //         e.stopPropagation()
-
                             //         tr.classList.add('highlight')
-
                             //         let access = 0;
                             //         let filetype = mime.lookup(filename);
                             //         let associated_apps = get_available_launchers(filetype, filename);
@@ -5990,9 +6007,7 @@ async function get_list_view(dir) {
                             //             ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: filename});
                             //         }
                             //     }
-
                             // }
-
 
                         })
 
@@ -6135,6 +6150,22 @@ async function get_list_view(dir) {
     //     sidebar.focus()
     // })
 
+}
+
+let copy_arr1 = []
+let file_count1 = 0
+let file_count2 = 0
+function build_copy_arr(source, destination, callback) {
+    gio.get_dir(source, files => {
+        file_count2 += files.length
+        files.forEach(file => {
+            if (file.type == 'directory') {
+                build_copy_arr(file.href, destination, callback)
+            }
+            copy_arr1.push(file)
+        })
+        console.log('file_count', file_count1, 'file_count 2', file_count2)
+    })
 }
 
 /**

@@ -299,19 +299,6 @@ function show_progress() {
 
 }
 
-function get_folder_size(href) {
-    // try {
-    //     du = exec(`cd '${href}'; du -Hs`)
-    //     du.stdout.on('data', function (res) {
-    //         let size = parseInt(res.replace('.', '') * 1024)
-    //         active_window.send('folder_size', {href: href, size: size})
-    //         console.log(`folder size ${size}`)
-    //     })
-    // } catch (err) {
-    //     // active_window.send('notification', err)
-    // }
-}
-
 /**
  * Get folder size. Runs du -Hs command
  * @param {string} href
@@ -637,128 +624,6 @@ function copyfile(source, target, callback) {
     }
 
 }
-
-
-
-// function countFilesAndFolders(dir, callback) {
-//   let filesCount = 0;
-//   let foldersCount = 0;
-
-//   // Read directory contents
-//   fs.readdir(dir, (err, files) => {
-//     if (err) {
-//       callback(err);
-//       return;
-//     }
-
-//     // Process each file/directory
-//     files.forEach((file) => {
-//       const filePath = path.join(dir, file);
-
-//       // Check if it's a file or a directory
-//       fs.stat(filePath, (err, stats) => {
-//         if (err) {
-//           callback(err);
-//           return;
-//         }
-
-//         if (stats.isFile()) {
-//           filesCount++;
-//         } else if (stats.isDirectory()) {
-//           foldersCount++;
-
-//           // Recursively count files and folders in subdirectory
-//           countFilesAndFolders(filePath, (err, result) => {
-//             if (err) {
-//               callback(err);
-//               return;
-//             }
-
-//             filesCount += result.filesCount;
-//             foldersCount += result.foldersCount;
-
-//             // Call callback once all subdirectories have been processed
-//             if (--pending === 0) {
-//               callback(null, { filesCount, foldersCount });
-//             }
-//           });
-//         }
-//       });
-//     });
-
-//     // Call callback once all files in current directory have been processed
-//     if (files.length === 0) {
-//       callback(null, { filesCount, foldersCount });
-//     }
-//   });
-// }
-
-// const copy2 = promisify();
-// const mkdir2 = promisify(fs.mkdir);
-// const readdir2 = promisify(fs.readdir);
-// const lstat2 = promisify(fs.lstat);
-
-// async function copyFileOrFolder2(source, destination, onProgress) {
-//     try {
-//         const sourceStats = await lstat2(source);
-//         const isDirectory = sourceStats.isDirectory();
-
-//         // If the source is a directory, create the destination directory
-//         if (isDirectory) {
-//             await mkdir2(destination);
-//             const files = await readdir2(source);
-//             const fileCount = files.length;
-//             let filesProcessed = 0;
-//             await Promise.all(files.map(async (file) => {
-//                 const sourcePath = `${source}/${file}`;
-//                 const destinationPath = `${destination}/${file}`;
-//                 await copyFileOrFolder2(sourcePath, destinationPath, () => {
-//                     filesProcessed++;
-//                     console.log(fileCount);
-//                     onProgress && onProgress(filesProcessed / fileCount);
-//                 });
-//             }));
-//         } else {
-//            await copy2(source, destination);
-//         }
-//         active_window.send('set_progress_msg', `Copied ${source}`)
-//         // console.log(`Successfully copied ${source} to ${destination}`);
-//     } catch (err) {
-//         console.error(`Error copying ${source} to ${destination}: ${err}`);
-//     }
-// }
-
-// async function copyFileOrFolder(source, destination, onProgress) {
-//     try {
-//         const sourceStats = await execPromise(`gio info -a "*" '${source}'`);
-//         const sourceSize = parseInt(sourceStats.stdout.match(/size: (\d+)/)[1], 10);
-//         const isDirectory = sourceStats.stdout.includes('type: directory');
-
-//         // If the source is a directory, create the destination directory
-//         if (isDirectory) {
-//             await execPromise(`gio mkdir -p '${destination}'`);
-//             const files = await execPromise(`gio list '${source}'`);
-//             const fileCount = files.stdout.trim().split('\n').length;
-//             let filesProcessed = 0;
-//             const fileCopyPromises = files.stdout.trim().split('\n').map(async (file) => {
-//                 const sourcePath = `${source}/${file}`;
-//                 const destinationPath = `${destination}/${file}`;
-//                 await copyFileOrFolder(sourcePath, destinationPath, () => {
-//                 filesProcessed++;
-//                 onProgress && onProgress(filesProcessed / fileCount);
-//                 });
-//             });
-//             await Promise.all(fileCopyPromises);
-//         } else {
-//             await execPromise(`gio copy '${source}' '${destination}'`);
-//         }
-//         onProgress && onProgress(1);
-//         console.log(`Successfully copied ${source} to ${destination}`);
-//         // active_window.send('set_progress_msg', `Copied ${source}`);
-//     } catch (err) {
-//         console.error(`Error copying ${source} to ${destination}: ${err}`);
-//     }
-// }
 
 const copy2 = promisify(gio.cp);
 const mkdir2 = promisify(gio.mkdir);
@@ -1119,13 +984,13 @@ const copy_write = (source, destination, callback) => {
             active_window.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
             copy_write(sourcePath, destinationPath, () => {
                 count++;
+                console.log('count', count)
+                console.log('files length', files.length)
                 if (count === files.length) {
-                    callback();
+                    return callback('ok');
                 }
             });
         });
-
-
 
     } else {
 
@@ -1144,10 +1009,7 @@ const copy_write = (source, destination, callback) => {
         };
 
 
-        callback()
-        // readStream.destroy();
-        // pipe.destroy();
-        // callback(new Error('Copy process was cancelled'));
+        return callback()
 
     }
 };
@@ -1160,7 +1022,6 @@ ipcMain.on('cancel', (e) => {
 ipcMain.on('copy', (e) => {
     copy();
 })
-
 
 
 // Copy
@@ -1228,18 +1089,22 @@ function copy() {
                         show_progress()
                         copy_write(source, destination, (res) => {
 
-                            if (isMainView) {
+                            if (res == 'ok') {
 
-                                gio.get_file(destination, file => {
-                                    active_window.send('get_card', file_obj)
-                                })
-                                // get_folder_size(destination)
-                                // isMainView = 0;
+                                if (isMainView) {
 
-                            } else {
-                                let base = path.dirname(destination)
-                                active_window.send('update_card', base)
+                                    gio.get_file(destination, file => {
+                                        active_window.send('get_card', file)
+                                        active_window.send('update_card1', file.href)
+                                    })
+
+                                } else {
+                                    let base = path.dirname(destination)
+                                    active_window.send('update_card', base)
+                                }
+
                             }
+
 
                         })
 
@@ -1313,27 +1178,6 @@ function copy() {
 
                 } else {
 
-                    // show_progress()
-
-                    if (isMainView) {
-
-                        // console.log('is main view')
-                        // let file_obj = {
-                        //     name: path.basename(destination),
-                        //     href: destination,
-                        //     is_dir: 0,
-                        //     ["time::modified"]: new Date / 1000,
-                        //     size: 0
-                        // }
-
-                        // console.log(file)
-                        // active_window.send('get_card', file_obj)
-
-
-                    } else {
-                        console.log('is not main view')
-                    }
-
                     if (isGioFile(destination)) {
 
                         active_window.send('set_progress_msg', destination)
@@ -1369,7 +1213,7 @@ function copy() {
                                 }
 
                                 active_window.send('get_card', file_obj)
-                                active_window.send('update_card', destination)
+                                active_window.send('update_card1', destination)
                                 // active_window.send('update_cards1', active_folder)
 
                             } else {
@@ -4039,6 +3883,7 @@ ipcMain.handle('get_folder_size1', async (e , href) => {
     try {
         cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
         const {err, stdout, stderr } = await exec1(cmd);
+        // console.log('size', stdout)
         return stdout;
     } catch (err) {
         return 0
