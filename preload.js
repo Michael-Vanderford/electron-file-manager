@@ -1902,10 +1902,10 @@ function get_sidebar_home() {
                 e.preventDefault()
                 e.stopPropagation()
 
-                let cmd = `gio mount -u -f "${item.href}"`
-                console.log(cmd)
+                // let cmd = `gio mount -u -f "${item.href}"`
+                // console.log(cmd)
 
-                exec(`gio mount -u -f "${item.href}"`, (err, stdout) => {
+                exec(`gio mount -u -f "${device.href}"`, (err, stdout) => {
 
                     if (!err) {
                         div.remove()

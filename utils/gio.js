@@ -1,4 +1,3 @@
-// const { exec, execSync, spawn, execFileSync }   = require("child_process");
 const util  = require('util')
 const path  = require('path')
 const exec  = util.promisify(require('child_process').exec)
@@ -405,7 +404,7 @@ exports.cp = async(source, destination, callback) => {
 
     // return callback (spawn('gio', ['copy', '--no-dereference', source, destination]))
 
-    return execSync(`gio copy "${source}" "${destination}"`)
+    execSync(`gio copy "${source}" "${destination}"`)
 
     // spawn(`gio copy "${source}" "${destination}"`)
     // return callback(exec(`gio copy "${source}" "${destination}"`))
@@ -423,7 +422,6 @@ exports.cp = async(source, destination, callback) => {
 exports.cp1 = (sourcePath, destinationPath, callback) => {
 
     const gioCopy = spawn('gio', ['copy', sourcePath, destinationPath]);
-
     gioCopy.stderr.on('data', (data) => {
         const message = data.toString();
         if (message.startsWith('Copying')) {

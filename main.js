@@ -327,7 +327,7 @@ function AddSysNotification (title, body) {
 }
 
 function isGioFile(href) {
-    if (href.indexOf('smb:') > -1 || href.indexOf('sftp:') > -1 || href.indexOf('mtp:') > -1) {
+    if (href.indexOf('smb://') > -1 || href.indexOf('sftp://') > -1 || href.indexOf('mtp://') > -1) {
         return 1
     } else {
         return 0
@@ -984,8 +984,6 @@ const copy_write = (source, destination, callback) => {
             active_window.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
             copy_write(sourcePath, destinationPath, () => {
                 count++;
-                console.log('count', count)
-                console.log('files length', files.length)
                 if (count === files.length) {
                     return callback('ok');
                 }
@@ -1183,7 +1181,7 @@ function copy() {
                         active_window.send('set_progress_msg', destination)
                         active_window.send('set_progress', 1, 1)
 
-                        gio.cp1(source, destination, () => {
+                        gio.cp(source, destination, () => {
 
                             if (isMainView) {
                                 active_window.send('update_card', destination)

@@ -210,6 +210,7 @@ function clear_minibar() {
 }
 
 btn_hamburger_menu.onclick = (e) => {
+    hamburger_menu.style.zIndex = '1000'
     hamburger_menu.classList.remove('hidden')
 }
 

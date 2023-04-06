@@ -34,6 +34,7 @@
         "open": "^8.4.0"
     },
     "devDependencies": {
-        "electron": "^22.1.0"
+        "electron": "^22.1.0",
+        "electron-packager": "^17.1.1"
     }
 }
