@@ -21,7 +21,6 @@ const mime                                      = require('mime-types');
 const im                                        = require('imagemagick');
 const crypto                                    = require('crypto')
 const gio                                       = require('./utils/gio')
-const progressbar = require('progress')
 // const gvfs                                      = require('../gio/build/Release/gio')
 
 // Arrays
