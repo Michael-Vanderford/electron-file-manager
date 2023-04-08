@@ -1,4 +1,5 @@
 const { app, globalShortcut, Notification, BrowserWindow, Menu, screen, dialog, accelerator, WebContents, webContents, MenuItem, ipcRenderer} = require('electron')
+const { Worker, isMainThread, parentPort } = require('worker_threads');
 const { exec, execSync, spawn, execFileSync } = require("child_process");
 const util                  = require('util')
 const exec1                 = util.promisify(require('child_process').exec)
@@ -17,7 +18,7 @@ const gio                   = require('./utils/gio')
 const { promisify }         = require('util');
 const execPromise           = util.promisify(exec);
 const Gio                   = require('gio');
-const { session } = require('electron')
+const { session }           = require('electron')
 
 let copy_files_arr          = [];
 let canceled                = 0;
@@ -30,7 +31,7 @@ let file_count_recursive    = 0;
 let folder_count_recursive  = 0;
 let active_folder           = '';
 let destination0            = '';
-let active_window           = '';
+let win                      = '';
 let current_directory       = '';
 let destination_folder      = '';
 
@@ -41,7 +42,7 @@ let state                   = 0
 
 let is_caneled              = 0;
 
-app.disableHardwareAcceleration();
+// app.disableHardwareAcceleration();
 
 ipcMain.on('connect', (e) => {
     createConnectDialog();
@@ -50,7 +51,7 @@ ipcMain.on('connect', (e) => {
 // Network connect dialog
 function createConnectDialog() {
 
-    let bounds = active_window.getBounds()
+    let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 550) / 2);
     let y = bounds.y + parseInt((bounds.height - 350) / 2);
@@ -142,11 +143,11 @@ if (!fs.existsSync(thumbnails_dir)) {
 }
 
 ipcMain.on('get_sidebar_view', (e) => {
-    active_window.send('get_sidebar_view')
+    win.send('get_sidebar_view')
 })
 
 ipcMain.on('get_devices', (e) => {
-    active_window.send('get_devices')
+    win.send('get_devices')
 })
 
 ipcMain.handle('image_to_clipboard', (e, href) => {
@@ -188,7 +189,7 @@ ipcMain.on('active_window', (e) => {
     window_id = e.sender.id;
 
     if (window_id != window_id0) {
-        active_window = window.fromId(window_id);
+        win = window.fromId(window_id);
     }
 })
 
@@ -196,7 +197,7 @@ ipcMain.on('active_folder', (e, href, state = 0) => {
 
     /* Get active window */
     let window_id = e.sender.id;
-    active_window = window.fromId(window_id);
+    win = window.fromId(window_id);
 
     // if (href == destination || href == active_folder) {
         // console.log('setting active folder', href, isMainView)
@@ -220,7 +221,7 @@ ipcMain.on('item_count_recursive', (e, filename) => {
         file_count: file_count_recursive
     }
 
-    active_window.send('item_count', data);
+    win.send('item_count', data);
 
 })
 
@@ -308,7 +309,7 @@ function get_folder_size1(href) {
     du = exec(cmd)
     du.stdout.on('data', function (res) {
         let size = parseInt(res.replace('.', '') * 1024)
-        active_window.send('folder_size', {href: href, size: size})
+        win.send('folder_size', {href: href, size: size})
     })
     du.stderr
     // try {
@@ -364,7 +365,7 @@ function do_copy(source, destination, copystate, callback) {
                 mtime: new Date(),
                 is_dir: 1
             }
-            active_window.send('get_card', file_obj)
+            win.send('get_card', file_obj)
 
         }
 
@@ -420,7 +421,7 @@ function do_copy(source, destination, copystate, callback) {
 
                         fs.copyFile(cursource, curdestination, (err) => {
                             if (err) {
-                                active_window.send('notification', err)
+                                win.send('notification', err)
                             } else {
                                 // active_window.send('update_card1', destination)
                                 get_folder_size1(destination)
@@ -610,8 +611,8 @@ function copyfile(source, target, callback) {
                     if (!err) {
                         return callback(1);
                     } else {
-                        active_window.send('remove_card', targetfile)
-                        active_window.send('notification', err);
+                        win.send('remove_card', targetfile)
+                        win.send('notification', err);
                         return callback(err)
                     }
 
@@ -693,7 +694,7 @@ async function copyFileOrFolder(source, destination, onProgress) {
         } else {
            await copy1(source, destination);
         }
-        active_window.send('set_progress_msg', `Copied ${source}`)
+        win.send('set_progress_msg', `Copied ${source}`)
         // console.log(`Successfully copied ${source} to ${destination}`);
     } catch (err) {
         console.error(`Error copying ${source} to ${destination}: ${err}`);
@@ -774,7 +775,7 @@ function copyDirRecursiveAsync(sourceDir, targetDir, max, callback) {
                             return;
                         }
                         count++;
-                        active_window.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
+                        win.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
                         // active_window.send('set_progress', file.length, count)
                         if (count === files.length) {
                             callback();
@@ -790,7 +791,7 @@ function copyDirRecursiveAsync(sourceDir, targetDir, max, callback) {
                             return;
                         }
                         count++;
-                        active_window.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
+                        win.send('set_progress_msg', `Copying File ${path.basename(srcPath)}`)
                         // active_window.send('set_progress', file.length, count)
                         if (count === files.length) {
                             callback();
@@ -802,6 +803,12 @@ function copyDirRecursiveAsync(sourceDir, targetDir, max, callback) {
         });
         });
     }
+
+}
+
+function build_copy_arr(source, callback) {
+
+
 
 }
 
@@ -827,8 +834,8 @@ function copyfolder(source, destination, callback) {
             gio.mkdir(destination, (res) => {
                 // active_window.send('notification', res)
                 // console.log(res)
-                active_window.send('set_progress_msg', `Copying File ${path.basename(destination)}`)
-                active_window.send('set_progress', dirents.length, 1)
+                win.send('set_progress_msg', `Copying File ${path.basename(destination)}`)
+                win.send('set_progress', dirents.length, 1)
             })
 
             dirents.forEach((file, idx) => {
@@ -848,16 +855,16 @@ function copyfolder(source, destination, callback) {
                             state = 1;
                         }
 
-                        active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
-                        active_window.send('set_progress', dirents.length, count)
+                        win.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
+                        win.send('set_progress', dirents.length, count)
                         copyfolder(cursource, curdestination, callback => {})
                         // if (count === files.length) {
                         //     callback();
                         // }
                     } else {
                         count++;
-                        active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
-                        active_window.send('set_progress', dirents.length, count)
+                        win.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
+                        win.send('set_progress', dirents.length, count)
                         copyfile(cursource, curdestination, callback => {})
                     }
 
@@ -867,13 +874,13 @@ function copyfolder(source, destination, callback) {
 
             console.log(recursive)
             if (--recursive == 0) {
-                active_window.send('set_progress', 1, 1);
+                win.send('set_progress', 1, 1);
 
                 if (isMainView) {
 
                     gio.get_file(destination, file => {
                         console.log(file)
-                        active_window.send('get_card', file)
+                        win.send('get_card', file)
                     })
 
                 }
@@ -920,19 +927,19 @@ function copyfolder(source, destination, callback) {
 
                             // Directory
                             if (stats.isDirectory()) {
-                                active_window.send('set_progress_msg', `Copying Folder ${path.basename(curdestination)}`)
+                                win.send('set_progress_msg', `Copying Folder ${path.basename(curdestination)}`)
                                 copyfolder(cursource, curdestination, callback => {});
                             // Copy files
                             // } else if (stats.isFile() == true) {
                             } else {
-                                active_window.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
+                                win.send('set_progress_msg', `Copying File ${path.basename(curdestination)}`)
                                 copyfile(cursource, curdestination, callback => {})
                             }
 
                             return callback(1)
 
                         } else {
-                            active_window.send('notification', err)
+                            win.send('notification', err)
                         }
 
                     })
@@ -940,7 +947,7 @@ function copyfolder(source, destination, callback) {
                 })
 
             } else {
-                active_window.send('notification', err)
+                win.send('notification', err)
                 return callback(err)
             }
 
@@ -972,7 +979,7 @@ const copy_write = (source, destination, callback) => {
         // if it's a directory, create the destination directory if it doesn't exist
         if (!fs.existsSync(destination)) {
             fs.mkdirSync(destination);
-            active_window.send('set_progress_msg', `Copying ${path.basename(destination)}`)
+            win.send('set_progress_msg', `Copying ${path.basename(destination)}`)
         }
 
         // list all files and subdirectories in the source directory
@@ -981,7 +988,7 @@ const copy_write = (source, destination, callback) => {
         files.forEach((file) => {
             const sourcePath = path.join(source, file);
             const destinationPath = path.join(destination, file);
-            active_window.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
+            win.send('set_progress_msg', `Copying ${path.basename(destinationPath)}`)
             copy_write(sourcePath, destinationPath, () => {
                 count++;
                 if (count === files.length) {
@@ -999,7 +1006,7 @@ const copy_write = (source, destination, callback) => {
 
         // Return a function to cancel the copy process
         cancelCopy = () => {
-            active_window.send('notification', 'Copy Canceled')
+            win.send('notification', 'Copy Canceled')
             delete_file(destination, () => {})
             reader.destroy();
             pipe.destroy();
@@ -1084,30 +1091,40 @@ function copy() {
 
                     } else {
 
+                        win.send('set_progress_msg', `Copying ${source} to ${destination}`);
                         show_progress()
-                        copy_write(source, destination, (res) => {
-
-                            if (res == 'ok') {
-
+                        const worker = new Worker('./utils/worker.js', { workerData: { source: source, destination: destination } });
+                        worker.on('message', (msg) => {
+                            if (msg instanceof Error) {
+                                // Handle error
+                                win.send('notification', msg);
+                            } else {
+                                // Handle success
                                 if (isMainView) {
-
                                     gio.get_file(destination, file => {
-                                        active_window.send('get_card', file)
-                                        active_window.send('update_card1', file.href)
+                                        win.send('get_card', file)
+                                        win.send('update_card1', file.href)
                                     })
-
                                 } else {
                                     let base = path.dirname(destination)
-                                    active_window.send('update_card', base)
+                                    win.send('update_card', base)
                                 }
-
                             }
+                        });
 
-
-                        })
-
-
-
+                        // copy_write(source, destination, (res) => {
+                        //     if (res == 'ok') {
+                        //         if (isMainView) {
+                        //             gio.get_file(destination, file => {
+                        //                 active_window.send('get_card', file)
+                        //                 active_window.send('update_card1', file.href)
+                        //             })
+                        //         } else {
+                        //             let base = path.dirname(destination)
+                        //             active_window.send('update_card', base)
+                        //         }
+                        //     }
+                        // })
                     }
 
 
@@ -1178,17 +1195,17 @@ function copy() {
 
                     if (isGioFile(destination)) {
 
-                        active_window.send('set_progress_msg', destination)
-                        active_window.send('set_progress', 1, 1)
+                        win.send('set_progress_msg', destination)
+                        win.send('set_progress', 1, 1)
 
                         gio.cp(source, destination, () => {
 
                             if (isMainView) {
-                                active_window.send('update_card', destination)
-                                active_window.send('update_cards1', active_folder)
+                                win.send('update_card', destination)
+                                win.send('update_cards1', active_folder)
                             } else {
                                 let base = path.dirname(destination)
-                                active_window.send('update_card', base)
+                                win.send('update_card', base)
                             }
 
                         })
@@ -1197,7 +1214,7 @@ function copy() {
 
                         show_progress()
 
-                        active_window.send('set_progress_msg', `Copying File ${path.basename(source)}`)
+                        win.send('set_progress_msg', `Copying File ${path.basename(source)}`)
                         copy_write(source, destination, () => {
 
                             if (isMainView) {
@@ -1210,15 +1227,15 @@ function copy() {
                                     size: 0
                                 }
 
-                                active_window.send('get_card', file_obj)
-                                active_window.send('update_card1', destination)
+                                win.send('get_card', file_obj)
+                                win.send('update_card1', destination)
                                 // active_window.send('update_cards1', active_folder)
 
                             } else {
                                 // console.log(active_folder)
                                 // get_folder_size(active_folder)
                                 let base = path.dirname(destination)
-                                active_window.send('update_card', base)
+                                win.send('update_card', base)
                             }
                         })
 
@@ -1712,7 +1729,7 @@ function get_file_properties(filename) {
 
     }
 
-    active_window.send('file_properties', file_properties);
+    win.send('file_properties', file_properties);
 }
 
 /**
@@ -1725,7 +1742,7 @@ function get_disk_space(href) {
 
     if (href.href.indexOf('smb:') > -1 || href.href.indexOf('sftp:') > -1 || href.href.indexOf('mtp:') > -1) {
 
-        active_window.send('du_folder_size', 0)
+        win.send('du_folder_size', 0)
 
     } else {
 
@@ -1785,7 +1802,7 @@ function get_disk_space(href) {
             df.push(options)
 
             // SEND DISK SPACE
-            active_window.send('disk_space', df)
+            win.send('disk_space', df)
 
             cmd = 'cd "' + href.href + '"; du -s'
             du = exec(cmd)
@@ -1793,7 +1810,7 @@ function get_disk_space(href) {
             du.stdout.on('data', function (res) {
                 let size = parseInt(res.replace('.', '') * 1024)
                 size = get_file_size(size)
-                active_window.send('du_folder_size', size)
+                win.send('du_folder_size', size)
             })
 
         }
@@ -1917,10 +1934,10 @@ async function rm_gio_files(href, callback) {
             if (dirents[i].is_dir) {
                 rm_gio_files(dirents[i].href)
                 ++rec
-                active_window.send('set_progress_msg', `Getting Folder ${path.basename(dirents[i].href)}`)
+                win.send('set_progress_msg', `Getting Folder ${path.basename(dirents[i].href)}`)
                 del_folder_arr.push(dirents[i].href)
             } else {
-                active_window.send('set_progress_msg', `Getting File ${path.basename(dirents[i].href)}`)
+                win.send('set_progress_msg', `Getting File ${path.basename(dirents[i].href)}`)
                 del_file_arr.push(dirents[i])
             }
         }
@@ -1931,12 +1948,12 @@ async function rm_gio_files(href, callback) {
 
             del_file_arr.forEach((file, idx) => {
                 gio.rm(file.href, (res) => {
-                    active_window.send('set_progress_msg', `Deleted File ${path.basename(file.href)}`)
-                    active_window.send('set_progress', del_file_arr.length - 1, idx)
+                    win.send('set_progress_msg', `Deleted File ${path.basename(file.href)}`)
+                    win.send('set_progress', del_file_arr.length - 1, idx)
 
 
                     if (isMainView) {
-                        active_window.send('remove_card', file)
+                        win.send('remove_card', file)
                     }
 
                 })
@@ -1958,12 +1975,12 @@ async function rm_gio_files(href, callback) {
                 console.log('rm folder', del_folder_arr[i])
                 gio.rm(del_folder_arr[i], () => {
                 })
-                active_window.send('set_progress_msg', `Deleted Folder ${path.basename(del_folder_arr[i])}`)
-                active_window.send('set_progress', del_folder_arr.length - 1, i);
+                win.send('set_progress_msg', `Deleted Folder ${path.basename(del_folder_arr[i])}`)
+                win.send('set_progress', del_folder_arr.length - 1, i);
             }
 
             if (isMainView) {
-                active_window.send('remove_card', del_folder_arr[del_folder_arr.length - 1])
+                win.send('remove_card', del_folder_arr[del_folder_arr.length - 1])
             }
 
             del_file_arr = []
@@ -1996,10 +2013,10 @@ async function cp_gio_files(source, destination, callback) {
             if (dirents[i].is_dir) {
                 cp_gio_files(source + "/" + dirents[i].name, destination + '/' + dirents[i].name)
                 ++cp_rec
-                active_window.send('set_progress_msg', `Getting Folder ${path.basename(dirents[i].href)}`)
+                win.send('set_progress_msg', `Getting Folder ${path.basename(dirents[i].href)}`)
                 // return cp_folder_arr.push(destination + '/' + dirents[i].name)
             } else {
-                active_window.send('set_progress_msg', `Getting File ${path.basename(dirents[i].href)}`)
+                win.send('set_progress_msg', `Getting File ${path.basename(dirents[i].href)}`)
                 let cp_obj = {
                     source: dirents[i].href,
                     destination: destination + '/' + dirents[i].name
@@ -2019,8 +2036,8 @@ async function cp_gio_files(source, destination, callback) {
             for (let i = 0; i < cp_folder_arr.length; i++) {
                 console.log('cp folder', cp_folder_arr[i])
                 gio.mkdir(cp_folder_arr[i], () => {
-                    active_window.send('set_progress_msg', `Copied Folder ${path.basename(cp_folder_arr[i])}`)
-                    active_window.send('set_progress', cp_folder_arr.length - 1, i);
+                    win.send('set_progress_msg', `Copied Folder ${path.basename(cp_folder_arr[i])}`)
+                    win.send('set_progress', cp_folder_arr.length - 1, i);
                 })
 
 
@@ -2028,8 +2045,8 @@ async function cp_gio_files(source, destination, callback) {
 
             cp_file_arr.forEach((file, idx) => {
                 gio.cp(file.source, file.destination, () => {
-                    active_window.send('set_progress_msg', `Copied File ${path.basename(file.destination)}`)
-                    active_window.send('set_progress', cp_file_arr.length - 1, idx)
+                    win.send('set_progress_msg', `Copied File ${path.basename(file.destination)}`)
+                    win.send('set_progress', cp_file_arr.length - 1, idx)
                 })
             })
 
@@ -2080,7 +2097,7 @@ async function delete_file(href, callback) {
                 if (stats.isDirectory()) {
                     fs.rm(href, {recursive: true}, (err) => {
                         if (err) {
-                            active_window.send('notification', err)
+                            win.send('notification', err)
                             callback(err)
                         } else {
 
@@ -2091,13 +2108,13 @@ async function delete_file(href, callback) {
                                 })
 
                             } catch (err) {
-                                active_window.send('notification', err)
-                                active_window.send('notification', err);
+                                win.send('notification', err)
+                                win.send('notification', err);
                             }
 
                             // Update disk size
                             get_disk_space({href: current_directory}, (res) => {
-                                active_window.send('disk_space', res)
+                                win.send('disk_space', res)
                             });
 
                             callback(1);
@@ -2108,21 +2125,21 @@ async function delete_file(href, callback) {
                     fs.unlink(href, err => {
 
                         if (err) {
-                            active_window.send('notification', err)
+                            win.send('notification', err)
                             // console.log('error deleteing file', href);
                             callback(err);
                         } else {
 
                             try {
-                                active_window.send('remove_card', href);
+                                win.send('remove_card', href);
                             } catch (err) {
-                                active_window.send('notification', err)
+                                win.send('notification', err)
                                 // console.log('error deleting file', err)
                             }
 
                             // Update disk size
                             get_disk_space({href: current_directory}, (res) => {
-                                active_window.send('disk_space', res)
+                                win.send('disk_space', res)
                             });
 
                             callback(1);
@@ -2137,7 +2154,7 @@ async function delete_file(href, callback) {
 
                     gio.rm(href, () => {})
                         // if (!res.stderr) {
-                    active_window.send('remove_card', href);
+                    win.send('remove_card', href);
                         // } else {
                             // active_window.send('notification', res.stderr)
                         // }
@@ -2163,7 +2180,7 @@ async function delete_file(href, callback) {
             if (file.type == 'directory') {
                 rm_gio_files(href, () => {
                     if (isMainView) {
-                        active_window.send('remove_card', href)
+                        win.send('remove_card', href)
                     }
                 })
                 // delete_gio_files(href)
@@ -2171,7 +2188,7 @@ async function delete_file(href, callback) {
             } else {
                 gio.rm(href, (res)  => {
                     if (isMainView) {
-                        active_window.send('remove_card', href)
+                        win.send('remove_card', href)
                     }
                 })
             }
@@ -2369,19 +2386,19 @@ ipcMain.on('reload',function(e){
 
 // MAXAMIZE WINDOW
 ipcMain.on('maximize', () => {
-    active_window.maximize()
+    win.maximize()
 })
 
 // MINIMIZE WINDOW
 ipcMain.on('minimize', () => {
-    active_window.minimize()
+    win.minimize()
 })
 
 // CLOSE WINDOW
 ipcMain.on('close', () => {
     // var win = BrowserWindow.getFocusedWindow();
-    windows.delete(active_window)
-    active_window.close();
+    windows.delete(win)
+    win.close();
 })
 
 // GO BACK
@@ -2410,10 +2427,10 @@ function get_icon_path(href) {
             href: href,
             icon_path: icon_path
         }
-        active_window.send('icon_path',data);
+        win.send('icon_path',data);
 
     }).catch((err) => {
-        active_window.send('notification', err)
+        win.send('notification', err)
     })
 }
 
@@ -2423,7 +2440,7 @@ ipcMain.handle('get_icon', async (e, href) => {
         const res = await app.getFileIcon(href);
         return res.toDataURL();
     } catch (err) {
-        active_window.send('notification', err)
+        win.send('notification', err)
         return path.join(__dirname, 'assets/icons/kora/actions/scalable/gtk-file.svg');
     }
 })
@@ -2463,7 +2480,7 @@ function createConfirmDialog(data, copy_files_arr) {
 
     let win = window.getFocusedWindow();
 
-    let bounds = active_window.getBounds()
+    let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 500) / 2);
     let y = bounds.y + parseInt((bounds.height - 400) / 2);
@@ -2523,7 +2540,7 @@ ipcMain.on('overwrite_confirmed_all', (e, copy_files_arr) => {
     })
 
     // SHOW PROGRESS
-    active_window.send('progress', max);
+    win.send('progress', max);
 
     // LOOP OVER COPY ARRAY
     copy_files_arr.forEach((data, idx) => {
@@ -2657,7 +2674,7 @@ ipcMain.on('overwrite_canceled', (e) => {
 // MOVE DIALOG
 function createMoveDialog(data, copy_files_arr) {
 
-    let bounds = active_window.getBounds()
+    let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 550) / 2);
     let y = bounds.y + parseInt((bounds.height - 275) / 2);
@@ -2791,14 +2808,14 @@ function move() {
                                         ["time::modified"]: new Date / 1000,
                                         size: 0
                                     }
-                                    active_window.send('get_card', file_obj)
-                                    active_window.send('update_card1', path.dirname(source))
+                                    win.send('get_card', file_obj)
+                                    win.send('update_card1', path.dirname(source))
 
                                     // get_folder_size1(destination)
 
                                 } else {
                                     // get_folder_size1(active_folder)
-                                    active_window.send('update_card1', path.dirname(destination))
+                                    win.send('update_card1', path.dirname(destination))
                                 }
 
                             })
@@ -2842,7 +2859,7 @@ function move() {
 
                         if (res) {
 
-                            active_window.send('set_progress_msg', `Moved File ${path.basename(source)}`)
+                            win.send('set_progress_msg', `Moved File ${path.basename(source)}`)
 
                             delete_file(source, (res) => {
 
@@ -2856,13 +2873,13 @@ function move() {
                                         size: 0
                                     }
 
-                                    active_window.send('get_card', file_obj)
-                                    active_window.send('update_card1', destination)
-                                    active_window.send('update_card1', path.dirname(source))
+                                    win.send('get_card', file_obj)
+                                    win.send('update_card1', destination)
+                                    win.send('update_card1', path.dirname(source))
                                     console.log(`updating card`, path.dirname(source))
 
                                 } else {
-                                    active_window.send('update_card1', path.dirname(destination))
+                                    win.send('update_card1', path.dirname(destination))
                                     console.log(`updating card`, path.dirname(destination))
                                     // get_folder_size1(path.dirname(destination))
                                 }
@@ -2878,7 +2895,7 @@ function move() {
             }
 
         } else {
-            active_window.send('notification', 'Error: Operation not Permitted!')
+            win.send('notification', 'Error: Operation not Permitted!')
         }
 
         return true
@@ -3176,7 +3193,7 @@ ipcMain.on('move_confirmed', (e, data) => {
                             move();
                         }
 
-                        active_window.send('update_card', data.destination)
+                        win.send('update_card', data.destination)
 
                     })
                 }
@@ -3207,8 +3224,8 @@ ipcMain.on('move_confirmed', (e, data) => {
                         grid: ''
                     }
 
-                    active_window.webContents.send('add_card', options);
-                    active_window.send('update_card1', data.destination)
+                    win.webContents.send('add_card', options);
+                    win.send('update_card1', data.destination)
 
                 }
 
@@ -3237,7 +3254,7 @@ ipcMain.on('move_confirmed_all', (e, data) => {
 
     // SHOW PROGRESS
     // windows.forEach(win => {
-    active_window.send('progress', max);
+    win.send('progress', max);
 
     // COPY FILES
     copy_files_arr.forEach((file, idx) => {
@@ -3260,10 +3277,10 @@ ipcMain.on('move_confirmed_all', (e, data) => {
 
                         if (isMainView) {
                             // console.log('is main view', isMainView)
-                            active_window.send('get_card', file)
+                            win.send('get_card', file)
                         } else {
                             // console.log('is not main view', isMainView)
-                            active_window.send('remove_card', file.href);
+                            win.send('remove_card', file.href);
                             get_folder_size(active_folder)
                         }
 
@@ -3284,9 +3301,9 @@ ipcMain.on('move_confirmed_all', (e, data) => {
                     delete_file(file.href, () => {
 
                         if (isMainView) {
-                            active_window.send('get_card', file)
+                            win.send('get_card', file)
                         } else {
-                            active_window.send('remove_card', file.href);
+                            win.send('remove_card', file.href);
                             get_folder_size(active_folder)
                         }
 
@@ -3353,7 +3370,7 @@ ipcMain.on('show_overwrite_move_dialog', (e, data) => {
 // let confirm = ''
 function createOverwriteMoveDialog(data) {
 
-    let bounds = active_window.getBounds()
+    let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 550) / 2);
     let y = bounds.y + parseInt((bounds.height - 350) / 2);
@@ -3405,7 +3422,7 @@ ipcMain.on('overwrite_move_confirmed', (e, data) => {
         max += parseInt(item.size)
     })
 
-    active_window.send('progress', max);
+    win.send('progress', max);
 
     let source = data.source
     let destination_file = path.join(active_folder, path.basename(source));
@@ -3417,9 +3434,9 @@ ipcMain.on('overwrite_move_confirmed', (e, data) => {
 
             if (res) {
                 delete_file(source, (res) => {
-                    active_window.send('remove-card', source)
+                    win.send('remove-card', source)
                 })
-                active_window.send('update_card', destination_file)
+                win.send('update_card', destination_file)
             }
 
         })
@@ -3433,7 +3450,7 @@ ipcMain.on('overwrite_move_confirmed', (e, data) => {
             if (res) {
 
                 delete_file(source, () => {
-                    active_window.send('remove-card', source)
+                    win.send('remove-card', source)
 
                     // REMOVE ITEM FROM ARRAY
                     copy_files_arr.shift()
@@ -3446,7 +3463,7 @@ ipcMain.on('overwrite_move_confirmed', (e, data) => {
 
             }
 
-            active_window.send('update_card', destination_file)
+            win.send('update_card', destination_file)
 
         })
 
@@ -3469,7 +3486,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
 
     // SHOW PROGRESS
     // windows.forEach(item => {
-        active_window.send('progress', max);
+        win.send('progress', max);
     // })
 
     // let state = data.state
@@ -3491,7 +3508,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
             copyfolder(file.href, destination_file, 0, () => {
 
                 delete_file(file.href, () => {
-                    active_window.send('remove-card', file.href)
+                    win.send('remove-card', file.href)
                     // windows.forEach(win => {
                     //     win.send('remove_card', data.source);
                     // })
@@ -3509,7 +3526,7 @@ ipcMain.on('overwrite_move_confirmed_all', (e) => {
                 copy_files_arr.forEach(file => {
                     delete_file(file.href, () => {
 
-                        active_window.send('remove-card', file.href)
+                        win.send('remove-card', file.href)
                         // windows.forEach(win => {
                         //     win.send('remove_card', data.source);
                         // })
@@ -3580,7 +3597,7 @@ function getRecentFiles(dirPath, numFiles) {
 // Create Delete Dialog
 function createDeleteDialog(delete_files_arr) {
 
-    let bounds = active_window.getBounds()
+    let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 400) / 2);
     let y = bounds.y + parseInt((bounds.height - 250) / 2);
@@ -3897,7 +3914,7 @@ ipcMain.handle('get_folder_size1', async (e , href) => {
 // CREATE DF ARRAY
 ipcMain.on('get_disk_space', (e, href) => {
     get_disk_space(href, (res) => {
-        active_window.send('disk_space', res)
+        win.send('disk_space', res)
     });
 })
 
@@ -3944,14 +3961,14 @@ const template = [
             {
                 label: 'New Window',
                 click: () => {
-                    active_window.send('context-menu-command', 'open_in_new_window')
+                    win.send('context-menu-command', 'open_in_new_window')
                 }
             },
             {type: 'separator'},
             {
                 label: 'Create New Folder',
                 click: () => {
-                    active_window.send('new_folder')
+                    win.send('new_folder')
                 }
             },
             {type: 'separator'},
@@ -3981,7 +3998,7 @@ const template = [
             {
                 label: 'Disk Usage Summary',
                 click: () => {
-                    active_window.send('get_disk_summary_view')
+                    win.send('get_disk_summary_view')
                     // get_diskspace_summary();
                 }
             },
@@ -3992,19 +4009,19 @@ const template = [
                     {
                         label: 'Date',
                         // accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+D' : 'CTRL+SHIFT+D',
-                        click: () => {active_window.send('sort', 'date')}
+                        click: () => {win.send('sort', 'date')}
                     },
                     {
                         label: 'Name',
-                        click: () => {active_window.send('sort', 'size')}
+                        click: () => {win.send('sort', 'size')}
                     },
                     {
                         label: 'Size',
-                        click: () => {active_window.send('sort', 'name')}
+                        click: () => {win.send('sort', 'name')}
                     },
                     {
                         label: 'Type',
-                        click: () => {active_window.send('sort', 'type')}
+                        click: () => {win.send('sort', 'type')}
                     },
                 ]
             },
@@ -4122,7 +4139,7 @@ function add_convert_audio_menu(menu, href) {
                     let cmd = 'ffmpeg -i ' + href + ' ' + filename;
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
-                            active_window.send('notification', err);
+                            win.send('notification', err);
                         } else {
                             let options = {
                                 id: 0,
@@ -4131,16 +4148,16 @@ function add_convert_audio_menu(menu, href) {
                                 is_folder: false,
                                 grid: ''
                             }
-                            active_window.send('add_card', options)
+                            win.send('add_card', options)
                         }
                     })
 
                     cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
-                            active_window.send('notification', err)
+                            win.send('notification', err)
                         } else {
-                            active_window.send('progress', parseInt(stdout))
+                            win.send('progress', parseInt(stdout))
                         }
                     })
 
@@ -4154,7 +4171,7 @@ function add_convert_audio_menu(menu, href) {
 
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
-                            active_window.send('notification', err);
+                            win.send('notification', err);
                         } else {
                             let options = {
                                 id: 0,
@@ -4163,16 +4180,16 @@ function add_convert_audio_menu(menu, href) {
                                 is_folder: false,
                                 grid: ''
                             }
-                            active_window.send('add_card', options)
+                            win.send('add_card', options)
                         }
                     })
 
                     cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
                     exec(cmd, (err, stdout, stderr) => {
                         if (err) {
-                            active_window.send('notification', err)
+                            win.send('notification', err)
                         } else {
-                            active_window.send('progress', parseInt(stdout))
+                            win.send('progress', parseInt(stdout))
                         }
                     })
                 }
@@ -4227,7 +4244,7 @@ ipcMain.on('context-menu-find', (e, args) => {
             {
                 label: 'Open location',
                 click: () => {
-                    active_window.send('get_view', path.dirname(args))
+                    win.send('get_view', path.dirname(args))
                 }
             },
             {
@@ -4242,7 +4259,7 @@ ipcMain.on('context-menu-find', (e, args) => {
             {
                 label: 'Open location',
                 click: () => {
-                    active_window.send('get_view', path.dirname(args))
+                    win.send('get_view', path.dirname(args))
                 }
             },
             {
@@ -4360,7 +4377,7 @@ ipcMain.on('show-context-menu-workspace', (e, file) => {
         {
             label: 'Open Location',
             click: () => {
-                active_window.send('get_view', path.dirname(file.href))
+                win.send('get_view', path.dirname(file.href))
             }
         }
     ]
@@ -4377,7 +4394,7 @@ ipcMain.on('show-context-menu-workspace', (e, file) => {
     menu.popup(BrowserWindow.fromWebContents(e.sender))
 
     menu.on('menu-will-close', () => {
-        active_window.send('clear_items');
+        win.send('clear_items');
     });
 
 })
@@ -4424,19 +4441,19 @@ ipcMain.on('show-context-menu', (e, options) => {
         submenu: [
             {
                 label: 'Date',
-                click: () => {active_window.send('sort', 'date')}
+                click: () => {win.send('sort', 'date')}
             },
             {
                 label: 'Name',
-                click: () => {active_window.send('sort', 'name')}
+                click: () => {win.send('sort', 'name')}
             },
             {
                 label: 'Size',
-                click: () => {active_window.send('sort', 'size')}
+                click: () => {win.send('sort', 'size')}
             },
             {
                 label: 'Type',
-                click: () => {active_window.send('sort', 'type')}
+                click: () => {win.send('sort', 'type')}
             }
 
         ]
@@ -4540,19 +4557,19 @@ ipcMain.on('show-context-menu-directory', (e, args) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {active_window.send('sort', 'date')}
+                    click: () => {win.send('sort', 'date')}
                 },
                 {
                     label: 'Name',
-                    click: () => {active_window.send('sort', 'name')}
+                    click: () => {win.send('sort', 'name')}
                 },
                 {
                     label: 'Size',
-                    click: () => {active_window.send('sort', 'size')}
+                    click: () => {win.send('sort', 'size')}
                 },
                 {
                     label: 'Type',
-                    click: () => {active_window.send('sort', 'type')}
+                    click: () => {win.send('sort', 'type')}
                 }
 
             ]
@@ -4732,19 +4749,19 @@ ipcMain.on('show-context-menu-files', (e, args) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {active_window.send('sort', 'date')}
+                    click: () => {win.send('sort', 'date')}
                 },
                 {
                     label: 'Name',
-                    click: () => {active_window.send('sort', 'name')}
+                    click: () => {win.send('sort', 'name')}
                 },
                 {
                     label: 'Size',
-                    click: () => {active_window.send('sort', 'size')}
+                    click: () => {win.send('sort', 'size')}
                 },
                 {
                     label: 'Type',
-                    click: () => {active_window.send('sort', 'type')}
+                    click: () => {win.send('sort', 'type')}
                 }
 
             ]
