@@ -49,3 +49,32 @@ fix/file-rename-feature
 ```
 doc/convention-documentation
 ```
+
+---
+
+### Issue / PR Rule
+
+#### Title
+```
+[TYPE] TITLE
+```
+- TYPE 은 다음 중 하나를 선택합니다.
+  - DEV : 일반적인 개발 사항
+  - FIX : 기존에 개발된 내용을 수정하는 사항
+  - DOC : README 등 문서에 관련된 사항
+
+####  Content
+```markdown
+## Summary
+Summary of Issue or PR
+
+## Description
+Detail Description of Issue or PR
+```
+- Description 항목이 불필요한 경우에는 생략할 수 있습니다.
+- FIX Issue 혹은 UI에 관련된 PR의 경우는, Description에 스크린샷을 첨부해주시기 바랍니다.
+- Issue 작성 시, Assignee와 Label을 지정하고, 생성한 Branch를 Development 항목에 지정해줍니다.
+- PR 작성 시, Assignee와 Label을 지정하고, Reviewer을 상호로 지정하고, 해당하는 Issue를 Development 항목에 지정해줍니다.
+- PR 작성 시, Reviewer 항목에는 자기 자신을 제외한 3명의 팀원을 지정합니다. Reviewer로 지정된 각 팀원은 PR에 포함된 코드를 읽고,
+문제가 있어보이거나 의문이 드는 코드에 대해 코멘트를 남겨주세요. 완벽해 보인다면 Approve 코멘트를 남깁니다.
+3명 모두 Approve가 완료되었다면 PR을 작성한 팀원이 직접 Merge 합니다.
