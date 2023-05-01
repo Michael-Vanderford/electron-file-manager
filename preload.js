@@ -216,7 +216,7 @@ ipcRenderer.on("connect", (e) => {
         );
 
         inputs.every((input) => {
-            if (input.value == "" && input.disabled == false) {
+            if (input.value === "" && input.disabled == false) {
                 (connect_msg.innerHTML = `${input.placeholder} Required.`),
                     add_br();
                 state = 0;
@@ -228,16 +228,15 @@ ipcRenderer.on("connect", (e) => {
         });
 
         // Output
-        if (state == 1) {
-            if (conntection_type.value == "ssh") {
+        if (state === 1) {
+            if (conntection_type.value === "ssh") {
                 // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
                 cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`;
-            } else if (conntection_type.value == "smb") {
+            } else if (conntection_type.value === "smb") {
                 cmd = `echo '${username.value}\n${"workgroup"}\n${
                     password.value
                 }\n' | gio mount smb://${server.value}`;
             }
-            // connect_msg.innerHTML = cmd
             exec(cmd, (err, stdout, stderr) => {
                 if (!err) {
                     connect_msg.style.color = "green";
@@ -245,7 +244,6 @@ ipcRenderer.on("connect", (e) => {
                         conntection_type[conntection_type.options.selectedIndex]
                             .text
                     } Server.`;
-                    // ipcRenderer.send('get_devices')
                     ipcRenderer.send("get_sidebar_view");
                 } else {
                     if (stderr) {
@@ -364,36 +362,6 @@ ipcRenderer.on("remove_from_workspace", (e, href) => {
     workspace_items.forEach((item) => {
         item.remove();
     });
-
-    // div.remove();
-    // local_items.splice(idx, 1);
-    // if (local_items.length > 0) {
-    //     localStorage.setItem('workspace',JSON.stringify(local_items));
-    // } else {
-    //     localStorage.removeItem('workspace')
-    // }
-
-    // cards.forEach(card => {
-    //     if (card.dataset.href === href) {
-
-    //         let workspace_items = JSON.parse(localStorage.getItem('workspace'))
-
-    //         workspace_items.forEach((workspace_item, idx) => {
-    //             if (workspace_item.href == href) {
-    //                 console.log(workspace_item)
-    //                 delete workspace_items[idx]
-    //             }
-    //         })
-
-    //         if (workspace_items.length > 0) {
-    //             localStorage.setItem('workspace', JSON.stringify(workspace_items))
-    //         } else {
-    //             localStorage.removeItem('workspace')
-    //         }
-
-    //         card.remove()
-    //     }
-    // })
 });
 
 // REMOVE CARD
@@ -493,7 +461,6 @@ ipcRenderer.on("confirming_overwrite", (e, data, copy_files_arr) => {
         source_data = add_p(
             description +
                 add_header("Current Folder").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(destination_stats.size) +
                 "<br />" +
@@ -508,7 +475,6 @@ ipcRenderer.on("confirming_overwrite", (e, data, copy_files_arr) => {
 
         destination_data = add_p(
             add_header("Overwrite with").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(source_stats.size) +
                 "<br />" +
@@ -544,7 +510,6 @@ ipcRenderer.on("confirming_overwrite", (e, data, copy_files_arr) => {
         source_data = add_p(
             description +
                 add_header("Original File").outerHTML +
-                // add_img(get_icon_path(data.destination)).outerHTML +
                 "Size:" +
                 get_file_size(destination_stats.size) +
                 "<br />" +
@@ -560,7 +525,6 @@ ipcRenderer.on("confirming_overwrite", (e, data, copy_files_arr) => {
         // This is realy source
         destination_data = add_p(
             add_header("Replace With").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(source_stats.size) +
                 "<br />" +
@@ -667,13 +631,6 @@ ipcRenderer.on("overwrite_all", (e, copy_files_arr) => {
             // File
         } else {
             copyFileSync(item.source, item.destination);
-            // fs.copyFile(data.source, data.destination , (err) => {
-            //     if (err) {
-            //         console.log(err)
-            //     } else {
-            //         console.log('copy files',data.destination)
-            //     }
-            // })
         }
     });
     clear_copy_arr();
@@ -706,7 +663,6 @@ ipcRenderer.on("confirming_move", (e, data, copy_files_arr) => {
         description = add_p("Move Folders " + data.source);
         source_data = add_p(
             add_header("").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(localStorage.getItem(data.source)) +
                 "<br />" +
@@ -722,7 +678,6 @@ ipcRenderer.on("confirming_move", (e, data, copy_files_arr) => {
         description = add_p("Move files " + data.source);
         source_data = add_p(
             add_header("").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(localStorage.getItem(data.source)) +
                 "<br />" +
@@ -796,7 +751,7 @@ ipcRenderer.on("confirming_move", (e, data, copy_files_arr) => {
     });
 
     window.addEventListener("keyup", (e) => {
-        if (e.key == "Escape") {
+        if (e.key === "Escape") {
             ipcRenderer.send("move_canceled");
         }
     });
@@ -856,7 +811,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
         destination_data = add_p(
             description +
                 add_header("Merge with").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(destination_stats.size) +
                 "<br />" +
@@ -870,7 +824,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
         );
         source_data = add_p(
             add_header("Original Folder").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(source_stats.size) +
                 "<br />" +
@@ -905,7 +858,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
         destination_data = add_p(
             description +
                 add_header("Original File").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(destination_stats.size) +
                 "<br />" +
@@ -919,7 +871,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
         );
         source_data = add_p(
             add_header("Replace With").outerHTML +
-                // add_img(get_icon_path(data.source)).outerHTML +
                 "Size:" +
                 get_file_size(source_stats.size) +
                 "<br />" +
@@ -928,8 +879,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
                     dateStyle: "medium",
                     timeStyle: "short",
                 }).format(source_stats.mtime)
-            // '<br />' +
-            // '<br />'
         );
     }
 
@@ -966,7 +915,6 @@ ipcRenderer.on("confirming_overwrite_move", (e, data) => {
                 data,
                 copy_files_arr
             );
-            // alert('not implemented yet');
         } else {
             ipcRenderer.send("overwrite_move_confirmed", data);
         }
@@ -1004,8 +952,6 @@ ipcRenderer.on("overwrite_move", (e, data) => {
     if (destination_stats.isDirectory()) {
         copyFolderRecursiveSync(source, destination);
     } else {
-        // delete_file(destination).then(data => {
-
         // HANDLE PROGESS
         progress.classList.remove("hidden");
         progress.title = "Moving " + source;
@@ -1068,10 +1014,6 @@ ipcRenderer.on("overwrite_move_all", (e, destination) => {
                     if (err) {
                         console.log(err);
                     } else {
-                        // REMOVE CARD
-                        // let card = document.querySelector('[data-href="' + data.source + '"]')
-                        // let col = card.closest('.column')
-                        // col.remove()
                         delete_file(data.source);
                     }
                 }
@@ -1109,10 +1051,8 @@ ipcRenderer.on("disk_space", (e, data) => {
         let msg = add_div();
         msg.classList.add("empty_folder");
         let icon = add_icon("folder");
-        // icon.style = 'transform: scale(2.5); display: flex; align-items: center;'
 
         msg.append(icon, "Folder is empty");
-        // msg.style = 'font-size: 23px; position: absolute; top: 50%; left: 50%; margin-top: -50px; margin-left: -100px;';
 
         info_view.classList.remove("hidden");
         info_view.append(msg);
@@ -1190,14 +1130,8 @@ ipcRenderer.on("folder_size", (e, data) => {
         cards.forEach((card) => {
             let size = card.querySelector(".size");
 
-            // if (fs.readdirSync(data.href).length > 0) {
-
             size.innerHTML = get_file_size(data.size);
             localStorage.setItem(data.href, data.size);
-
-            // } else {
-            // extra.innerHTML = '0 Items'
-            // }
         });
     } catch (err) {
         console.log("on get folder size error:", err);
@@ -1211,242 +1145,168 @@ ipcRenderer.on("gio_volumes", (e, res) => {
 
 // ON GIO DEVICE
 ipcRenderer.on("gio_devices", (e, res) => {
-    // let device_grid = document.getElementById('device_grid')
-    // let menu_items = add_div();
-    // let data = res.split('\n')
-    // // console.log('running gio devices')
-    // // GET REFERENCE TO DEVICE GRID
-    // device_grid.innerHTML = ''
-    // menu_items.classList.add('ui', 'items')
-    // // CREATE VOLUMES ARRAY
-    // let volumes_arr = []
-    // data.forEach((item, idx) => {
-    //     // CREATE VOLLUMES ARRAY
-    //     if (item.indexOf('Volume(0):') > -1) {
-    //         let split_item = item.split('->')
-    //         // console.log(item)
-    //         let volume_obj = {
-    //             idx: idx,
-    //             volume: split_item[0]
-    //         }
-    //         volumes_arr.push(volume_obj)
-    //     }
-    // })
-    // // LOOP OVER VOLUMES ARRAY
-    // // volumes_arr.forEach((item, idx) => {
-    // // GIO OBJECT
-    // let gio = {}
-    // let subitem_counter = 0
-    // let is_activationroot = 0
-    // // LOOP OVER VOLUMES
-    // for (let i = 0; i < volumes_arr.length; i++) {
-    //     let volume = volumes_arr[i].volume
-    //     gio.volume = volume.replace('Volume(0):', '').trim()
-    //     // LOOP OVER GIO DATA AND GET SUB ITEMS
-    //     data.forEach((subitem, subidx) => {
-    //         // console.log('running ' + volumes_arr[i + 1].idx)
-    //         let volumeidx = volumes_arr[i].idx
-    //         let volumeidx2 = data.length
-    //         // IF MORE THAN 1 VOLUME IS FOUND GET ITS INDEX TO USE AS FILTER
-    //         if (i < volumes_arr.length - 1) {
-    //             volumeidx2 = volumes_arr[i + 1].idx
-    //         }
-    //         let uuid = ''
-    //         // IF ARRAY COUNTER IS BETWEEN 1ST AND SECOND
-    //         if (subidx >= volumeidx && subidx <= volumeidx2) {
-    //             // console.log('sub item', subitem)
-    //             if (subitem.indexOf('activation_root=') > -1) {
-    //                 uuid = subitem.replace('activation_root=', '').trim()
-    //                 gio.uuid = uuid
-    //                 // CREATE HREF ELEMENT
-    //                 let href = document.createElement('a')
-    //                 let icon = document.createElement('i')
-    //                 let icon_phone = document.createElement('i')
-    //                 let menu_item = add_div()
-    //                 let content = add_div()
-    //                 href.href = '#'
-    //                 href.classList.add('block')
-    //                 icon.classList.add('icon', 'bi-hdd')
-    //                 icon.style.marginLeft = '15px'
-    //                 icon_phone.classList.add('icon', 'mobile', 'alternate')
-    //                 menu_item.classList.add('item')
-    //                 content.classList.add('item')
-    //                 // ADD DATA
-    //                 // let uuid_path = uuid
-    //                 href.dataset.uuid = uuid
-    //                 href.text = gio.volume
-    //                 href.addEventListener('click', (e) => {
-    //                     ipcRenderer.send('mount_gio', gio)
-    //                 })
-    //                 menu_item.appendChild(icon_phone)
-    //                 content.appendChild(href)
-    //                 menu_item.appendChild(content)
-    //                 menu_items.appendChild(menu_item)
-    //                 device_grid.appendChild(menu_items)
-    //                 // if (subitem.indexOf('default_location=') > -1) {
-    //                 //     uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-    //                 //     // gio.uuid = uuid
-    //                 //     console.log('uuid')
-    //                 // }
-    //                 is_activationroot = 1
-    //                 console.log('activation uuid', uuid)
-    //             }
-    //             if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
-    //                 uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-    //                 if (uuid.indexOf('sftp') === -1) {
-    //                     // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
-    //                     if (uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
-    //                         // CREATE HREF ELEMENT
-    //                         let href = document.createElement('a')
-    //                         let icon = document.createElement('i')
-    //                         let icon_phone = document.createElement('i')
-    //                         let menu_item = add_div()
-    //                         let content = add_div()
-    //                         href.href = '#'
-    //                         href.classList.add('block')
-    //                         icon.classList.add('icon', 'bi-hdd')
-    //                         icon.style.marginLeft = '15px'
-    //                         icon_phone.classList.add('icon', 'mobile', 'alternate')
-    //                         menu_item.classList.add('item')
-    //                         content.classList.add('item')
-    //                         // ADD DATA
-    //                         uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-    //                         href.dataset.uuid = uuid
-    //                         href.text = gio.volume
-    //                         href.addEventListener('click', (e) => {
-    //                             get_view(uuid);
-    //                             // get_files(uuid, () => {})
-    //                         })
-    //                         content.appendChild(href)
-    //                         menu_item.appendChild(icon_phone)
-    //                         menu_item.appendChild(content)
-    //                         menu_items.appendChild(menu_item)
-    //                         device_grid.appendChild(menu_items)
-    //                         subitem_counter = 1
-    //                     }
-    //                     // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
-    //                     if (uuid.indexOf('default_location=') === -1) {
-    //                         // CREATE HREF ELEMENT
-    //                         let href = document.createElement('a')
-    //                         let icon = document.createElement('i')
-    //                         let icon_phone = document.createElement('i')
-    //                         let menu_item = add_div()
-    //                         let content = add_div()
-    //                         href.href = '#'
-    //                         href.classList.add('block')
-    //                         icon.classList.add('icon', 'bi-hdd')
-    //                         icon.style.marginLeft = '15px'
-    //                         icon_phone.classList.add('icon', 'mobile', 'alternate')
-    //                         menu_item.classList.add('item')
-    //                         content.classList.add('item')
-    //                         // ADD DATA
-    //                         uuid = uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-    //                         href.dataset.uuid = uuid
-    //                         href.text = gio.volume
-    //                         href.addEventListener('click', (e) => {
-    //                             get_view(uuid)
-    //                             // get_files(uuid, () => {})
-    //                         })
-    //                         menu_item.appendChild(icon)
-    //                         content.appendChild(href)
-    //                         menu_item.appendChild(content)
-    //                         menu_items.appendChild(menu_item)
-    //                         device_grid.appendChild(menu_items)
-    //                     }
-    //                     // console.log('index ', subidx, 'uuid', uuid)
-    //                     // console.log('default loc uuid', uuid)
-    //                 }
-    //             }
-    //             // // IF ACTIVATION ROOT THEN ANDROID
-    //             // if (subitem.indexOf('activation_root=') > -1) {
-    //             //     // console.log(subitem + ' ' + subidx)
-    //             //     uuid = subitem.replace('activation_root=', '').trim()
-    //             //     gio.uuid = uuid
-    //             //     // CREATE HREF ELEMENT
-    //             //     let href = document.createElement('a')
-    //             //     let icon = document.createElement('i')
-    //             //     let icon_phone = document.createElement('i')
-    //             //     let menu_item = add_div()
-    //             //     let content = add_div()
-    //             //     href.href = '#'
-    //             //     href.classList.add('block')
-    //             //     icon.classList.add('icon', 'hdd')
-    //             //     icon_phone.classList.add('icon', 'mobile', 'alternate')
-    //             //     menu_item.classList.add('item')
-    //             //     content.classList.add('item')
-    //             //     is_activationroot = 1
-    //             //     // ADD DATA
-    //             //     let uuid_path = gio.uuid
-    //             //     href.dataset.uuid = uuid_path
-    //             //     href.text = gio.volume
-    //             //     href.addEventListener('click', (e) => {
-    //             //         ipcRenderer.send('mount_gio', gio)
-    //             //     })
-    //             //     menu_item.appendChild(icon_phone)
-    //             //     content.appendChild(href)
-    //             //     menu_item.appendChild(content)
-    //             //     menu_items.appendChild(menu_item)
-    //             //     device_grid.appendChild(menu_items)
-    //             //     if (subitem.indexOf('default_location=') > -1) {
-    //             //         let uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-    //             //         gio.uuid = uuid
-    //             //         console.log('uuid')
-    //             //     }
-    //             // }
-    //             // if (subitem.indexOf('default_location=') > -1 && is_folder_card == 1) {
-    //             //     // CREATE HREF ELEMENT
-    //             //     let href = document.createElement('a')
-    //             //     let icon = document.createElement('i')
-    //             //     let icon_phone = document.createElement('i')
-    //             //     let menu_item = add_div()
-    //             //     let content = add_div()
-    //             //     href.href = '#'
-    //             //     href.classList.add('block')
-    //             //     icon.classList.add('icon', 'hdd')
-    //             //     icon_phone.classList.add('icon', 'mobile', 'alternate')
-    //             //     menu_item.classList.add('item')
-    //             //     content.classList.add('item')
-    //             //     if (uuid.indexOf('sftp') === -1) {
-    //             //         console.log('default loc uuid', uuid)
-    //             //         uuid = path.normalize(subitem.replace('default_location=file://', '').trim())
-    //             //         gio.uuid = uuid
-    //             //         // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
-    //             //         if (gio.uuid.indexOf('default_location=') > -1 && subitem_counter == 0) {
-    //             //             // ADD DATA
-    //             //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-    //             //             // let uuid_path = gio.uuid
-    //             //             href.dataset.uuid = uuid_path
-    //             //             href.text = gio.volume
-    //             //             href.addEventListener('click', (e) => {
-    //             //                 get_files(uuid_path)
-    //             //             })
-    //             //             menu_item.appendChild(icon_phone)
-    //             //             content.appendChild(href)
-    //             //             menu_item.appendChild(content)
-    //             //             menu_items.appendChild(menu_item)
-    //             //             subitem_counter = 1
-    //             //         }
-    //             //         // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
-    //             //         if (gio.uuid.indexOf('default_location=') === -1) {
-    //             //             // ADD DATA
-    //             //             let uuid_path = gio.uuid.replace('default_location=', '/run/user/1000/gvfs/').replace('mtp:/', 'mtp:host=')
-    //             //             href.dataset.uuid = gio.uuid
-    //             //             href.text = gio.volume
-    //             //             href.addEventListener('click', (e) => {
-    //             //                 get_files(uuid_path)
-    //             //             })
-    //             //             menu_item.appendChild(icon)
-    //             //             content.appendChild(href)
-    //             //             menu_item.appendChild(content)
-    //             //             menu_items.appendChild(menu_item)
-    //             //         }
-    //             //         console.log('index ', subidx, 'uuid', gio.uuid)
-    //             //         device_grid.appendChild(menu_items)
-    //             //     }
-    //             // }
-    //         }
-    //     })
-    // }
+    let device_grid = document.getElementById("device_grid");
+    let menu_items = add_div();
+    let data = res.split("\n");
+
+    // GET REFERENCE TO DEVICE GRID
+    device_grid.innerHTML = "";
+    menu_items.classList.add("ui", "items");
+    // CREATE VOLUMES ARRAY
+    let volumes_arr = [];
+    data.forEach((item, idx) => {
+        // CREATE VOLLUMES ARRAY
+        if (item.indexOf("Volume(0):") > -1) {
+            let split_item = item.split("->");
+            let volume_obj = {
+                idx: idx,
+                volume: split_item[0],
+            };
+            volumes_arr.push(volume_obj);
+        }
+    });
+    // LOOP OVER VOLUMES ARRAY
+    // GIO OBJECT
+    let gio = {};
+    let subitem_counter = 0;
+    let is_activationroot = 0;
+    // LOOP OVER VOLUMES
+    for (let i = 0; i < volumes_arr.length; i++) {
+        let volume = volumes_arr[i].volume;
+        gio.volume = volume.replace("Volume(0):", "").trim();
+        // LOOP OVER GIO DATA AND GET SUB ITEMS
+        data.forEach((subitem, subidx) => {
+            let volumeidx = volumes_arr[i].idx;
+            let volumeidx2 = data.length;
+            // IF MORE THAN 1 VOLUME IS FOUND GET ITS INDEX TO USE AS FILTER
+            if (i < volumes_arr.length - 1) {
+                volumeidx2 = volumes_arr[i + 1].idx;
+            }
+            let uuid = "";
+            // IF ARRAY COUNTER IS BETWEEN 1ST AND SECOND
+            if (subidx >= volumeidx && subidx <= volumeidx2) {
+                if (subitem.indexOf("activation_root=") > -1) {
+                    uuid = subitem.replace("activation_root=", "").trim();
+                    gio.uuid = uuid;
+                    // CREATE HREF ELEMENT
+                    let href = document.createElement("a");
+                    let icon = document.createElement("i");
+                    let icon_phone = document.createElement("i");
+                    let menu_item = add_div();
+                    let content = add_div();
+                    href.href = "#";
+                    href.classList.add("block");
+                    icon.classList.add("icon", "bi-hdd");
+                    icon.style.marginLeft = "15px";
+                    icon_phone.classList.add("icon", "mobile", "alternate");
+                    menu_item.classList.add("item");
+                    content.classList.add("item");
+                    // ADD DATA
+                    href.dataset.uuid = uuid;
+                    href.text = gio.volume;
+                    href.addEventListener("click", (e) => {
+                        ipcRenderer.send("mount_gio", gio);
+                    });
+                    menu_item.appendChild(icon_phone);
+                    content.appendChild(href);
+                    menu_item.appendChild(content);
+                    menu_items.appendChild(menu_item);
+                    device_grid.appendChild(menu_items);
+                    is_activationroot = 1;
+                    console.log("activation uuid", uuid);
+                }
+                if (
+                    subitem.indexOf("default_location=") > -1 &&
+                    is_folder_card == 1
+                ) {
+                    uuid = path.normalize(
+                        subitem.replace("default_location=file://", "").trim()
+                    );
+                    if (uuid.indexOf("sftp") === -1) {
+                        // IF UUID CONTAINS DEFAULT_LOCATION. ONLY SHOW FIRST INSTANCE
+                        if (
+                            uuid.indexOf("default_location=") > -1 &&
+                            subitem_counter === 0
+                        ) {
+                            // CREATE HREF ELEMENT
+                            let href = document.createElement("a");
+                            let icon = document.createElement("i");
+                            let icon_phone = document.createElement("i");
+                            let menu_item = add_div();
+                            let content = add_div();
+                            href.href = "#";
+                            href.classList.add("block");
+                            icon.classList.add("icon", "bi-hdd");
+                            icon.style.marginLeft = "15px";
+                            icon_phone.classList.add(
+                                "icon",
+                                "mobile",
+                                "alternate"
+                            );
+                            menu_item.classList.add("item");
+                            content.classList.add("item");
+                            // ADD DATA
+                            uuid = uuid
+                                .replace(
+                                    "default_location=",
+                                    "/run/user/1000/gvfs/"
+                                )
+                                .replace("mtp:/", "mtp:host=");
+                            href.dataset.uuid = uuid;
+                            href.text = gio.volume;
+                            href.addEventListener("click", (e) => {
+                                get_view(uuid);
+                            });
+                            content.appendChild(href);
+                            menu_item.appendChild(icon_phone);
+                            menu_item.appendChild(content);
+                            menu_items.appendChild(menu_item);
+                            device_grid.appendChild(menu_items);
+                            subitem_counter = 1;
+                        }
+                        // IF UUID DOES NOT CONTAIN DEFAULT_LOCATION
+                        if (uuid.indexOf("default_location=") === -1) {
+                            // CREATE HREF ELEMENT
+                            let href = document.createElement("a");
+                            let icon = document.createElement("i");
+                            let icon_phone = document.createElement("i");
+                            let menu_item = add_div();
+                            let content = add_div();
+                            href.href = "#";
+                            href.classList.add("block");
+                            icon.classList.add("icon", "bi-hdd");
+                            icon.style.marginLeft = "15px";
+                            icon_phone.classList.add(
+                                "icon",
+                                "mobile",
+                                "alternate"
+                            );
+                            menu_item.classList.add("item");
+                            content.classList.add("item");
+                            // ADD DATA
+                            uuid = uuid
+                                .replace(
+                                    "default_location=",
+                                    "/run/user/1000/gvfs/"
+                                )
+                                .replace("mtp:/", "mtp:host=");
+                            href.dataset.uuid = uuid;
+                            href.text = gio.volume;
+                            href.addEventListener("click", (e) => {
+                                get_view(uuid);
+                                // get_files(uuid, () => {})
+                            });
+                            menu_item.appendChild(icon);
+                            content.appendChild(href);
+                            menu_item.appendChild(content);
+                            menu_items.appendChild(menu_item);
+                            device_grid.appendChild(menu_items);
+                        }
+                    }
+                }
+            }
+        });
+    }
 });
 
 // ON GIO MOUNTED
@@ -1455,10 +1315,9 @@ ipcRenderer.on("gio_mounted", (e, data) => {
     if (data.indexOf("mounted at") > -1) {
         path = data.substring(data.indexOf("`") + 1, data.lastIndexOf("'"));
 
-        if (path == "") {
+        if (path === "") {
             path = "/run/user/1000/gvfs";
         }
-        // get_files(path, () => {})
         get_view(path);
     } else {
         console.log("gio mount error");
@@ -1469,23 +1328,20 @@ ipcRenderer.on("gio_mounted", (e, data) => {
 
     if (data.indexOf("already mounted") > -1) {
         get_view("/run/user/1000/gvfs");
-        // get_files('/run/user/1000/gvfs', () => {})
     }
 
     let str_arr = data.split(" ");
     str_arr.forEach((item, idx) => {
         let direcotry = item.replace(".", "").replace("'", "").replace("`", "");
 
-        if (item.indexOf("already mounted") != -1) {
-            if (idx == 8) {
+        if (item.indexOf("already mounted") !== -1) {
+            if (idx === 8) {
                 direcotry = item
                     .replace(".", "")
                     .replace("'", "")
                     .replace("`", "");
                 get_view(direcotry.trim());
             }
-        } else {
-            // console.log()
         }
     });
 });
@@ -1526,22 +1382,9 @@ ipcRenderer.on("gio_files", (e, data) => {
                 folder_grid.insertBefore(card, folder_grid.firstChild);
                 let col = add_column("three");
                 col.append(card);
-                // let header = document.getElementById('header_' + card_id)
-                // header.classList.add('hidden')
-
-                // let input = card.querySelector('input')
-                // input.classList.remove('hidden')
-
-                // //
-                // input.focus()
-                // input.select()
-
-                // //
-                // update_cards()
             });
         } catch (err) {
             notification(err);
-            // info(err)
         }
     });
 });
@@ -1561,10 +1404,6 @@ ipcRenderer.on("add_card", (e, options) => {
     });
 
     if (!duplicate) {
-        // fs.stat(options.href, (err, stats) => {
-
-        // if (!err) {
-
         if (options.is_dir) {
             options.grid = document.getElementById("folder_grid");
         } else {
@@ -1577,12 +1416,6 @@ ipcRenderer.on("add_card", (e, options) => {
             options.grid.insertBefore(col, options.grid.firstChild);
             update_card(card.dataset.href);
         });
-
-        // } else {
-        //     notification(err)
-        // }
-
-        // });
     } else {
         console.log("error: duplicate found. this needs to be fixed");
     }
@@ -1656,13 +1489,13 @@ ipcRenderer.on("update_progress", (e, step) => {
 ipcRenderer.on("sort", (e, sort) => {
     let breadcrumbs = document.getElementById("breadcrumbs");
 
-    if (sort == "date") {
+    if (sort === "date") {
         localStorage.setItem("sort", 1);
-    } else if (sort == "size") {
+    } else if (sort === "size") {
         localStorage.setItem("sort", 3);
-    } else if (sort == "name") {
+    } else if (sort === "name") {
         localStorage.setItem("sort", 2);
-    } else if (sort == "type") {
+    } else if (sort === "type") {
         localStorage.setItem("sort", 4);
     }
 
@@ -1672,9 +1505,9 @@ ipcRenderer.on("sort", (e, sort) => {
 // todo: these need to be consolidated at ome point
 // NOTICE
 function notice(notice_msg) {
-    // let container = document.getElementById('notice')
-    // container.innerHTML = ''
-    // container.innerHTML = notice_msg
+    let container = document.getElementById("notice");
+    container.innerHTML = "";
+    container.innerHTML = notice_msg;
 }
 
 function createFlexTable(containerId, tableData) {
@@ -1727,7 +1560,7 @@ function get_recent_files(href, call) {
                     let col = add_column("three");
                     col.append(card);
 
-                    if (file.type == "directory") {
+                    if (file.type === "directory") {
                         folder_grid.append(col);
                     } else {
                         file_grid.append(col);
@@ -1843,7 +1676,7 @@ function get_sidebar_home() {
                 div.title = item.href;
                 div.onclick = (e) => {
                     gio.get_file(item.href, (file) => {
-                        if (file.type == "directory") {
+                        if (file.type === "directory") {
                             get_view(item.href);
                         } else {
                             open(item.href);
@@ -1900,9 +1733,6 @@ function get_sidebar_home() {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // let cmd = `gio mount -u -f "${item.href}"`
-                // console.log(cmd)
-
                 exec(`gio mount -u -f "${device.href}"`, (err, stdout) => {
                     if (!err) {
                         div.remove();
@@ -1944,43 +1774,21 @@ function notification(msg) {
     notification.innerHTML = "";
 
     if (msg.toString().toLocaleLowerCase().search("error") > -1) {
-        // mag.classList.add('error')
         notification.style.color = "#ff0000";
     } else {
-        // mag.classList.add('light')
         notification.style.color = "#cfcfcf";
     }
 
     notification.append(msg);
     notification.classList.remove("hidden");
     notification.classList.add("right");
-
-    // notice(msg)
-    // info(msg)
-
-    // let status = document.getElementById('notification')
-    // let msg_div = add_div()
-
-    // // status.style = 'overflow:auto'
-    // msg_div.style = 'overflow:auto; margn-bottom: 10px;'
-
-    // msg_div.innerHTML = ''
-    // msg_div.innerHTML = msg
-
-    // status.innerHTML = ''
-    // status.appendChild(msg_div)
-
-    // let card = add_card(options)
-    // column.appendChild(card)
-    // status.insertBefore(msg_div, status.firstChild)
 }
 
-///////////////////////////////////////////////////
-
 // // GET FILE CONTENTS. USED TO LOAD PAGES
+// 이 함수를 활성화 시키면 클릭 감도가 이상해짐
 // async function get_file(file) {
-//     let res = fs.readFileSync(__dirname + '/' + file)
-//     return res
+//     let res = fs.readFileSync(__dirname + "/" + file);
+//     return res;
 // }
 
 // CLEAR CACHE
@@ -1995,7 +1803,6 @@ function get_sidebar_view() {
     try {
         switch (localStorage.getItem("minibar")) {
             case "mb_home":
-                // get_sidebar_files(get_home());
                 get_sidebar_home();
                 break;
             case "mb_workspace":
@@ -2003,7 +1810,6 @@ function get_sidebar_view() {
                 break;
             case "mb_find":
                 find_files(() => {});
-                // find()
                 break;
             case "mb_fs":
                 get_sidebar_files("/");
@@ -2039,7 +1845,6 @@ async function get_image_properties(image) {
             let icon = add_icon("times");
 
             prop_view.style = "height: 100%; overflow-y: auto;";
-            // sb_items.append(add_header('Image Properties'))
             icon.style =
                 "display:block; float:right; width: 23px; cursor: pointer";
 
@@ -2077,18 +1882,6 @@ async function get_image_properties(image) {
     });
 }
 
-// rwx rwx rwx ==> ( r = 4 ) if set + ( w = 2) if set + (x = 1) if set , for example:
-// You have :
-// -rw-wxrw- => (4+2+0)(0+2+1)(4+2+0) = 0636
-// First argument before 9 permissions is one of :
-// - = regular file
-// d =  directory
-// b = block device
-// c = character device
-// s = socket
-// p = pipe
-// f = fifo
-
 // FILE PROPERTIES WINDOW
 /**
  * Display file properties in the sidebar
@@ -2117,7 +1910,7 @@ async function get_properties(file_properties_obj) {
     remove_btn.addEventListener("click", (e) => {
         card.remove();
         let items = sb_items.querySelectorAll(".nav_item");
-        if (items.length == 0) {
+        if (items.length === 0) {
             get_sidebar_view();
         }
     });
@@ -2134,7 +1927,6 @@ async function get_properties(file_properties_obj) {
     execute_chk.addEventListener("change", (e) => {
         // mode: r/w 33188
         // mode: r/w/x 33261
-
         if (execute_chk.checked) {
             chmod = fs.chmodSync(filename, "755");
         } else {
@@ -2198,9 +1990,6 @@ async function get_properties(file_properties_obj) {
                             img.src = res;
                             image.append(img);
                         });
-
-                    // ipcRenderer.send('get_icon_path', filename);
-
                     col1.append(image);
                     div.append(col1, col2);
                 }
@@ -2208,7 +1997,6 @@ async function get_properties(file_properties_obj) {
                 break;
             case "Contents":
                 col1.append(prop);
-                // col2.append('calculating..');
                 col2.dataset.contents = filename;
                 div.append(col1, col2);
 
@@ -2239,7 +2027,7 @@ async function get_properties(file_properties_obj) {
                 break;
         }
 
-        if (ext == ".sh") {
+        if (ext === ".sh") {
             content.append(div, execute_chk_div);
         } else {
             content.append(div);
@@ -2289,7 +2077,7 @@ async function get_file_properties() {
 async function get_info() {
     let file_properties = document.getElementById("file_properties");
     if (file_properties) {
-        // file_properties.classList.remove('hidden');
+        file_properties.classList.remove("hidden");
     }
 }
 
@@ -2312,7 +2100,7 @@ let prog_state = 0;
 function set_progress(max, value) {
     console.log(max, value);
 
-    if (prog_state == 0) {
+    if (prog_state === 0) {
         prog_state = 1;
         let progress_div = document.getElementById("progress_div");
         let progress = document.getElementById("progress");
@@ -2326,7 +2114,7 @@ function set_progress(max, value) {
 
     progress.value = parseInt(value);
 
-    if (value == max) {
+    if (value === max) {
         prog_state = 0;
         progress.value = 0;
         progress_msg = "";
@@ -2361,31 +2149,6 @@ function get_progress(total) {
         // max = max / 1024
         total = total / 1024;
 
-        // if (breadcrumbs.value.indexOf('gvfs') > -1) {
-
-        //     progress.max = max + 0;
-        //     let current_size0 = 0;
-        //     let current_size = 0;
-        //     let interval_id = setInterval(() => {
-
-        //         let stats = fs.statSync(destination_file);
-        //         current_size0 = current_size
-        //         current_size = parseInt(stats.size);
-
-        //         progress.value = current_size;
-        //         if (current_size0 >= current_size) {
-
-        //             progress.value = 0
-        //             progress_div.classList.add('hidden')
-        //             progress.classList.add('hidden')
-
-        //             clearInterval(interval_id);
-        //         }
-
-        //     }, 1000);
-
-        // } else {
-
         let cmd = "du -s '" + breadcrumbs.value + "' | awk '{print $1}'";
         exec(cmd, (err, stdout) => {
             if (!err) {
@@ -2411,10 +2174,6 @@ function get_progress(total) {
                                 current_size = parseInt(stdout) - start_size;
                                 progress_size =
                                     parseInt(current_size / total) * 100;
-
-                                // console.log('ps',progress_size)
-                                // console.log('cs',current_size, 'ts', total)
-
                                 progress.value = current_size;
 
                                 if (current_size0 >= current_size) {
@@ -2423,22 +2182,15 @@ function get_progress(total) {
                                     progress.classList.add("hidden");
 
                                     update_cards2();
-
-                                    // update_card(destination_folder)
-                                    // update_cards(document.getElementById('main_view'))
                                     clearInterval(interval_id);
                                 }
                             }
-
-                            // update_card(destination_file);
                         });
                     }, 1000);
                 }
             }
         });
     }
-
-    // }
 }
 
 /**
@@ -2477,23 +2229,6 @@ function get_available_launchers(filetype, source) {
                     // GET MIME TYPE
                     cmd = "xdg-mime query filetype '" + source + "'";
                     let exec_mime = execSync(cmd).toString();
-
-                    // set_default_launcher(desktop_launchers[i],exec_mime[i].replace('MimeType=',''))
-
-                    // let exe_path
-                    // let launcher
-
-                    // let desktop_file = fs.readFileSync(filepath,'utf8').split('\n')
-                    // desktop_file.forEach((item, idx) => {
-                    //     item = item.replace(',','')
-                    //     if(item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
-                    //         launcher = item.replace('Name=', '')
-                    //     }
-                    //     if(item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
-                    //         exe_path = item.replace('Exec=', '')
-                    //     }
-                    // })
-
                     let options = {
                         name: exec_name[0].replace("Name=", ""),
                         icon: "",
@@ -2561,15 +2296,11 @@ async function get_network() {
                     let icon_phone = document.createElement("i");
                     let menu_item = add_div();
 
-                    // let hr = add_div()
-
                     href.href = filename;
                     href.text = file;
                     href.dataset.uuid = filename;
                     href.title = filename;
-                    // href.preventDefault = true
 
-                    // hr.classList.add('ui','horizontal','divider')
                     href.classList.add("block", "header_link");
                     icon.classList.add("icon", "hdd");
                     icon.style.marginLeft = "15px";
@@ -2581,12 +2312,10 @@ async function get_network() {
                     menu_item.appendChild(content);
                     menu_items.appendChild(menu_item);
 
-                    // network_grid.appendChild(hr)
                     network_grid.appendChild(menu_items);
 
                     href.addEventListener("click", (e) => {
                         get_view(filename);
-                        // get_files(filename, () => {})
                     });
                 });
 
@@ -2624,8 +2353,6 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 function log(msg) {
     console.log(msg);
 }
-
-// var cardindex = 0
 
 // ADD CARD //////////////////////////////////////////////////////////////////////
 async function add_card(options) {
@@ -2746,9 +2473,6 @@ async function add_card(options) {
                 ext === ".ogg"
             ) {
                 is_audio = 1;
-                // ipcRenderer.invoke('get_icon', href).then(res => {
-                //     img.dataset.src = res;
-                // })
             } else if (ext === ".mp4" || ext === ".webm") {
                 img.remove();
                 source.src = href;
@@ -2758,11 +2482,6 @@ async function add_card(options) {
                 video.onclick = (e) => {
                     open(href);
                 };
-            } else {
-                // img.src = path.join(__dirname, 'assets/icons/kora/actions/scalable/viewimage.svg');
-                // ipcRenderer.invoke('get_icon', href).then(res => {
-                //     img.dataset.src = res;
-                // })
             }
             card.classList.add("file_card");
         }
@@ -2771,12 +2490,11 @@ async function add_card(options) {
         card.addEventListener("click", function (e) {
             e.stopPropagation();
             // CRTRL+SHIFT ADD TO WORKSPACE
-            if (e.ctrlKey == true && e.shiftKey == true) {
-                // get_workspace()
+            if (e.ctrlKey === true && e.shiftKey === true) {
                 add_workspace();
 
                 // MULTI SELECT
-            } else if (e.ctrlKey == true) {
+            } else if (e.ctrlKey === true) {
                 if (
                     card.classList.contains(
                         "highlight_select",
@@ -2800,8 +2518,6 @@ async function add_card(options) {
                 // HIGHLIGHT
                 if (this.classList.contains("highlight_select")) {
                     this.classList.remove("highlight_select");
-
-                    //
                 } else {
                     // NAV COUNTER
                     nc = parseInt(card.dataset.id);
@@ -2835,8 +2551,6 @@ async function add_card(options) {
             card_id = id;
             active_href = href;
 
-            // HIGHLIGHT CARD timeoutid = setTimeout(() => {
-            // timer = setTimeout(() => {
             card.classList.add("highlight");
             nc = nc2;
             nc2 = parseInt(card.dataset.id);
@@ -2858,14 +2572,7 @@ async function add_card(options) {
 
         //  OUT
         card.onmouseout = (e) => {
-            // notification(path.basename(breadcrumbs.value))
-
-            // clearTimeout(timer);
             card.classList.remove("highlight");
-            // let cards = document.getElementsByClassName('card')
-            // for (let i = 0; i < cards.length; i++) {
-            //     cards[i].classList.remove('highlight')
-            // }
             audio.removeAttribute("controls");
         };
 
@@ -2877,7 +2584,6 @@ async function add_card(options) {
             back_counter = 1;
 
             if (is_folder) {
-                // get_files(href, () => {})
                 get_view(href);
             } else {
                 open(href, { wait: false });
@@ -2885,7 +2591,7 @@ async function add_card(options) {
         });
 
         img.onmouseover = () => {
-            // get_image_properties(href)
+            get_image_properties(href);
         };
 
         // CREATE CONTENT
@@ -2930,13 +2636,11 @@ async function add_card(options) {
         input.spellcheck = false;
         input.value = linktext;
 
-        // selrange.moveEnd(href.length - path.extname(href).length)
-
         // CHANGE EVENT
         input.addEventListener("change", function (e) {
             e.preventDefault();
 
-            if (this.value == "") {
+            if (this.value === "") {
                 alert("enter a name");
             } else {
                 card.classList.add("highlight_select");
@@ -2958,7 +2662,6 @@ async function add_card(options) {
                         "highlight",
                         "ds-selected"
                     );
-                    // update_card(source)
                 } else {
                     notification(`err ${path.basename(href)} already exists..`);
                 }
@@ -2996,41 +2699,10 @@ async function add_card(options) {
 
         extra.classList.add("extra");
 
-        // extra.innerHTML = size
-        // extra.draggable = false
-        // progress.id = 'progress_' + id
-        // progress.classList.add('hidden', 'progress')
-        // progress_bar.id = 'progress_bar_' + id
-        // progress_bar.value = '1'
-        // progress_bar.max = '100'
-
         // ON DRAG START
         card.ondragstart = function (e) {
-            // e.preventDefault()
-            // clear_copy_arr()
-
-            // let datalist = e.dataTransfer.items
-            // // let data = fs.readFileSync(href)
-            // let blob = new Blob([data])
-            // let file = new File([blob], path.basename(href), {type: 'text/plain', webkitRelativePath: href})
-            // const fr = new FileReader()
-            // fr.readAsText(file)
-            // e.dataTransfer.setData(path.basename(href), "testing")
-            // datalist.add(file)
-
             e.dataTransfer.effectAllowed = "copyMove";
             add_copy_file();
-            // let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-
-            // if (items.length > 0) {
-
-            //     items.forEach((item, idx) => {
-            //         let href = item.dataset.href;
-            //         let id = item.dataset.id;
-            //         add_copy_file(href, id);
-            //     })
-
-            // }
         };
 
         // INITIALIZE COUNTER
@@ -3047,8 +2719,6 @@ async function add_card(options) {
             // CARD. NOTE. THIS SEEMS BACKWARDS BUT WORKS AND IS ESSENTIAL FOR SETTING THE CORRECT TARGET PATH. NOT SURE WHY ??
             if (target.id == "") {
                 destination = href;
-                // card.classList.add('highlight_select')
-                // BLANK
             } else {
                 destination = breadcrumbs.value;
             }
@@ -3057,7 +2727,7 @@ async function add_card(options) {
             main_view.classList.add("selectableunselected");
             main_view.draggable = false;
 
-            if (e.ctrlKey == true) {
+            if (e.ctrlKey === true) {
                 e.dataTransfer.dropEffect = "copy";
             } else {
                 e.dataTransfer.dropEffect = "move";
@@ -3069,10 +2739,9 @@ async function add_card(options) {
         // DRAG OVER
         card.ondragover = function (e) {
             // ADD HIGHLIGHT
-            // card.classList.add('highlight_select')
             card.classList.add("highlight");
 
-            if (e.ctrlKey == true) {
+            if (e.ctrlKey === true) {
                 e.dataTransfer.dropEffect = "copy";
             } else {
                 e.dataTransfer.dropEffect = "move";
@@ -3095,38 +2764,23 @@ async function add_card(options) {
             dragcounter--;
 
             // todo: this is breaking drag and drop on workspace
-            // card.classList.remove('highlight_select')
             card.classList.remove("highlight");
 
             if (dragcounter === 0) {
                 // TURN DRAGGABLE ON MAIN CARD ON
-                // notification('setting draggable to true on main view')
-                // card.classList.remove('highlight_select')
-
                 let main_view = document.getElementById("main_view");
-
-                // main_view.draggable = true
-                // notification('running on drag leave card')
             }
             return false;
         };
-
-        // card.ondrop = (e) => {
-        //     ipcRenderer.send('active_folder', href);
-        //     ipcRenderer.send('is_main_view', 0)
-        // }
 
         card.appendChild(items);
         items.appendChild(item);
         item.appendChild(image);
         item.appendChild(content);
-        // item.appendChild(popovermenu);
         content.appendChild(header);
         content.appendChild(form_control);
         content.appendChild(description);
-        // progress.appendChild(progress_bar);
         content.appendChild(extra);
-        // content.appendChild(progress);
         col.appendChild(card);
 
         if (grid) {
@@ -3201,23 +2855,19 @@ function get_card1(file) {
     icon_col.append(icon);
 
     let badge = add_icon("add");
-    // badge.classList.add('top', 'right', 'corner')
-    // icon_col.append(badge)
     info_col.append(input, link, date, size);
 
     audio.append(source);
     card.append(icon_col, info_col);
     card.dataset.href = file.href;
 
-    // console.log(file)
-
-    if (file["access::can-write"] == "FALSE") {
+    if (file["access::can-write"] === "FALSE") {
         console.log("what");
         card.style = "opacity: 0.6 !important";
     }
 
     // Directory
-    if (file.is_dir || file.type == "directory") {
+    if (file.is_dir || file.type === "directory") {
         card.classList.add("folder_card");
         icon.src = folder_icon;
 
@@ -3244,7 +2894,7 @@ function get_card1(file) {
                 }
             });
         } else {
-            size.innerHTML = ""; //get_file_size(file.size)
+            size.innerHTML = "";
         }
     } else {
         card.classList.add("file_card");
@@ -3252,11 +2902,9 @@ function get_card1(file) {
         localStorage.setItem(file.href, file.size);
 
         if (
-            // file_obj["standard::content-type"].indexOf('image') > -1 ||
             file.ext === ".jpg" ||
             file.ext === ".png" ||
             file.ext === ".jpeg"
-            // file.ext === '.webp'
         ) {
             is_image = 1;
         } else {
@@ -3346,14 +2994,12 @@ function get_card1(file) {
 
         if (is_pdf && !is_gio_file(file.href)) {
             iframe = document.createElement("iframe");
-            // iframe.src = file.href
             iframe.dataset.src = file.href;
             iframe.style =
                 "transform: scale(.5); width: 120px; height: 84px; overflow: hidden;";
             iframe.classList.add("lazy");
             icon.remove();
             card.prepend(iframe);
-            // <iframe src="example.pdf" style="transform: scale(0.5); width: 50px; height: 50px;"></iframe>
         }
     }
 
@@ -3408,7 +3054,6 @@ function get_card1(file) {
         e.preventDefault();
         e.stopPropagation();
 
-        // card_id = 'card_id_0';
         active_href = file.href;
         card.classList.add("highlight");
 
@@ -3460,7 +3105,7 @@ function get_card1(file) {
         let target = e.target;
         destination = card.dataset.href;
 
-        if (e.ctrlKey == true) {
+        if (e.ctrlKey === true) {
             e.dataTransfer.dropEffect = "copy";
         } else {
             e.dataTransfer.dropEffect = "move";
@@ -3474,7 +3119,7 @@ function get_card1(file) {
         if (file.is_dir) {
             card.classList.add("highlight");
 
-            if (e.ctrlKey == true) {
+            if (e.ctrlKey === true) {
                 e.dataTransfer.dropEffect = "copy";
             } else {
                 e.dataTransfer.dropEffect = "move";
@@ -3503,10 +3148,9 @@ function get_card1(file) {
         e.stopPropagation();
 
         if (e.key === "Enter" || e.key === "Tab") {
-            if (input.value == "") {
+            if (input.value === "") {
                 alert("enter a name");
             } else {
-                // card.classList.add('highlight_select')
                 source = path.join(path.dirname(file.href), input.value.trim());
 
                 if (!fs.existsSync(source)) {
@@ -3535,7 +3179,7 @@ function get_card1(file) {
     // Directory event listeners
     link.onclick = (e) => {
         e.preventDefault();
-        if (file.is_dir || file.type == "directory") {
+        if (file.is_dir || file.type === "directory") {
             get_view(file.href);
             console.log(file);
         } else {
@@ -3545,7 +3189,7 @@ function get_card1(file) {
 
     icon.onclick = (e) => {
         e.preventDefault();
-        if (file.is_dir || file.type == "directory") {
+        if (file.is_dir || file.type === "directory") {
             get_view(file.href);
         } else {
             open(file.href);
@@ -3576,8 +3220,6 @@ function get_card1(file) {
             break;
         }
     }
-
-    // console.log(card)
     try {
         ds.addSelectables(card);
     } catch (err) {}
@@ -3608,10 +3250,8 @@ function update_card1(href) {
                 new Date(parseInt(file["time::modified"]) * 1000)
             );
 
-            // console.log(file)
-
             if (!is_gio_file(href)) {
-                if (file.type == "directory") {
+                if (file.type === "directory") {
                     ipcRenderer.invoke("get_folder_size1", href).then((res) => {
                         size.innerHTML = get_file_size(
                             parseInt(res.replace(".", "") * 1024)
@@ -3701,7 +3341,6 @@ function update_card(href) {
 
             // Add data to card
             fs.stat(href, (err, stats) => {
-                // let stats = fs.statSync(href)
                 let mtime = new Intl.DateTimeFormat("en", {
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -3719,7 +3358,6 @@ function update_card(href) {
 
                 // HANDLE DIRECTORY
                 if (stats.isDirectory()) {
-                    // ipcRenderer.send('get_folder_size', { href: href })
                     icon.src = folder_icon;
 
                     try {
@@ -3762,7 +3400,6 @@ function update_card(href) {
                         ext === ".png" ||
                         ext === ".jpg" ||
                         ext === ".gif" ||
-                        // ext === '.webp' ||
                         ext === ".jpeg"
                     ) {
                         is_image = 1;
@@ -3993,10 +3630,8 @@ function update_cards(view) {
                 }
             }
         });
-
-        // clear_selected_files()
     } catch (err) {
-        // console.log(err)
+        console.log(err);
     }
 
     file_count = 0;
@@ -4015,7 +3650,6 @@ function show_loader() {
         if (loader.classList.contains("active")) {
             hide_loader();
             notification("Error Reading the Directory. Operation Timed Out");
-            // alert('Oh no. Operation timed out!')
         }
     }, 10000);
 }
@@ -4061,11 +3695,9 @@ function add_list_item(options) {
     let list_item1 = add_div();
     let folder_icon = document.createElement("i");
     let content = add_div();
-    let header = add_div(); // document.createElement('a')
+    let header = add_div();
     let description = add_div();
-    // let list1 = add_div()
 
-    // list.classList.add('ui','list')
     list_item.classList.add("item");
     list_item1.classList.add("item");
     folder_icon.classList.add("folder", "icon", "large");
@@ -4074,9 +3706,7 @@ function add_list_item(options) {
     description.classList.add("description");
 
     header.innerHTML = options.header;
-    // description.innerHTML = 'what'
 
-    // list.appendChild(item)
     list_item.appendChild(folder_icon);
     list_item.appendChild(content);
 
@@ -4144,11 +3774,6 @@ function add_tree_item(options) {
 
     chevron.classList.add("right", "small");
     chevron.style = "float: left;";
-    // item.style = 'margin-bottom:0px; padding-bottom:2px'
-    // header.classList.add('header')
-    // header.style = 'font-size: 12px;'
-    // content.classList.add('content', 'tree_item')
-    // subitems.style = 'margin-left: 10px;'
     item.draggable = false;
 
     // CHECK FOR SUB DIRS
@@ -4163,13 +3788,10 @@ function add_tree_item(options) {
     href.src = filepath;
     href.text = filename + " (" + subdirs.length + ")";
 
-    // href.style = 'color:#cfcfcf !important;'
     header.append(href);
     subitems.dataset.id = filename;
-    // sidebar_items.append(chevron)
 
     if (subdirs.length > 0) {
-        // sidebar_items.append(chevron)
         for (let i = 0; i < subdirs.length; i++) {
             let subfilename = subdirs[i].name;
             let subfilepath = path.join(filepath, "/", subfilename);
@@ -4189,14 +3811,11 @@ function add_tree_item(options) {
             subicon_div.append(subicon);
         }
     } else {
-        // sidebar_items.append(add_icon('times))
-        // icon.classList.add('icon')
-        // subicon_div.classList.add('tree_subicon')
         subicon.classList.add("icon", "bi-folder", "tree_subicon");
         subicon_div.append(subicon);
     }
 
-    if (path.dirname(filepath) == "/media/michael") {
+    if (path.dirname(filepath) === "/media/michael") {
         subicon.classList.add("icon", "hdd", "outline");
     }
 
@@ -4275,8 +3894,6 @@ function add_tree_item(options) {
 
             subitems.classList.add("hidden");
         }
-
-        // get_view(filepath);
     });
 
     item.addEventListener("mouseover", function (e) {
@@ -4296,14 +3913,11 @@ function add_tree_item(options) {
  */
 async function get_sidebar_files(dir) {
     let sidebar_items = document.getElementById("sidebar_items");
-    let sb_breadcrumbs = document.createElement("ul"); //add_div();
+    let sb_breadcrumbs = document.createElement("ul");
     let dirents = fs.readdirSync(dir, { withFileTypes: true });
 
     sidebar_items.innerHTML = "";
-    // sb_breadcrumbs.classList.add('ui', 'breadcrumb');
     sb_breadcrumbs.classList.add("uk-breadcrumb");
-
-    // get_sidebar_home()
 
     if (dirents) {
         /* Make header dir selectable */
@@ -4351,8 +3965,8 @@ async function get_sidebar_files(dir) {
         const regex = /^\..*/;
         filter.forEach((file, idx) => {
             if (
-                regex.test(file.name) == false ||
-                localStorage.getItem("show_hidden") == 1
+                regex.test(file.name) === false ||
+                localStorage.getItem("show_hidden") === 1
             ) {
                 let filename = file.name;
                 let filepath = dir + "/" + filename;
@@ -4377,17 +3991,6 @@ async function get_sidebar_files(dir) {
         });
     }
 }
-
-// // GET_TEMPLATES
-// let templates_arr = []
-// function get_templates(){
-
-//     let templates = fs.readdirSync('assets/templates')
-//     for(let i = 0; i < templates.length; i++){
-//         console.log(templates[i])
-//     }
-
-// }
 
 // GET FILE FROM TEMPLATE
 function get_templates(file) {
@@ -4415,16 +4018,9 @@ function add_chart(chart_type, chart_labels, chart_data) {
                 {
                     data: chart_data,
                     backgroundColor: [
-                        // pattern.draw('square', '#ff6384'),
-                        // pattern.draw('circle', '#36a2eb'),
-                        // pattern.draw('diamond', '#cc65fe'),
-                        // pattern.draw('triangle', '#ffce56'),
                         "rgba(255, 132, 132, 0.2)",
                         "rgba(54, 162, 235, 0.2)",
                         "rgba(255, 206, 86, 0.2)",
-                        // 'rgba(75, 192, 192, 0.1)',
-                        // 'rgba(153, 102, 255, 0.1)',
-                        // 'rgba(255, 159, 64, 0.1)'
                     ],
                     borderColor: [
                         "rgba(255, 99, 132, .5)",
@@ -4440,7 +4036,6 @@ function add_chart(chart_type, chart_labels, chart_data) {
         },
         options: {
             responsive: false,
-            // indexAxis: 'y',
             scales: {
                 x: {
                     ticks: {
@@ -4479,7 +4074,7 @@ function add_chart(chart_type, chart_labels, chart_data) {
 var disk_usage_chart;
 
 function bar_chart(chart_labels, chart_data) {
-    if (disk_usage_chart != undefined) {
+    if (disk_usage_chart !== undefined) {
         disk_usage_chart.destroy();
     }
 
@@ -4527,11 +4122,6 @@ function bar_chart(chart_labels, chart_data) {
                 y: {
                     beginAtZero: true,
                 },
-                // yLabels: {
-                //     callback: function (args1, args2) {
-                //         return 'shit'
-                //     }
-                // }
             },
             plugins: {
                 legend: {
@@ -4555,7 +4145,6 @@ function get_disk_usage_chart() {
     let col = add_div();
     col.classList.add("column", "sixteen", "wide");
 
-    // notification('getting disk usage chart')
     let cmd = "df '" + breadcrumbs.value + "'";
     let child = exec(cmd);
 
@@ -4568,20 +4157,20 @@ function get_disk_usage_chart() {
 
         let headers = res1[0].split(" ");
         for (let i = 0; i < headers.length; i++) {
-            if (headers[i] != "") {
+            if (headers[i] !== "") {
                 chart_labels.push(headers[i]);
             }
         }
 
         let details = res1[1].split(" ");
         for (let i = 0; i < details.length; i++) {
-            if (details[i] != "") {
+            if (details[i] !== "") {
                 chart_labels1.push(get_file_size(details[i]));
             }
         }
 
         for (let i = 0; i < details.length; i++) {
-            if (details[i] != "") {
+            if (details[i] !== "") {
                 chart_data.push(details[i]);
             }
         }
@@ -4591,7 +4180,6 @@ function get_disk_usage_chart() {
 
         du.stdout.on("data", function (res) {
             let size = parseInt(res.replace(".", ""));
-            // size = get_file_size(size)
 
             chart_labels.push("folder size");
             chart_data.push(size);
@@ -4601,14 +4189,9 @@ function get_disk_usage_chart() {
                     '<span style="color:red">' +
                     get_file_size(size) +
                     "</span>";
-            } else {
             }
-
-            // notification(chart_data)
-            // bar_chart(chart_labels, chart_data)
             grid.append(col);
             let chart = add_chart("bar", chart_labels, chart_data);
-            // chart.style = 'height: 100px !important; width: 800px !important'
             col.append(chart);
             info_view.append(grid);
         });
@@ -4620,9 +4203,6 @@ function get_diskspace(dir) {
     let cmd = 'df "' + dir + '"';
     let child = exec(cmd);
 
-    // let chart_labels = []
-    // let chart_data = []
-
     child.stdout.on("data", (res) => {
         let status = document.getElementById("status");
         status.innerHTML = "";
@@ -4630,13 +4210,9 @@ function get_diskspace(dir) {
         res = res.split("\n");
 
         for (let i = 1; i < res.length - 1; i++) {
-            // notification(res[i])
-
             res1 = res[i].split(" ");
 
             if (res1.length > 0) {
-                // status.innerHTML = 'size:' + res1[]
-
                 for (let i = 0; i < res1.length; i++) {
                     // 0 DISK
                     // 6 SIZE OF DISK
@@ -4722,9 +4298,7 @@ async function get_dir_size(dir) {
 function get_flder_size(href) {
     return new Promise((resolve) => {
         let breadcrumbs = document.getElementById("breadcrumbs");
-        if (breadcrumbs.value.indexOf("gvfs") == -1) {
-            // cmd = 'cd "' + dir + '"; du -b'
-            // return du = execSync(cmd)
+        if (breadcrumbs.value.indexOf("gvfs") === -1) {
             const regex = /^\..*/;
             let folder_card = document.getElementsByClassName("folder_card");
 
@@ -4772,7 +4346,7 @@ function clear_minibar() {
     let minibar_item = document.getElementById("minibar");
     minibar_items = minibar_item.querySelectorAll(".item");
     if (file_properties) {
-        // file_properties.classList.add('hidden')
+        file_properties.classList.add("hidden");
     }
 
     minibar_items.forEach((item) => {
@@ -4822,7 +4396,6 @@ function add_workspace() {
         localStorage.setItem("workspace", JSON.stringify(workspace_arr));
     }
 
-    // get_workspace()
     get_sidebar_view();
     clear_items();
 }
@@ -4843,11 +4416,8 @@ async function get_workspace() {
     workspace.id = "workspace";
     workspace_msg.id = "workspace_msg";
 
-    // workspace.classList.add('grid')
     mb_workspace.style = "color: #ffffff !important";
     workspace.style.height = "100%";
-
-    // localStorage.removeItem('workspace')
 
     if (localStorage.getItem("workspace") === null) {
         localStorage.setItem("minibar", "mb_workspace");
@@ -4910,52 +4480,6 @@ async function get_workspace() {
                 });
             }
         }
-
-        // localStorage.setItem('minibar', 'mb_workspace')
-        // local_items = JSON.parse(localStorage.getItem('workspace'))
-        // if (local_items.length > 0) {
-
-        //     local_items.forEach((item, idx) => {
-
-        //         console.log(item)
-
-        //         let card = get_card1(item)
-        //         card.classList.add('workspace_card')
-        //         workspace.append(card)
-
-        //         let icon = card.querySelector('.icon')
-        //         icon.style = 'width: 16px !important; height: 16px !important'
-
-        //         // icon.src = item.hreff
-
-        //         let rm_icon = add_icon('times');
-        //         rm_icon.classList.add('small');
-        //         rm_icon.style = 'margin-top: 10px; float:right; height:23px; width:23px; cursor: pointer;';
-
-        //         card.append(rm_icon);
-        //         rm_icon.addEventListener('click', (e) => {
-
-        //             card.remove();
-        //             local_items.splice(idx, 1);
-        //             if (local_items.length > 0) {
-        //                 localStorage.setItem('workspace',JSON.stringify(local_items));
-        //             } else {
-        //                 localStorage.removeItem('workspace')
-        //             }
-
-        //         })
-
-        //         card.oncontextmenu = (e) => {
-        //             card.classList.add('highlight_select')
-        //             ipcRenderer.send('show-context-menu-workspace', item)
-        //         }
-
-        //     })
-
-        // } else {
-        //     workspace_msg = 'To add files or folders to the workspace. Right Click, (Ctrl+D) or Drag and Drop'
-        //     sidebar_items.append(workspace_msg)
-        // }
     }
 
     // Workspace on drag over
@@ -4964,10 +4488,10 @@ async function get_workspace() {
     };
 
     // Workspace on drag leave
-    // workspace.ondragleave = (e) => {
-    //     e.preventDefault();
-    //     return false;
-    // }
+    workspace.ondragleave = (e) => {
+        e.preventDefault();
+        return false;
+    };
 
     // Workspace content on drop
     workspace.ondrop = (e) => {
@@ -4992,16 +4516,11 @@ function get_time_stamp(date) {
  *   Get view - Run all calls to files should run through this.
  */
 async function get_view(dir) {
-    // read_dir(localStorage.getItem('folder'))
-    // gio1('/home/michael/Downloads/test.txt', '/home/michael/Downloads/testing/test.txt');
-    // console.log('what', gvfs);
-
     // Set local storage
     localStorage.setItem("folder", dir);
 
     // Update active directory in main.js
     ipcRenderer.send("current_directory", dir);
-    // ipcRenderer.send('active_folder', dir); // this does not work here. breaks copy overwrite
 
     /* Set active on file menu */
     let file_menu = document.getElementById("file_menu");
@@ -5019,7 +4538,7 @@ async function get_view(dir) {
     view = localStorage.getItem("view");
 
     /* Grid View */
-    if (view == "grid") {
+    if (view === "grid") {
         file_menu_items.forEach((item) => {
             if (item.innerText == path.basename(dir)) {
                 item.classList.add("active");
@@ -5028,23 +4547,12 @@ async function get_view(dir) {
             }
         });
 
-        sidebar_menu_items.forEach((item) => {
-            // let href = item.querySelector('a')
-            // console.log('active', href)
-            // if (item.innerHTML.indexOf(path.basename(dir)) > -1) {
-            //     item.classList.add('active');
-            // } else {
-            //     item.classList.remove('active');
-            // }
-        });
-
         let btn_grid_view = document.getElementById("btn_grid_view");
         btn_grid_view.classList.add("active");
         btn_list_view.classList.remove("active");
         btn_disk_view.classList.remove("active");
 
         grid_view.classList.remove("hidden");
-        // grid_view.classList.add('fm', 'tab-content')
 
         list_view.classList.add("hidden");
         list_view.innerHTML = "";
@@ -5056,29 +4564,13 @@ async function get_view(dir) {
         let tabs = document.getElementById("tabs");
         tabs.innerHTML = "";
 
-        // get_paged_files(dir, 5, 1, files => {});
-        // // let tab = document.querySelectorAll('.tab')
-        // // if (tab.length == 0) {
-        // //     tabs.append(add_tab(dir))
-        // // }
-
-        // if (dir.indexOf('sftp:') > -1 || dir.indexOf('mtp:') > -1 || dir.indexOf('smb:') > -1) {
-        //     // get_gio_files(dir)
-
-        // } else {
-        //     // Get files
-        //     get_files(dir, () => {
-        //         lazyload()
-        //     });
-        // }
-
         // Get grid view
         get_grid_view(dir);
 
         /* List View */
-    } else if (view == "list") {
+    } else if (view === "list") {
         file_menu_items.forEach((item) => {
-            if (item.innerText == path.basename(dir)) {
+            if (item.innerText === path.basename(dir)) {
                 item.classList.add("active");
             } else {
                 item.classList.remove("active");
@@ -5101,7 +4593,7 @@ async function get_view(dir) {
         get_list_view(dir);
 
         /* Disk Summary */
-    } else if (view == "disk_summary") {
+    } else if (view === "disk_summary") {
         let btn_disk_view = document.getElementById("btn_disk_view");
         btn_disk_view.classList.add("active");
         btn_list_view.classList.remove("active");
@@ -5115,7 +4607,7 @@ async function get_view(dir) {
         localStorage.setItem("view", view0);
 
         get_disk_summary_view();
-    } else if (view == "settings") {
+    } else if (view === "settings") {
         get_settings_view();
     }
 
@@ -5137,58 +4629,22 @@ async function get_settings_view() {
     let tab_view = add_div();
     let tab = add_tab("Keyboard Shortuts");
 
-    // let tab2   = add_tab('Tab2')
     tabs.innerHTML = "";
     info_view.innerHTML = "";
 
-    // get('../src/settings.html', (res) => {
-
-    //     grid_view.classList.add('hidden')
-    //     info_view.classList.remove('hidden');
-    //     info_view.innerHTML = res
-
-    //     let settings_view = document.getElementById('settings_view')
-    //     let display = document.getElementById('display')
-    //     let dropdowns = display.querySelectorAll('.dropdown')
-
-    //     dropdowns.forEach(dropdown => {
-
-    //         let dropdown_content = dropdown.querySelector('.dropdown_content')
-
-    //         dropdown_content.onmouseleave = (e) => {
-    //             // dropdown_content.classList.add('hidden')
-    //             // dropdown_content.innerHTML = ''
-    //         }
-
-    //         dropdown.onmouseover = (e) => {
-    //             dropdown_content.classList.remove('hidden')
-    //             for (let caption in settings.display.captions) {
-    //                 dropdown_content.append(add_link(caption, caption))
-    //             }
-    //         }
-    //     })
-    // })
-
     tabs.append(tab);
-
-    // tab_view.append(tab, tab2)
-    // info_view.append(tab_view)
 
     info_view.classList.remove("hidden");
     info_view.classList.add("fm", "tab-content");
     message.classList.add("inverted");
-    // btn_close.classList.add('small');
 
     let views = document.querySelectorAll(".view");
     views.forEach((view) => {
         view.classList.add("hidden");
     });
 
-    // info_view.innerHTML = '';
     info_view.classList.remove("hidden");
-    // btn_close.style = 'position: absolute; right: 0;';
 
-    // info_view.append(btn_close);
     info_view.append(message);
 
     let div = add_div();
@@ -5197,13 +4653,8 @@ async function get_settings_view() {
     let col3 = add_div();
 
     div.classList.add("fm", "grid", "item");
-    // div.style = 'padding-bottom: 10px';
-    // col1.style = 'width: 250px;';
-    // col2.style = 'width: 350px;';
-
     col1.classList.add("fm", "col");
     col2.classList.add("fm", "col");
-    // col3.classList.add('fm', 'col');
 
     col1.append(add_header("Command"));
     col2.append(add_header("Shortcut"));
@@ -5212,8 +4663,6 @@ async function get_settings_view() {
     div.append(col1, col2);
     info_view.append(div);
 
-    // let settings = JSON.parse(fs.readFileSync(path.join(__dirname, 'settings.json'), {encoding:'utf8', flag:'r'}));
-
     for (let caption in settings.display.captions) {
         console.log(caption);
     }
@@ -5221,14 +4670,12 @@ async function get_settings_view() {
     for (let shortcut in settings.keyboard_shortcuts) {
         let div = add_div();
         div.classList.add("fm", "grid", "item", "stripe");
-        // div.style = 'display: flex; align-items: center; height: 30px;';
 
         let col1 = add_div();
         let col2 = add_div();
-        // let col3 = add_div();
 
         let label = add_label(shortcut, settings.keyboard_shortcuts[shortcut]);
-        let input = add_input("text", shortcut); // add_text(settings.keyboard_shortcuts[shortcut])
+        let input = add_input("text", shortcut);
         let set_shortcut = add_input("", 0);
 
         label.classList.add("settings_label");
@@ -5258,10 +4705,6 @@ async function get_settings_view() {
 
             ipcRenderer.send("reload_settings");
         });
-
-        // for (let x in settings[cat]) {
-        //     console.log(settings[cat][x])
-        // }
     }
 }
 
@@ -5280,9 +4723,7 @@ async function get_disk_summary_view() {
     grid.classList.add("ui", "grid");
 
     // COMMAND
-    // let disks = execSync('df -l -t ext4').toString().split('\n');
     let disks = execSync("df").toString().split("\n");
-    // disks.shift()
     disks_arr = disks.filter((a) => {
         return a !== "";
     });
@@ -5322,12 +4763,12 @@ async function get_disk_summary_view() {
         // LOOP OVER DATA ARRAY
         data_arr.forEach((item, ii) => {
             // GET LABELS
-            if (i == 0) {
+            if (i === 0) {
                 labels.push(item);
             }
 
             // ADD CHART LABELS
-            if (i == 0 && ii > 0 && ii < 4) {
+            if (i === 0 && ii > 0 && ii < 4) {
                 chart_labels.push(item);
                 content.append(item);
 
@@ -5337,7 +4778,7 @@ async function get_disk_summary_view() {
             }
 
             // ADD FIRST ITEM AS HEADER
-            if (ii == 0) {
+            if (ii === 0) {
                 header.append(item);
                 content.append(header, add_br(), add_br());
 
@@ -5365,7 +4806,6 @@ async function get_disk_summary_view() {
                         let href = add_link(item, item);
                         href.addEventListener("click", (e) => {
                             e.preventDefault();
-                            // localStorage.setItem('view', 'grid');
                             get_view(item);
                         });
                         data_col2.append(href);
@@ -5410,14 +4850,9 @@ async function get_disk_summary_view() {
 
 // GET LIST VIEW
 async function get_list_view(dir) {
-    // let grid_view = document.getElementById('grid_view')
     let list_view = document.getElementById("list_view");
 
     list_view.innerHTML = "";
-
-    // grid_view.classList.add('hidden')
-    // list_view.classList.remove('hidden')
-
     let sort = parseInt(localStorage.getItem("sort"));
 
     const breadcrumbs = document.getElementById("breadcrumbs");
@@ -5459,17 +4894,12 @@ async function get_list_view(dir) {
 
     // READ DIRECTORY
     fs.readdir(dir, (err, dirents_arr) => {
-        // if (err) {
-        // } else {
-
         let colgroup = document.createElement("colgroup");
         let table = document.createElement("table");
         let thead = document.createElement("thead");
         let tr = document.createElement("tr");
         let tbody = document.createElement("tbody");
 
-        // table.classList.add('ui', 'four', 'selectable', 'sortable', 'compact', 'celled', 'table')
-        // table.classList.add('ui', 'table', 'compact', 'small')
         thead.classList.add("full-width");
         table.style = "width: 100% ; background:transparent !important;";
 
@@ -5481,7 +4911,7 @@ async function get_list_view(dir) {
             let cols = document.createElement("col");
             colgroup.append(cols);
 
-            if (col.show == 1) {
+            if (col.show === 1) {
                 let th = document.createElement("th");
                 th.innerHTML = col.name;
                 th.dataset.sort = idx + 1;
@@ -5493,7 +4923,7 @@ async function get_list_view(dir) {
                     get_list_view(dir);
                 });
 
-                if (col.name == "Name") {
+                if (col.name === "Name") {
                     th.classList.add("eight", "wide", "resizable");
                 } else {
                     th.classList.add("two", "wide");
@@ -5511,7 +4941,7 @@ async function get_list_view(dir) {
 
         let dirents = [];
         let show_hidden = localStorage.getItem("show_hidden");
-        if (show_hidden === "0" || show_hidden == "") {
+        if (show_hidden === "0" || show_hidden === "") {
             dirents = dirents_arr.filter((a) => !regex.test(a));
         } else {
             dirents = dirents_arr;
@@ -5520,7 +4950,7 @@ async function get_list_view(dir) {
         /* Get sort direction */
         let sort_direction = localStorage.getItem("sort_direction");
         let sort_flag = 0;
-        if (sort_direction == "asc") {
+        if (sort_direction === "asc") {
             sort_flag = 1;
         }
 
@@ -5534,7 +4964,7 @@ async function get_list_view(dir) {
                         s1 = fs.statSync(path.join(dir, a)).mtime;
                         s2 = fs.statSync(path.join(dir, b)).mtime;
                         // SORT FLAG
-                        if (sort_flag == 0) {
+                        if (sort_flag === 0) {
                             return s2 - s1;
                         } else {
                             return s1 - s2;
@@ -5548,7 +4978,7 @@ async function get_list_view(dir) {
             // SORT BY NAME
             case 2: {
                 dirents.sort((a, b) => {
-                    if (sort_flag == 0) {
+                    if (sort_flag === 0) {
                         return a
                             .toLocaleLowerCase()
                             .localeCompare(b.toLocaleLowerCase());
@@ -5567,16 +4997,12 @@ async function get_list_view(dir) {
                     let s1 = parseInt(localStorage.getItem(path.join(dir, a)));
                     let s2 = parseInt(localStorage.getItem(path.join(dir, b)));
 
-                    if (sort_flag == 0) {
+                    if (sort_flag === 0) {
                         return s2 - s1;
                     } else {
                         s1 - s2;
                     }
                 });
-            }
-
-            // SORT BY TYPE
-            case 4: {
             }
         }
 
