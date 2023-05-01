@@ -2647,6 +2647,10 @@ function createChildWindow() {
     chileWindow.loadFile("src/index.html");
 }
 
+process.on("uncaughtException", function (err) {
+    //   active_window.send('notification', err);
+});
+
 /* Header Menu */
 const template = [
     {
