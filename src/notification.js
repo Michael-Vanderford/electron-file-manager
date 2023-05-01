@@ -1,8 +1,1 @@
-
-
-
-
-console.log('processing main_view')
-
-
-
+console.log("processing main_view");

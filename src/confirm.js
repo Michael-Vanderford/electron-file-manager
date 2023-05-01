@@ -9,7 +9,6 @@
 // const os = require('os');
 // const { dirname, basename, normalize } = require('path');
 
-
 // ipcRenderer.on('confirming_overwrite', (e, data) => {
 
 //     let confirm_dialog = document.getElementById('confirm')
@@ -42,9 +41,7 @@
 //         '<br />'
 //     )
 
-
 //     confirm_dialog.append(header,destination_data,source_data,btn_cancel,btn_replace,btn_skip)
-
 
 //     btn_replace.addEventListener('click', (e) => {
 
@@ -53,7 +50,4 @@
 
 //     })
 
-
 // })
-
-
