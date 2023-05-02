@@ -8451,12 +8451,12 @@ async function copy_files(destination_folder, state) {
     info_view.innerHTML = "";
 
     // RESET COUNTER. HANDLES SETTING ROOT FOLDER SO THE SIZE CAN BE UPDATED
-    // copy_folder_counter = 0
+    copy_folder_counter = 0;
 
     // ADD DESTINATION TO COPY FILES ARRAY
-    // copy_files_arr.forEach((item, idx) => {
-    //     item.destination = destination_folder;
-    // })
+    copy_files_arr.forEach((item, idx) => {
+        item.destination = destination_folder;
+    });
 
     ipcRenderer.send("copy", state);
     clear_copy_arr();
@@ -8559,7 +8559,6 @@ function copyFolderRecursiveSync(source, destination) {
                         } else {
                             // DIRECTORY
                             if (stats.isDirectory() == true) {
-                                // alert('curdest ' + curdestination)
                                 copyFolderRecursiveSync(
                                     cursource,
                                     curdestination
@@ -8574,7 +8573,9 @@ function copyFolderRecursiveSync(source, destination) {
                                     curdestination
                                 );
                                 // UPDATE FOLDER_SIZE
-                                // ipcRenderer.send('get_folder_size', { href: destination })
+                                ipcRenderer.send("get_folder_size", {
+                                    href: destination,
+                                });
 
                                 // FILE
                             } else if (stats.isFile() == true) {
@@ -8586,8 +8587,6 @@ function copyFolderRecursiveSync(source, destination) {
                                     curdestination
                                 );
                             }
-
-                            // DONT GET DISK SPACE HERE
                         }
                     });
                 });
@@ -8597,13 +8596,11 @@ function copyFolderRecursiveSync(source, destination) {
 }
 
 // MOVE FOLDER - done
+// 이동을 할때 반영이 안되고, 폴더가 생성되면 바로 반영이 안됨
 function move_to_folder(destination, state) {
     console.log("moving to folder");
     let info_view = document.getElementById("info_view");
     info_view.innerHTML = "";
-
-    // console.log("running move to folder")
-
     // // ADD DESTINATION TO ARRAY
     copy_files_arr.forEach((item, idx) => {
         item.destination = destination;
@@ -8611,10 +8608,6 @@ function move_to_folder(destination, state) {
 
     // SEND TO MAIN
     ipcRenderer.send("move", state);
-    // ipcRenderer.send('move', copy_files_arr, state)
-    // clear_copy_arr()
-    // ipcRenderer.send('move_confirmed')
-
     clear_items();
 }
 
@@ -8634,12 +8627,9 @@ function create_file_from_template(filename) {
     if (fs.existsSync(destination) == true) {
         alert("this file already exists");
     } else {
-        // fs.copyFileSync(template, destination)
         console.log("done");
 
         gio.cp1(template, destination, (res) => {
-            // if (fs.existsSync(destination) == true) {
-
             let file_grid = document.getElementById("file_grid");
             file_grid.classList.remove("hidden");
             gio.get_file(destination, (file) => {
@@ -8656,68 +8646,12 @@ function create_file_from_template(filename) {
 
                 info_view.classList.add("hidden");
 
-                // input[0].focus()
                 input.select();
                 input.setSelectionRange(
                     0,
                     input.value.length - path.extname(filename).length
                 );
             });
-
-            // watch_count = 1
-
-            // // GET REFERENCE TO FOLDERS CARD
-            // let files_card = document.getElementById('files_card')
-            // files_card.classList.remove('hidden')
-
-            // // let file_grid = document.getElementById('file_grid')
-            // let card_id = 'file_card_1001'
-
-            // // CREATE CARD OPTIONS
-            // let options = {
-
-            //     id: card_id,
-            //     href: destination,
-            //     linktext: path.basename(destination),
-            //     grid: file_grid
-
-            // }
-
-            // try {
-
-            //     // add_card(options).then(card => {
-
-            //     //     let col = add_column('three');
-            //     //     col.append(card)
-
-            //     //     let files_card = document.getElementById('files_card')
-            //     //     files_card.classList.remove('hidden')
-
-            //     //     let file_grid = document.getElementById('file_grid')
-            //     //     file_grid.insertBefore(col, file_grid.firstChild)
-
-            //     //     let input = card.getElementsByTagName('input')
-            //     //     input[0].classList.remove('hidden')
-            //     //     input[0].focus()
-            //     //     // input[0].select()
-            //     //     input[0].setSelectionRange(0, input[0].value.length - path.extname(filename).length)
-
-            //     //     console.log(card_id)
-
-            //     //     let header = document.getElementById('header_' + card_id)
-            //     //     header.classList.add('hidden')
-
-            //     //     update_card(destination)
-
-            //     // })
-
-            // } catch (err) {
-
-            //     notification(err)
-
-            // }
-
-            // }
         });
 
         ipcRenderer.send("get_disk_space", {
@@ -8729,13 +8663,6 @@ function create_file_from_template(filename) {
 
     clear_items();
 }
-
-// // CREATE FILE FROM TEMPLATE
-// ipcRenderer.on('create_file_from_template', function (e, file) {
-//     console.log('im running too many times')
-//     create_file_from_template(file.file)
-
-// })
 
 // RENAME FILE OR FOLDER
 function rename_file(source, destination_name, callback) {
@@ -8828,10 +8755,6 @@ function delete_confirmed() {
             folder_count: get_folder_count(),
             file_count: get_file_count(),
         });
-    } else {
-        // console.log('nothing to delete');
-        // notification('Nothing to delete');
-        // indexOf('Nothing to delete.')
     }
 }
 
@@ -8869,8 +8792,6 @@ function delete_files() {
                 "ds-selected"
             );
         }
-
-        // ipcRenderer.send('confirm_file_delete', list);
         ipcRenderer.send("confirm_file_delete", delete_arr);
     }
 
@@ -8886,7 +8807,6 @@ function get_folder_count() {
     let main_view = document.getElementById("main_view");
     let folder_cards = main_view.querySelectorAll(".folder_card");
     folder_count = folder_cards.length;
-    // console.log('folder_count', folder_cards.length);
     return folder_count;
 }
 
@@ -8899,13 +8819,11 @@ function get_file_count() {
     let main_view = document.getElementById("main_view");
     let file_cards = main_view.querySelectorAll(".file_card");
     file_count = file_cards.length;
-    // console.log('file count',file_cards.length);
     return file_count;
 }
 
 // Calculate file size
 function get_file_size(fileSizeInBytes) {
-    // console.log(fileSizeInBytes)
     var i = -1;
     var byteUnits = [" kB", " MB", " GB", " TB", "PB", "EB", "ZB", "YB"];
     do {
@@ -8919,7 +8837,6 @@ function get_file_size(fileSizeInBytes) {
 // Get raw file size
 function get_raw_file_size(fileSizeInBytes) {
     var i = -1;
-    // var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
     do {
         fileSizeInBytes = fileSizeInBytes / 1024;
         i++;
@@ -8968,20 +8885,6 @@ function navigate(direction) {
             dir = path.join("/");
         }
     }
-
-    // Left arrow
-    // if (direction === 'left') {
-
-    //     ++back_counter;
-    //     idx = history_arr.length - back_counter;
-    //     if (idx > 0) {
-    //         dir = history_arr[idx]
-    //     } else {
-    //         idx = 0;
-    //         back_counter = 0;
-    //     }
-    // }
-
     if (direction === "right") {
         ++back_counter;
         idx = history_arr + back_counter;
@@ -8998,35 +8901,6 @@ function navigate(direction) {
     } else {
         get_view(get_home());
     }
-
-    // for (i = 0; i < history_arr.length; i++) {
-
-    //     if (history_arr[i] == breadcrumbs.value) {
-
-    //         // NAVIGATE LEFT
-    //         if (direction == 'left') {
-
-    //             if (i > 1) {
-    //                 dir = history_arr[last_index - 1];
-    //             } else {
-    //                 dir = breadcrumbs.value.substring(0, breadcrumbs.value.length - path.basename(breadcrumbs.value).length - 1)
-    //             }
-    //         }
-
-    //         // NAVIGATE RIGHT
-    //         if (direction == 'right') {
-
-    //             if (i < history_arr.length - 1) {
-    //                 dir = history_arr[last_index + 1];
-    //             }
-    //         }
-
-    //     }
-
-    // };
-
-    // // LOAD VIEW
-    // get_view(dir);
 }
 
 // EXTRACT HERE / DECOMPRESS
@@ -9098,7 +8972,6 @@ function extract() {
                     ++c;
                 }
                 us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'";
-                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
                 if (source.indexOf("img.xz") > -1) {
                     makedir = 0;
                     cmd =
@@ -9107,7 +8980,6 @@ function extract() {
                         '"; /usr/bin/unxz -k "' +
                         source +
                         '"';
-                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
                 } else {
                     cmd =
                         'cd "' +
