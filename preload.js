@@ -9023,7 +9023,6 @@ function extract() {
         console.log("uncompressed size:", uncompressed_size);
 
         // RUN PROGRESS
-        // get_progress(get_raw_file_size(uncompressed_size))
         get_progress(uncompressed_size);
 
         console.log("executing " + cmd);
@@ -9031,6 +9030,7 @@ function extract() {
 
         open(cmd);
 
+        // 작업해야함
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
         exec(
             cmd,
@@ -9080,7 +9080,6 @@ function extract() {
                     }
 
                     clear_items();
-                    // ds.start()
                     notification("Extracted " + source);
                 }
             }
@@ -9095,7 +9094,7 @@ function compress() {
     );
     let file_grid = document.getElementById("file_grid");
     let files_card = document.getElementById("files_card");
-    let file_name = ""; //'Untitled.tar.gz'
+    let file_name = "";
     let file_list = "";
     let max = 0;
 
@@ -9116,16 +9115,6 @@ function compress() {
 
         max += parseInt(localStorage.getItem(card.dataset.href));
     });
-
-    // let cmd_size = 'cd "' + breadcrumbs.value + '"; tar czf "' + file_name + '" ' + file_list + ' | wc -c';
-    // exec(cmd_size, (err, stdout) => {
-    //     stdout.on('data', (res) => {
-    //         console.log('compressed size', res)
-    //     })
-    // })
-
-    // console.log(cmd_size)
-
     get_progress(max, file_name);
 
     // Create compressed file
@@ -9161,48 +9150,13 @@ function compress() {
             file_grid.insertBefore(col, file_grid.firstChild);
 
             update_card1(path.join(breadcrumbs.value, file_name));
-
-            // let options = {
-            //     id: 0,
-            //     href: path.join(breadcrumbs.value, file_name),
-            //     linktext: file_name,
-            //     is_folder: false,
-            //     grid: file_grid
-            // }
-
-            // add_card(options).then(card => {
-
-            //     console.log('what')
-
-            //     let col = add_column('three')
-            //     col.append(card)
-            //     file_grid.insertBefore(col, file_grid.firstChild);
-
-            //     update_card1(card.dataset.href);
-            //     files_card.classList.remove('hidden')
-
-            //     card.classList.add('highlight_select')
-
-            // })
         }
     });
-
-    // let intervalid = setInterval(() => {
-    //     update_card(path.join(breadcrumbs.value, file_name));
-    //     max = max / cards.length
-    //     // get_progress(max, path.join(breadcrumbs.value, file_name))
-    // }, 500);
-
     clear_items();
 }
 
 // Get context menu
 function getContextMenu(href) {
-    // if (href) {
-
-    // let stats = fs.statSync(href);
-    // if (stats) {
-
     let filetype = mime.lookup(href);
     let associated_apps = get_available_launchers(filetype, href);
 
@@ -9232,16 +9186,11 @@ function getContextMenu(href) {
     } else {
         ipcRenderer.send("show-context-menu");
     }
-    href = "";
-    // }
-
-    // } else {
     let data = {
         source: path.join(__dirname, "assets/templates/"),
         destination: breadcrumbs.value + "/",
     };
     ipcRenderer.send("show-context-menu", data);
-    // }
 }
 
 function toggle_hidden() {
@@ -9255,20 +9204,6 @@ function toggle_hidden() {
             }
         }
     });
-
-    // let folder_grid = document.getElementById('folder_grid')
-    // let file_grid = document.getElementById('file_grid')
-
-    // let hidden_folder_grid = document.getElementById('hidden_folder_grid')
-    // let hidden_file_grid = document.getElementById('hidden_file_grid')
-
-    // if (hidden_folder_grid.classList.contains('hidden')) {
-    //     hidden_folder_grid.classList.remove('hidden')
-    //     hidden_file_grid.classList.remove('hidden')
-    // } else {
-    //     hidden_folder_grid.classList.add('hidden')
-    //     hidden_file_grid.classList.add('hidden')
-    // }
 }
 
 //////////////////////////////////////////////////////////////////
@@ -9368,19 +9303,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
                 }
             });
         }
-
-        // href2 = source
-        // console.log('card id ' + card_id)
-        // let card = document.getElementById(card_id)
-        // if (card) {
-        //     let header = card.querySelector('a')
-        //     let input = card.querySelector('input')
-        //     header.classList.add('hidden')
-        //     input.classList.remove('hidden')
-        //     console.log('running focus')
-        //     input.focus()
-        //     input.select()
-        // }
     }
 
     // COPY FILE OR FOLDER
@@ -9400,9 +9322,9 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     }
 
     // IF WE RECIEVE DELETE CONFIRMED THEN DELETE FILE/S
-    // ipcRenderer.on('delete_file_confirmed', (e, res) => {
-    //     delete_confirmed()
-    // })
+    ipcRenderer.on("delete_file_confirmed", (e, res) => {
+        delete_confirmed();
+    });
 
     // OPEN TERMINAL
     if (command === "open_terminal") {
@@ -9431,9 +9353,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
         items.forEach((item) => {
             let cmd = args;
             console.log("cmd args", args);
-            // let filename = path.basename(source)
-            // let filepath = path.dirname(source)
-
             cmd = cmd.replace("%U", "'" + item.dataset.href + "'");
             cmd = cmd.replace("%F", "'" + item.dataset.href + "'");
             cmd = cmd.replace("%u", "'" + item.dataset.href + "'");
@@ -9442,8 +9361,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
             console.log("cmd " + cmd);
             exec(cmd);
         });
-
-        // clear_items()
     }
 
     if (command === "open_new_tab") {
@@ -9616,20 +9533,6 @@ window.addEventListener("DOMContentLoaded", () => {
             settings.keyboard_shortcuts.Compress.toLocaleLowerCase(),
             (e) => {
                 compress();
-
-                // let href = ''
-                // if (items.length > 0) {
-                //     for (let i = 0; i < items.length; i++) {
-
-                //         // let item = items[i]
-
-                //         // if (item.classList.contains('highlight') || item.classList.contains('highlight_select')) {
-                //         //     href = item.dataset.href
-                //         //     console.log('source ' + href)
-                //         //     compress(href)
-                //         // }
-                //     }
-                // }
             }
         );
 
@@ -9641,20 +9544,6 @@ window.addEventListener("DOMContentLoaded", () => {
                 select_all();
             }
         );
-
-        /**
-         * ctrl+b toggle sidebar
-         */
-        // Mousetrap.bind('ctrl+b', (e) => {
-        //     let sidebar = document.getElementById('sidebar')
-        //     if (sidebar.classList.contains('hidden')) {
-        //         localStorage.setItem('sidebar', 1)
-        //         show_sidebar()
-        //     } else {
-        //         localStorage.setItem('sidebar', 0)
-        //         show_sidebar()
-        //     }
-        // })
 
         // DEL DELETE KEY
         Mousetrap.bind(
@@ -9676,7 +9565,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Paste.toLocaleLowerCase(),
             () => {
-                // console.log('running paste')
                 // PAST FILES
                 paste();
             }
@@ -9684,7 +9572,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
         // NEW WINDOW
         Mousetrap.bind("ctrl+n", () => {
-            // window.open('../src/index.html','_blank', 'width=1600,height=800,frame=false')
             ipcRenderer.send("new_window");
         });
 
@@ -9738,7 +9625,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Find.toLocaleLowerCase(),
             () => {
-                // find_files();
                 localStorage.setItem("sidebar", 1);
                 show_sidebar();
 
@@ -9815,11 +9701,7 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.onmouseover = (e) => {
         e.preventDefault();
         e.stopPropagation();
-
-        // main_view.focus();
         main_view.tabIndex = 1;
-        // main_view.style = 'border: 1px solid red !important'
-        // console.log(e)
     };
 
     // ON DRAG ENTER
@@ -9841,9 +9723,6 @@ window.addEventListener("DOMContentLoaded", () => {
         } else {
             e.dataTransfer.dropEffect = "move";
         }
-
-        // ipcRenderer.send('is_main_view', 1)
-        // ipcRenderer.send('active_folder', breadcrumbs.value, 1);
     };
 
     main_view.ondragleave = (e) => {
@@ -9868,10 +9747,10 @@ window.addEventListener("DOMContentLoaded", () => {
         // GETTING FILE DROPED FROM EXTERNAL SOURCE
         if (file_data.length > 0) {
             // todo: revisit this. needs to have add copy file
-            // for (let i = 0; i < file_data.length; i++) {
-            //     add_copy_file(file_data[i].path, 'card_' + i)
-            // }
-            // copy_files(destination, state);
+            for (let i = 0; i < file_data.length; i++) {
+                add_copy_file(file_data[i].path, "card_" + i);
+            }
+            copy_files(destination, state);
         } else {
             // COPY FILES
             if (e.ctrlKey == true) {
@@ -9896,8 +9775,6 @@ window.addEventListener("DOMContentLoaded", () => {
                     ipcRenderer.send("is_main_view", 0);
                     state = 0;
                 }
-
-                // notification('changing state to 0')
                 move_to_folder(destination, state);
             }
         }
@@ -9905,23 +9782,8 @@ window.addEventListener("DOMContentLoaded", () => {
         clear_items();
         return false;
     };
-
-    // main_view.onscroll = (e) => {
-
-    //     if (main_view.scrollHeight - parseInt(main_view.scrollTop) === main_view.clientHeight) {
-    //         page_number += 1
-    //         get_grid_view(breadcrumbs.value, page_number, 100)
-    //         console.log('load more pages')
-    //     }
-
-    // }
-
     // Handle Quick Search
     main_view.onkeydown = (e) => {
-        // e.preventDefault()
-        // e.stopPropagation()
-
-        // let regex = /[^A-Za-z0-9-.]/;
         let regex = /^[A-Za-z0-9]*/;
 
         console.log(e.key);
@@ -9932,7 +9794,7 @@ window.addEventListener("DOMContentLoaded", () => {
             e.key != "PageDown" &&
             e.key != "PageUp" &&
             e.key != "ArrowUp" &&
-            // e.key != 'ArrowDown' &&
+            e.key != "ArrowDown" &&
             e.key != "ArrowLeft" &&
             e.key != "ArrowRight" &&
             e.key != "Delete" &&
@@ -9940,8 +9802,8 @@ window.addEventListener("DOMContentLoaded", () => {
             !e.ctrlKey &&
             !e.shiftKey &&
             !e.altKey &&
-            e.key != "F2"
-            // e.key != 'F5'
+            e.key != "F2" &&
+            e.key != "F5"
         ) {
             // KEEP THIS. THE QUICK SEARCH WILL GRAB FOCUS ON FILE RENAMES. THIS PREVENTS THAT
             if (
@@ -9958,7 +9820,7 @@ window.addEventListener("DOMContentLoaded", () => {
                     cards.forEach((card) => {
                         let href = card
                             .querySelector(".header_link")
-                            .innerText.toLowerCase(); //card.dataset.href.toLocaleLowerCase()
+                            .innerText.toLowerCase();
                         console.log(href, txt_search.value);
 
                         if (
@@ -9967,7 +9829,6 @@ window.addEventListener("DOMContentLoaded", () => {
                             ) != -1
                         ) {
                             card.classList.add("highlight_select");
-                            // card.querySelector('a').focus()
                         }
                     });
                     txt_search.classList.add("hidden");
@@ -9984,27 +9845,4 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.oncontextmenu = (e) => {
         ipcRenderer.send("show-context-menu");
     };
-
-    // main_view.onmouseover = (e) => {
-    //     main_view.focus()
-    // }
-
-    // quick_search()
-
-    // let isMainView = 0;
-    // main_view.onmouseover = (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     isMainView = 1;
-    //     ipcRenderer.send('active_window');
-    //     ipcRenderer.send('active_folder', breadcrumbs.value, 1)
-    // }
-
-    // main_view.onmouseout = (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     isMainView = 0;
-    // }
-
-    // console.log(settings)
 });
