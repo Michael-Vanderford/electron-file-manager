@@ -78,7 +78,6 @@ let css_class0 = "";
 
 function resize_icons(icon_size) {
     css_class0 = css_class;
-    // let icon_size = localStorage.getItem('icon_size')
     switch (icon_size) {
         case "0": {
             css_class = "icon16";
@@ -154,11 +153,8 @@ if (localStorage.getItem("sidebar_width")) {
     main_view.style = "margin-left:" + sidebar_width;
 }
 
-//
 if (element) {
     let resizer = document.getElementById("draghandle");
-
-    // resizer.style.width = '5px'
     resizer.style.height = "";
     element.appendChild(resizer);
     resizer.addEventListener("mousedown", initResize, false);
@@ -169,7 +165,6 @@ function initResize(e) {
     window.addEventListener("mousemove", Resize, false);
     window.addEventListener("mouseup", stopResize, false);
 
-    // let items = document.querySelectorAll('#sidebar .')
     let sidebar = document.getElementById("sidebar");
     let iframe = sidebar.querySelector("iframe");
 
@@ -214,7 +209,6 @@ hamburger_menu.onmouseleave = (e) => {
 
 icon_size_selector.onchange = () => {
     localStorage.setItem("icon_size", icon_size_selector.value);
-    // console.log('icon size', icon_size_selector.value)
     resize_icons(icon_size_selector.value);
 };
 
@@ -226,7 +220,6 @@ minibar_items.forEach((item) => {
         localStorage.setItem("minibar", item.id);
         switch (item.id) {
             case "mb_home":
-                // window.api.get_sidebar_files(window.api.get_home());
                 window.api.get_sidebar_home();
                 break;
             case "mb_workspace":
@@ -253,7 +246,6 @@ if (active_minibar_item == null) {
     localStorage.setItem("minibar", "mb_home");
     document.querySelector("#mb_home").style =
         "color: #ffffff !important; font-weight:bold;";
-    // window.api.get_sidebar_files(window.api.get_home());
     window.api.get_sidebar_home();
 } else {
     document.querySelector("#" + active_minibar_item).style =
@@ -261,11 +253,9 @@ if (active_minibar_item == null) {
 
     switch (active_minibar_item) {
         case "mb_home":
-            // window.api.get_sidebar_files(window.api.get_home());
             window.api.get_sidebar_home();
             break;
         case "mb_workspace":
-            // window.api.get_workspace();
             window.api.get_workspace();
             break;
         case "mb_find":
@@ -285,7 +275,6 @@ if (active_minibar_item == null) {
 
 // Settings View
 btn_settings_view.addEventListener("click", (e) => {
-    // localStorage.setItem('view', 'settings');
     window.api.get_settings_view();
 });
 
@@ -371,21 +360,13 @@ $(function () {
     });
 
     accordion.on("mouseover", function (e) {
-        // alert($(this).height())
+        alert($(this).height());
     });
-
-    // if (!localStorage.getItem('folder')) {
-    //     localStorage.setItem('folder', home_folder)
-    // }
-
-    // // LOAD FILES
-    // window.api.get_view(localStorage.getItem('folder'))
 
     ////////////////////////////////////////////////////////////////////////////////////////////
 
     // ROOT
     $(document).on("click", "#btn_getroot", function (e) {
-        // window.api.get_tree('/')
         this.classList.add("active");
         window.api.get_view("/");
     });
@@ -411,10 +392,6 @@ $(function () {
     });
 
     $(document).on("click", "#btn_network ", function (e) {
-        const filters = [
-            // {vendorId: 0x1209, productId: 0xa800},
-            // {vendorId: 0x1209, productId: 0xa850}
-        ];
         navigator.usb
             .requestDevice({
                 acceptAllDevices: true,
@@ -426,9 +403,6 @@ $(function () {
             .catch((e) => {
                 console.log("There is no device. " + e);
             });
-
-        // console.log('devices length ' + device)
-
         window.api.get_network();
     });
 
@@ -437,8 +411,6 @@ $(function () {
     });
 
     btn_show_hidden.onclick = (e) => {
-        // e.preventDefault()
-
         let hidden_directory = document.getElementById("hidden_folder_grid");
         let hidden_files = document.getElementById("hidden_file_grid");
 
@@ -449,7 +421,6 @@ $(function () {
             localStorage.setItem("show_hidden", 1);
 
             if (localStorage.getItem("minibar") == "mb_home") {
-                // window.api.get_sidebar_files(breadcrumbs.value)
                 window.api.get_sidebar_home();
             }
         } else {
@@ -460,7 +431,6 @@ $(function () {
             localStorage.setItem("show_hidden", 0);
 
             if (localStorage.getItem("minibar") == "mb_home") {
-                // window.api.get_sidebar_files(breadcrumbs.value)
                 window.api.get_sidebar_home();
             }
         }
@@ -602,19 +572,9 @@ for (var i = 0; i < resizeableColumns.length; i++) {
     }
 }
 
-// $("#main_view").on("selectableselected selectableunselected", function(){
-//     console.log(running)
-//     $(".inside").removeClass("yes").addClass("no");
-//     $(".ui-selected > .inside").removeClass("no").addClass("yes");
-// });
-
-//
 function httpGet(theUrl) {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open("GET", theUrl, false); // false for synchronous request
     xmlHttp.send(null);
     return xmlHttp.responseText;
 }
-
-// LOAD FILES
-// window.api.get_view(localStorage.getItem('folder'))
