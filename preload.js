@@ -7313,8 +7313,6 @@ async function get_disk_space() {
  */
 async function get_devices() {
     console.log("getting devices");
-    // gio.get_mounts()
-
     try {
         // Init
         let devices = [];
@@ -7336,8 +7334,6 @@ async function get_devices() {
         if (enable) {
             exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {
                 if (!err) {
-                    // let devices = stdout.trim().split('\n').map(x => x.trim().split(': '))
-                    // console.log('dev', devices)
                     devices = [];
                     let output = stdout.split("\n");
                     output.forEach((item) => {
@@ -7348,8 +7344,6 @@ async function get_devices() {
                                 let mounts = gio_mount.trim().split(" -> ");
 
                                 mounts.forEach((item, idx) => {
-                                    // console.log(item)
-
                                     if (!idx % 2) {
                                         device.name = item;
                                     } else {
@@ -7379,9 +7373,6 @@ async function get_devices() {
 
                         devices.push(device);
                     });
-
-                    // console.log(devices)
-
                     // GIO devices
                     if (devices.length > 0) {
                         device_view.append("Network");
@@ -7436,10 +7427,6 @@ async function get_devices() {
                                     breadcrumbs.value = link.href;
                                     get_view(`${link.href}`);
                                 };
-
-                                // device_view.append(device)
-                                // sidebar_items.append(device_view)
-
                                 ul_header.append(li);
                             }
                         });
@@ -7453,7 +7440,6 @@ async function get_devices() {
             });
         }
 
-        // let dirs = [{type: 'mnt', path: mnt_path},{type: 'media', path: media_path},{type:'gvfs', path: gvfs_path}]
         let dirs = [{ type: "media", path: media_path }];
         dirs.forEach((dir) => {
             fs.readdir(dir.path, (err, devices) => {
@@ -7501,7 +7487,6 @@ async function get_devices() {
                                         }
                                     );
                                 } else if (dir.type == "gvfs") {
-                                    // exec(`gio mount -u -f "${path.join(dir.path, item)}"`, (err, stdout) => {
                                     exec(
                                         `fusermount -uz "${dir.path}"`,
                                         (err, stdout) => {
@@ -7516,22 +7501,15 @@ async function get_devices() {
                                 }
                             });
 
-                            // link.prepend(icon);
                             div.onclick = (e) => {
                                 e.preventDefault();
                                 get_view(`${path.join(dir.path, item)}`);
                             };
-
-                            // device_view.append(device)
-                            // sidebar_items.append(device_view)
-
                             ul_header.append(li);
                         });
 
                         device_view.append(ul_header);
                         sidebar_items.append(device_view);
-                    } else {
-                        // sidebar_items.append('No devices found.')
                     }
                 } else {
                     notification(err);
@@ -7556,96 +7534,6 @@ async function get_devices() {
                 type: "media",
             });
         });
-
-        // let gvfs = fs.readdirSync(gvfs_path);
-        // gvfs.forEach(item => {
-        //     devices.push({name: item, href: path.join(gvfs_path, item), type: 'gvfs'});
-        // })
-
-        // if (devices.length > 0) {
-
-        //     devices.forEach(item => {
-
-        //         let device  = add_div();
-        //         let link    = add_link( item.href, item.name);
-        //         let icon    = add_icon('hdd');
-        //         let umount  = add_icon('eject');
-        //         let div     = add_div()
-
-        //         let col1 = add_div().innerHTML = (icon)
-        //         let col2 = add_div().innerHTML = (link)
-        //         let col3 = add_div().innerHTML = (umount)
-
-        //         link.style = 'display: block'
-        //         col2.style = 'width: 100%'
-
-        //         div.append(col1, col2, col3)
-        //         div.style = 'display: flex; padding: 6px; width: 100%;'
-        //         div.classList.add('item')
-
-        //         // device.classList.add('item')
-        //         // device.style    = 'display: flex';
-        //         // umount.title    = "Unmount '" + item.href + "'"
-        //         // device.append(icon, add_item(link), umount)
-
-        //         device.append(div)
-
-        //         umount.addEventListener('click', (e) => {
-
-        //             if (item.type == 'media' || item.type == 'mnt') {
-        //                 execSync("umount '" + item.href + "'")
-        //                 get_devices();
-        //             } else if (item.type == 'gvfs') {
-        //                 execSync("gio mount -u -f '" + item.href + "'")
-        //                 get_devices();
-        //             }
-
-        //         })
-
-        //         // link.prepend(icon);
-        //         link.addEventListener('click', (e) => {
-        //             e.preventDefault();
-        //             get_view(item.href);
-        //         })
-
-        //         device_view.append(device)
-        //         sidebar_items.append(device_view)
-
-        //     })
-
-        // } else {
-        //     sidebar_items.append('No devices found.')
-        // }
-
-        // fs.watch('/mnt/', (e, filename) => {
-        //     localStorage.setItem('sidebar', 1);
-        //     show_sidebar();
-        //     get_devices();
-        // })
-
-        // fs.watch('/media/michael/', (e, filename) => {
-        //     localStorage.setItem('sidebar', 1);
-        //     show_sidebar();
-        //     get_devices();
-        // })
-
-        // // fs.watch('/run/usr/gvfs', (e) => {
-        // //     get_devices();
-        // // })
-
-        // // let grid = add_grid()
-        // // let col1 = add_column('five')
-        // // let col2 = add_column('five')
-
-        // // grid.style = 'paddin: 5px;'
-
-        // // col1.append(username)
-        // // col2.append(password)
-
-        // // grid.append(col1,col2)
-
-        // // device_view.append(server, grid)
-        // msg.append('')
     } catch (err) {
         notification(err);
     }
@@ -7716,10 +7604,6 @@ function autocomplete() {
 
                 item.addEventListener("click", (e) => {
                     get_view(e.target.innerText);
-                    // let length0         = e.target.innerText.length
-                    // breadcrumbs.value   = path.join(search_results[0], '/');
-                    // breadcrumbs.focus()
-                    // breadcrumbs.setSelectionRange(length0 + 1, e.target.value.length)
                 });
             });
 
@@ -7758,36 +7642,6 @@ function autocomplete() {
 /* Add select files to copy array */
 function copy() {
     add_copy_file();
-
-    // let highlight = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-
-    // let folder_count = 0
-    // let file_count = 0
-
-    // if (highlight.length > 0) {
-    //     let source
-    //     let card_id
-    //     let c1 = 0;
-    //     let c2 = 0;
-    //     highlight.forEach((item, idx) => {
-    //         source = item.dataset.href
-    //         // source = item.querySelector('a').getAttribute('href')
-    //         // stats = fs.statSync(source)
-    //         // if (stats.isDirectory()) {
-    //             // folder_count += 1
-    //         // } else {
-    //             // file_count += 1
-    //         // }
-    //         card_id = 0
-    //         add_copy_file(source, card_id)
-    //         if (item.classList.contains('folder_card')) {
-    //             ++c1;
-    //         } else {
-    //             ++c2;
-    //         }
-    //     })
-    //     notification(c1 + ' Folers ' + c2 + ' Files copied');
-    // }
 }
 
 /* Cut operation */
@@ -7810,16 +7664,6 @@ function cut() {
             source = item.querySelector("a").getAttribute("href");
             item.style = "opacity: 0.6 !important";
             item.classList.remove("ds-selected");
-
-            // stats = fs.statSync(source);
-            // if (stats.isDirectory()) {
-            //     folder_count += 1;
-            // } else {
-            //     file_count += 1;
-            // }
-            // card_id = item.id;
-            // add_copy_file(source, card_id);
-            // add_copy_file()
         });
     }
 }
@@ -7865,20 +7709,6 @@ function lazyload1() {
                 if (e.isIntersecting) {
                     target = e.target;
                     target.src = target.dataset.src;
-
-                    // c = c + 1;
-                    // if (c >= page_number * page_size - 1) {
-                    // page_number += 1
-                    // page_size = page_number * page_size
-                    // get_grid_view(breadcrumbs.value, page_number, page_size)
-                    // c = 1
-                    // }
-
-                    // target = e.target;
-                    // target.src = target.dataset.src
-
-                    // update_card(target.dataset.href);
-                    // get_card(breadcrumbs.value())
                 }
             });
         });
@@ -7906,7 +7736,6 @@ function lazyload() {
                 if (e.isIntersecting) {
                     target = e.target;
                     target.src = target.dataset.src;
-                    // update_card(target.dataset.href);
                 }
             });
         });
@@ -7916,40 +7745,6 @@ function lazyload() {
             cardObserver.observe(card);
         });
     }
-
-    // // LAZY LOAD IMAGES
-    // let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
-    // let pager = document.getElementById('pager')
-
-    // // console.log('pager', pager)
-
-    // // CHECK IF WINDOW
-    // if ("IntersectionObserver" in window) {
-
-    //     // GET REFERENCE TO LAZY IMAGE
-    //     let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
-
-    //         entries.forEach((e, idx) => {
-
-    //             if (e.isIntersecting) {
-
-    //                 let lazyImage = e.target;
-    //                 lazyImage.src = lazyImage.dataset.src;
-    //                 lazyImage.classList.remove("lazy");
-    //                 lazyImageObserver.unobserve(lazyImage);
-
-    //             }
-
-    //         })
-
-    //     })
-
-    //     // THIS RUNS ON INITIAL LOAD
-    //     lazyImages.forEach(function (lazyImage) {
-    //         lazyImageObserver.observe(lazyImage)
-    //     })
-
-    // }
 }
 
 // HIDE PROGRESS
@@ -8002,12 +7797,6 @@ function add_tab(label) {
 
     let col1 = add_div();
     let col2 = add_div();
-
-    // try {
-    //     get_view(label);
-    // } catch (err) {
-
-    // }
 
     div.onclick = (e) => {
         let tabs = document.querySelectorAll(".tab");
@@ -8063,15 +7852,9 @@ function add_draghandle() {
 
 // ADD COLUNN
 function add_column(length) {
-    // let width = parseInt(length) / 2
-
     // CREATE OOLUMN
     let column = add_div();
-    // column.style = 'float:left; width:50%;'
     column.classList.add("column", length, "wide");
-
-    // ADD DRAG HANDLE
-    // column.append(add_draghandle())
     return column;
 }
 
@@ -8086,7 +7869,7 @@ function add_br() {
  * @returns HTMLDivElement
  */
 function add_item(text) {
-    let item = add_div(); //document.createElement('div')
+    let item = add_div();
     item.classList.add("item");
     item.append(text);
     return item;
@@ -8134,7 +7917,6 @@ function add_button(id, text) {
 // ADD CHECKBOX
 function add_checkbox(id, label) {
     let checkbox = add_div();
-    // checkbox.classList.add('checkbox')
 
     let chk_label = add_label(label);
     chk_label.htmlFor = id;
@@ -8180,7 +7962,6 @@ function add_img(src) {
     img.style =
         "float:left; padding-right: 5px; vertical-align: middle !important";
     img.width = 32;
-    // img.height = 32
     img.classList.add("lazy");
     img.dataset.src = src;
     img.src = path.join(
@@ -8242,14 +8023,6 @@ function get_icon_theme() {
     return icon_dir;
 }
 
-// let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim()
-// let icon_dir = path.join('/usr/share/icons', get_icon_theme());
-// // IF ICONS ARE NOT IN PATH THEN TRY ICONS IN .icons
-// if (!fs.existsSync(folder_icon_dir)) {
-//     folder_icon_dir = path.join(get_home(), '.icons', icon_theme)
-//     console.log('folder_icons', folder_icon_dir)
-// }
-
 // Get icon theme directory
 let theme_dir = get_icon_theme();
 
@@ -8281,50 +8054,90 @@ function get_folder_icon(callback) {
 let folder_icon = get_folder_icon();
 
 function get_icon_path(file) {
-    // try {
-    //     let stats = fs.statSync(file)
-    //     let file_ext = path.extname(file)
-    //     if (stats.isDirectory()) {
-    //         // todo: this needs to be reworked to get theme folder icon
-    //         // icon = path.join(__dirname, '/assets/icons/folder.png');
-    //         icon_dir = path.join(__dirname, '/assets/icons/kora')
-    //         icon = path.join(icon_dir, '/mimetypes/scalable/application-document.svg')
-    //         // alert(icon)
-    //     } else {
-    //         icon_dir = path.join(__dirname, '/assets/icons/kora')
-    //         if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
-    //             icon = file
-    //             let img_data = get_img_data(file);
-    //             console.log(img_data)
-    //         } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
-    //             icon = path.join(icon_dir, '/apps/scalable/ms-excel.svg')
-    //         } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
-    //             icon = path.join(icon_dir, '/apps/scalable/libreoffice-writer.svg')
-    //         } else if (file_ext == '.wav' || file_ext == '.mp3' || file_ext == '.mp4' || file_ext == '.ogg') {
-    //             icon = path.join(icon_dir, '/mimetypes/scalable/audio-wav.svg')
-    //         } else if (file_ext == '.iso') {
-    //             icon = path.join(icon_dir, '/apps/scalable/isomaster.svg')
-    //         } else if (file_ext == '.pdf') {
-    //             icon = path.join(icon_dir, '/apps/scalable/gnome-pdf.svg')
-    //         } else if (file_ext == '.zip' || file_ext == '.xz' || file_ext == '.tar' || file_ext == '.gz' || file_ext == '.bz2') {
-    //             icon = path.join(icon_dir, '/apps/scalable/7zip.svg')
-    //         } else if (file_ext == '.deb') {
-    //             icon = path.join(icon_dir, '/apps/scalable/gkdebconf.svg')
-    //         } else if (file_ext == '.txt') {
-    //             icon = path.join(icon_dir, '/apps/scalable/text.svg')
-    //         } else if (file_ext == '.sh') {
-    //             icon = path.join(icon_dir, '/apps/scalable/terminal.svg')
-    //         } else if (file_ext == '.js') {
-    //             icon = path.join(icon_dir, '/apps/scalable/applications-java.svg')
-    //         } else if (file_ext == '.sql') {
-    //             icon = path.join(icon_dir, '/mimetypes/scalable/application-x-sqlite.svg')
-    //         } else {
-    //             icon = path.join(icon_dir, '/mimetypes/scalable/application-document.svg')
-    //         }
-    //     }
-    // } catch (err) {
-    // }
-    // return icon
+    try {
+        let stats = fs.statSync(file);
+        let file_ext = path.extname(file);
+        if (stats.isDirectory()) {
+            // todo: this needs to be reworked to get theme folder icon
+            icon_dir = path.join(__dirname, "/assets/icons/kora");
+            icon = path.join(
+                icon_dir,
+                "/mimetypes/scalable/application-document.svg"
+            );
+        } else {
+            icon_dir = path.join(__dirname, "/assets/icons/kora");
+            if (
+                file_ext.toLocaleLowerCase() == ".jpg" ||
+                file_ext.toLocaleLowerCase() == ".png" ||
+                file_ext.toLocaleLowerCase() == ".jpeg" ||
+                file_ext.toLocaleLowerCase() == ".gif" ||
+                file_ext.toLocaleLowerCase() == ".svg" ||
+                file_ext.toLocaleLowerCase() == ".ico" ||
+                file_ext.toLocaleLowerCase() == ".webp"
+            ) {
+                icon = file;
+                let img_data = get_img_data(file);
+                console.log(img_data);
+            } else if (
+                file_ext == ".xls" ||
+                file_ext == ".xlsx" ||
+                file_ext == ".xltx" ||
+                file_ext == ".csv"
+            ) {
+                icon = path.join(icon_dir, "/apps/scalable/ms-excel.svg");
+            } else if (
+                file_ext == ".docx" ||
+                file_ext == ".ott" ||
+                file_ext == ".odt"
+            ) {
+                icon = path.join(
+                    icon_dir,
+                    "/apps/scalable/libreoffice-writer.svg"
+                );
+            } else if (
+                file_ext == ".wav" ||
+                file_ext == ".mp3" ||
+                file_ext == ".mp4" ||
+                file_ext == ".ogg"
+            ) {
+                icon = path.join(icon_dir, "/mimetypes/scalable/audio-wav.svg");
+            } else if (file_ext == ".iso") {
+                icon = path.join(icon_dir, "/apps/scalable/isomaster.svg");
+            } else if (file_ext == ".pdf") {
+                icon = path.join(icon_dir, "/apps/scalable/gnome-pdf.svg");
+            } else if (
+                file_ext == ".zip" ||
+                file_ext == ".xz" ||
+                file_ext == ".tar" ||
+                file_ext == ".gz" ||
+                file_ext == ".bz2"
+            ) {
+                icon = path.join(icon_dir, "/apps/scalable/7zip.svg");
+            } else if (file_ext == ".deb") {
+                icon = path.join(icon_dir, "/apps/scalable/gkdebconf.svg");
+            } else if (file_ext == ".txt") {
+                icon = path.join(icon_dir, "/apps/scalable/text.svg");
+            } else if (file_ext == ".sh") {
+                icon = path.join(icon_dir, "/apps/scalable/terminal.svg");
+            } else if (file_ext == ".js") {
+                icon = path.join(
+                    icon_dir,
+                    "/apps/scalable/applications-java.svg"
+                );
+            } else if (file_ext == ".sql") {
+                icon = path.join(
+                    icon_dir,
+                    "/mimetypes/scalable/application-x-sqlite.svg"
+                );
+            } else {
+                icon = path.join(
+                    icon_dir,
+                    "/mimetypes/scalable/application-document.svg"
+                );
+            }
+        }
+    } catch (err) {}
+    return icon;
 }
 
 // ADD LINK
@@ -8336,16 +8149,6 @@ function add_link(href, text) {
 
     link.onclick = (e) => {
         e.preventDefault();
-        //     gio.get_file(href, (file) => {
-
-        //         console.log(href)
-
-        //         // if (file.is_dir) {
-        //         //     get_view(href)
-        //         // } else {
-
-        //         // }
-        //     })
     };
 
     return link;
@@ -8373,11 +8176,9 @@ function add_p(text) {
 
 // ADD HEADER
 function add_header(text) {
-    let header = add_div(); //document.createElement('h5');
+    let header = add_div();
     header.classList.add("header");
     header.title = text;
-    // header.style = 'font-weight:bold; font-size: 14px; padding: 5px; position: fixed;';
-    // header.append(text);
     header.innerHTML = text;
     return header;
 }
@@ -8402,8 +8203,6 @@ function add_menu_item(options) {
 }
 
 /* SHOW SIDE BAR */
-
-// let show = parseInt(localStorage.getItem('sidebar'));
 function show_sidebar() {
     let show = parseInt(localStorage.getItem("sidebar"));
     let sidebar = document.getElementById("sidebar");
@@ -8483,113 +8282,100 @@ function create_folder(folder) {
 
             header_link.classList.add("hidden");
             input.classList.remove("hidden");
-
-            // input[0].focus()
             input.select();
         });
 
-        // let file_obj = {
-        //     name: path.basename(folder),
-        //     href: folder,
-        //     size: 0,
-        //     mtime: new Date(),
-        //     is_dir: 1
-        // }
+        let file_obj = {
+            name: path.basename(folder),
+            href: folder,
+            size: 0,
+            mtime: new Date(),
+            is_dir: 1,
+        };
+        if (!res.err) {
+            let main_view = document.getElementById("main_view");
+            main_view.tabIndex = -1;
+            main_view.preventDefault = true;
 
-        // // console.log(res)
+            let info_view = document.getElementById("info_view");
+            info_view.classList.add("hidden");
 
-        // if (!res.err) {
+            let card = get_card1(file_obj);
+            let col = add_column("three");
+            col.append(card);
 
-        //     let main_view = document.getElementById('main_view')
-        //     // main_view.tabIndex = -1
-        //     // main_view.preventDefault = true
+            folder_grid.insertBefore(col, folder_grid.firstChild);
 
-        //     let info_view = document.getElementById('info_view')
-        //     info_view.classList.add('hidden')
+            let header = card.querySelector(".header_link");
+            let input = card.querySelector(".input");
 
-        //     let card = get_card1(file_obj)
-        //     let col = add_column('three')
-        //     col.append(card)
+            console.log(input, header);
 
-        //     folder_grid.insertBefore(col, folder_grid.firstChild);
+            input.classList.remove("hidden");
+            header.classList.add("hidden");
 
-        //     let header  = card.querySelector('.header_link');
-        //     let input   = card.querySelector('.input');
-
-        //     console.log(input, header)
-
-        //     input.classList.remove('hidden');
-        //     header.classList.add('hidden');
-
-        //     input.focus();
-        //     input.select();
-
-        // } else {
-        //     notification(res.err)
-        // }
+            input.focus();
+            input.select();
+        } else {
+            notification(res.err);
+        }
     });
 
-    // fs.mkdir(folder, {}, (err) => {
+    fs.mkdir(folder, {}, (err) => {
+        if (err) {
+            notification(err);
+        } else {
+            let info_view = document.getElementById("info_view");
+            info_view.innerHTML = "";
 
-    //     if (err) {
-    //         notification(err)
-    //     } else {
+            // GET REFERENCE TO FOLDERS CARD
+            let folders_card = document.getElementById("folders_card");
+            folders_card.classList.remove("hidden");
 
-    //         let info_view = document.getElementById('info_view');
-    //         info_view.innerHTML = ''
+            // GET REFERENCE TO FOLDER GRID
+            let folder_grid = document.getElementById("folder_grid");
 
-    //         // GET REFERENCE TO FOLDERS CARD
-    //         let folders_card = document.getElementById('folders_card')
-    //         folders_card.classList.remove('hidden')
+            let items = document.getElementsByClassName("folder_card");
+            let card_id = "folder_card_" + items.length;
 
-    //         // GET REFERENCE TO FOLDER GRID
-    //         let folder_grid = document.getElementById('folder_grid')
+            // CREATE CARD OPTIONS
+            let options = {
+                id: card_id,
+                href: folder,
+                linktext: path.basename(folder),
+                grid: folder_grid,
+                is_folder: true,
+            };
 
-    //         let items = document.getElementsByClassName('folder_card')
-    //         let card_id = 'folder_card_' + items.length
+            try {
+                /* Add Card */
+                add_card(options).then((card) => {
+                    let header = card.querySelector(".header_link");
+                    let input = card.querySelector("input");
+                    let col = add_column("three");
 
-    //         // CREATE CARD OPTIONS
-    //         let options = {
-    //             id:         card_id,
-    //             href:       folder,
-    //             linktext:   path.basename(folder),
-    //             grid:       folder_grid,
-    //             is_folder:  true
-    //         }
+                    input.classList.remove("hidden");
 
-    //         try {
+                    col.append(card);
+                    folder_grid.insertBefore(col, folder_grid.firstChild);
 
-    //             /* Add Card */
-    //             add_card(options).then(card => {
-
-    //                 let header  = card.querySelector('.header_link');
-    //                 let input   = card.querySelector('input');
-    //                 let col     = add_column('three');
-
-    //                 input.classList.remove('hidden');
-
-    //                 col.append(card);
-    //                 folder_grid.insertBefore(col, folder_grid.firstChild);
-
-    //                 input.focus();
-    //                 input.select();
-    //                 header.classList.add('hidden');
-    //                 update_card(card.dataset.href);
-
-    //             })
-
-    //         } catch (err) {
-
-    //             notification(err)
-    //             info(err)
-
-    //         }
-
-    //     }
-
-    // })
-    // ipcRenderer.send('get_disk_space', { href: breadcrumbs.value, folder_count: get_folder_count(),file_count: get_file_count()});
-    // clear_items();
+                    input.focus();
+                    input.select();
+                    header.classList.add("hidden");
+                    update_card(card.dataset.href);
+                });
+            } catch (err) {
+                notification(err);
+                info(err);
+            }
+        }
+    });
+    ipcRenderer.send("get_disk_space", {
+        href: breadcrumbs.value,
+        folder_count: get_folder_count(),
+        file_count: get_file_count(),
+    });
+    clear_items();
 }
 
 function add_copy_file() {
@@ -8634,7 +8420,10 @@ function add_copy_file_old(source, card_id) {
 
                 copy_files_arr.push(file);
                 ipcRenderer.send("add_copy_files", copy_files_arr);
-                // ipcRenderer.send('copy_to_clipboard', JSON.stringify(copy_files_arr));
+                ipcRenderer.send(
+                    "copy_to_clipboard",
+                    JSON.stringify(copy_files_arr)
+                );
             }
         } else {
             let file = {
@@ -8645,7 +8434,10 @@ function add_copy_file_old(source, card_id) {
 
             copy_files_arr.push(file);
             ipcRenderer.send("add_copy_files", copy_files_arr);
-            // ipcRenderer.send('copy_to_clipboard', JSON.stringify(copy_files_arr));
+            ipcRenderer.send(
+                "copy_to_clipboard",
+                JSON.stringify(copy_files_arr)
+            );
         }
     }
 }
