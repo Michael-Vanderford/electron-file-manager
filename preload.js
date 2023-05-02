@@ -5045,7 +5045,6 @@ async function get_list_view(dir) {
                     // CREATE HEADER
                     let header_link = add_link(filename, file);
                     header_link.classList.add("nav_item;", "header_link");
-                    // header_link.style = 'font-weight: normal !important; color:#cfcfcf !important; text-decoration: none !important; width: 100%'
 
                     // CREATE INPUT
                     let input = document.createElement("input");
@@ -5091,7 +5090,6 @@ async function get_list_view(dir) {
 
                                     if (stats.isDirectory()) {
                                         icon.src = folder_icon;
-                                        // icon.classList.add('icon', 'icon32')
                                         icon.style = "margin-right: 15px";
                                         box.append(icon, header_link, input);
                                     } else {
@@ -5105,7 +5103,6 @@ async function get_list_view(dir) {
                                                     input
                                                 );
                                             });
-                                        // box.append(add_img(get_icon_path(filename)), header_link, input);
                                     }
 
                                     td.append(box);
@@ -5134,9 +5131,20 @@ async function get_list_view(dir) {
 
                                     td.onmousedown = (e) => {
                                         if (e.button === 2) {
-                                            // td.classList.add('highlight_select')
-                                            // ipcRenderer.send('show-context-menu-files');
-                                            // ipcRenderer.send('show-context-menu-files', {apps: null, access: 0, href: filename});
+                                            td.classList.add(
+                                                "highlight_select"
+                                            );
+                                            ipcRenderer.send(
+                                                "show-context-menu-files"
+                                            );
+                                            ipcRenderer.send(
+                                                "show-context-menu-files",
+                                                {
+                                                    apps: null,
+                                                    access: 0,
+                                                    href: filename,
+                                                }
+                                            );
                                         }
                                     };
 
@@ -5147,9 +5155,6 @@ async function get_list_view(dir) {
                                             );
                                         }
                                     };
-
-                                    // td.classList.add('card')
-
                                     break;
                                 }
                                 case "Size": {
@@ -5206,9 +5211,6 @@ async function get_list_view(dir) {
                                 "\n" +
                                 title.modified;
 
-                            // FOCUS FOR EDIT
-                            // td.focus()
-
                             // HIGHLIGHT ROW
                             td.classList.add("highlight");
 
@@ -5219,26 +5221,6 @@ async function get_list_view(dir) {
                         tr.addEventListener("mouseout", (e) => {
                             td.classList.remove("highlight");
                         });
-
-                        // if (fs.statSync(filename).isDirectory()) {
-                        // } else {
-                        //     tr.oncontextmenu = (e) => {
-                        //         e.preventDefault()
-                        //         e.stopPropagation()
-                        //         tr.classList.add('highlight')
-                        //         let access = 0;
-                        //         let filetype = mime.lookup(filename);
-                        //         let associated_apps = get_available_launchers(filetype, filename);
-                        //         console.log(filename, associated_apps)
-                        //         try {
-                        //             fs.accessSync(filename, fs.X_OK);
-                        //             access = 1;
-                        //             ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: filename});
-                        //         } catch (err) {
-                        //             ipcRenderer.send('show-context-menu-files', {apps: associated_apps, access: access, href: filename});
-                        //         }
-                        //     }
-                        // }
                     });
 
                     // ADD TR TO TABLE BODY
@@ -5375,17 +5357,13 @@ async function get_list_view(dir) {
         }
     });
 
+    // 여기 == -> === 로 바꿨더니 망가짐
     // SHOW SIDEBAR
     if (localStorage.getItem("sidebar") == 1) {
         show_sidebar();
     } else {
         hide_sidebar();
     }
-
-    // let sidebar = document.getElementById('sidebar')
-    // sidebar.addEventListener('mouseover', (e) => {
-    //     sidebar.focus()
-    // })
 }
 
 let copy_arr1 = [];
@@ -5419,20 +5397,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
     clear_items();
 
     show_loader();
-
-    // tab_menu.forEach(tab => {
-    //     let tab_item = tab.querySelector('.item');
-    //     tab_item.innerHTML = ''
-    //     let close_icon = add_icon('times');
-    //     close_icon.style = 'padding-left: 15px; margin-right: auto';
-    //     tab_item.append(path.basename(dir), close_icon)
-
-    //     tab.ondragover = (e) => {
-    //         console.log('rhrher')
-    //     }
-
-    // })
-
     gio.get_dir(dir, (dirents) => {
         console.log(dir);
 
@@ -5534,7 +5498,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
                 idx <= page_number * page_size
             ) {
                 let card = get_card1(file);
-                // card.classList.add('lazy')
                 let col = add_column("three");
                 col.append(card);
 
@@ -5560,8 +5523,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
         });
 
         lazyload1();
-        // todo: autocomplete needs work so im disabling it for now
-        // autocomplete()
 
         if (is_dir) {
             tab_menu.forEach((tab) => {
@@ -5665,7 +5626,6 @@ async function get_files(dir, callback) {
         options.page = 1;
     }
 
-    // const breadcrumbs = document.getElementById('breadcrumbs')
     breadcrumbs.value = dir;
     breadcrumbs.title = dir;
 
@@ -5778,7 +5738,7 @@ async function get_files(dir, callback) {
                                     return s1 - s2;
                                 }
                             } catch (err) {
-                                // console.log(err)
+                                console.log(err);
                             }
                         });
                         break;
@@ -5889,28 +5849,14 @@ async function get_files(dir, callback) {
                                 is_folder: true,
                             };
                             if (!regex.test(file)) {
-                                // let card = get_card(filepath)
-                                // let col = add_column('three')
-                                // col.append(card)
-                                // folder_grid.append(col)
-
                                 options.grid = folder_grid;
                                 add_card(options).then((card) => {
-                                    // update_card(card.dataset.href);
+                                    update_card(card.dataset.href);
                                 });
-
-                                // let card = get_card(options.href)
-                                // card.classList.remove('border')
-                                // folder_grid.append(card)
                             } else {
-                                // let card = get_card(filepath)
-                                // let col = add_column('three')
-                                // col.append(card)
-                                // hidden_folder_grid.append(col)
-
                                 options.grid = hidden_folder_grid;
                                 add_card(options).then((card) => {
-                                    // update_card(card.dataset.href);
+                                    update_card(card.dataset.href);
                                 });
                             }
                             ++folder_count;
@@ -5927,33 +5873,21 @@ async function get_files(dir, callback) {
                                 href: filepath,
                                 linktext: filename,
                                 is_folder: false,
-                                // card_counter: card_counter
                             };
                             if (!regex.test(file)) {
-                                // let card = get_card(filepath)
-                                // let col = add_column('three')
-                                // col.append(card)
-                                // file_grid.append(col)
-
                                 options.grid = file_grid;
                                 add_card(options).then((card) => {
-                                    // update_card(card.dataset.href);
+                                    update_card(card.dataset.href);
                                 });
                             } else {
-                                // let card = get_card(filepath)
-                                // let col = add_column('three')
-                                // col.append(card)
-                                // hidden_file_grid.append(col)
-
                                 options.grid = hidden_file_grid;
                                 add_card(options).then((card) => {
-                                    // update_card(card.dataset.href);
+                                    update_card(card.dataset.href);
                                 });
                             }
                             ++file_count;
                         }
                     } catch (err) {
-                        // add_card(options)
                         notification("get_files error:", err);
                     }
                 });
@@ -5969,7 +5903,7 @@ async function get_files(dir, callback) {
 
                 let sidebar = document.getElementById("sidebar");
                 sidebar.addEventListener("mouseover", (e) => {
-                    // sidebar.focus()
+                    sidebar.focus();
                 });
 
                 // HANDLE QUICK SEARCH KEY PRESS. THIS IS FOR FIND BY TYPING //////////////////////////////////
@@ -5985,7 +5919,6 @@ async function get_files(dir, callback) {
                     e.stopPropagation();
 
                     // LOOK FOR LETTERS AND NUMBERS. I DONT THINK THIS
-                    // let regex = /[^A-Za-z0-9]+/
                     let regex = /[^A-Za-z0-9-.]+/;
 
                     // TEST FOR LETTERS AND NUMBERS
@@ -6020,8 +5953,6 @@ async function get_files(dir, callback) {
                                 });
 
                                 txt_search.classList.add("hidden");
-
-                                // })
                             }
                         }
                     }
@@ -6038,13 +5969,11 @@ async function get_files(dir, callback) {
 
                 // HIDE QUICK SEARCH
                 txt_search.addEventListener("keydown", function (e) {
-                    // if (e.key === 'Escape' || e.key === 'Tab') {
                     if (e.key === "Escape") {
                         // CLEAR ITEMS
                         clear_items();
                         // CLEAR COPY ARRAY
                         clear_copy_arr();
-                        // copy_files_arr = []
                     }
                 });
 
@@ -6060,104 +5989,6 @@ async function get_files(dir, callback) {
                     e.preventDefault();
                     e.stopPropagation();
                 };
-
-                // // ON DRAG ENTER
-                // main_view.ondragenter = (e) => {
-
-                //     destination = breadcrumbs.value
-                //     target = e.target
-
-                // };
-
-                // // DRAG OVER
-                // main_view.ondragover = (e) => {
-
-                //     e.preventDefault();
-                //     e.stopPropagation();
-
-                //     ipcRenderer.send('is_main_view', 1)
-                //     ipcRenderer.send('active_folder', breadcrumbs.value, 1);
-
-                // }
-
-                // main_view.ondragleave = (e) => {
-
-                //     e.preventDefault();
-                //     return false;
-
-                // }
-
-                // main_view.addEventListener('scroll', (e) => {
-                //     console.log(main_view.clientHeight)
-                //     console.log(window.height)
-                //     // console.log(window.height() + window.scrollTo())
-                // })
-
-                // ON DROP
-                /* ref: https://www.geeksforgeeks.org/drag-and-drop-files-in-electronjs/ */
-                // let state = 0
-                // main_view.ondrop = function (e) {
-
-                //     e.preventDefault();
-                //     e.stopPropagation();
-
-                //     for (const f of e.dataTransfer.files) {
-
-                //     }
-
-                //     const file_data = e.dataTransfer.files
-
-                //     // GETTING FILE DROPED FROM EXTERNAL SOURCE
-                //     if (file_data.length > 0) {
-
-                //         for (let i = 0; i < file_data.length; i++) {
-                //             add_copy_file(file_data[i].path, 'card_' + i)
-                //         }
-
-                //         copy_files(destination, state);
-
-                //     } else {
-
-                //         // COPY FILES
-                //         if (e.ctrlKey == true) {
-
-                //             if (breadcrumbs.value == destination) {
-                //                 ipcRenderer.send('is_main_view', 1)
-                //                 state = 2
-                //             } else {
-                //                 ipcRenderer.send('is_main_view', 0)
-                //                 state = 0
-                //             }
-
-                //             // THIS IS RUNNING COPY FOLDERS TOO
-                //             copy_files(destination, state);
-                //             clear_items();
-
-                //         // MOVE FILE
-                //         } else {
-
-                //             if (breadcrumbs.value == destination) {
-                //                 ipcRenderer.send('is_main_view', 1)
-                //                 state = 2
-                //             } else {
-                //                 ipcRenderer.send('is_main_view', 0)
-                //                 state = 0
-                //             }
-
-                //             // notification('changing state to 0')
-                //             move_to_folder(destination, state)
-
-                //         }
-
-                //     }
-
-                //     clear_items();
-                //     return false;
-
-                // }
-
-                // document.getElementById('main_view').focus();
-
                 /* RESET CARD INDEX TO 0 SO WE CAN DETECT WHEN SINGLE CARDS ARE ADDED */
                 cardindex = 0;
                 notice(
@@ -6207,7 +6038,6 @@ async function get_files(dir, callback) {
         keycounter0 = keycounter;
         keycounter += 1;
 
-        // document.querySelector("[data-id='" +  (nc) + "']").classList.remove('highlight_select')
         document
             .querySelector("[data-id='" + keycounter + "']")
             .classList.add("highlight_select");
@@ -6215,9 +6045,6 @@ async function get_files(dir, callback) {
             .querySelector("[data-id='" + keycounter + "']")
             .querySelector("a")
             .focus();
-        // headers[nc2 - 1].focus()
-
-        // }
     });
 
     // RIGHT
@@ -6254,8 +6081,6 @@ async function get_files(dir, callback) {
     Mousetrap.bind("shift+left", (e) => {
         keycounter0 = keycounter;
         keycounter -= 1;
-
-        // document.querySelector("[data-id='" +  (nc) + "']").classList.remove('highlight_select')
         document
             .querySelector("[data-id='" + keycounter + "']")
             .classList.add("highlight_select");
@@ -6333,7 +6158,6 @@ async function get_files(dir, callback) {
                     }
                 }
 
-                // document.querySelector("[data-id='" +  (nc) + "']").classList.remove('highlight_select')
                 document
                     .querySelector("[data-id='" + nc2 + "']")
                     .classList.add("highlight_select");
@@ -6341,7 +6165,6 @@ async function get_files(dir, callback) {
                     .querySelector("[data-id='" + nc2 + "']")
                     .querySelector("a")
                     .focus();
-                // headers[nc2 - 1].focus()
             }
         }
     });
@@ -6460,9 +6283,6 @@ async function get_files(dir, callback) {
                 keycounter = keycounter0 - diff;
                 is_folder_card = 1;
             }
-
-            // if (keycounter < (folder))
-
             document
                 .querySelector("[data-id='" + keycounter0 + "']")
                 .classList.remove("highlight_select");
@@ -6501,25 +6321,13 @@ function get_home() {
 function get_folder_size(href) {
     return new Promise((resolve) => {
         let breadcrumbs = document.getElementById("breadcrumbs");
-        // if (breadcrumbs.value.indexOf('gvfs') == -1) {
-
-        // cmd = 'cd "' + dir + '"; du -b'
-        // return du = execSync(cmd)
         const regex = /^\..*/;
         let folder_card = document.getElementsByClassName("folder_card");
 
         if (folder_card.length > 0) {
             for (let i = 0; i < folder_card.length; i++) {
-                // let href = folder_card[i].querySelector('a')
-                // href = href.getAttribute('href')
-
-                // href = dir.replace("'", "/")
-
                 cmd = 'cd "' + href + '"; du -s';
                 du = exec(cmd);
-
-                // console.log(href)
-
                 du.stdout.on("data", function (res) {
                     let extra = folder_card[i].querySelector(".extra");
 
@@ -6534,19 +6342,8 @@ function get_folder_size(href) {
                     }
                     resolve(size);
                 });
-
-                // let extra = folder_card[i].querySelector('.extra')
-                // extra.innerHTML = du
-
-                // let card = document.getElementById(folder_card[i].id)
-                // let extra = card.find()
-                // console.log('what ' + folder_card[i].id)
             }
         }
-
-        // } else {
-        //     console.log('gvfs folder. dont scan size')
-        // }
     });
 }
 
@@ -6555,9 +6352,6 @@ contextBridge.exposeInMainWorld("api", {
     add_card: (options) => {
         add_card(options);
     },
-    // get_gio_devices: () => {
-    //     get_gio_devices()
-    // },
     get_info: () => {
         get_info();
     },
@@ -6575,7 +6369,6 @@ contextBridge.exposeInMainWorld("api", {
     },
     find_files: () => {
         find_files(() => {});
-        // find()
     },
     get_disk_usage: () => {
         get_disk_usage();
@@ -6621,13 +6414,7 @@ contextBridge.exposeInMainWorld("api", {
         open_terminal();
     },
     toggle: () => ipcRenderer.invoke("dark-mode:toggle"),
-    // system: () => ipcRenderer.invoke('dark-mode:system')
 });
-
-// contextBridge.exposeInMainWorld('darkMode', {
-//     toggle: () => ipcRenderer.invoke('dark-mode:toggle'),
-//     system: () => ipcRenderer.invoke('dark-mode:system')
-// })
 
 /* Add location to history array */
 function add_history(dir) {
@@ -6637,17 +6424,6 @@ function add_history(dir) {
         }
     });
     history_arr.push(dir);
-    // if (history_arr.length > 0) {
-    //     if (history_arr.every(x => x != dir)) {
-    //         if (fs.existsSync(dir)) {
-    //             history_arr.push(dir)
-    //         }
-    //     }
-    // } else {
-    //     if (fs.existsSync(dir)) {
-    //         history_arr.push(dir)
-    //     }
-    // }
 }
 
 // CLEAR SELECTED FILES ARRAY
@@ -6660,7 +6436,6 @@ function clear_items() {
     let nav_items = document.querySelectorAll(".nav_item");
     let input = document.getElementById("edit_" + card_id);
     let header = document.getElementById("header_" + card_id);
-    // let file_properties  = document.getElementById('file_properties');
     let breadcrumb_items = document.getElementById("breadcrumb_items");
     let hamburger_menu = document.getElementById("hamburger_menu");
     let info_view = document.getElementById("info_view");
@@ -6677,12 +6452,10 @@ function clear_items() {
     /* Clear arrays */
     delete_arr = [];
     selected_files = [];
-    // workspace_arr   = [];
 
     /* Clear elements */
     pager.innerHTML = "";
     txt_search.value = "";
-    // info_view.innerHTML      = '';
 
     /* Hidden elements */
     txt_search.classList.add("hidden");
@@ -6748,9 +6521,6 @@ function clear_items() {
             }
         }
     }
-
-    /* Set focus on main_view */
-    // main_view.focus();
 }
 
 // CLEAR COPY CACHE
@@ -6823,8 +6593,6 @@ async function find_win32() {
         options.show_folders = parseInt(localStorage.getItem("find_folders"));
         options.show_files = parseInt(localStorage.getItem("find_files"));
 
-        // if (parseInt(show_options) == 1) {find_options.classList.remove('hidden')} else {find_options.classList.add('hidden')};
-
         find_folders.checked = options.show_folders;
         find_files.checked = options.show_files;
 
@@ -6896,26 +6664,16 @@ async function find_win32() {
                                             );
 
                                             search_arr.push(cfilename);
-                                            // let options = {
-                                            //     id: 0,
-                                            //     href: cfilename,
-                                            //     linktext: file
-                                            // }
-                                            // add_card(options).then((card) => {
-                                            //     search_info.innerHTML = ''
-                                            //     search_results.append(card)
-                                            //     update_card(card.dataset.href)
-                                            // })
                                         }
                                     });
                                 } else {
                                     search_info.innerHTML = "";
                                 }
                             } catch (err) {
-                                // console.log(err)
+                                console.log(err);
                             }
                         } else {
-                            // console.log(err);
+                            console.log(err);
                         }
                     });
                 }
@@ -6979,13 +6737,14 @@ async function find_win32() {
                                         }
                                     });
                                 } else {
-                                    // search_info.innerHTML = 'no results found..'
+                                    search_info.innerHTML =
+                                        "no results found..";
                                 }
                             } catch (err) {
-                                // console.log(err)
+                                console.log(err);
                             }
                         } else {
-                            // console.log(err)
+                            console.log(err);
                         }
                     });
                 }
@@ -7220,7 +6979,6 @@ async function find_files(callback) {
                             notification(
                                 "find is not yet implemented on window"
                             );
-                            // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
                         }
                         let data = 0;
                         let c = 0;
@@ -7299,7 +7057,6 @@ async function find_files(callback) {
 
         clear_minibar();
         mb_find.style = "color: #ffffff !important";
-        // find.focus();
 
         // FIND OPTIONS
         btn_find_options.addEventListener("click", (e) => {
@@ -7320,15 +7077,6 @@ async function find_files(callback) {
                 localStorage.setItem("find_options", 0);
             }
         });
-
-        // search_results.oncontextmenu = (e) => {
-        //     let target = e.target
-        //     let card = target.closest('.nav_item')
-        //     let href = card.dataset.href
-        //     card.classList.add('highlight_select')
-        //     ipcRenderer.send('context-menu-find', href)
-        // }
-
         callback(1);
     });
 }
@@ -7488,7 +7236,6 @@ function get_dir(dir, callback) {
                     });
 
                     file_arr = dirents;
-                    // console.log(file_arr)
                     return callback(dirents);
                 } else {
                     console.log(err);
@@ -7501,7 +7248,6 @@ function get_dir(dir, callback) {
                 href = path.join(dir, file);
                 let file_obj = {};
 
-                // let stats = fs.statSync(href);
                 fs.stats(href, (err, stats) => {
                     file_obj.href = href;
                     file_obj.mtime = stats.mtime;
@@ -7549,64 +7295,6 @@ function get_gio_files(href) {
             }
         });
     });
-
-    // let cmd = `gjs src/gjs.js "${href}"`
-    // console.log(cmd)
-    // exec(cmd, (err, stdout, stderr) => {
-    //     if (!err) {
-    //         console.log('stdout', stdout)
-    //     } else {
-    //         console.log(err)
-    //     }
-    // })
-
-    // exec(`gio list -h -l "${href}"`, (err, stdout, stderr) => {
-
-    // if (!err) {
-
-    //     let folder_grid = document.getElementById('folder_grid')
-    //     let file_grid = document.getElementById('file_grid')
-
-    //     // let href = href
-    //     let file_info = stdout.split('\n')
-    //     if (file_info.length > 0) {
-
-    //         folder_grid.innerHTML = ''
-    //         file_grid.innerHTML = ''
-
-    //         file_info.forEach((item, idx) => {
-
-    //             if (idx < file_info.length -1) {
-
-    //                 let files = item.split('\t')
-
-    //                 options = {
-    //                     id: idx,
-    //                     href: files[0],
-    //                     linktext: path.basename(files[0]),
-    //                     is_folder: 1,
-    //                     grid: ''
-    //                 }
-
-    //                 let card = get_card(href + '/' + files[0])
-    //                 let col = add_column('three')
-    //                 col.append(card)
-
-    //                 if (files[2] == '(directory)') {
-    //                     folder_grid.append(col)
-    //                 } else {
-    //                     file_grid.append(col)
-    //                 }
-
-    //             }
-
-    //         })
-
-    //     }
-
-    // }
-
-    // })
 }
 
 async function get_disk_space() {
