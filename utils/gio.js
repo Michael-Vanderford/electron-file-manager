@@ -1,83 +1,76 @@
-const util  = require('util')
-const path  = require('path')
-const exec  = util.promisify(require('child_process').exec)
-const execSync = require('child_process').exec;
-const { spawn } = require('child_process');
+const util = require("util");
+const path = require("path");
+const exec = util.promisify(require("child_process").exec);
+const execSync = require("child_process").exec;
+const { spawn } = require("child_process");
 
-
-let file_arr = []
+let file_arr = [];
 
 function get_dir_recursive(dir, state) {
+    exec(
+        `gio list -h -l -a "*" "${dir}"`,
+        { maxBuffer: 1024 * 1024 * 1024 },
+        (err, stdout, stderr) => {
+            if (!err) {
+                let file_info = stdout.split("\n");
+                file_info.forEach((item, idx) => {
+                    if (idx < file_info.length - 1) {
+                        let file_obj = {};
+                        let files = item.split("\t");
 
-    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
+                        file_obj.size = files[1]; // this is being set on get_card1
+                        file_obj.name = files[0];
 
-        if (!err) {
+                        if (isGioFile(dir)) {
+                            file_obj.href = dir + files[0] + "/";
+                        } else {
+                            file_obj.href = dir + "/" + files[0];
+                        }
 
-            let file_info = stdout.split('\n')
-            file_info.forEach((item, idx) => {
+                        // Check for hidden. todo: find out why its not an attribute of gio
+                        if (files[0].substring(0, 1) == ".") {
+                            file_obj.is_hidden = 1;
+                        } else {
+                            file_obj.is_hidden = 0;
+                        }
 
-                if (idx < file_info.length -1) {
+                        if (files[2] == "(directory)") {
+                            file_obj.is_dir = 1;
+                        } else {
+                            file_obj.is_dir = 0;
+                            file_obj.ext = path.extname(files[0]);
+                        }
 
-                    let file_obj = {}
-                    let files = item.split('\t')
+                        if (files[3]) {
+                            // Add attributes
+                            attributes = files[3]
+                                .split(" ")
+                                .map((pair) => pair.split("="));
+                            attributes.forEach((attribute) => {
+                                // Handle dates
+                                if (attribute[0] == "time::modified") {
+                                    file_obj["mtime"] = attribute[1];
+                                } else if (attribute[0] == "time::access") {
+                                    file_obj["atime"] = attribute[1];
+                                } else if (attribute[0] == "time::created") {
+                                    file_obj["ctime"] = attribute[1];
+                                } else {
+                                    file_obj[attribute[0]] = attribute[1];
+                                }
+                            });
+                        }
 
-                    file_obj.size = files[1] // this is being set on get_card1
-                    file_obj.name = files[0]
-
-                    if (isGioFile(dir)) {
-                        file_obj.href = dir + files[0]  + '/'
-                    } else {
-                        file_obj.href = dir + '/' + files[0]
+                        dirents.push(file_obj);
                     }
+                });
 
-                    // Check for hidden. todo: find out why its not an attribute of gio
-                    if (files[0].substring(0,1) == '.') {
-                        file_obj.is_hidden = 1
-                    } else {
-                        file_obj.is_hidden = 0
-                    }
-
-                    if (files[2] == '(directory)') {
-                        file_obj.is_dir = 1
-                    } else {
-                        file_obj.is_dir = 0
-                        file_obj.ext = path.extname(files[0])
-                    }
-
-                    if (files[3]) {
-
-                        // Add attributes
-                        attributes = files[3].split(' ').map(pair => pair.split('='))
-                        attributes.forEach(attribute => {
-                            // Handle dates
-                            if (attribute[0] == 'time::modified') {
-                                file_obj['mtime'] = attribute[1]
-                            } else if (attribute[0] == 'time::access') {
-                                file_obj['atime'] = attribute[1]
-                            } else if (attribute[0] == 'time::created') {
-                                file_obj['ctime'] = attribute[1]
-                            } else {
-                                file_obj[attribute[0]] = attribute[1]
-                            }
-                        })
-
-                    }
-
-                    dirents.push(file_obj)
-
-                }
-
-            })
-
-            file_arr = dirents;
-            return callback(dirents)
-
-        } else {
-            console.log(err)
+                file_arr = dirents;
+                return callback(dirents);
+            } else {
+                console.log(err);
+            }
         }
-
-    })
-
+    );
 }
 
 /**
@@ -88,10 +81,14 @@ function get_dir_recursive(dir, state) {
  */
 function is_gio_file(href) {
     if (href) {
-        if (href.indexOf('smb:') > -1 || href.indexOf('sftp:') > -1 || href.indexOf('mtp:') > -1) {
-            return true
+        if (
+            href.indexOf("smb:") > -1 ||
+            href.indexOf("sftp:") > -1 ||
+            href.indexOf("mtp:") > -1
+        ) {
+            return true;
         } else {
-            return false
+            return false;
         }
     }
 }
@@ -100,109 +97,97 @@ function is_gio_file(href) {
  *
  * @param {string[]} paths
  */
-exports.join = function(paths) {
-    let paths_arr = paths.split(',')
-    let gio_path = ''
+exports.join = function (paths) {
+    let paths_arr = paths.split(",");
+    let gio_path = "";
     paths_arr.forEach((path, idx) => {
-
         if (idx > 0) {
-            if (path.indexOf('//') > -1) {
-                path.replace('//', '/')
+            if (path.indexOf("//") > -1) {
+                path.replace("//", "/");
             }
-            gio_path += path
+            gio_path += path;
         }
     });
 
-    return gio_path
-}
+    return gio_path;
+};
 
 /**
  * Get File Information from GIO (gvfs)
  * @param {*} href
  */
 exports.get_file1 = async (href) => {
+    file_obj = {};
+    return exec(`gio info "${href}"`).then((res) => {
+        let files = res.stdout.split("\n").map((p) => p.trim().split(": "));
+        file_obj.href = href;
+        file_obj.name = path.basename(href);
 
-    file_obj = {}
-    return exec(`gio info "${href}"`).then(res => {
-
-        let files = res.stdout.split('\n').map(p => p.trim().split(': '))
-        file_obj.href = href
-        file_obj.name = path.basename(href)
-
-        files.forEach(item => {
-            file_obj[item[0]] = item[1]
+        files.forEach((item) => {
+            file_obj[item[0]] = item[1];
             if (file_obj["time::changed"]) {
-                file_obj.mtime = file_obj["time::changed"]
+                file_obj.mtime = file_obj["time::changed"];
             }
-        })
+        });
 
-        return file_obj
-
-    })
-
-}
+        return file_obj;
+    });
+};
 
 exports.get_dir_async = async (dir, callback) => {
+    let dirents = [];
+    file_arr = [];
 
-    let dirents = []
-    file_arr    = []
-
-    return exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}).then(res => {
-
-        let file_info = res.stdout.split('\n')
+    return exec(`gio list -h -l -a "*" "${dir}"`, {
+        maxBuffer: 1024 * 1024 * 1024,
+    }).then((res) => {
+        let file_info = res.stdout.split("\n");
         file_info.forEach((item, idx) => {
+            if (idx < file_info.length - 1) {
+                let file_obj = {};
+                let files = item.split("\t");
 
-            if (idx < file_info.length -1) {
-
-                let file_obj = {}
-                let files = item.split('\t')
-
-                file_obj.size = files[1] // this is being set on get_card1
-                file_obj.name = files[0]
+                file_obj.size = files[1]; // this is being set on get_card1
+                file_obj.name = files[0];
 
                 if (is_gio_file(dir)) {
-                    file_obj.href = dir + '/' + files[0]
+                    file_obj.href = dir + "/" + files[0];
                 } else {
-                    file_obj.href = dir + '/' + files[0]
+                    file_obj.href = dir + "/" + files[0];
                 }
 
                 // Check for hidden. todo: find out why its not an attribute of gio
-                if (files[0].substring(0,1) == '.') {
-                    file_obj.is_hidden = 1
+                if (files[0].substring(0, 1) == ".") {
+                    file_obj.is_hidden = 1;
                 } else {
-                    file_obj.is_hidden = 0
+                    file_obj.is_hidden = 0;
                 }
 
-                if (files[2] == '(directory)') {
-                    file_obj.is_dir = 1
+                if (files[2] == "(directory)") {
+                    file_obj.is_dir = 1;
                 } else {
-                    file_obj.is_dir = 0
-                    file_obj.ext = path.extname(files[0])
+                    file_obj.is_dir = 0;
+                    file_obj.ext = path.extname(files[0]);
                 }
 
                 if (files[3]) {
-
                     // Add attributes
-                    attributes = files[3].split(' ').map(pair => pair.split('='))
-                    attributes.forEach(attribute => {
-                        file_obj[attribute[0]] = attribute[1]
-                    })
-
+                    attributes = files[3]
+                        .split(" ")
+                        .map((pair) => pair.split("="));
+                    attributes.forEach((attribute) => {
+                        file_obj[attribute[0]] = attribute[1];
+                    });
                 }
 
-                dirents.push(file_obj)
-
+                dirents.push(file_obj);
             }
-
-        })
+        });
 
         file_arr = dirents;
-        return callback(dirents)
-
-
-    })
-
-}
+        return callback(dirents);
+    });
+};
 
 /**
  * Get File Information from GIO (gvfs)
@@ -210,160 +195,137 @@ exports.get_dir_async = async (dir, callback) => {
  * @param {*} callback
  */
 exports.get_file = (href, callback) => {
-
     exec(`gio info "${href}"`, (err, stdout, stderr) => {
-
         if (!err) {
+            let files = stdout.split("\n").map((p) => p.trim().split(": "));
+            file_obj = {};
 
-            let files = stdout.split('\n').map(p => p.trim().split(': '))
-            file_obj = {}
+            file_obj.href = href;
+            file_obj.name = path.basename(href);
 
-            file_obj.href = href
-            file_obj.name = path.basename(href)
-
-            files.forEach(item => {
-                file_obj[item[0]] = item[1]
+            files.forEach((item) => {
+                file_obj[item[0]] = item[1];
                 if (file_obj["time::changed"]) {
-                    file_obj.mtime = file_obj["time::changed"]
+                    file_obj.mtime = file_obj["time::changed"];
                 }
-            })
+            });
 
             // file_arr = dirents;
-            return callback(file_obj)
-
+            return callback(file_obj);
         } else {
-            return callback(err)
+            return callback(err);
         }
-
-    })
-}
+    });
+};
 
 exports.get_dir = (dir, callback) => {
+    let dirents = [];
+    file_arr = [];
 
-    let dirents = []
-    file_arr    = []
+    execSync(
+        `gio list -h -l -a "*" "${dir}"`,
+        { maxBuffer: 1024 * 1024 * 1024 },
+        (err, stdout, stderr) => {
+            if (!err) {
+                let file_info = stdout.split("\n");
+                file_info.forEach((item, idx) => {
+                    if (idx < file_info.length - 1) {
+                        let file_obj = {};
+                        let files = item.split("\t");
 
-    execSync(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
+                        file_obj.size = files[1]; // this is being set on get_card1
+                        file_obj.name = files[0];
 
-        if (!err) {
+                        if (is_gio_file(dir)) {
+                            file_obj.href = dir + "/" + files[0];
+                        } else {
+                            file_obj.href = dir + "/" + files[0];
+                        }
 
-            let file_info = stdout.split('\n')
-            file_info.forEach((item, idx) => {
+                        // Check for hidden. todo: find out why its not an attribute of gio
+                        if (files[0].substring(0, 1) == ".") {
+                            file_obj.is_hidden = 1;
+                        } else {
+                            file_obj.is_hidden = 0;
+                        }
 
-                if (idx < file_info.length -1) {
+                        if (files[2] == "(directory)") {
+                            file_obj.is_dir = 1;
+                            file_obj.type = "directory";
+                        } else {
+                            file_obj.is_dir = 0;
+                            file_obj.ext = path.extname(files[0]);
+                        }
 
-                    let file_obj = {}
-                    let files = item.split('\t')
+                        if (files[3]) {
+                            // Add attributes
+                            attributes = files[3]
+                                .split(" ")
+                                .map((pair) => pair.split("="));
+                            attributes.forEach((attribute) => {
+                                file_obj[attribute[0]] = attribute[1];
+                            });
+                        }
 
-                    file_obj.size = files[1] // this is being set on get_card1
-                    file_obj.name = files[0]
-
-                    if (is_gio_file(dir)) {
-                        file_obj.href = dir + '/' + files[0]
-                    } else {
-                        file_obj.href = dir + '/' + files[0]
+                        dirents.push(file_obj);
                     }
+                });
 
-                    // Check for hidden. todo: find out why its not an attribute of gio
-                    if (files[0].substring(0,1) == '.') {
-                        file_obj.is_hidden = 1
-                    } else {
-                        file_obj.is_hidden = 0
-                    }
-
-                    if (files[2] == '(directory)') {
-                        file_obj.is_dir = 1
-                        file_obj.type = 'directory'
-                    } else {
-                        file_obj.is_dir = 0
-                        file_obj.ext = path.extname(files[0])
-                    }
-
-                    if (files[3]) {
-
-                        // Add attributes
-                        attributes = files[3].split(' ').map(pair => pair.split('='))
-                        attributes.forEach(attribute => {
-                            file_obj[attribute[0]] = attribute[1]
-                        })
-
-                    }
-
-                    dirents.push(file_obj)
-
-                }
-
-            })
-
-            file_arr = dirents;
-            // console.log(file_arr)
-            return callback(dirents)
-
-        } else {
-            console.log(err)
+                file_arr = dirents;
+                // console.log(file_arr)
+                return callback(dirents);
+            } else {
+                console.log(err);
+            }
         }
-
-    })
-
-
-
-}
-
+    );
+};
 
 exports.get_devices = (callback) => {
-
     exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {
-
         if (!err) {
-
-            devices = []
-            let output = stdout.split('\n')
-            output.forEach(item => {
-                let device = {}
-                let gio_mounts = item.split(': ')
+            devices = [];
+            let output = stdout.split("\n");
+            output.forEach((item) => {
+                let device = {};
+                let gio_mounts = item.split(": ");
                 gio_mounts.forEach((gio_mount, idx) => {
-
                     if (idx % 2) {
-                        let mounts = gio_mount.trim().split(' -> ')
+                        let mounts = gio_mount.trim().split(" -> ");
 
                         mounts.forEach((item, idx1) => {
-
                             if (!idx1 % 2) {
-                                device.name = item
+                                device.name = item;
                             } else {
                                 if (is_gio_file(item)) {
                                     device.type = 1;
                                 } else {
-                                    device.type = 0
+                                    device.type = 0;
                                 }
 
-                                if (item.substring(item.length, item.length -1) === '/') {
-                                    item = item.substring(0, item.length -1)
+                                if (
+                                    item.substring(
+                                        item.length,
+                                        item.length - 1
+                                    ) === "/"
+                                ) {
+                                    item = item.substring(0, item.length - 1);
                                 }
 
-                                device.href = item
+                                device.href = item;
                             }
-
-                        })
-
+                        });
                     }
+                });
 
+                devices.push(device);
+            });
 
-                })
-
-                devices.push(device)
-
-            })
-
-            let devs = devices.filter(x => x.name != undefined)
-            return callback(devs)
-
+            let devs = devices.filter((x) => x.name != undefined);
+            return callback(devs);
         }
-
-    })
-
-}
-
+    });
+};
 
 /**
  *
@@ -372,26 +334,25 @@ exports.get_devices = (callback) => {
  * @returns
  */
 function copyToGio(sourcePath, destinationPath) {
-  const command = 'gio';
-  const args = ['copy', '-r', sourcePath, destinationPath];
+    const command = "gio";
+    const args = ["copy", "-r", sourcePath, destinationPath];
 
-  return new Promise((resolve, reject) => {
-    const process = spawn(command, args);
+    return new Promise((resolve, reject) => {
+        const process = spawn(command, args);
 
-    process.on('close', (code) => {
-      if (code === 0) {
-        resolve('Success');
-      } else {
-        reject(`gio exited with error code ${code}`);
-      }
+        process.on("close", (code) => {
+            if (code === 0) {
+                resolve("Success");
+            } else {
+                reject(`gio exited with error code ${code}`);
+            }
+        });
+
+        process.on("error", (err) => {
+            reject(`gio failed with error: ${err}`);
+        });
     });
-
-    process.on('error', (err) => {
-      reject(`gio failed with error: ${err}`);
-    });
-  });
 }
-
 
 /**
  * Copy File using GIO (gvfs)
@@ -400,76 +361,70 @@ function copyToGio(sourcePath, destinationPath) {
  * @param {callback} callback
  *
  */
-exports.cp = async(source, destination, callback) => {
-
+exports.cp = async (source, destination, callback) => {
     // return callback (spawn('gio', ['copy', '--no-dereference', source, destination]))
 
-    execSync(`gio copy "${source}" "${destination}"`)
+    execSync(`gio copy "${source}" "${destination}"`);
 
     // spawn(`gio copy "${source}" "${destination}"`)
     // return callback(exec(`gio copy "${source}" "${destination}"`))
     // , (err, stdout, stderr) => {
-        // console.log(err, stdout, stderr)
+    // console.log(err, stdout, stderr)
     // })
     // .then(res => {
     //     return callback(res);
     // }).catch(err => {
     //     return callback(err);
     // })
-
 };
 
 exports.cp1 = (sourcePath, destinationPath, callback) => {
-
-    const gioCopy = spawn('gio', ['copy', sourcePath, destinationPath]);
-    gioCopy.stderr.on('data', (data) => {
+    const gioCopy = spawn("gio", ["copy", sourcePath, destinationPath]);
+    gioCopy.stderr.on("data", (data) => {
         const message = data.toString();
-        if (message.startsWith('Copying')) {
-            const parts = message.split(' ');
+        if (message.startsWith("Copying")) {
+            const parts = message.split(" ");
             const copiedBytes = parseInt(parts[1], 10);
             const totalBytes = parseInt(parts[3], 10);
             const progress = Math.floor((copiedBytes / totalBytes) * 100);
             console.log(`Copy progress: ${progress}%`);
         }
-
     });
 
     // Listen for errors
-    gioCopy.on('error', (err) => {
+    gioCopy.on("error", (err) => {
         console.error(`Failed to copy files: ${err}`);
     });
 
     // Listen for the exit event
-    gioCopy.on('exit', (code, signal) => {
+    gioCopy.on("exit", (code, signal) => {
         if (code === 0) {
-            console.log('Files copied successfully');
+            console.log("Files copied successfully");
             callback(null);
-
         } else {
             console.error(`Failed to copy files with code ${code}`);
             callback(new Error(`Failed to copy files with code ${code}`));
         }
     });
-
-}
+};
 
 /**
  * Make a Directory with GIO (gvfs)
  * @param {string} destination
  * @param {string} callback
  */
-exports.mkdir = function(destination, callback) {
-    return callback(execSync(`gio mkdir "${destination}"`))
+exports.mkdir = function (destination, callback) {
+    return callback(execSync(`gio mkdir "${destination}"`));
     // exec(`gio mkdir "${destination}"`).then(res => {
     //     return callback(res)
     // }).catch(err => {
     //     return callback(err)
     // })
-}
+};
 
-exports.rename = function(source, destination, callback) {
-    return callback(execSync(`gio rename "${source}" "${destination}"`))
-}
+exports.rename = function (source, destination, callback) {
+    return callback(execSync(`gio rename "${source}" "${destination}"`));
+};
 
 /**
  * Remote a File or Directory using GIO (gvfs)
@@ -477,8 +432,8 @@ exports.rename = function(source, destination, callback) {
  * @param {*} callback
  */
 exports.rm = (href, callback) => {
-    return callback(spawn ('gio', ['remove', '-f', href]))
-}
+    return callback(spawn("gio", ["remove", "-f", href]));
+};
 
 /**
  * Remote a File or Directory using GIO (gvfs)
@@ -486,49 +441,38 @@ exports.rm = (href, callback) => {
  * @param {*} callback
  */
 exports.rm_async = (href, callback) => {
-    return callback(exec(`gio remove -f "${href}"`))
-}
+    return callback(exec(`gio remove -f "${href}"`));
+};
 
 exports.get_mounts = function () {
-
-    let devices = []
+    let devices = [];
     exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {
-        let output = stdout.split('\n')
-        output.forEach(item => {
-
-            let gio_mounts = item.split(': ')
-            let device = {}
+        let output = stdout.split("\n");
+        output.forEach((item) => {
+            let gio_mounts = item.split(": ");
+            let device = {};
             gio_mounts.forEach((gio_mount, idx) => {
-
                 if (idx % 2) {
-                    let mounts = gio_mount.trim().split(' -> ')
+                    let mounts = gio_mount.trim().split(" -> ");
 
                     mounts.forEach((item, idx) => {
-
                         if (!idx % 2) {
-                            device.name = item
+                            device.name = item;
                         } else {
-                            device.href = item
+                            device.href = item;
                         }
-
-                    })
-
+                    });
                 }
+            });
 
-            })
-
-            devices.push(device)
-
-        })
-    })
+            devices.push(device);
+        });
+    });
 
     return devices;
+};
 
-}
-
-exports.unmount = function () {
-
-}
+exports.unmount = function () {};
 
 /**
  * Convert Gio date time (Unix time stamp) to a formatted date and time
@@ -537,9 +481,12 @@ exports.unmount = function () {
  */
 exports.getDateTime = function (date) {
     try {
-        var d = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date * 1000));
+        var d = new Intl.DateTimeFormat("en", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(new Date(date * 1000));
         return d;
     } catch (err) {
         // console.log('gio getDateTime Format error')
     }
-}
+};

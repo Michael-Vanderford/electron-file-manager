@@ -1,13 +1,12 @@
-const { parentPort, workerData } = require('worker_threads');
-const fs = require('fs');
-const path = require('path');
+const { parentPort, workerData } = require("worker_threads");
+const fs = require("fs");
+const path = require("path");
 
 const copy_write = (source, destination, callback) => {
     // get the stats of the source
     const stats = fs.statSync(source);
 
     if (stats.isDirectory()) {
-
         // if it's a directory, create the destination directory if it doesn't exist
         if (!fs.existsSync(destination)) {
             fs.mkdirSync(destination);
@@ -22,13 +21,11 @@ const copy_write = (source, destination, callback) => {
             copy_write(sourcePath, destinationPath, () => {
                 count++;
                 if (count === files.length) {
-                    return callback('ok');
+                    return callback("ok");
                 }
             });
         });
-
     } else {
-
         // if it's a file, copy it to the destination
         const reader = fs.createReadStream(source);
         const writer = fs.createWriteStream(destination);
@@ -38,11 +35,10 @@ const copy_write = (source, destination, callback) => {
         cancelCopy = () => {
             reader.destroy();
             writer.destroy();
-            callback(new Error('Copy process was cancelled'));
+            callback(new Error("Copy process was cancelled"));
         };
 
         callback();
-
     }
 };
 
