@@ -1,0 +1,40 @@
+{
+    "window": {
+        "length": 1400,
+        "width": 1340,
+        "x": 2236,
+        "y": 231,
+        "height": 644
+    },
+    "display": {
+        "Icon Caption": {
+            "None": "None",
+            "Size": "Size"
+        }
+    },
+    "keyboard_shortcuts": {
+        "Backspace": "Backspace",
+        "ShowHome": "Alt+H",
+        "ShowWorkspace": "Alt+W",
+        "ShowSidebar": "Ctrl+B",
+        "ShowDevices": "Ctrl+D",
+        "ShowSettings": "",
+        "Find": "Ctrl+F",
+        "Down": "Down",
+        "Up": "Up",
+        "Left": "Left",
+        "Right": "Right",
+        "Rename": "F2",
+        "Cut": "Ctrl+X",
+        "Copy": "Ctrl+C",
+        "Paste": "Ctrl+V",
+        "SelectAll": "Ctrl+A",
+        "Delete": "Delete",
+        "Compress": "Shift+C",
+        "Extract": "Shift+E",
+        "Properties": "Ctrl+I",
+        "NewFolder": "Ctrl+Shift+N",
+        "AddWorkspace": "Ctrl+D",
+        "OpenNewTab": "Ctrl+Enter"
+    }
+}

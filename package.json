@@ -1,0 +1,19 @@
+{
+  "name": "string-file-manager",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "keywords": [],
+  "author": "michael.vanderford@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^24.1.3"
+  },
+  "dependencies": {
+    "bootstrap-icons": "^1.10.5",
+    "electron-store": "^8.1.0"
+  }
+}

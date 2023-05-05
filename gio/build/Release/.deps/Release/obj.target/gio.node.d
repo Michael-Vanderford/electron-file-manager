@@ -1,0 +1,1 @@
+cmd_Release/obj.target/gio.node := g++ -o Release/obj.target/gio.node -shared -pthread -rdynamic -m64  -Wl,-soname=gio.node -Wl,--start-group Release/obj.target/gio/src/gio.o -Wl,--end-group -lgio-2.0 -lgobject-2.0 -lglib-2.0

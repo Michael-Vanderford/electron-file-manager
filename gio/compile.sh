@@ -1,0 +1,1 @@
+node-gyp configure build --target=22.2.0 --dist-url=https://electronjs.org/headers
