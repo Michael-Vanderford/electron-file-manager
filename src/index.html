@@ -20,458 +20,414 @@
 
 <body data-theme="" id="body">
 
-    <div class="container">
+<div class="container">
 
-        <div class="ui grid hidden" style="margin-bottom: 0px;">
-            <div class="column sixteen wide">
-                <div class="ui top menu fixed" id="header_menu"
-                    style="border-top-left-radius: 15px !important; border-top-right-radius: 15px; background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
+    <div class="ui grid hidden" style="margin-bottom: 0px;">
+        <div class="column sixteen wide">
+            <div class="ui top menu fixed" id="header_menu"
+                 style="border-top-left-radius: 15px !important; border-top-right-radius: 15px; background-color:#222222 !important;font-size:1em !important; z-index: 4; padding:2px;">
 
 
-                    <div class="ui simple dropdown item" id="">
-                        File
-                        <div class="icon menu" style="background-color: #252525 !important; width:250px; ">
+                <div class="ui simple dropdown item" id="">
+                    File
+                    <div class="icon menu" style="background-color: #252525 !important; width:250px; ">
 
-                            <a class="item left block quit" style="color: #cfcfcf !important;">
-                                <i class="icon"></i>
-                                Quit
-                            </a>
-                        </div>
+                        <a class="item left block quit" style="color: #cfcfcf !important;">
+                            <i class="icon"></i>
+                            Quit
+                        </a>
                     </div>
-
-                    <a class="item" id="">
-                        Edit
-                    </a>
-                    <div class="ui dropdown item" id="">
-                        Tools
-                        <div class="menu" style="background-color: #252525 !important; width: 250px; z-index: 100;">
-
-                            <a id="" class="item block gnome_disks" style="color: #cfcfcf !important;">
-                                <i class="icon disk"></i>
-                                Disks
-                            </a>
-                            <a id="menu_dua" class="item block left" style="color: #cfcfcf !important;">
-                                <i class="icon chart pie"></i>
-                                Disk Usage Analyzer (baobab)
-                            </a>
-
-                        </div>
-                    </div>
-                    <div class="ui simple dropdown item" id="">
-                        View
-                        <div class="icon menu" style="background-color: #252525 !important; width: 250px">
-
-                            <a id="" class="item block" style="color: #cfcfcf !important;">
-                                <i class="icon sort amount down"></i>
-                                Sort by date
-                            </a>
-                            <a id="" class="item block left" style="color: #cfcfcf !important;">
-                                <i class="icon sort alphabet down"></i>
-                                Sort by name
-                            </a>
-                            <a id="" class="item block" style="color: #cfcfcf !important;">
-                                <i class="icon sort alphabet down"></i>
-                                Sort by size
-                            </a>
-                            <a id="" class="item block" style="color: #cfcfcf !important;">
-                                <i class="icon sort file alternative outline down"></i>
-                                Sort by type
-                            </a>
-
-                        </div>
-                    </div>
-                    <a class="item" id="">
-                        Window
-                    </a>
-                    <a class="item" id="">
-                        Help
-                    </a>
-
-
-                    <a class="item right block">
-                        <i id="min" class="icon minus"></i>
-                    </a>
-                    <a class="item block">
-                        <i id="max" class="icon square outline"></i>
-                    </a>
-                    <a class="item block quit">
-                        <i id="" class="icon times"></i>
-                    </a>
-
                 </div>
+
+                <a class="item" id="">
+                    Edit
+                </a>
+                <div class="ui dropdown item" id="">
+                    Tools
+                    <div class="menu" style="background-color: #252525 !important; width: 250px; z-index: 100;">
+
+                        <a id="" class="item block gnome_disks" style="color: #cfcfcf !important;">
+                            <i class="icon disk"></i>
+                            Disks
+                        </a>
+                        <a id="menu_dua" class="item block left" style="color: #cfcfcf !important;">
+                            <i class="icon chart pie"></i>
+                            Disk Usage Analyzer (baobab)
+                        </a>
+
+                    </div>
+                </div>
+                <div class="ui simple dropdown item" id="">
+                    View
+                    <div class="icon menu" style="background-color: #252525 !important; width: 250px">
+
+                        <a id="" class="item block" style="color: #cfcfcf !important;">
+                            <i class="icon sort amount down"></i>
+                            Sort by date
+                        </a>
+                        <a id="" class="item block left" style="color: #cfcfcf !important;">
+                            <i class="icon sort alphabet down"></i>
+                            Sort by name
+                        </a>
+                        <a id="" class="item block" style="color: #cfcfcf !important;">
+                            <i class="icon sort alphabet down"></i>
+                            Sort by size
+                        </a>
+                        <a id="" class="item block" style="color: #cfcfcf !important;">
+                            <i class="icon sort file alternative outline down"></i>
+                            Sort by type
+                        </a>
+
+                    </div>
+                </div>
+                <a class="item" id="">
+                    Window
+                </a>
+                <a class="item" id="">
+                    Help
+                </a>
+
+
+                <a class="item right block">
+                    <i id="min" class="icon minus"></i>
+                </a>
+                <a class="item block">
+                    <i id="max" class="icon square outline"></i>
+                </a>
+                <a class="item block quit">
+                    <i id="" class="icon times"></i>
+                </a>
+
             </div>
         </div>
+    </div>
 
-        <div class="" id="header_menus">
+    <div class="" id="header_menus">
 
-            <!-- FILE MENU -->
-            <div class="ui mini fixed menu six fluid" id="file_menu" style="height:20px; margin-top:0px;">
-                <a class="item grey" id="home">
-                    <i class="icon bi-house small "></i>
-                    Home
-                </a>
-                <a class="item" id="documents">
-                    <i class="icon bi-folder small"></i>
-                    Documents
-                </a>
-                <a class="item" id="downloads">
-                    <!-- <i class="download icon"></i> -->
-                    <i class="icon bi-download small"></i>
-                    Downloads
-                </a>
-                <a class="item" id="pictures">
-                    <!-- <i class="images icon"> </i> -->
-                    <i class="icon bi-images small"> </i>
-                    Pictures
-                </a>
-                <a class="item" id="videos">
-                    <!-- <i class="video icon"></i> -->
-                    <i class="icon bi-camera-video small"> </i>
-                    Videos
-                </a>
-                <a class="item" id="music" title="Music">
-                    <!-- <i class="music icon"></i> -->
-                    <i class="icon bi-music-note small"> </i>
-                    Music
-                </a>
+        <!-- FILE MENU -->
+        <div class="ui mini fixed menu six fluid" id="file_menu" style="height:20px; margin-top:0px;">
+            <a class="item grey" id="home">
+                <i class="icon bi-house middle"></i>
+                Home
+            </a>
+            <a class="item" id="documents">
+                <i class="icon bi-folder middle"></i>
+                Documents
+            </a>
+            <a class="item" id="downloads">
+                <i class="icon bi-download middle"></i>
+                Downloads
+            </a>
+            <a class="item" id="pictures">
+                <i class="icon bi-images middle"> </i>
+                Pictures
+            </a>
+            <a class="item" id="videos">
+                <i class="icon bi-camera-video middle"> </i>
+                Videos
+            </a>
+            <a class="item" id="music" title="Music">
+                <i class="icon bi-music-note middle"> </i>
+                Music
+            </a>
 
-                <!-- <div class="ui  menu horizontal "> -->
+            <!-- 여기를 추가한것입니다 134 to 147 -->
+            <!-- git init button -->
+            <a class="item button git" title="Git init">
+                <i class="icon bi-git middle"></i>
+            </a>
 
-                    <a class="item terminal" id="" title="Open a terminal in the current folder">
-                        <!-- <i class="terminal icon"></i> -->
-                        <i class="icon bi-terminal small"></i>
-                        <!-- Terminal -->
-                    </a>
+            <!-- git menu different by git status -->
+            <a class="item button menu" title="Git menu">
+                <i class="icon bi-menu-button middle"></i>
+            </a>
 
-                    <a class="item button gnome_disk" title="Gnome Disks">
-                        <!-- <div class="button" > -->
-                        <!-- <i class="icon disk"></i> -->
-                        <i class="icon bi-hdd small"></i>
-                        <!-- Disk Management -->
-                        <!-- </div> -->
-                    </a>
+            <!-- git commit button -->
+            <a class="item button show_hidden" title="Show hidden files and directories">
+                <i class="icon bi-box-arrow-in-down middle"></i>
+            </a>
 
-                    <a class="item button show_hidden" id="" title="Show hidden files and directories">
-                        <i class="ui icon eye small"></i>
-                    </a>
+            <div class="flex hidden" id="hamburger_menu">
 
-                    <a class="item date button" id="" title="Sort by Date (Click twice to change sort order)">
-                        <i class="small icon sort amount down"></i>
-                        <!-- Sort by date -->
-                    </a>
+                <div class="col">
 
-                    <a class="item" id="" title="Sort by Name (Click twice to change sort order)">
-                        <i class="icon sort alphabet down small"></i>
-                        <!-- Sort by name -->
-                    </a>
-
-                    <a class="item" id="" title="Sort by Size (Click twice to change sort order)">
-                        <i class="icon sort amount down small"></i>
-                        <!-- Sort by size -->
-                    </a>
-
-                    <a class="item" id="" title="Sort by Type (Click twice to change sort order)">
-                        <i class="icon sort file alternative outline down small"></i>
-                        <!-- Sort by type -->
-                    </a>
+                    <div class="header">View</div>
 
                     <!-- LIST VIEW -->
-                    <a class="item" id="" title="List view.">
-                        <i class="ui icon list small"></i>
+                    <a class="item list" id="btn_list_view" title="List view.">
+                        <i class="ui icon list small"></i> List
                     </a>
 
                     <!-- GRID VIEW -->
-                    <a class="item" id="" title="Grid view">
-                        <i class="ui icon th small"></i>
+                    <a class="item grid" id="btn_grid_view" title="Grid view">
+                        <i class="ui icon th small"></i> Grid
                     </a>
 
                     <!-- DISK SUMMARY VIEW -->
-                    <a class="item" id="" title="Disk summary view. Get a summary of disk usage.">
-                        <i class="ui icon disk small"></i>
+                    <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
+                        <i class="ui icon disk small"></i> Disk Summary
                     </a>
 
-                <!-- </div> -->
-
-                <div class="flex hidden" id="hamburger_menu">
-
-                    <div class="col">
-
-                        <div class="header">View</div>
-
-                        <!-- LIST VIEW -->
-                        <a class="item list" id="btn_list_view" title="List view.">
-                            <i class="ui icon list small"></i> List
-                        </a>
-
-                        <!-- GRID VIEW -->
-                        <a class="item grid" id="btn_grid_view" title="Grid view">
-                            <i class="ui icon th small"></i> Grid
-                        </a>
-
-                        <!-- DISK SUMMARY VIEW -->
-                        <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
-                            <i class="ui icon disk small"></i> Disk Summary
-                        </a>
-
-                        <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
-                            <i class="ui icon eye small"></i> Show hidden
-                        </a>
-
-                    </div>
-
-                    <div class="col">
-
-                        <div class="header">Sort</div>
-
-                        <a class="item date" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
-                            <i class="small icon sort amount down"></i> Date
-                        </a>
-
-                        <a class="item name" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
-                            <i class="icon sort alphabet down small"></i> Name
-                        </a>
-
-                        <a class="item size" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
-                            <i class="icon sort amount down small"></i> Size
-                        </a>
-
-                        <a class="item type" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
-                            <i class="icon sort file alternative outline down small"></i> Type
-                        </a>
-
-                    </div>
-
-                    <div class="col">
-
-                        <div class="header">Utilities</div>
-
-                        <a class="item terminal" id="terminal" title="Open a terminal in the current folder">
-                            <i class="icon bi-terminal small"></i> Open terminal
-                        </a>
-
-                        <a class="item button gnome_disks" title="Gnome Disks">
-                            <i class="icon bi-hdd small"></i> Gnome disks
-                        </a>
-
-                        <a class="item button toggle_theme" title="Toggle Theme">
-                            <i class="icon small"></i> Toggle Theme
-                        </a>
-
-                    </div>
+                    <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                        <i class="ui icon eye small"></i> Show hidden
+                    </a>
 
                 </div>
 
-                <!-- Settings -->
-                <div class="item right settings" style="display: none">
+                <div class="col">
 
-                    <input class="slider" type="range" id="icon_size_selector" value="1" min="0" max="4" step="0" title="Adjust icon size"></ipnut>
+                    <div class="header">Sort</div>
 
-                    <a class="item" id="btn_hamburger_menu">
-                        <i class="ui icon align justify"></i>
+                    <a class="item date" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
+                        <i class="small icon sort amount down"></i> Date
                     </a>
 
-                    <a class="item" id="btn_settings_view">
-                        <i class="ui icon cog"></i>
+                    <a class="item name" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
+                        <i class="icon sort alphabet down small"></i> Name
+                    </a>
+
+                    <a class="item size" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
+                        <i class="icon sort amount down small"></i> Size
+                    </a>
+
+                    <a class="item type" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
+                        <i class="icon sort file alternative outline down small"></i> Type
+                    </a>
+
+                </div>
+
+                <div class="col">
+
+                    <div class="header">Utilities</div>
+
+                    <a class="item terminal" id="terminal" title="Open a terminal in the current folder">
+                        <i class="icon bi-terminal small"></i> Open terminal
+                    </a>
+
+                    <a class="item button gnome_disks" title="Gnome Disks">
+                        <i class="icon bi-hdd small"></i> Gnome disks
+                    </a>
+
+                    <a class="item button toggle_theme" title="Toggle Theme">
+                        <i class="icon small"></i> Toggle Theme
                     </a>
 
                 </div>
 
             </div>
 
-            <!-- NAVIGATION MENU -->
-            <div id="navigation_menu" class="ui mini menu fixed bottom borderless" style="margin-top: -10px;">
+            <!-- Settings -->
+            <div class="item right settings" style="display: none">
 
-                <a class="item" id="left">
-                    <!-- <i class="ui icon chevron left" title="go back"></i> -->
-                    <i class="icon bi-chevron-left small" title="go back"></i>
-                </a>
-                <a class="item" id="right">
-                    <!-- <i class="ui icon  chevron right"></i> -->
-                    <i class="icon bi-chevron-right small" title="go back"></i>
+                <input class="slider" type="range" id="icon_size_selector" value="1" min="0" max="4" step="0"
+                       title="Adjust icon size"></ipnut>
+
+                <a class="item" id="btn_hamburger_menu">
+                    <i class="ui icon align justify"></i>
                 </a>
 
-               <!-- <a class="item"> -->
-                    <!-- <i class="ui icon chevron up"></i> -->
-                    <!-- <i class="icon bi-chevron-up small"></i> -->
-                <!-- </a> -->
-
-                <div class="" style="width:80%; height:20px">
-                    <div id="autocomplete" class="autocomplete" style="width:100%;">
-                        <div class="breadcrumbs buttons">
-                            <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
-                        </div>
-                        <input class="" spellcheck="false" type="text" id="breadcrumbs" tabindex="1" value="" />
-                        <div id="breadcrumb_items" class="hidden"></div>
-                    </div>
-                </div>
-
-                <!-- <div class="item"> -->
-                    <!-- <i class="icon history"></i> -->
-                <!-- </div> -->
-
-                <div class="item" id="status">
-                    <!-- status information can go here -->
-                </div>
-
-                <!-- LIST VIEW -->
-                <!-- <a class="item" id="btn_list_view" title="List view."> -->
-                    <!-- <i class="ui icon list small"></i> -->
-                <!-- </a> -->
-
-                <!-- GRID VIEW -->
-                <!-- <a class="item" id="btn_grid_view" title="Grid view"> -->
-                    <!-- <i class="ui icon th small"></i> -->
-                <!-- </a> -->
-
-                <!-- DISK SUMMARY VIEW -->
-                <!-- <a class="item" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage."> -->
-                    <!-- <i class="ui icon disk small"></i> -->
-                <!-- </a> -->
-
-                <!-- <div class="items menu horizontal alighed right"> -->
-                <!-- </div> -->
-
-            </div>
-
-        </div>
-
-        <div id="minibar" class="" style="display: none">
-
-            <div class="items">
-
-                <a class="item" id="mb_home" title="Home (Ctrl+B)">
-                    <i class="icon bi-house large"></i>
-                </a>
-                <br>
-                <a class="item" id="mb_workspace" title="Workspace">
-                    <i class="icon bi-clipboard large"></i>
-                </a>
-                <br>
-                <a class="item" id="mb_find" title="Find">
-                    <i class="icon bi-search large"></i>
-                </a>
-                <br>
-                <a class="item" id="mb_fs" title="File System">
-                    <i class="icon bi-hdd large"></i>
-                </a>
-                <br>
-                <a class="item" id="mb_devices" title="Devices">
-                    <i class="icon bi-usb-symbol large"></i>
-                </a>
-                <br>
-                <a class="item" id="mb_info" title="Info">
-                    <i class="icon bi-info-circle large"></i>
+                <a class="item" id="btn_settings_view">
+                    <i class="ui icon cog"></i>
                 </a>
 
             </div>
 
         </div>
 
-        <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1" style="display: none">
+        <!-- NAVIGATION MENU -->
+        <div id="navigation_menu" class="ui mini menu fixed bottom borderless" style="margin-top: -10px;">
 
-            <div id="sidebar_items" class="items">
-            </div>
+            <a class="item" id="left">
+                <!-- <i class="ui icon chevron left" title="go back"></i> -->
+                <i class="icon bi-chevron-left middle" title="go back"></i>
+            </a>
+            <a class="item" id="right">
+                <!-- <i class="ui icon  chevron right"></i> -->
+                <i class="icon bi-chevron-right middle" title="go back"></i>
+            </a>
 
-            <div style="display: flex;">
-                <div id="file_properties" class="">
+            <!-- <a class="item"> -->
+            <!-- <i class="ui icon chevron up"></i> -->
+            <!-- <i class="icon bi-chevron-up small"></i> -->
+            <!-- </a> -->
+
+            <div class="" style="width:80%; height:20px">
+                <div id="autocomplete" class="autocomplete" style="width:100%;">
+                    <div class="breadcrumbs buttons">
+                        <!-- MAKE SOME BREADCRUMB BUTTONS HERE -->
+                    </div>
+                    <input class="" spellcheck="false" type="text" id="breadcrumbs" tabindex="1" value="" />
+                    <div id="breadcrumb_items" class="hidden"></div>
                 </div>
             </div>
-        </aside>
 
-        <div id="draghandle" class="draghandle"></div>
+            <!-- <div class="item"> -->
+            <!-- <i class="icon history"></i> -->
+            <!-- </div> -->
 
-        <!-- Main view -->
-        <div class="" id="main_view">
-
-            <div class="ui top attached tabular menu tiny hidden">
-                <a class="active item" data-tab="1"></a>
+            <div class="item" id="status">
+                <!-- status information can go here -->
             </div>
 
+            <!-- LIST VIEW -->
+            <!-- <a class="item" id="btn_list_view" title="List view."> -->
+            <!-- <i class="ui icon list small"></i> -->
+            <!-- </a> -->
 
+            <!-- GRID VIEW -->
+            <!-- <a class="item" id="btn_grid_view" title="Grid view"> -->
+            <!-- <i class="ui icon th small"></i> -->
+            <!-- </a> -->
 
-            <!-- Loader -->
-            <div id="loader" class="ui centered loader"></div>
+            <!-- DISK SUMMARY VIEW -->
+            <!-- <a class="item" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage."> -->
+            <!-- <i class="ui icon disk small"></i> -->
+            <!-- </a> -->
 
-            <!-- Tabs view -->
-            <div class="fm tabs hidden" id="tabs">
-                <div class="fm tab-content" id="tab_content"></div>
-            </div>
-
-            <!-- Info view -->
-            <div class="view" id="info_view"></div>
-
-            <!-- List view -->
-            <div class="view" id="list_view" style="margin-top: 5px"></div>
-
-            <!-- Icon view -->
-            <div class="view " id="grid_view" style="margin-top: 10px">
-
-                <!-- FOLDERS -->
-                <div class="ui card fluid folders_card border-none" id="folders_card">
-
-                    <div class="ui grid stackable navigate" id="folder_grid">
-                    </div>
-
-                    <div class="ui grid  stackable navigate hidden" id="hidden_folder_grid">
-                    </div>
-
-                </div>
-
-                <!-- FILES -->
-                <div class="ui card fluid files_card border-none" id="files_card">
-
-                    <div class="content">
-                        <div class="ui grid stackable navigate" id="file_grid"></div>
-                        <div class="ui grid stackable navigate hidden" id="hidden_file_grid"></div>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <!-- Paging -->
-            <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
-
-            <div class="ui inverted dimmer">
-                <div class="ui text hidden loader">Loading</div>
-            </div>
-            <div id="msg"></div>
-
-
-            <!-- Notice -->
-            <div class="hidden" id="notice"></div>
-
-            <div class="inlinesearch">
-                <input spellcheck="true" type="text" id="txt_search" class="hidden" value="" placeholder="quick search">
-            </div>
-
-            <!-- Bottom status info -->
-            <div id="notification" class="fixed middle bottom hidden">
-                <!--  -->
-            </div>
-
-            <!-- Progress bar -->
-            <div id="progress_div" class="hidden">
-
-                <div style="display: flex; padding: 5px">
-                    <div>
-                        <div id="progress_msg" class=""></div>
-                        <progress id="progress" class="hidden"></progress>
-                        <input type="button" id="cancel_operation" class="ui mini red button" style="margin-left: auto;" value="cancel">
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="fixed middle bottom">
-                <!-- <input type="range" id="icon_size_selector" value="1" min="0" max="3" step="0" title="Adjust icon size"></ipnut> -->
-            </div>
-
+            <!-- <div class="items menu horizontal alighed right"> -->
+            <!-- </div> -->
 
         </div>
 
     </div>
+
+    <div id="minibar" class="" style="display: none">
+
+        <div class="items">
+
+            <a class="item" id="mb_home" title="Home (Ctrl+B)">
+                <i class="icon bi-house large"></i>
+            </a>
+            <br>
+            <a class="item" id="mb_workspace" title="Workspace">
+                <i class="icon bi-clipboard large"></i>
+            </a>
+            <br>
+            <a class="item" id="mb_find" title="Find">
+                <i class="icon bi-search large"></i>
+            </a>
+            <br>
+            <a class="item" id="mb_fs" title="File System">
+                <i class="icon bi-hdd large"></i>
+            </a>
+            <br>
+            <a class="item" id="mb_devices" title="Devices">
+                <i class="icon bi-usb-symbol large"></i>
+            </a>
+            <br>
+            <a class="item" id="mb_info" title="Info">
+                <i class="icon bi-info-circle large"></i>
+            </a>
+
+        </div>
+
+    </div>
+
+    <aside id="sidebar" draggable="true" class="sidebar sidebar-left" tabindex="1" style="display: none">
+
+        <div id="sidebar_items" class="items">
+        </div>
+
+        <div style="display: flex;">
+            <div id="file_properties" class="">
+            </div>
+        </div>
+    </aside>
+
+    <div id="draghandle" class="draghandle"></div>
+
+    <!-- Main view -->
+    <div class="" id="main_view">
+
+        <div class="ui top attached tabular menu tiny hidden">
+            <a class="active item" data-tab="1"></a>
+        </div>
+
+
+        <!-- Loader -->
+        <div id="loader" class="ui centered loader"></div>
+
+        <!-- Tabs view -->
+        <div class="fm tabs hidden" id="tabs">
+            <div class="fm tab-content" id="tab_content"></div>
+        </div>
+
+        <!-- Info view -->
+        <div class="view" id="info_view"></div>
+
+        <!-- List view -->
+        <div class="view" id="list_view" style="margin-top: 5px"></div>
+
+        <!-- Icon view -->
+        <div class="view " id="grid_view" style="margin-top: 10px">
+
+            <!-- FOLDERS -->
+            <div class="ui card fluid folders_card border-none" id="folders_card">
+
+                <div class="ui grid stackable navigate" id="folder_grid">
+                </div>
+
+                <div class="ui grid  stackable navigate hidden" id="hidden_folder_grid">
+                </div>
+
+            </div>
+
+            <!-- FILES -->
+            <div class="ui card fluid files_card border-none" id="files_card">
+
+                <div class="content">
+                    <div class="ui grid stackable navigate" id="file_grid"></div>
+                    <div class="ui grid stackable navigate hidden" id="hidden_file_grid"></div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Paging -->
+        <div id="pager" class="" style="margin-left:20px; margin-top:10px"></div>
+
+        <div class="ui inverted dimmer">
+            <div class="ui text hidden loader">Loading</div>
+        </div>
+        <div id="msg"></div>
+
+
+        <!-- Notice -->
+        <div class="hidden" id="notice"></div>
+
+        <div class="inlinesearch">
+            <input spellcheck="true" type="text" id="txt_search" class="hidden" value="" placeholder="quick search">
+        </div>
+
+        <!-- Bottom status info -->
+        <div id="notification" class="fixed middle bottom hidden">
+            <!--  -->
+        </div>
+
+        <!-- Progress bar -->
+        <div id="progress_div" class="hidden">
+
+            <div style="display: flex; padding: 5px">
+                <div>
+                    <div id="progress_msg" class=""></div>
+                    <progress id="progress" class="hidden"></progress>
+                    <input type="button" id="cancel_operation" class="ui mini red button" style="margin-left: auto;"
+                           value="cancel">
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="fixed middle bottom">
+            <!-- <input type="range" id="icon_size_selector" value="1" min="0" max="3" step="0" title="Adjust icon size"></ipnut> -->
+        </div>
+
+
+    </div>
+
+</div>
 
 </body>
 
