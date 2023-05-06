@@ -3733,10 +3733,13 @@ const getGitStatus = (filePath, isDirectory) => {
 
             let gitStatusResult = stdout.trim().split(" ")[0];
             if(gitStatusResult === ""){
+                // Unmodified / Committed File
                 resolve(0);
             }else if(gitStatusResult === "M" || gitStatusResult === "MM"){
+                // Modified / Staged File
                 resolve(1);
             }else{
+                // Untracked / New File
                 resolve(2);
             }
         });
