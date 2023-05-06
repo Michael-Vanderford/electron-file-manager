@@ -3720,7 +3720,9 @@ ipcMain.on("quit", () => {
 
 const getGitStatus = (filePath, isDirectory) => {
     return new Promise((resolve) => {
-        let cmd = `cd ${path.dirname(filePath).replaceAll(' ', '\\ ')} && git status -s ${isDirectory ? path.dirname(filePath).replaceAll(' ', '\\ ') : path.basename(filePath).replaceAll(' ', '\\ ')}`;
+        let filePathBase = path.basename(filePath).replaceAll(' ', '\\ ');
+        let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+        let cmd = `cd ${filePathDir} && git status -s ${isDirectory ? filePathDir : filePathBase}`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 console.log(`Error: ${error.message}`);
