@@ -3649,6 +3649,18 @@ ipcMain.on("show-context-menu-files", (e, args) => {
 
     getGitStatus(args.href, false).then((fileStatus) => {
         console.log(fileStatus);
+
+        if(fileStatus === 0){
+            // git rm --cached
+            // git rm
+            // git mv
+        }else if(fileStatus === 1){
+            // git add
+            // git restore
+            // git restore --staged
+        }else if(fileStatus === 2){
+            // git add
+        }
     });
 
     let menu = Menu.buildFromTemplate(files_menu_template);
@@ -3741,7 +3753,7 @@ const getGitStatus = (filePath, isDirectory) => {
                 // Modified / Staged File
                 resolve(1);
             }else{
-                // Untracked / New File
+                // Untracked File
                 resolve(2);
             }
         });
