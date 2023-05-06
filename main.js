@@ -3646,6 +3646,11 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             },
         },
     ];
+
+    getGitStatus(args.href, false).then((fileStatus) => {
+        console.log(fileStatus);
+    });
+
     let menu = Menu.buildFromTemplate(files_menu_template);
 
     // ADD TEMPLATES
@@ -3712,3 +3717,28 @@ app.on("window-all-closed", () => {
 ipcMain.on("quit", () => {
     app.quit();
 });
+
+const getGitStatus = (filePath, isDirectory) => {
+    return new Promise((resolve) => {
+        let cmd = `cd ${path.dirname(filePath)} && git status -s ${isDirectory ? path.dirname(filePath) : path.basename(filePath)}`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                resolve(-1);
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                resolve(-1);
+            }
+
+            let gitStatusResult = stdout.trim().split(" ")[0];
+            if(gitStatusResult === ""){
+                resolve(0);
+            }else if(gitStatusResult === "M" || gitStatusResult === "MM"){
+                resolve(1);
+            }else{
+                resolve(2);
+            }
+        });
+    });
+}
