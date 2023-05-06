@@ -4527,89 +4527,33 @@ async function get_view(dir) {
     let file_menu_items = file_menu.querySelectorAll(".item");
 
     let sidebar_items = document.getElementById("sidebar_items");
-    let sidebar_menu_items = sidebar_items.querySelectorAll(".item");
 
-    /* Get reference to grids */
-    let grid_view = document.getElementById("grid_view");
+    /* Get reference to list */
     let list_view = document.getElementById("list_view");
-    let info_view = document.getElementById("info_view");
 
-    view0 = view;
-    view = localStorage.getItem("view");
+    file_menu_items.forEach((item) => {
+        if (item.innerText === path.basename(dir)) {
+            item.classList.add("active");
+        } else {
+            item.classList.remove("active");
+        }
+    });
 
-    /* Grid View */
-    if (view === "grid") {
-        file_menu_items.forEach((item) => {
-            if (item.innerText == path.basename(dir)) {
-                item.classList.add("active");
-            } else {
-                item.classList.remove("active");
-            }
-        });
+    let btn_list_view = document.getElementById("btn_list_view");
+    btn_list_view.classList.add("active");
+    btn_grid_view.classList.remove("active");
+    btn_disk_view.classList.remove("active");
 
-        let btn_grid_view = document.getElementById("btn_grid_view");
-        btn_grid_view.classList.add("active");
-        btn_list_view.classList.remove("active");
-        btn_disk_view.classList.remove("active");
+    list_view.classList.remove("hidden");
+    list_view.innerHTML = "";
 
-        grid_view.classList.remove("hidden");
+    info_view.classList.add("hidden");
+    info_view.innerHTML = "";
 
-        list_view.classList.add("hidden");
-        list_view.innerHTML = "";
+    grid_view.classList.add("hidden");
 
-        info_view.classList.add("hidden");
-        info_view.innerHTML = "";
-
-        // Add tab if first page
-        let tabs = document.getElementById("tabs");
-        tabs.innerHTML = "";
-
-        // Get grid view
-        get_grid_view(dir);
-
-        /* List View */
-    } else if (view === "list") {
-        file_menu_items.forEach((item) => {
-            if (item.innerText === path.basename(dir)) {
-                item.classList.add("active");
-            } else {
-                item.classList.remove("active");
-            }
-        });
-
-        let btn_list_view = document.getElementById("btn_list_view");
-        btn_list_view.classList.add("active");
-        btn_grid_view.classList.remove("active");
-        btn_disk_view.classList.remove("active");
-
-        list_view.classList.remove("hidden");
-        list_view.innerHTML = "";
-
-        info_view.classList.add("hidden");
-        info_view.innerHTML = "";
-
-        grid_view.classList.add("hidden");
-
-        get_list_view(dir);
-
-        /* Disk Summary */
-    } else if (view === "disk_summary") {
-        let btn_disk_view = document.getElementById("btn_disk_view");
-        btn_disk_view.classList.add("active");
-        btn_list_view.classList.remove("active");
-        btn_grid_view.classList.remove("active");
-
-        info_view.classList.remove("hidden");
-        info_view.innerHTML = "";
-
-        list_view.classList.add("hidden");
-        grid_view.classList.add("hidden");
-        localStorage.setItem("view", view0);
-
-        get_disk_summary_view();
-    } else if (view === "settings") {
-        get_settings_view();
-    }
+    localStorage.setItem("view", "list");
+    get_list_view(dir);
 
     /* Change target on view */
     ipcRenderer.send("is_main_view", 1);
