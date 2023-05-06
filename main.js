@@ -3645,6 +3645,14 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 e.sender.send("context-menu-command", "props");
             },
         },
+        {
+            type: "separator",
+        },
+        {
+            id: "vcs",
+            label: "Git",
+            submenu: [],
+        },
     ];
 
     let menu = Menu.buildFromTemplate(files_menu_template);
@@ -3652,9 +3660,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
     getGitStatus(args.href, false).then((fileStatus) => {
         console.log(fileStatus);
 
-        let gitMenuList = [{
-            type: "separator",
-        }];
+        let gitMenuList = [];
         if(fileStatus === 0){
             // git rm --cached
             gitMenuList.push(
@@ -3724,35 +3730,41 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         }
 
         console.log(gitMenuList);
+        gitMenuList.forEach((gitMenuItem) => {
+            console.log(gitMenuItem);
+            menu.getMenuItemById("vcs").submenu.append(
+                new MenuItem(gitMenuItem)
+            );
+        });
+
+        // ADD TEMPLATES
+        add_templates_menu(menu, e, args);
+
+        // ADD LAUNCHER MENU
+        add_launcher_menu(menu, e, args.apps);
+
+        // Run as program
+        if (args.access) {
+            add_execute_menu(menu, e, args);
+        }
+
+        let ext = path.extname(args.href);
+        if (ext === ".mp4" || ext === ".mp3") {
+            add_convert_audio_menu(menu, args.href);
+        }
+
+        if (
+            ext === ".xz" ||
+            ext === ".gz" ||
+            ext === ".zip" ||
+            ext === ".img" ||
+            ext === ".tar"
+        ) {
+            extract_menu(menu, e, args);
+        }
+
+        menu.popup(BrowserWindow.fromWebContents(e.sender));
     });
-
-    // ADD TEMPLATES
-    add_templates_menu(menu, e, args);
-
-    // ADD LAUNCHER MENU
-    add_launcher_menu(menu, e, args.apps);
-
-    // Run as program
-    if (args.access) {
-        add_execute_menu(menu, e, args);
-    }
-
-    let ext = path.extname(args.href);
-    if (ext === ".mp4" || ext === ".mp3") {
-        add_convert_audio_menu(menu, args.href);
-    }
-
-    if (
-        ext === ".xz" ||
-        ext === ".gz" ||
-        ext === ".zip" ||
-        ext === ".img" ||
-        ext === ".tar"
-    ) {
-        extract_menu(menu, e, args);
-    }
-
-    menu.popup(BrowserWindow.fromWebContents(e.sender));
 });
 
 // CREATE WINDOW
