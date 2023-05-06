@@ -3647,23 +3647,84 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
     ];
 
+    let menu = Menu.buildFromTemplate(files_menu_template);
+
     getGitStatus(args.href, false).then((fileStatus) => {
         console.log(fileStatus);
 
+        let gitMenuList = [{
+            type: "separator",
+        }];
         if(fileStatus === 0){
             // git rm --cached
+            gitMenuList.push(
+                {
+                    label: "Git: Untrack",
+                    click: () => {
+                        console.log("git rm --cached")
+                    },
+                }
+            )
             // git rm
+            gitMenuList.push(
+                {
+                    label: "Git: Delete",
+                    click: () => {
+                        console.log("git rm")
+                    },
+                }
+            )
             // git mv
+            gitMenuList.push(
+                {
+                    label: "Git: Rename",
+                    click: () => {
+                        console.log("git mv")
+                    },
+                }
+            )
         }else if(fileStatus === 1){
             // git add
+            gitMenuList.push(
+                {
+                    label: "Git: Add to Stage",
+                    click: () => {
+                        console.log("git add")
+                    },
+                }
+            )
             // git restore
+            gitMenuList.push(
+                {
+                    label: "Git: Undo Modification",
+                    click: () => {
+                        console.log("git restore")
+                    },
+                }
+            )
             // git restore --staged
+            gitMenuList.push(
+                {
+                    label: "Git: Unstage",
+                    click: () => {
+                        console.log("git restore --staged")
+                    },
+                }
+            )
         }else if(fileStatus === 2){
             // git add
+            gitMenuList.push(
+                {
+                    label: "Git: Add to Stage",
+                    click: () => {
+                        console.log("git add")
+                    },
+                }
+            )
         }
-    });
 
-    let menu = Menu.buildFromTemplate(files_menu_template);
+        console.log(gitMenuList);
+    });
 
     // ADD TEMPLATES
     add_templates_menu(menu, e, args);
