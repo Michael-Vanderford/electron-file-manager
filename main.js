@@ -297,10 +297,9 @@ function AddSysNotification(title, body) {
 
 function isGioFile(href) {
     if (
-        href !== null &&
-        (href.indexOf("smb://") > -1 ||
-            href.indexOf("sftp://") > -1 ||
-            href.indexOf("mtp://") > -1)
+        href.indexOf("smb://") > -1 ||
+        href.indexOf("sftp://") > -1 ||
+        href.indexOf("mtp://") > -1
     ) {
         return 1;
     } else {

@@ -265,7 +265,7 @@ ipcRenderer.on("confirm_delete", (e, delete_arr) => {
     let cancel_delete_button = document.getElementById("cancel_delete_button");
 
     delete_arr.forEach((item) => {
-        if (item.source) delete_files.append(item.source, add_br());
+        if (item.source !== null) delete_files.append(item.source, add_br());
     });
 
     delete_button.onclick = (e) => {
@@ -8787,9 +8787,9 @@ function delete_files() {
             list += href + "\n";
 
             item.classList.remove(
-                ".highlight",
-                ".highlight_select",
-                ".ds-selected"
+                "highlight",
+                "highlight_select",
+                "ds-selected"
             );
         }
         ipcRenderer.send("confirm_file_delete", delete_arr);
