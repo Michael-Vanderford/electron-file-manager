@@ -3845,17 +3845,6 @@ const runGitCommand = (filePath, gitCmd) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
-
-        let gitStatusResult = stdout.trim().split(" ")[0];
-        if(gitStatusResult === ""){
-            // Unmodified / Committed File
-            resolve(0);
-        }else if(gitStatusResult === "M" || gitStatusResult === "MM"){
-            // Modified / Staged File
-            resolve(1);
-        }else{
-            // Untracked File
-            resolve(2);
-        }
+        resolve(1);
     });
 }
