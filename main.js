@@ -3730,9 +3730,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             )
         }
 
-        console.log(gitMenuList);
         gitMenuList.forEach((gitMenuItem) => {
-            console.log(gitMenuItem);
             menu.getMenuItemById("vcs").submenu.append(
                 new MenuItem(gitMenuItem)
             );
