@@ -3699,6 +3699,16 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                     },
                 }
             )
+        }else if(fileStatus === 2){
+            // git add
+            gitMenuList.push(
+                {
+                    label: "Git: Add to Stage",
+                    click: () => {
+                        runGitCommand(args.href, "git add")
+                    },
+                }
+            )
             // git restore
             gitMenuList.push(
                 {
@@ -3708,22 +3718,13 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                     },
                 }
             )
+        }else if(fileStatus === 3){
             // git restore --staged
             gitMenuList.push(
                 {
                     label: "Git: Unstage",
                     click: () => {
                         runGitCommand(args.href, "git restore --staged")
-                    },
-                }
-            )
-        }else if(fileStatus === 2){
-            // git add
-            gitMenuList.push(
-                {
-                    label: "Git: Add to Stage",
-                    click: () => {
-                        runGitCommand(args.href, "git add")
                     },
                 }
             )
@@ -3819,15 +3820,20 @@ const getGitStatus = (filePath, isDirectory) => {
             }
 
             let gitStatusResult = stdout.trim().split(" ")[0];
-            if(gitStatusResult === ""){
-                // Unmodified / Committed File
-                resolve(0);
-            }else if(gitStatusResult === "M" || gitStatusResult === "MM"){
-                // Modified / Staged File
+            if(stdout[0] === "M" && stdout[1] === "M"){
+
+            }else if(stdout[0] === "M"){
+                // Staged File
+                resolve(3);
+            }else if(stdout[1] === "M"){
+                // Modified File
+                resolve(2);
+            }else if(stdout[0] === "?"){
+                // Untracked File
                 resolve(1);
             }else{
-                // Untracked File
-                resolve(2);
+                // Unmodified / Committed File
+                resolve(0);
             }
         });
     });
