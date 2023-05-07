@@ -4815,6 +4815,10 @@ async function get_list_view(dir) {
             show: 1,
         },
         {
+            name: "Git Status",
+            show: 1
+        },
+        {
             name: "Size",
             sort: 3,
             show: 1,
@@ -5129,6 +5133,10 @@ async function get_list_view(dir) {
                                             timeStyle: "short",
                                         }).format(stats.birthtime)
                                     );
+                                    break;
+                                }
+                                case "Git Status": {
+                                    td.append("status");
                                     break;
                                 }
                             }
