@@ -9810,3 +9810,18 @@ ipcRenderer.on("confirm_git_rename", (e, filePath) => {
         ipcRenderer.send("git_rename_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_commit", (e, filePath) => {
+    let btn_git_commit_confirm = document.getElementById("btn_git_commit_confirm");
+    let btn_git_commit_cancel = document.getElementById("btn_git_commit_cancel");
+    let git_commit_input = document.getElementById("git_commit_message_input");
+
+    btn_git_commit_confirm.onclick = (e) => {
+        let commit_input_str = git_commit_input.value;
+        ipcRenderer.send("git_commit_confirmed", filePath, commit_input_str);
+    };
+
+    btn_git_commit_cancel.onclick = (e) => {
+        ipcRenderer.send("git_commit_canceled");
+    };
+});
