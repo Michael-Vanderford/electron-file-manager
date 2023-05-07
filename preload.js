@@ -1,14 +1,19 @@
 const { ipcRenderer, shell } = require('electron');
-const path  = require('path');
-const fs    = require('fs');
-const os    = require('os')
+const path       = require('path');
+const fs         = require('fs');
+const os         = require('os')
+const DragSelect = require('dragselect')
 
 // Global Arrays
 let selected_files_arr  = [];
-let copy_arr            = []
-
+let copy_arr            = [];
 
 // IPC ///////////////////////////////////////////////////////////////////
+
+// Msg
+ipcRenderer.on('msg', (e, message) => {
+    msg(message);
+})
 
 // Confirm delete
 ipcRenderer.on('confirm_delete', (e, delete_arr) => {
@@ -21,8 +26,11 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
     let cancel_delete_button = document.getElementById('cancel_delete_button')
     let br = document.createElement('br')
 
-    delete_arr.forEach(item => {
-        delete_files.append(item, br);
+    delete_arr.forEach(href => {
+        let item = document.createElement('div')
+        item.classList.add('item')
+        item.append(href)
+        delete_files.append(item);
     })
 
     delete_button.onclick = (e) => {
@@ -42,13 +50,15 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 
 })
 
-
 // Get Card
 ipcRenderer.on('get_card', (e, file) => {
-    let card = getCard(file)
+    let card = getCard(file);
     if (file.type == 'directory') {
-        let folder_grid = document.getElementById('folder_grid')
-        folder_grid.prepend(card)
+        let folder_grid = document.getElementById('folder_grid');
+        folder_grid.prepend(card);
+    } else {
+        let file_grid = document.getElementById('file_grid');
+        file_grid.prepend(card);
     }
 })
 
@@ -88,20 +98,28 @@ ipcRenderer.on('set_progress', (e, data) => {
 // Context Menu Commands
 ipcRenderer.on('context-menu-command', (e, cmd) => {
 
+    let location = document.getElementById('location')
+
     switch (cmd) {
+        case 'mkdir': {
+            console.log('running new folder')
+            ipcRenderer.send('mkdir', `${path.join(location.value, 'New Folder')}`)
+            break;
+        }
         case 'copy': {
             getSelectedFiles();
             break
         }
         case 'paste': {
             paste();
+            break;
         }
         case 'delete': {
             getSelectedFiles();
             ipcRenderer.send('delete', (selected_files_arr));
             selected_files_arr = []
+            break;
         }
-
     }
 
 })
@@ -167,7 +185,10 @@ function msg(message) {
     if (message.indexOf('error' > -1)) {
         msg.classList.add('error')
     }
-    msg.append(message);
+    if (message === '') {
+        msg.classList.add('hidden');
+    }
+    msg.innerHTML = message;
 }
 
 /**
@@ -326,6 +347,14 @@ function getCard(file) {
             ipcRenderer.invoke('open', file.href);
         })
         size.append(getFileSize(file["size"]));
+
+        // Context Menu
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            card.classList.add('highlight_select')
+            ipcRenderer.send('file_menu');
+        })
     }
 
     // Mouse Over
@@ -351,11 +380,17 @@ function getCard(file) {
         }
     })
 
+    try {
+        ds.addSelectables(card)
+    } catch (err) {
+    }
+
     date.append(getDateTime(file["time::modified"]));
     icon.append(img);
 
     content.append(href, date, size);
     card.append(icon, content);
+
     return card;
 }
 
@@ -524,9 +559,17 @@ window.addEventListener('DOMContentLoaded', (e) => {
             if (e.key == 'Escape') {
                 clearContextMenu(e);
             }
+
+            // Reload
             if (e.key === 'F5') {
                 get_grid_view(location.value, () => {})
             }
+
+            if (e.key === 'Backspace') {
+                location.value = path.dirname(location.value)
+                get_grid_view(location.value)
+            }
+
         })
 
         let view = 'grid';

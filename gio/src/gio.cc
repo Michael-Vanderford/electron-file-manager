@@ -52,6 +52,44 @@
 //     }
 // }
 
+NAN_METHOD(icon) {
+
+    Nan:: HandleScope scope;
+
+    if (info.Length() < 1) {
+        return Nan::ThrowError("Wrong number of arguments");
+    }
+
+    v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+
+    v8::Isolate* isolate = info.GetIsolate();
+    v8::String::Utf8Value sourceFile(isolate, sourceString);
+
+    GFile* src = g_file_new_for_path(*sourceFile);
+
+    const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    if (src_scheme != NULL) {
+        src = g_file_new_for_uri(*sourceFile);
+    }
+
+    // GIcon* icon = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_ICON, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+
+    // // Get the filename of the icon
+    // const char* icon_name = g_icon_to_string(icon);
+
+    // // Get the theme icon for the GIcon
+    // GtkIconTheme* theme = gtk_icon_theme_get_default();
+    // GdkPixbuf* pixbuf = gtk_icon_theme_load_icon(theme, icon_name, 16, 0, NULL);
+
+    // // Print the filename of the icon
+    // printf("%s\n", icon_name);
+
+    // // Cleanup
+    // g_object_unref(icon);
+    // g_object_unref(src);
+
+}
+
 NAN_METHOD(cp) {
 
     Nan:: HandleScope scope;

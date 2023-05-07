@@ -11,6 +11,7 @@ function get_files_arr (source, destination, callback) {
     gio_utils.get_dir(source, dirents => {
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
+            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
             if (file.type == 'directory') {
                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
@@ -18,6 +19,8 @@ function get_files_arr (source, destination, callback) {
             }
         }
         if (--cp_recursive == 0) {
+            parentPort.postMessage({cmd: 'msg', msg: ``})
+
             let file_arr1 = file_arr;
             file_arr = []
             return callback(file_arr1);
@@ -25,8 +28,16 @@ function get_files_arr (source, destination, callback) {
     })
 }
 
+// Handle Worker Messages
 parentPort.on('message', data => {
 
+    // New Folder
+    if (data.cmd === 'mkdir') {
+        gio.mkdir(data.destination)
+        parentPort.postMessage({cmd: 'copy_done', destination: data.destination})
+    }
+
+    // Delete Confirmed
     if (data.cmd === 'delete_confirmed') {
         // console.log('worker', data.files_arr)
         let idx = 0;
@@ -41,65 +52,82 @@ parentPort.on('message', data => {
             let del_item = del_arr[idx];
             idx++
 
-            get_files_arr(del_item, del_item, dirents => {
+            gio_utils.get_file(del_item, file => {
 
-                let cpc = 0;
+                if (file.type === 'directory') {
 
-                // Delete files
-                for (let i = 0; i < dirents.length; i++) {
-                    let f = dirents[i]
-                    if (f.type == 'file') {
-                        cpc++
-                        gio.rm(f.source)
-                        data = {
-                            cmd: 'progress',
-                            msg: `Deleted File ${f.source}`,
-                            max: dirents.length,
-                            value: cpc
+                    get_files_arr(del_item, del_item, dirents => {
+
+                        let cpc = 0;
+
+                        // Delete files
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'file') {
+                                cpc++
+                                gio.rm(f.source)
+                                data = {
+                                    cmd: 'progress',
+                                    msg: `Deleted File ${path.basename(f.source)}`,
+                                    max: dirents.length,
+                                    value: cpc
+                                }
+                                parentPort.postMessage(data)
+                            }
                         }
-                        parentPort.postMessage(data)
-                    }
-                }
 
-                // Sort directories
-                dirents.sort((a,b) => {
-                    return b.source.length - a.source.length;
-                })
+                        // Sort directories
+                        dirents.sort((a,b) => {
+                            return b.source.length - a.source.length;
+                        })
 
-                // Delete directories
-                for (let i = 0; i < dirents.length; i++) {
-                    let f = dirents[i]
-                    if (f.type == 'directory') {
-                        cpc++
-                        gio.rm(f.source)
-                        data = {
-                            cmd: 'progress',
-                            msg: `Deleted Folder ${f.source}`,
-                            max: dirents.length,
-                            value: cpc
+                        // Delete directories
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'directory') {
+                                cpc++
+                                gio.rm(f.source)
+                                data = {
+                                    cmd: 'progress',
+                                    msg: `Deleted Folder ${path.basename(f.source)}`,
+                                    max: dirents.length,
+                                    value: cpc
+                                }
+                                parentPort.postMessage(data)
+                            }
                         }
-                        parentPort.postMessage(data)
-                    }
-                }
 
-                if (cpc === dirents.length) {
-                    console.log('done deliting files');
+                        if (cpc === dirents.length) {
+                            console.log('done deliting files');
+                            data = {
+                                cmd: 'delete_done',
+                                source: del_item
+                            }
+                            parentPort.postMessage(data)
+                            delete_next();
+                        }
+
+                    })
+
+                } else {
+
+                    gio.rm(del_item);
                     data = {
                         cmd: 'delete_done',
                         source: del_item
                     }
                     parentPort.postMessage(data)
                     delete_next();
+
                 }
-
             })
-
+            
         }
-
         delete_next();
-
     }
 
+    // Past Files
+    // todo: this needs file conflict handling added
     if (data.cmd == 'paste') {
 
         let idx = 0;
@@ -114,60 +142,78 @@ parentPort.on('message', data => {
             let copy_item = copy_arr[idx];
             idx++
 
-            if (copy_item.source === copy_item.destination) {
-                parentPort.postMessage({cmd: 'msg', msg: 'Error: Source and Destination are the Same'})
-                return;
-            }
+            let file = gio_utils.get_file(copy_item.source, file => {
 
-            get_files_arr(copy_item.source, copy_item.destination, dirents => {
+                if (file.type === 'directory') {
 
-                let cpc = 0;
-
-                for (let i = 0; i < dirents.length; i++) {
-                    let f = dirents[i]
-                    if (f.type == 'directory') {
-                        cpc++
-                        gio.mkdir(f.destination)
-                        data = {
-                            cmd: 'progress',
-                            msg: `Copied Folder ${f.source}`,
-                            max: dirents.length,
-                            value: cpc
-                        }
-                        parentPort.postMessage(data)
+                    if (copy_item.source === copy_item.destination) {
+                        parentPort.postMessage({cmd: 'msg', msg: 'Error: Source and Destination are the Same'})
+                        return;
                     }
-                }
 
-                for (let i = 0; i < dirents.length; i++) {
-                    let f = dirents[i]
-                    if (f.type == 'file') {
-                        cpc++
-                        gio.cp(f.source, f.destination)
-                        data = {
-                            cmd: 'progress',
-                            msg: `Copied File ${f.source}`,
-                            max: dirents.length,
-                            value: cpc
+                    get_files_arr(copy_item.source, copy_item.destination, dirents => {
 
+                        let cpc = 0;
+
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'directory') {
+                                cpc++
+                                gio.mkdir(f.destination)
+                                data = {
+                                    cmd: 'progress',
+                                    msg: `Copied Folder ${path.basename(f.source)}`,
+                                    max: dirents.length,
+                                    value: cpc
+                                }
+                                parentPort.postMessage(data)
+                            }
                         }
-                        parentPort.postMessage(data)
-                    }
-                }
 
-                if (cpc === dirents.length) {
-                    console.log('done copying files');
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'file') {
+                                cpc++
+                                gio.cp(f.source, f.destination)
+                                data = {
+                                    cmd: 'progress',
+                                    msg: `Copied File ${path.basename(f.source)}`,
+                                    max: dirents.length,
+                                    value: cpc
+
+                                }
+                                parentPort.postMessage(data)
+                            }
+                        }
+
+                        if (cpc === dirents.length) {
+                            console.log('done copying files');
+                            data = {
+                                cmd: 'copy_done',
+                                destination: copy_item.destination
+                            }
+                            parentPort.postMessage(data)
+                            copy_next();
+                        }
+
+                    })
+
+                // File
+                } else {
+
+                    gio.cp(copy_item.source, copy_item.destination)
                     data = {
                         cmd: 'copy_done',
                         destination: copy_item.destination
                     }
                     parentPort.postMessage(data)
                     copy_next();
+
                 }
 
             })
 
         }
-
         copy_next();
     }
 
