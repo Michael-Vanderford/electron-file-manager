@@ -3866,7 +3866,7 @@ const gitRenameDialog = (filePath) => {
         parent: window.getFocusedWindow(),
         modal: true,
         width: 550,
-        height: 300,
+        height: 200,
         backgroundColor: "#2e2c29",
         x: x,
         y: y,
