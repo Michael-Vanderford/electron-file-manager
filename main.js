@@ -3685,7 +3685,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Rename",
                     click: () => {
-                        runGitCommand(args.href, "git mv")
+                        gitRenameDialog(args.href);
                     },
                 }
             )
@@ -3852,5 +3852,42 @@ const runGitCommand = (filePath, gitCmd) => {
             resolve(-1);
         }
         resolve(1);
+    });
+}
+
+const gitRenameDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 300,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_rename_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Confirm Rename";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_rename", filePath, runGitCommand);
     });
 }
