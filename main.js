@@ -1362,7 +1362,7 @@ async function cp_gio_files(source, destination, callback) {
  * @param {int} callback *
  */
 async function delete_file(href, callback) {
-    if (!isGioFile(href)) {
+    if (href !== null && !isGioFile(href)) {
         fs.stat(href, (err, stats) => {
             if (!err) {
                 /* Folder */
@@ -2371,10 +2371,9 @@ function createDeleteDialog(delete_files_arr) {
     // LOAD FILE
     confirm.loadFile("src/confirm_delete.html");
 
-    // SHOW DIALG
+    // SHOW DIALOG
     confirm.once("ready-to-show", () => {
-        let title = "Confirm Delete";
-        confirm.title = title;
+        confirm.title = "Confirm Delete";
         confirm.removeMenu();
 
         confirm.send("confirm_delete", delete_files_arr);
@@ -3464,7 +3463,6 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
 // FILES MENU
 let files_menu_template = [];
 ipcMain.on("show-context-menu-files", (e, args) => {
-    // const template = [
     files_menu_template = [
         {
             label: "Open with Code",
