@@ -297,9 +297,10 @@ function AddSysNotification(title, body) {
 
 function isGioFile(href) {
     if (
-        href.indexOf("smb://") > -1 ||
-        href.indexOf("sftp://") > -1 ||
-        href.indexOf("mtp://") > -1
+        href !== null &&
+        (href.indexOf("smb://") > -1 ||
+            href.indexOf("sftp://") > -1 ||
+            href.indexOf("mtp://") > -1)
     ) {
         return 1;
     } else {
@@ -1362,7 +1363,7 @@ async function cp_gio_files(source, destination, callback) {
  * @param {int} callback *
  */
 async function delete_file(href, callback) {
-    if (!isGioFile(href)) {
+    if (href !== null && !isGioFile(href)) {
         fs.stat(href, (err, stats) => {
             if (!err) {
                 /* Folder */
