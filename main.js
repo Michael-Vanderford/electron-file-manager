@@ -3643,36 +3643,125 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 e.sender.send("context-menu-command", "props");
             },
         },
+        {
+            type: "separator",
+        },
+        {
+            id: "vcs",
+            label: "Git",
+            submenu: [],
+        },
     ];
+
     let menu = Menu.buildFromTemplate(files_menu_template);
 
-    // ADD TEMPLATES
-    add_templates_menu(menu, e, args);
+    getGitStatus(args.href, false).then((fileStatus) => {
+        console.log(fileStatus);
 
-    // ADD LAUNCHER MENU
-    add_launcher_menu(menu, e, args.apps);
+        let gitMenuList = [];
+        if(fileStatus === 0){
+            // git rm --cached
+            gitMenuList.push(
+                {
+                    label: "Git: Untrack",
+                    click: () => {
+                        runGitCommand(args.href, "git rm --cached");
+                    },
+                }
+            )
+            // git rm
+            gitMenuList.push(
+                {
+                    label: "Git: Delete",
+                    click: () => {
+                        runGitCommand(args.href, "git rm")
+                    },
+                }
+            )
+            // git mv
+            gitMenuList.push(
+                {
+                    label: "Git: Rename",
+                    click: () => {
+                        gitRenameDialog(args.href);
+                    },
+                }
+            )
+        }else if(fileStatus === 1){
+            // git add
+            gitMenuList.push(
+                {
+                    label: "Git: Add to Stage",
+                    click: () => {
+                        runGitCommand(args.href, "git add")
+                    },
+                }
+            )
+        }else if(fileStatus === 2){
+            // git add
+            gitMenuList.push(
+                {
+                    label: "Git: Add to Stage",
+                    click: () => {
+                        runGitCommand(args.href, "git add")
+                    },
+                }
+            )
+            // git restore
+            gitMenuList.push(
+                {
+                    label: "Git: Undo Modification",
+                    click: () => {
+                        runGitCommand(args.href, "git restore")
+                    },
+                }
+            )
+        }else if(fileStatus === 3){
+            // git restore --staged
+            gitMenuList.push(
+                {
+                    label: "Git: Unstage",
+                    click: () => {
+                        runGitCommand(args.href, "git restore --staged")
+                    },
+                }
+            )
+        }
 
-    // Run as program
-    if (args.access) {
-        add_execute_menu(menu, e, args);
-    }
+        gitMenuList.forEach((gitMenuItem) => {
+            menu.getMenuItemById("vcs").submenu.append(
+                new MenuItem(gitMenuItem)
+            );
+        });
 
-    let ext = path.extname(args.href);
-    if (ext === ".mp4" || ext === ".mp3") {
-        add_convert_audio_menu(menu, args.href);
-    }
+        // ADD TEMPLATES
+        add_templates_menu(menu, e, args);
 
-    if (
-        ext === ".xz" ||
-        ext === ".gz" ||
-        ext === ".zip" ||
-        ext === ".img" ||
-        ext === ".tar"
-    ) {
-        extract_menu(menu, e, args);
-    }
+        // ADD LAUNCHER MENU
+        add_launcher_menu(menu, e, args.apps);
 
-    menu.popup(BrowserWindow.fromWebContents(e.sender));
+        // Run as program
+        if (args.access) {
+            add_execute_menu(menu, e, args);
+        }
+
+        let ext = path.extname(args.href);
+        if (ext === ".mp4" || ext === ".mp3") {
+            add_convert_audio_menu(menu, args.href);
+        }
+
+        if (
+            ext === ".xz" ||
+            ext === ".gz" ||
+            ext === ".zip" ||
+            ext === ".img" ||
+            ext === ".tar"
+        ) {
+            extract_menu(menu, e, args);
+        }
+
+        menu.popup(BrowserWindow.fromWebContents(e.sender));
+    });
 });
 
 // CREATE WINDOW
@@ -3709,4 +3798,115 @@ app.on("window-all-closed", () => {
 
 ipcMain.on("quit", () => {
     app.quit();
+});
+
+const getGitStatus = (filePath, isDirectory) => {
+    return new Promise((resolve) => {
+        let filePathBase = path.basename(filePath).replaceAll(' ', '\\ ');
+        let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+        let cmd = `cd ${filePathDir} && git status -s ${isDirectory ? filePathDir : filePathBase}`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                resolve(-1);
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                resolve(-1);
+            }
+
+            let gitStatusResult = stdout.trim().split(" ")[0];
+            if(stdout[0] === "M" && stdout[1] === "M"){
+
+            }else if(stdout[0] === "M"){
+                // Staged File
+                resolve(3);
+            }else if(stdout[1] === "M"){
+                // Modified File
+                resolve(2);
+            }else if(stdout[0] === "?"){
+                // Untracked File
+                resolve(1);
+            }else{
+                // Unmodified / Committed File
+                resolve(0);
+            }
+        });
+    });
+}
+
+const runGitCommand = (filePath, gitCmd) => {
+    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        resolve(1);
+    });
+}
+
+const gitRenameDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_rename_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Confirm Rename";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_rename", filePath);
+    });
+}
+
+ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let cmd = `cd ${filePathDir} && git mv ${filePath} ${rename_input_str}`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+    });
+});
+
+ipcMain.on("git_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
 });
