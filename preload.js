@@ -9789,6 +9789,11 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.oncontextmenu = (e) => {
         ipcRenderer.send("show-context-menu");
     };
+
+    let btnCommit = document.getElementById("git_commit");
+    btnCommit.addEventListener("click", (e) => {
+        ipcRenderer.send("git_commit");
+    });
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
