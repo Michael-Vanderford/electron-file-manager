@@ -3888,6 +3888,29 @@ const gitRenameDialog = (filePath) => {
         confirm.title = title;
         confirm.removeMenu();
 
-        confirm.send("confirm_git_rename", filePath, runGitCommand);
+        confirm.send("confirm_git_rename", filePath);
     });
 }
+
+ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let cmd = `cd ${filePathDir} && git mv ${filePath} ${rename_input_str}`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+    });
+});
+
+ipcMain.on("git_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
