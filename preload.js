@@ -8572,9 +8572,6 @@ function create_file_from_template(filename) {
 
     info_view.innerHTML = "";
 
-    console.log("running create file " + template + " destin " + destination);
-    console.log(breadcrumbs.value);
-
     if (fs.existsSync(destination) === true) {
         alert("this file already exists");
     } else {
