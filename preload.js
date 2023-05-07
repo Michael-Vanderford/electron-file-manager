@@ -8206,6 +8206,12 @@ window.notification = function notification(msg) {
     }, 3000);
 };
 
+/** Refresh Main View */
+function refreshView() {
+    get_view(breadcrumbs.value);
+    //localStorage.setItem("folder", breadcrumbs.value);
+}
+
 /** Create Folder */
 function create_folder(folder) {
     let folder_grid = document.getElementById("folder_grid");
@@ -8314,6 +8320,7 @@ function create_folder(folder) {
             }
         }
     });
+    refreshView();
     ipcRenderer.send("get_disk_space", {
         href: breadcrumbs.value,
         folder_count: get_folder_count(),
