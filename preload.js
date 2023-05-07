@@ -8575,35 +8575,11 @@ function create_file_from_template(filename) {
     console.log("running create file " + template + " destin " + destination);
     console.log(breadcrumbs.value);
 
-    if (fs.existsSync(destination) == true) {
+    if (fs.existsSync(destination) === true) {
         alert("this file already exists");
     } else {
-        console.log("done");
-
-        gio.cp1(template, destination, (res) => {
-            let file_grid = document.getElementById("file_grid");
-            file_grid.classList.remove("hidden");
-            gio.get_file(destination, (file) => {
-                let card = get_card1(file);
-                let col = add_column("three");
-                col.append(card);
-                file_grid.prepend(card);
-
-                let header_link = card.querySelector(".header_link");
-                let input = card.querySelector(".input");
-
-                header_link.classList.add("hidden");
-                input.classList.remove("hidden");
-
-                info_view.classList.add("hidden");
-
-                input.select();
-                input.setSelectionRange(
-                    0,
-                    input.value.length - path.extname(filename).length
-                );
-            });
-        });
+        fs.writeFileSync(destination, "");
+        refreshView();
 
         ipcRenderer.send("get_disk_space", {
             href: breadcrumbs.value,
