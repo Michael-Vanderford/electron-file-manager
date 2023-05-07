@@ -3065,7 +3065,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Properties",
                 accelerator:
-                    process.platform == "darwin"
+                    process.platform === "darwin"
                         ? settings.keyboard_shortcuts.Properties
                         : settings.keyboard_shortcuts.Properties,
                 click: () => {
