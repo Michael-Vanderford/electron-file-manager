@@ -3832,3 +3832,7 @@ const getGitStatus = (filePath, isDirectory) => {
         });
     });
 }
+
+const runGitCommand = (filePath, gitCmd) => {
+    console.log(`Path : ${filePath} | Cmd : ${gitCmd}`);
+}
