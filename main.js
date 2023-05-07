@@ -1,17 +1,19 @@
 // Import the required modules
-const { app, BrowserWindow, ipcMain, nativeImage, shell, screen }   = require('electron');
-const window        = require('electron').BrowserWindow;
-const windows       = new Set();
-const fs            = require('fs')
-const path          = require('path');
-const { Worker }    = require('worker_threads');
-const Store         = require('electron-store');
-const gio           = require('./utils/gio');
+const { app, BrowserWindow, ipcMain, nativeImage, shell, screen, Menu } = require('electron');
+const util = require('util')
+const exec = util.promisify(require('child_process').exec)
+const window = require('electron').BrowserWindow;
+const windows = new Set();
+const fs = require('fs')
+const path = require('path');
+const { Worker } = require('worker_threads');
+const Store = require('electron-store');
+const gio_utils = require('./utils/gio');
 
 // Bootstrap Init
-const store     = new Store();
-const worker    = new Worker('./worker.js');
-const home      = app.getPath('home');
+const store = new Store();
+const worker = new Worker('./worker.js');
+const home = app.getPath('home');
 
 let win;
 let window_id = 0;
@@ -25,22 +27,51 @@ try {
     // File does not exist or is invalid
 }
 
+// Set window id
 ipcMain.on('active_window', (e) => {
-
     window_id0 = window_id
     window_id = e.sender.id;
-
     if (window_id != window_id0) {
         win = window.fromId(window_id);
     }
 })
 
+// Worker Threads ///////////////////////////////////////////
+let progress_counter = 0;
+worker.on('message', (data) => {
+
+    if (data.cmd === 'msg') {
+        win.send('msg', data.msg);
+    }
+
+    if (data.cmd === 'copy_done') {
+        gio_utils.get_file(data.destination, file => {
+            win.send('get_card', file)
+        })
+    }
+
+    if (data.cmd === 'delete_done') {
+        win.send('remove_card', data.source);
+    }
+
+    if (data.cmd === 'progress') {
+        // progress_counter++
+        let msg = data.msg;
+        let max = data.max;
+        let value = data.value;
+        win.send('set_progress', { value: value, max: max, msg: msg })
+        if (value == max) {
+            progress_counter = 0;
+        }
+    }
+
+})
 
 // Functions //////////////////////////////////////////////
 
 // Get files array
-function get_files (source, callback) {
-    gio.get_dir(source, dirents => {
+function get_files(source, callback) {
+    gio_utils.get_dir(source, dirents => {
         return callback(dirents);
     })
 }
@@ -54,33 +85,36 @@ ipcMain.handle('open', (e, href) => {
 
 // Get File Icon
 ipcMain.handle('get_icon', async (e, href) => {
-    return await app.getFileIcon(href, {size: 32}).then(icon => {
+    return await app.getFileIcon(href, { size: 32 }).then(icon => {
         return icon.toDataURL();
     }).catch((err) => {
         return err;
     })
 })
 
-// // Define the window properties
-// const windowOptions = {
-//     width: 800,
-//     height: 600,
-//     webPreferences: {
-//         nodeIntegration: true,
-//         contextIsolation: true,
-//         preload: path.join(__dirname, 'preload.js')
-//     }
-// };
+// Send Copy array to Worker for Processing
+ipcMain.on('paste', (e, copy_arr) => {
+    worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
+    copy_arr = [];
+})
 
-// let win
-// // Define the function to create the window
-// function createWindow() {
-//     window = new BrowserWindow(windowOptions);
-//     window.loadFile('index.html');
-//     win = window.webContents;
-// }
+// GET FOLDER SIZE
+ipcMain.handle('get_folder_size', async (e, href) => {
+    try {
+        cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
+        const { err, stdout, stderr } = await exec(cmd);
+        let size = parseFloat(stdout.replace('.', ''));
+        size = size * 1024
+        return size;
+    } catch (err) {
+        return 0
+    }
+})
 
-function createWindow () {
+//////////////////////////////////////////////////////////////
+
+// Create Main Winsow
+function createWindow() {
 
     let displayToUse = 0
     let lastActive = 0
@@ -89,7 +123,7 @@ function createWindow () {
     // Single Display
     if (displays.length === 1) {
         displayToUse = displays[0]
-    // Multi Display
+        // Multi Display
     } else {
         // if we have a last active window, use that display for the new window
         if (!displayToUse && lastActive) {
@@ -121,7 +155,7 @@ function createWindow () {
         y: settings.window.y,
         frame: true,
         autoHideMenuBar: true,
-        icon: path.join(__dirname,'/assets/icons/folder.png'),
+        icon: path.join(__dirname, '/assets/icons/folder.png'),
         webPreferences: {
             nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -146,15 +180,15 @@ function createWindow () {
 
     win.on('resize', (e) => {
         let intervalid = setInterval(() => {
-            settings.window.width   = win.getBounds().width;
-            settings.window.height  = win.getBounds().height;
+            settings.window.width = win.getBounds().width;
+            settings.window.height = win.getBounds().height;
             fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
         }, 1000);
     })
 
     win.on('move', (e) => {
-        settings.window.x       = win.getBounds().x;
-        settings.window.y       = win.getBounds().y;
+        settings.window.x = win.getBounds().x;
+        settings.window.y = win.getBounds().y;
         fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
     })
     windows.add(win);
@@ -179,6 +213,379 @@ ipcMain.on('get_files', (e, source) => {
     get_files(source, dirents => {
         win.send('get_files', dirents);
     })
+
+})
+
+// Dialogs ////////////////////////////////////////////////////////////
+
+// Create Delete Dialog
+ipcMain.on('delete', (e, selecte_files_arr) => {
+    let bounds = win.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // Dialog Settings
+    let confirm = new BrowserWindow({
+
+        parent: window.getFocusedWindow(),
+        modal:true,
+        width: 550,
+        height: 300,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+
+    })
+
+    // Load file
+    confirm.loadFile('dialogs/confirmdelete.html')
+
+    // Show dialog
+    confirm.once('ready-to-show', () => {
+
+        let title = 'Confirm Delete';
+        confirm.title = title;
+        confirm.id = confirm;
+        confirm.removeMenu();
+        // confirm.webContents.openDevTools();
+
+        confirm.send('confirm_delete', selecte_files_arr);
+        selecte_files_arr = [];
+
+    })
+
+})
+
+ipcMain.on('delete_confirmed', (e, selecte_files_arr) => {
+
+    // Send array to worker
+    worker.postMessage({cmd: 'delete_confirmed', files_arr: selecte_files_arr});
+
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+})
+
+
+// Menus////////////////////////////////////////////////////////////////
+
+// Templated Menu
+function add_templates_menu(menu, e, args) {
+
+    let template_menu = menu.getMenuItemById('templates')
+
+    let templates = fs.readdirSync(path.join(__dirname, 'assets/templates'))
+    templates.forEach((file,idx) => {
+
+        template_menu.submenu.append(new MenuItem({
+            label: file.replace(path.extname(file),''),
+            click: () => {
+                e.sender.send('create_file_from_template', {file: file})
+            }
+        }));
+    })
+}
+
+// Main Menu
+ipcMain.on('main_menu', (e, options) => {
+
+    const template = [
+    {
+        label: 'New Window',
+        click: () => {
+            e.sender.send('context-menu-command', 'open_in_new_window')
+        }
+    },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'New Folder',
+        accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+        click: () => {
+          e.sender.send('context-menu-command', 'new_folder')
+        }
+    },
+    {
+        id: 'templates',
+        label: 'New Document',
+        submenu: [
+        {
+            label: 'Open Templates Folder',
+            click: () => {
+                e.sender.send('context-menu-command', 'open_templates_folder'),
+                {
+                    type: 'separator'
+                }
+            }
+        }],
+    },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'Sort',
+        submenu: [
+            {
+                label: 'Date',
+                click: () => {win.send('sort', 'date')}
+            },
+            {
+                label: 'Name',
+                click: () => {win.send('sort', 'name')}
+            },
+            {
+                label: 'Size',
+                click: () => {win.send('sort', 'size')}
+            },
+            {
+                label: 'Type',
+                click: () => {win.send('sort', 'type')}
+            }
+
+        ]
+    },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'Paste',
+        accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+        click: () => {
+          e.sender.send('context-menu-command', 'paste')
+        }
+    },
+    {
+        label: 'Select all',
+        click: () => {
+            e.sender.send('select_all');
+        }
+    },
+    {
+        type: 'separator'
+    },
+    {
+      label: 'Terminal',
+      click: () => {
+        e.sender.send('context-menu-command', 'open_terminal')
+      }
+    },
+    {
+      type: 'separator'
+    },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'Show Hidden',
+        type: 'checkbox',
+        click: () => {
+            e.sender.send('context-menu-command', 'show_hidden')
+        }
+    },
+    ]
+
+    // Create menu
+    let menu = Menu.buildFromTemplate(template)
+
+    // Add templates
+    // add_templates_menu(menu, e, options)
+
+    // Show menu
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
+// Folders Menu
+ipcMain.on('folder_menu', (e, args) => {
+
+    const template1 = [
+        {
+            label: 'Open with Code',
+            click: () => {
+                e.sender.send('context-menu-command', 'vscode')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Window',
+            click: () => {
+                e.sender.send('context-menu-command', 'open_in_new_window')
+            }
+        },
+        {
+            id: 'launchers',
+            label: 'Open with',
+            submenu: []
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Sort',
+            submenu: [
+                {
+                    label: 'Date',
+                    click: () => {win.send('sort', 'date')}
+                },
+                {
+                    label: 'Name',
+                    click: () => {win.send('sort', 'name')}
+                },
+                {
+                    label: 'Size',
+                    click: () => {win.send('sort', 'size')}
+                },
+                {
+                    label: 'Type',
+                    click: () => {win.send('sort', 'type')}
+                }
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Folder',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            click: () => {
+                e.sender.send('context-menu-command', 'new_folder')
+            }
+        },
+        {
+            id: 'templates',
+            label: 'New Document',
+            submenu: [
+            {
+                label: 'Open Templates Folder',
+                click: () => {
+                    e.sender.send('context-menu-command', 'open_templates_folder'
+                ),
+                {
+                    type: 'separator'
+                }
+            }
+        },],
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Add to workspace',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+            click: () => {
+                e.sender.send('add_workspace')
+            },
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Cut',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+            click: () => {
+            e.sender.send('context-menu-command', 'cut')
+            }
+        },
+        {
+            label: 'Copy',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+            click: () => {
+                e.sender.send('context-menu-command', 'copy')
+            }
+        },
+        {
+            label: 'Paste',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+            click: () => {
+                e.sender.send('context-menu-command', 'paste')
+            }
+        },
+        {
+            label: '&Rename',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+            click: () => {
+                e.sender.send('context-menu-command', 'rename')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Compress',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+                submenu: [
+                    {
+                        label: 'tar.gz',
+                        click: () => {
+                            e.sender.send('context-menu-command', 'compress_folder')
+                        }
+                    },
+                    // {
+                    //     label: 'zip',
+                    //     click: () => {
+                    //         e.sender.send('context-menu-command', 'compress_folder')
+                    //     }
+                    // },
+                ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+          label: 'Delete',
+          accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+          click: () => {
+            // e.sender.send('context-menu-command', 'delete_folder')
+            e.sender.send('context-menu-command', 'delete')
+          }
+        },
+        {
+          type: 'separator'
+        },
+        {
+            label: 'Open in terminal',
+            click: () => {
+                e.sender.send('context-menu-command', 'open_terminal')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Properties',
+            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+            click:()=>{
+                // createPropertiesWindow()
+                e.sender.send('context-menu-command', 'props');
+            }
+        },
+        {
+            type: 'separator'
+        }
+    ]
+
+    const menu1 = Menu.buildFromTemplate(template1);
+
+    // ADD TEMPLATES
+    // add_templates_menu(menu1, e, args[0]);
+
+    // ADD LAUNCHER MENU
+    //   add_launcher_menu(menu1, e, args);
+    menu1.popup(BrowserWindow.fromWebContents(e.sender));
 
 })
 

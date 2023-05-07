@@ -51,13 +51,13 @@ CFLAGS_CC_Debug := \
 	-std=gnu++17
 
 INCS_Debug := \
-	-I/home/michael/.cache/node-gyp/22.2.0/include/node \
-	-I/home/michael/.cache/node-gyp/22.2.0/src \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/zlib \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/include/node \
+	-I/home/michael/.cache/node-gyp/24.1.3/src \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I$(srcdir)/node_modules/nan
 
@@ -107,13 +107,13 @@ CFLAGS_CC_Release := \
 	-std=gnu++17
 
 INCS_Release := \
-	-I/home/michael/.cache/node-gyp/22.2.0/include/node \
-	-I/home/michael/.cache/node-gyp/22.2.0/src \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/zlib \
-	-I/home/michael/.cache/node-gyp/22.2.0/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/include/node \
+	-I/home/michael/.cache/node-gyp/24.1.3/src \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
+	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I$(srcdir)/node_modules/nan
 

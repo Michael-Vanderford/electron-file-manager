@@ -1,18 +1,116 @@
 const { ipcRenderer, shell } = require('electron');
-const { parentPort, workerData, isMainThread } = require('worker_threads');
 const path  = require('path');
 const fs    = require('fs');
 const os    = require('os')
 
-// Get Files
-function get_files(source, callback) {
-    ipcRenderer.send('get_files', source);
-    ipcRenderer.on('get_files', (e, dirents) => {
-        return callback(dirents)
-    })
-}
+// Global Arrays
+let selected_files_arr  = [];
+let copy_arr            = []
 
-// RETURNS A STRING PATH TO AN ICON IMAGE BASED ON FILE EXTENSION
+
+// IPC ///////////////////////////////////////////////////////////////////
+
+// Confirm delete
+ipcRenderer.on('confirm_delete', (e, delete_arr) => {
+
+    console.log('what', delete_arr);
+
+    let confirm_delete = document.getElementById('confirm_delete')
+    let delete_files = document.getElementById('delete_files')
+    let delete_button = document.getElementById('delete_button')
+    let cancel_delete_button = document.getElementById('cancel_delete_button')
+    let br = document.createElement('br')
+
+    delete_arr.forEach(item => {
+        delete_files.append(item, br);
+    })
+
+    delete_button.onclick = (e) => {
+        ipcRenderer.send('delete_confirmed', delete_arr);
+        delete_arr = []
+    }
+
+    confirm_delete.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            ipcRenderer.send('delete_canceled');
+        }
+    })
+
+    cancel_delete_button.onclick = (e) => {
+        ipcRenderer.send('delete_canceled');
+    }
+
+})
+
+
+// Get Card
+ipcRenderer.on('get_card', (e, file) => {
+    let card = getCard(file)
+    if (file.type == 'directory') {
+        let folder_grid = document.getElementById('folder_grid')
+        folder_grid.prepend(card)
+    }
+})
+
+// Remove Card
+ipcRenderer.on('remove_card', (e, href) => {
+    let cards = document.querySelectorAll('.card')
+    cards.forEach(card => {
+        if (card.dataset.href === href) {
+            card.remove();
+        }
+    })
+})
+
+// Set Progress
+ipcRenderer.on('set_progress', (e, data) => {
+
+    // console.log(data)
+
+    let progress = document.getElementById('progress')
+    let progress_msg = document.getElementById('progress_msg')
+    let progress_bar = document.getElementById('progress_bar')
+
+    if (progress.classList.contains('hidden')) {
+        progress.classList.remove('hidden')
+    }
+
+    progress_msg.innerHTML = data.msg;
+    progress_bar.value = data.value;
+    progress_bar.max = data.max;
+
+    if (progress_bar.value == progress_bar.max) {
+        progress.classList.add('hidden')
+    }
+
+})
+
+// Context Menu Commands
+ipcRenderer.on('context-menu-command', (e, cmd) => {
+
+    switch (cmd) {
+        case 'copy': {
+            getSelectedFiles();
+            break
+        }
+        case 'paste': {
+            paste();
+        }
+        case 'delete': {
+            getSelectedFiles();
+            ipcRenderer.send('delete', (selected_files_arr));
+            selected_files_arr = []
+        }
+
+    }
+
+})
+
+// Functions //////////////////////////////////////////////////////////////
+
+// Utilities ///////////////////////////////////////////////////////////////
+
+// Get icon theme path
 function get_icon_theme() {
     let icon_theme = 'kora';
     let icon_dir = path.join(__dirname, 'assets', 'icons');
@@ -56,8 +154,21 @@ function get_folder_icon(callback) {
     })
     return folder_icon_path;
 }
-
 let folder_icon = get_folder_icon();
+
+/**
+ * Set Msg in lower right side
+ * @param {string} message
+ */
+function msg(message) {
+    let msg = document.getElementById('msg');
+    msg.innerHTML = '';
+    msg.classList.remove('hidden');
+    if (message.indexOf('error' > -1)) {
+        msg.classList.add('error')
+    }
+    msg.append(message);
+}
 
 /**
  *
@@ -71,9 +182,7 @@ function getFileSize(fileSizeInBytes) {
         fileSizeInBytes = fileSizeInBytes / 1024;
         i++;
     } while (fileSizeInBytes > 1024);
-
     return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
-
 };
 
 /**
@@ -90,14 +199,62 @@ function getDateTime (date) {
     }
 }
 
+// Main Functions ////////////////////////////////////////////////////////////////
+
+// Get Files
+function get_files(source, callback) {
+    ipcRenderer.send('get_files', source);
+    ipcRenderer.on('get_files', (e, dirents) => {
+        return callback(dirents)
+    })
+}
+
+// Copy selected items to array
+function getSelectedFiles() {
+    selected_files_arr = [];
+    let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+    selected_items.forEach(item => {
+        selected_files_arr.push(item.dataset.href);
+    })
+    if (selected_files_arr.length == 1) {
+        msg(`${selected_files_arr.length} Item Copied`);
+    } else if (selected_files_arr.length > 1) {
+        msg(`${selected_files_arr.length} Items Copied`);
+    } else {
+        msg(`No Items Selected`);
+    }
+}
+
+function paste() {
+
+    // todo: check if location is valid
+    let location = document.getElementById('location');
+    if (selected_files_arr.length > 0) {
+        for(let i = 0; i < selected_files_arr.length; i++) {
+            let copy_data = {
+                source: selected_files_arr[i],
+                destination: path.join(location.value, path.basename(selected_files_arr[i]))
+            }
+            copy_arr.push(copy_data);
+        }
+        console.log('sending array', copy_arr);
+        ipcRenderer.send('paste', copy_arr);
+        selected_files_arr = [];
+        copy_arr = [];
+    } else {
+        msg(`Nothing to Paste`);
+    }
+
+}
+
 /**
  * Get Card for Grid View
  * @param {File} file
  * @returns File Card
  */
-function get_card(file) {
+function getCard(file) {
 
-    console.log(file)
+    // console.log(file)
 
     let location = document.getElementById('location');
 
@@ -118,6 +275,8 @@ function get_card(file) {
     href.innerHTML = path.basename(file.href);
     href.href = file.href;
 
+    href.draggable = false;
+    img.draggable = false;
     card.draggable = true;
     card.dataset.href = file.href;
 
@@ -126,36 +285,76 @@ function get_card(file) {
         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
             img.src = folder_icon;
         })
-        href.onclick = (e) => {
+        ipcRenderer.invoke('get_folder_size', (file.href)).then(res => {
+            if ((res / 4096) > 1) {
+                size.append(getFileSize(res))
+            } else {
+                size.append(`0 items`)
+            }
+        })
+        href.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
             location.dispatchEvent(new Event('change'));
-            // get_grid_view(file.href, () => {})
-        }
+        })
+        icon.addEventListener('click', (e) => {
+            e.preventDefault();
+            location.value = file.href;
+            location.dispatchEvent(new Event('change'));
+        })
+
+        // Context Menu
+        card.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            card.classList.add('highlight_select')
+            ipcRenderer.send('folder_menu');
+        })
+
     } else {
         // Get Icon
         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
             img.src = res;
         })
         // Open href in default application
-        href.onclick = (e) => {
+        href.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
-        }
+        })
+        icon.addEventListener('click', (e) => {
+            e.preventDefault();
+            ipcRenderer.invoke('open', file.href);
+        })
+        size.append(getFileSize(file["size"]));
     }
 
-    card.onmouseover = (e) => {
+    // Mouse Over
+    card.addEventListener('mouseover', (e) => {
         card.classList.add('highlight');
-    }
-    card.onmouseleave = (e) => {
+    })
+
+    // Mouse Leave
+    card.addEventListener('mouseleave', (e) => {
         card.classList.remove('highlight');
-    }
+    })
+
+    // Card ctrl onclick
+    card.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.ctrlKey) {
+            if (card.classList.contains('highlight_select')) {
+                card.classList.remove('highlight_select')
+            } else {
+                card.classList.add('highlight_select')
+            }
+        }
+    })
 
     date.append(getDateTime(file["time::modified"]));
-    size.append(getFileSize(file["size"]));
     icon.append(img);
 
-    content.append(href, br, date, size);
+    content.append(href, date, size);
     card.append(icon, content);
     return card;
 }
@@ -171,11 +370,8 @@ function get_grid_view(source, callback) {
     let folder_grid = document.getElementById('folder_grid')
     let file_grid = document.getElementById('file_grid')
 
-    folder_grid.classList.add('folder_grid')
-    file_grid.classList.add('file_grid')
-
-    // folder_grid.style = 'grid-template-columns: repeat(5, 1fr); grid-template-rows; auto;'
-    // file_grid.style = 'grid-template-columns: repeat(5, 1fr); grid-template-rows: auto;'
+    folder_grid.classList.add('folder_grid', 'grid5')
+    file_grid.classList.add('file_grid', 'grid5')
 
     let sort_flag = 0;
 
@@ -201,9 +397,9 @@ function get_grid_view(source, callback) {
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
             if (file.type == 'directory') {
-                folder_grid.append(get_card(file))
+                folder_grid.append(getCard(file))
             } else {
-                file_grid.append(get_card(file))
+                file_grid.append(getCard(file))
             }
         }
         main.append(folder_grid, file_grid)
@@ -211,110 +407,144 @@ function get_grid_view(source, callback) {
     })
 }
 
+function clearContextMenu(e) {
+    const isInsideContextMenu = e.target.closest('.context-menu');
+    if (!isInsideContextMenu) {
+        let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+        selected_items.forEach(item => {
+            item.classList.remove('highlight_select', '.ds-selected')
+        })
+    }
+}
+
 let state = 0
 
 // Main - This runs after html page loads.
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', (e) => {
 
-    // Primary Controls
-    let location = document.getElementById('location');
-    let copy_arr = []
+    try {
 
-    // Local Storage //////////////////////////////////////////////
-    // Handle Location
-    if (localStorage.getItem('location') !== null) {
-        // todo: validate path before reusing
-        location.value = localStorage.getItem('location');
-    } else {
-        location.value = os.homedir()
-        localStorage.setItem('location', location.value)
-    }
+        // Primary Controls
+        let location = document.getElementById('location');
+        let main = document.getElementById('main')
 
-    ///////////////////////////////////////////////////////////////
+        // Local Storage //////////////////////////////////////////////
+        // Handle Location
+        if (localStorage.getItem('location') !== null) {
+            // todo: validate path before reusing
+            location.value = localStorage.getItem('location');
+        } else {
+            location.value = os.homedir()
+            localStorage.setItem('location', location.value)
+        }
 
-    // Menu Items
-    // Home
-    let home = document.querySelectorAll('.home');
-    home.forEach(item => {
-        item.onclick = (e) => {
+        ///////////////////////////////////////////////////////////////
+
+        // Menu Items
+        // Home
+        let home = document.querySelectorAll('.home');
+        home.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = os.homedir();
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Documents
+        let documents = document.querySelectorAll('.documents');
+        documents.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = path.join(os.homedir(), 'Documents');
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Downloads
+        let downloads = document.querySelectorAll('.downloads');
+        downloads.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = path.join(os.homedir(), 'Downloads');
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
+        // Pictures
+        let pictures = document.querySelectorAll('.pictures');
+        pictures.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = path.join(os.homedir(), 'Pictures');
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
+        /////////////////////////////////////////////////////////////////
+
+        // Main Context Menu
+        main.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            location.value = os.homedir();
-            location.dispatchEvent(new Event('change'));
-        }
-    });
+            ipcRenderer.send('main_menu');
+        })
 
-    // Documents
-    let documents = document.querySelectorAll('.documents');
-    documents.forEach(item => {
-        item.onclick = (e) => {
-            e.preventDefault();
-            location.value = path.join(os.homedir(), 'Documents');
-            location.dispatchEvent(new Event('change'));
-        }
-    });
+        // Get mouse events on main
+        document.addEventListener('keydown', (e) => {
 
-    // Downloads
-    let downloads = document.querySelectorAll('.downloads');
-    downloads.forEach(item => {
-        item.onclick = (e) => {
-            e.preventDefault();
-            location.value = path.join(os.homedir(), 'Downloads');
-            location.dispatchEvent(new Event('change'));
-        }
-    });
+            // Ctrl+C (Copy)
+            if (e.ctrlKey === true && e.key == 'c') {
+                getSelectedFiles();
+            }
 
-    // Pictures
-    let pictures = document.querySelectorAll('.pictures');
-    pictures.forEach(item => {
-        item.onclick = (e) => {
-            e.preventDefault();
-            location.value = path.join(os.homedir(), 'Pictures');
-            location.dispatchEvent(new Event('change'));
-        }
-    });
+            // Ctrl+V (Paste)
+            if (e.ctrlKey === true && e.key == 'v') {
+                paste();
+            }
 
-    /////////////////////////////////////////////////////////////////
+            // Escape (Cancel)
+            if (e.key == 'Escape') {
+                // Clear Arrays
+                selected_files_arr = [];
+                copy_arr = [];
+            }
+        })
 
-    // Get mouse events on main
-    document.onkeydown = (e) => {
-        let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-        if (e.ctrlKey === true && e.key == 'c') {
-            selected_items.forEach(item => {
-                copy_arr.push(item.dataset.href)
-                console.log(copy_arr)
-            })
-        }
+        // Get on mouse over
+        document.addEventListener('mouseover', (e) => {
+            // Send the active window id to main
+            ipcRenderer.send('active_window');
+        })
+        // Clear Highlighted elements on context menu close
+        // document.addEventListener('mouseup', (e) => {
+        //     clearContextMenu(e);
+        // })
+        // Clear Highlighted elements on context menu escape
+        document.addEventListener('keyup', (e) => {
+            if (e.key == 'Escape') {
+                clearContextMenu(e);
+            }
+            if (e.key === 'F5') {
+                get_grid_view(location.value, () => {})
+            }
+        })
 
-        if (e.ctrlKey === true && e.key == 'v') {
-            copy_arr = []
-        }
-
-        // Escape Key
-        if (e.key == 'Escape') {
-            // Clear Arrays
-            copy_arr = []
-        }
-
-    }
-
-    // Get on mouse over
-    document.onmouseover = (e) => {
-        // Send the active window id to main
-        ipcRenderer.send('active_window');
-    }
-
-    let view = 'grid';
-    if (view == 'grid') {
-        if (location.value != "") {
-            get_grid_view(location.value, () => {})
-        }
-
-        location.onchange = () => {
+        let view = 'grid';
+        if (view == 'grid') {
             if (location.value != "") {
                 get_grid_view(location.value, () => {})
-                localStorage.setItem('location', location.value)
             }
+
+            location.onchange = () => {
+                if (location.value != "") {
+                    get_grid_view(location.value, () => {})
+                    localStorage.setItem('location', location.value)
+                }
+            }
+
         }
+
+    } catch (err) {
 
     }
 
