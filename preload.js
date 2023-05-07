@@ -8209,7 +8209,7 @@ window.notification = function notification(msg) {
 /** Refresh Main View */
 function refreshView() {
     get_view(breadcrumbs.value);
-    //localStorage.setItem("folder", breadcrumbs.value);
+    localStorage.setItem("folder", breadcrumbs.value);
 }
 
 /** Create Folder */
@@ -9212,8 +9212,13 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     // CREATE NEW FOLDER
     if (command === "new_folder") {
         let folder = breadcrumbs.value;
-        if (folder != "") {
-            create_folder(folder + "/Untitled Folder");
+        function timestamp() {
+            const today = new Date();
+            today.setHours(today.getHours() + 9);
+            return today.toISOString().replace("T", " ").substring(0, 19);
+        }
+        if (folder !== "") {
+            create_folder(folder + "/Untitled Folder " + timestamp());
         }
     }
 
