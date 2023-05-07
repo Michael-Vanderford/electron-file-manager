@@ -9790,3 +9790,18 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("show-context-menu");
     };
 });
+
+ipcRenderer.on("confirm_git_rename", (e, filePath) => {
+    let btn_git_rename_confirm = document.getElementById("btn_git_rename_confirm");
+    let btn_git_rename_cancel = document.getElementById("btn_git_rename_cancel");
+    let git_rename_input = document.getElementById("git_rename_input");
+
+    btn_git_rename_confirm.onclick = (e) => {
+        let rename_input_str = git_rename_input.value;
+        ipcRenderer.send("git_rename_confirmed", filePath, rename_input_str);
+    };
+
+    btn_git_rename_cancel.onclick = (e) => {
+        ipcRenderer.send("git_rename_canceled");
+    };
+});
