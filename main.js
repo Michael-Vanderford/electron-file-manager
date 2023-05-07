@@ -3912,7 +3912,9 @@ ipcMain.on("git_rename_canceled", (e) => {
 });
 
 ipcMain.on("git_commit", (e) => {
-   gitCommitDialog(current_directory);
+    if(getGitStatus(current_directory, true) === 3){
+        gitCommitDialog(current_directory);
+    }
 });
 
 const gitCommitDialog = (filePath) => {
