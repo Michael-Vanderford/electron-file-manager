@@ -3667,7 +3667,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Untrack",
                     click: () => {
-                        console.log("git rm --cached")
+                        runGitCommand(args.href, "git rm --cached");
                     },
                 }
             )
@@ -3676,7 +3676,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Delete",
                     click: () => {
-                        console.log("git rm")
+                        runGitCommand(args.href, "git rm")
                     },
                 }
             )
@@ -3685,7 +3685,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Rename",
                     click: () => {
-                        console.log("git mv")
+                        runGitCommand(args.href, "git mv")
                     },
                 }
             )
@@ -3695,7 +3695,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Add to Stage",
                     click: () => {
-                        console.log("git add")
+                        runGitCommand(args.href, "git add")
                     },
                 }
             )
@@ -3704,7 +3704,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Undo Modification",
                     click: () => {
-                        console.log("git restore")
+                        runGitCommand(args.href, "git restore")
                     },
                 }
             )
@@ -3713,7 +3713,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Unstage",
                     click: () => {
-                        console.log("git restore --staged")
+                        runGitCommand(args.href, "git restore --staged")
                     },
                 }
             )
@@ -3723,7 +3723,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                 {
                     label: "Git: Add to Stage",
                     click: () => {
-                        console.log("git add")
+                        runGitCommand(args.href, "git add")
                     },
                 }
             )
@@ -3834,5 +3834,28 @@ const getGitStatus = (filePath, isDirectory) => {
 }
 
 const runGitCommand = (filePath, gitCmd) => {
-    console.log(`Path : ${filePath} | Cmd : ${gitCmd}`);
+    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+
+        let gitStatusResult = stdout.trim().split(" ")[0];
+        if(gitStatusResult === ""){
+            // Unmodified / Committed File
+            resolve(0);
+        }else if(gitStatusResult === "M" || gitStatusResult === "MM"){
+            // Modified / Staged File
+            resolve(1);
+        }else{
+            // Untracked File
+            resolve(2);
+        }
+    });
 }
