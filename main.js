@@ -3910,3 +3910,7 @@ ipcMain.on("git_rename_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+ipcMain.on("git_commit", (e) => {
+   console.log("COMMIT Button Clicked");
+});
