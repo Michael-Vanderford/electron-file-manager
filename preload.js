@@ -5146,8 +5146,8 @@ async function get_list_view(dir) {
                                             if (gitStatus[1] === "M") {
                                                 gitStatusMap.set(gitStatus.substr(3), "Modified");
                                             }
-                                            else if (gitStatusSplit[0] === "A") {
-                                                gitStatusMap.set(gitStatusSplit[2], "Staged");
+                                            else if (gitStatus[0] === "A") {
+                                                gitStatusMap.set(gitStatus.substr(3), "Staged");
                                             }
                                             else if (gitStatusSplit[0] === "??") {
                                                 gitStatusMap.set(gitStatusSplit[1], "Untracked");
