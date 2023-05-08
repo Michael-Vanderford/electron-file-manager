@@ -2932,9 +2932,7 @@ function extract_menu(menu, e) {
     let menu_item = new MenuItem({
         label: "&Extract",
         accelerator:
-            process.platform === "darwin"
-                ? settings.keyboard_shortcuts.Extract
-                : settings.keyboard_shortcuts.Extract,
+            settings.keyboard_shortcuts.Extract,
         click: () => {
             e.sender.send("context-menu-command", "extract_here");
         },
@@ -3001,9 +2999,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Add to workspace",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.AddWorkspace
-                        : settings.keyboard_shortcuts.AddWorkspace,
+                    settings.keyboard_shortcuts.AddWorkspace,
                 click: () => {
                     e.sender.send("add_workspace");
                 },
@@ -3014,9 +3010,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Cut",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.Cut
-                        : settings.keyboard_shortcuts.Cut,
+                    settings.keyboard_shortcuts.Cut,
                 click: () => {
                     e.sender.send("context-menu-command", "cut");
                 },
@@ -3024,9 +3018,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Copy",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.Copy
-                        : settings.keyboard_shortcuts.Copy,
+                    settings.keyboard_shortcuts.Copy,
                 click: () => {
                     e.sender.send("context-menu-command", "copy");
                 },
@@ -3034,9 +3026,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "&Rename",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.Rename
-                        : settings.keyboard_shortcuts.Rename,
+                    settings.keyboard_shortcuts.Rename,
                 click: () => {
                     e.sender.send("context-menu-command", "rename");
                 },
@@ -3050,9 +3040,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Delete file",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.Delete
-                        : settings.keyboard_shortcuts.Delete,
+                    settings.keyboard_shortcuts.Delete,
                 click: () => {
                     e.sender.send("context-menu-command", "delete");
                 },
@@ -3063,9 +3051,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Properties",
                 accelerator:
-                    process.platform == "darwin"
-                        ? settings.keyboard_shortcuts.Properties
-                        : settings.keyboard_shortcuts.Properties,
+                    settings.keyboard_shortcuts.Properties,
                 click: () => {
                     e.sender.send("context-menu-command", "props");
                 },
@@ -3133,9 +3119,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         {
             label: "New Folder",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.NewFolder
-                    : settings.keyboard_shortcuts.NewFolder,
+                settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3196,9 +3180,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         {
             label: "Paste",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Paste
-                    : settings.keyboard_shortcuts.Paste,
+                settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
@@ -3307,9 +3289,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "New Folder",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.NewFolder
-                    : settings.keyboard_shortcuts.NewFolder,
+                settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3338,9 +3318,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Add to workspace",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.AddWorkspace
-                    : settings.keyboard_shortcuts.AddWorkspace,
+                settings.keyboard_shortcuts.AddWorkspace,
             click: () => {
                 e.sender.send("add_workspace");
             },
@@ -3351,9 +3329,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Cut",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Cut
-                    : settings.keyboard_shortcuts.Cut,
+                settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
@@ -3361,9 +3337,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Copy",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Copy
-                    : settings.keyboard_shortcuts.Copy,
+                settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
@@ -3371,9 +3345,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Paste",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Paste
-                    : settings.keyboard_shortcuts.Paste,
+                settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
@@ -3381,9 +3353,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "&Rename",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Rename
-                    : settings.keyboard_shortcuts.Rename,
+                settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3394,9 +3364,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Compress",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Compress
-                    : settings.keyboard_shortcuts.Compress,
+                settings.keyboard_shortcuts.Compress,
             submenu: [
                 {
                     label: "tar.gz",
@@ -3415,9 +3383,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Delete",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Delete
-                    : settings.keyboard_shortcuts.Delete,
+                settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
@@ -3437,9 +3403,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         {
             label: "Properties",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Properties
-                    : settings.keyboard_shortcuts.Properties,
+                settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send("context-menu-command", "props");
             },
@@ -3484,9 +3448,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Add to workspace",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.AddWorkspace
-                    : settings.keyboard_shortcuts.AddWorkspace,
+                settings.keyboard_shortcuts.AddWorkspace,
             click: () => {
                 e.sender.send("add_workspace");
             },
@@ -3529,9 +3491,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Cut",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Cut
-                    : settings.keyboard_shortcuts.Cut,
+                settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
@@ -3539,9 +3499,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Copy",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Copy
-                    : settings.keyboard_shortcuts.Copy,
+                settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
@@ -3549,9 +3507,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "&Rename",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Rename
-                    : settings.keyboard_shortcuts.Rename,
+                settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3580,9 +3536,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "&New Folder",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.NewFolder
-                    : settings.keyboard_shortcuts.NewFolder,
+                settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3593,9 +3547,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Compress",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Compress
-                    : settings.keyboard_shortcuts.Compress,
+                settings.keyboard_shortcuts.Compress,
             submenu: [
                 {
                     label: "tar.gz",
@@ -3614,9 +3566,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Delete file",
             accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Delete
-                    : settings.keyboard_shortcuts.Delete,
+                settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
@@ -3636,9 +3586,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         {
             label: "Properties",
             accelerator:
-                process.platform == "darwin"
-                    ? settings.keyboard_shortcuts.Properties
-                    : settings.keyboard_shortcuts.Properties,
+                settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send("context-menu-command", "props");
             },
