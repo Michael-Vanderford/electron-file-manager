@@ -117,7 +117,6 @@ let settings = "";
 let input_value0 = "";
 
 ipcRenderer.on("clear_items", (e) => {
-    console.log("clear_items");
     clear_items();
 });
 
@@ -138,7 +137,6 @@ ipcRenderer.on("get_devices", (e) => {
 });
 
 ipcRenderer.on("get_disk_summary_view", (e) => {
-    console.log("running summary view");
     localStorage.setItem("view", "disk_summary");
     get_view(breadcrumbs.value);
 });
@@ -322,7 +320,6 @@ ipcRenderer.on("view", (e, view) => {
 
 // On notification
 ipcRenderer.on("notification", (e, msg) => {
-    console.log(msg);
     notification(msg);
 });
 
@@ -354,8 +351,6 @@ ipcRenderer.on("clear_copy_arr", (e) => {
 });
 
 ipcRenderer.on("remove_from_workspace", (e, href) => {
-    console.log("removing from workspace", href);
-
     let workspace = document.getElementById("workspace");
     let workspace_items = workspace.querySelectorAll(".highlight_select");
 
@@ -366,7 +361,6 @@ ipcRenderer.on("remove_from_workspace", (e, href) => {
 
 // REMOVE CARD
 ipcRenderer.on("remove_card", (e, href) => {
-    console.log("remove card", href);
     try {
         let cards = document.querySelectorAll('[data-href="' + href + '"]');
         cards.forEach((item) => {
