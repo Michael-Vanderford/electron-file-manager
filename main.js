@@ -46,9 +46,16 @@ worker.on('message', (data) => {
         win.send('msg', data.msg);
     }
 
+    if (data.cmd === 'rename_done') {
+        win.send('remove_card', data.source);
+        gio_utils.get_file(data.destination, file => {
+            win.send('get_card', file);
+        })
+    }
+
     if (data.cmd === 'copy_done') {
         gio_utils.get_file(data.destination, file => {
-            win.send('get_card', file)
+            win.send('get_card', file);
         })
     }
 
@@ -105,7 +112,7 @@ ipcMain.on('paste', (e, copy_arr) => {
     copy_arr = [];
 })
 
-// GET FOLDER SIZE
+// Get Folder Size
 ipcMain.handle('get_folder_size', async (e, href) => {
     try {
         cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
@@ -116,6 +123,10 @@ ipcMain.handle('get_folder_size', async (e, href) => {
     } catch (err) {
         return 0
     }
+})
+
+ipcMain.on('rename', (e, source, destination) => {
+    worker.postMessage({cmd: 'rename', source: source, destination: destination });
 })
 
 //////////////////////////////////////////////////////////////
@@ -176,6 +187,10 @@ function createWindow() {
 
     win = new BrowserWindow(options);
     win.loadFile('index.html');
+
+    win.webContents.on('mouseover', (e) => {
+        console.log('testing')
+    })
 
     win.once('ready-to-show', () => {
         win.show();

@@ -31,6 +31,12 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
+    // Rename
+    if (data.cmd === 'rename') {
+        gio.mv(data.source, data.destination);
+        // parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination})
+    }
+
     // New Folder
     if (data.cmd === 'mkdir') {
         gio.mkdir(data.destination)
@@ -121,7 +127,7 @@ parentPort.on('message', data => {
 
                 }
             })
-            
+
         }
         delete_next();
     }

@@ -1,8 +1,9 @@
 const { ipcRenderer, shell } = require('electron');
 const path       = require('path');
 const fs         = require('fs');
-const os         = require('os')
-const DragSelect = require('dragselect')
+const os         = require('os');
+const DragSelect = require('dragselect');
+const gio_utils  = require('./utils/gio.js');
 
 // Global Arrays
 let selected_files_arr  = [];
@@ -13,6 +14,11 @@ let copy_arr            = [];
 // Msg
 ipcRenderer.on('msg', (e, message) => {
     msg(message);
+})
+
+// Edit mode
+ipcRenderer.on('edit', (e) => {
+    edit();
 })
 
 // Confirm delete
@@ -98,9 +104,13 @@ ipcRenderer.on('set_progress', (e, data) => {
 // Context Menu Commands
 ipcRenderer.on('context-menu-command', (e, cmd) => {
 
-    let location = document.getElementById('location')
+    let location = document.getElementById('location');
 
     switch (cmd) {
+        case 'rename': {
+            edit();
+            break;
+        }
         case 'mkdir': {
             console.log('running new folder')
             ipcRenderer.send('mkdir', `${path.join(location.value, 'New Folder')}`)
@@ -127,6 +137,18 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 // Functions //////////////////////////////////////////////////////////////
 
 // Utilities ///////////////////////////////////////////////////////////////
+
+function isImage(href) {
+    return new Promise((resolve, reject) => {
+        let isImage = 0;
+        gio_utils.get_file(href, file => {
+            if (file.type.indexOf('image') > -1) {
+                isImage = 1;
+            }
+            resolve(isImage);
+        })
+    })
+}
 
 // Get icon theme path
 function get_icon_theme() {
@@ -179,6 +201,7 @@ let folder_icon = get_folder_icon();
  * @param {string} message
  */
 function msg(message) {
+
     let msg = document.getElementById('msg');
     msg.innerHTML = '';
     msg.classList.remove('hidden');
@@ -189,6 +212,7 @@ function msg(message) {
         msg.classList.add('hidden');
     }
     msg.innerHTML = message;
+
 }
 
 /**
@@ -220,6 +244,219 @@ function getDateTime (date) {
     }
 }
 
+function edit() {
+
+    getSelectedFiles();
+    selected_files_arr.forEach(href => {
+        let card = document.querySelector(`[data-href="${href}"]`);
+        let header = card.querySelector('.header');
+        let header_link = card.querySelector('a');
+        let input = card.querySelector('input');
+        header.classList.add('hidden');
+        input.classList.remove('hidden');
+        input.focus();
+
+        input.addEventListener('change', (e) => {
+            let location = document.getElementById('location');
+            let source = href;
+            let destination = path.join(location.value, path.basename(e.target.value))
+            ipcRenderer.send('rename', source, destination);
+
+            card.dataset.href = destination;
+            header_link.innerHTML = input.value;
+            header_link.href = destination;
+
+            header.classList.remove('hidden')
+            input.classList.add('hidden')
+        })
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'Escape') {
+                input.value = path.basename(href);
+                header.classList.remove('hidden');
+                input.classList.add('hidden');
+            }
+        })
+
+    })
+    selected_files_arr = [];
+}
+
+// Sidebar Functions /////////////////////////////////////////////////////////////
+function sidebarHome() {
+
+    let home_dir = '' //get_home();
+    let my_computer_arr = ['Home', 'Documents', 'Music', 'Pictures', 'Videos', 'Downloads', 'Recent', 'File System']
+    let my_computer_paths_arr = [home_dir, `${path.join(home_dir, 'Documents')}`, `${path.join(home_dir, 'Music')}`, `${path.join(home_dir, 'Pictures')}`, `${path.join(home_dir, 'Video')}`, `${path.join(home_dir, 'Downloads')}`, 'Recent', 'Recent']
+    let my_computer_icons_arr = ['home', 'folder', 'music', 'image', 'video', 'download', 'history', 'hdd']
+
+    localStorage.setItem('minibar', 'mb_home')
+
+    let sidebar = document.getElementById('sidebar')
+    sidebar.innerHTML = ''
+    sidebar.append(add_header('Home'))
+
+    // Get home
+    console.log(my_computer_arr.length)
+    for (let i = 0; i < my_computer_arr.length; i++) {
+
+        let href = my_computer_paths_arr[i]
+        console.log(my_computer_arr[i])
+
+        let item = add_div()
+        item.classList.add('flex')
+
+        let link = add_link(my_computer_paths_arr[i], my_computer_arr[i])
+
+
+        item.classList.add('item')
+        item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
+
+        sidebar.append(item)
+
+        item.onclick = () => {
+
+            let items = sidebar.querySelectorAll('.item')
+            items.forEach(item => {
+                item.classList.remove('active')
+            })
+
+            item.classList.add('active')
+            if (href === 'Recent') {
+                get_recent_files(`${get_home()}/Documents`)
+            } else {
+                gio.get_file(href, (file) => {
+                    if (file.type === 'directory') {
+                        get_view(file.href);
+                    } else {
+                        open(file.href);
+                    }
+                })
+            }
+        }
+
+    }
+
+    // Workspace
+    // sidebar_items.append(add_header('Workspace'))
+    // local_items = JSON.parse(localStorage.getItem('workspace'))
+    // if (local_items != undefined) {
+    //     if (local_items.length > 0 && local_items != undefined) {
+    //         local_items.forEach((item, idx) => {
+
+    //             let div = add_div()
+    //             let col1 = add_div()
+    //             let col2 = add_div()
+    //             let rm_icon = add_icon('times')
+
+    //             rm_icon.classList.add('small');
+    //             rm_icon.style = 'margin-left: auto;';
+
+    //             div.style = 'display: flex; padding: 6px; width: 100%;'
+    //             div.classList.add('item')
+    //             col1.append(add_icon('bookmark'));
+    //             col2.append(item.name);
+    //             div.append(col1, col2, rm_icon);
+    //             sidebar_items.append(div);
+
+    //             div.title = item.href
+    //             div.onclick = (e) => {
+
+    //                 gio.get_file(item.href, file => {
+    //                     if (file.type == 'directory') {
+    //                         get_view(item.href)
+    //                     } else {
+    //                         open(item.href)
+    //                     }
+    //                 })
+    //             }
+
+    //             rm_icon.onclick = (e) => {
+
+    //                 e.preventDefault()
+    //                 e.stopPropagation()
+
+    //                 div.remove();
+    //                 local_items.splice(idx, 1);
+    //                 if (local_items.length > 0) {
+    //                     localStorage.setItem('workspace', JSON.stringify(local_items));
+    //                 } else {
+    //                     localStorage.removeItem('workspace')
+    //                 }
+    //             }
+
+    //             div.oncontextmenu = (e) => {
+    //                 div.classList.add('highlight_select')
+    //                 ipcRenderer.send('show-context-menu-workspace', item);
+    //             }
+
+    //         })
+
+    //     }
+
+    // }
+
+    // // Get devices
+    // sidebar_items.append(add_header('Devices'))
+    // gio.get_devices(devices => {
+
+    //     devices.forEach((device, idx) => {
+
+    //         let link = add_link(device.href, device.name);
+    //         let icon = add_icon('hdd');
+    //         let umount = add_icon('eject');
+    //         let div = add_div()
+
+    //         let col1 = add_div().innerHTML = (icon)
+    //         let col2 = add_div().innerHTML = (link)
+    //         let col3 = add_div().innerHTML = (umount)
+
+    //         link.style = 'display: block'
+    //         col2.style = 'width: 100%'
+    //         col3.style = 'margin-left: auto'
+
+    //         div.append(col1, col2, col3)
+    //         div.style = 'display: flex; padding: 6px; width: 100%;'
+    //         div.classList.add('item')
+
+    //         umount.addEventListener('click', (e) => {
+
+    //             e.preventDefault()
+    //             e.stopPropagation()
+
+    //             // let cmd = `gio mount -u -f "${item.href}"`
+    //             // console.log(cmd)
+
+    //             exec(`gio mount -u -f "${device.href}"`, (err, stdout) => {
+
+    //                 if (!err) {
+    //                     div.remove()
+    //                     notification(stdout)
+    //                 } else {
+    //                     notification(err)
+    //                 }
+    //             })
+
+
+    //         })
+
+    //         div.onclick = (e) => {
+    //             get_view(device.href);
+    //         }
+
+    //         div.oncontextmenu = (e) => {
+    //             ipcRenderer.send('show-context-menu-devices');
+    //         }
+
+    //         sidebar_items.append(div)
+    //     })
+
+
+
+    // })
+
+}
+
 // Main Functions ////////////////////////////////////////////////////////////////
 
 // Get Files
@@ -238,16 +475,15 @@ function getSelectedFiles() {
         selected_files_arr.push(item.dataset.href);
     })
     if (selected_files_arr.length == 1) {
-        msg(`${selected_files_arr.length} Item Copied`);
+        msg(`${selected_files_arr.length} Item Selected`);
     } else if (selected_files_arr.length > 1) {
-        msg(`${selected_files_arr.length} Items Copied`);
+        msg(`${selected_files_arr.length} Items Selected`);
     } else {
         msg(`No Items Selected`);
     }
 }
 
 function paste() {
-
     // todo: check if location is valid
     let location = document.getElementById('location');
     if (selected_files_arr.length > 0) {
@@ -265,7 +501,6 @@ function paste() {
     } else {
         msg(`Nothing to Paste`);
     }
-
 }
 
 /**
@@ -275,26 +510,32 @@ function paste() {
  */
 function getCard(file) {
 
-    // console.log(file)
-
     let location = document.getElementById('location');
 
-    let card = document.createElement('div');
+    let is_dir = 0;
+
+    let card    = document.createElement('div');
     let content = document.createElement('div')
-    let icon = document.createElement('div');
-    let img = document.createElement('img');
-    let href = document.createElement('a');
-    let date = document.createElement('div');
-    let size = document.createElement('div');
-    let br = document.createElement('br');
+    let icon    = document.createElement('div');
+    let img     = document.createElement('img');
+    let header  = document.createElement('div');
+    let href    = document.createElement('a');
+    let date    = document.createElement('div');
+    let size    = document.createElement('div');
+    let input   = document.createElement('input');
 
     card.classList.add('card');
-    href.classList.add('header')
+    header.classList.add('header')
+    input.classList.add('input', 'hidden');
     img.classList.add('icon');
     content.classList.add('content');
 
-    href.innerHTML = path.basename(file.href);
     href.href = file.href;
+    href.innerHTML = path.basename(file.href);
+
+    input.spellcheck = false;
+    input.dataset.href = file.href;
+    input.value = path.basename(file.href);
 
     href.draggable = false;
     img.draggable = false;
@@ -302,6 +543,9 @@ function getCard(file) {
     card.dataset.href = file.href;
 
     if (file.type == 'directory') {
+
+        is_dir = 1;
+
         // // Get Icon
         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
             img.src = folder_icon;
@@ -318,12 +562,11 @@ function getCard(file) {
             location.value = file.href;
             location.dispatchEvent(new Event('change'));
         })
-        icon.addEventListener('click', (e) => {
+        img.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
             location.dispatchEvent(new Event('change'));
         })
-
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -334,20 +577,23 @@ function getCard(file) {
 
     } else {
         // Get Icon
-        ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-            img.src = res;
-        })
+        if (file["standard::content-type"].indexOf('image') > -1) {
+            img.src = file.href;
+        } else {
+            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                img.src = res;
+            })
+        }
         // Open href in default application
         href.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
         })
-        icon.addEventListener('click', (e) => {
+        img.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
         })
         size.append(getFileSize(file["size"]));
-
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -380,6 +626,24 @@ function getCard(file) {
         }
     })
 
+    card.addEventListener('dragstart', (e) => {
+
+    })
+
+    card.addEventListener('dragenter', (e) => {
+
+    })
+
+    card.addEventListener('dragover', (e) => {
+        if (is_dir) {
+            card.classList.add('highlight_target');
+        }
+    })
+
+    card.addEventListener('dragleave', (e) => {
+        card.classList.remove('highlight_target');
+    })
+
     try {
         ds.addSelectables(card)
     } catch (err) {
@@ -387,8 +651,9 @@ function getCard(file) {
 
     date.append(getDateTime(file["time::modified"]));
     icon.append(img);
+    header.append(href)
 
-    content.append(href, date, size);
+    content.append(header, input, date, size);
     card.append(icon, content);
 
     return card;
@@ -556,6 +821,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // })
         // Clear Highlighted elements on context menu escape
         document.addEventListener('keyup', (e) => {
+
+            // Escape
             if (e.key == 'Escape') {
                 clearContextMenu(e);
             }
@@ -565,10 +832,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 get_grid_view(location.value, () => {})
             }
 
-            if (e.key === 'Backspace') {
-                location.value = path.dirname(location.value)
-                get_grid_view(location.value)
+            // Edit
+            if (e.key === 'F2') {
+                edit();
             }
+
+            // Nagigate back
+            // if (e.key === 'Backspace') {
+            //     location.value = path.dirname(location.value)
+            //     get_grid_view(location.value)
+            // }
 
         })
 
@@ -586,6 +859,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
             }
 
         }
+
+        sidebarHome();
 
     } catch (err) {
 

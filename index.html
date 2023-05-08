@@ -6,6 +6,15 @@
   <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css">
   <link rel="stylesheet" href="./assets/css/index.css" />
   <title></title>
+  <style>
+    #selection-rect {
+      position: absolute;
+      background-color: #c0c0c0;
+      opacity: 0.5;
+      display: none;
+      z-index: 9999;
+    }
+  </style>
 </head>
 <body>
     <div id="header_menu">
@@ -23,9 +32,9 @@
     </div>
 
     <div class="container">
-        <div id="side_bar">
 
-        </div>
+        <div id="sidebar"></div>
+
         <div id="main">
             <div id="folder_grid"></div>
             <div id="file_grid"></div>
@@ -35,13 +44,15 @@
 
                 <progress id="progress_bar"></progress>
             </div>
-            <div id="msg" class="bottom right hidden">ahhhhhhhhhh</div>
+            <div id="msg" class="bottom hidden">ahhhhhhhhhh</div>
 
         </div>
 
 
 
     </div>
+
+    <div id="selection-rect"> 123</div>
 
     <!-- <script src="index.js"></script> -->
 

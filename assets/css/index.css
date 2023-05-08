@@ -57,7 +57,7 @@ html, body {
         width: 250px;
         height: 100%
     }
-    #side_bar {
+    #sidebar {
         background: #252525;
         padding: 5px;
         width: 325px;
@@ -74,9 +74,10 @@ html, body {
 
     #msg {
         color: #cfcfcf;
-        background-color: #222222;
+        background-color: rgb(0 0 0 / 0.8);
         border-radius: 5px;
         padding: 10px;
+        z-index: 1;
     }
 
     #progress {
@@ -161,12 +162,24 @@ progress::-webkit-progress-bar {
     word-break: none;
 }
 
+.input {
+    position: relative;
+    border-radius: 5px;;
+    font-size: 10px;
+
+}
+
 .highlight {
     background: #334c74;
 }
 .highlight_select {
     background: #334c74;
 }
+.highlight_target {
+    border: 1px solid var(--warning);
+    background: #334c74;
+}
+
 .hidden {
     display: none;
 }
