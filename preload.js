@@ -8206,6 +8206,12 @@ window.notification = function notification(msg) {
     }, 3000);
 };
 
+/** Refresh Main View */
+function refreshView() {
+    get_view(breadcrumbs.value);
+    localStorage.setItem("folder", breadcrumbs.value);
+}
+
 /** Create Folder */
 function create_folder(folder) {
     let folder_grid = document.getElementById("folder_grid");
@@ -8314,6 +8320,7 @@ function create_folder(folder) {
             }
         }
     });
+    refreshView();
     ipcRenderer.send("get_disk_space", {
         href: breadcrumbs.value,
         folder_count: get_folder_count(),
@@ -8565,38 +8572,11 @@ function create_file_from_template(filename) {
 
     info_view.innerHTML = "";
 
-    console.log("running create file " + template + " destin " + destination);
-    console.log(breadcrumbs.value);
-
-    if (fs.existsSync(destination) == true) {
+    if (fs.existsSync(destination) === true) {
         alert("this file already exists");
     } else {
-        console.log("done");
-
-        gio.cp1(template, destination, (res) => {
-            let file_grid = document.getElementById("file_grid");
-            file_grid.classList.remove("hidden");
-            gio.get_file(destination, (file) => {
-                let card = get_card1(file);
-                let col = add_column("three");
-                col.append(card);
-                file_grid.prepend(card);
-
-                let header_link = card.querySelector(".header_link");
-                let input = card.querySelector(".input");
-
-                header_link.classList.add("hidden");
-                input.classList.remove("hidden");
-
-                info_view.classList.add("hidden");
-
-                input.select();
-                input.setSelectionRange(
-                    0,
-                    input.value.length - path.extname(filename).length
-                );
-            });
-        });
+        fs.writeFileSync(destination, "");
+        refreshView();
 
         ipcRenderer.send("get_disk_space", {
             href: breadcrumbs.value,
@@ -9205,8 +9185,13 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     // CREATE NEW FOLDER
     if (command === "new_folder") {
         let folder = breadcrumbs.value;
-        if (folder != "") {
-            create_folder(folder + "/Untitled Folder");
+        function timestamp() {
+            const today = new Date();
+            today.setHours(today.getHours() + 9);
+            return today.toISOString().replace("T", " ").substring(0, 19);
+        }
+        if (folder !== "") {
+            create_folder(folder + "/Untitled Folder " + timestamp());
         }
     }
 
