@@ -3914,9 +3914,7 @@ ipcMain.on("git_rename_canceled", (e) => {
 });
 
 ipcMain.on("git_commit", (e) => {
-    if(getGitStatus(current_directory, true) === 3){
-        gitCommitDialog(current_directory);
-    }
+    gitCommitDialog(current_directory);
 });
 
 const gitCommitDialog = (filePath) => {
@@ -3960,8 +3958,8 @@ ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
-    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
-    let cmd = `cd ${filePathDir} && git commit -m \"${commit_message_input_str}\"`;
+    filePath = filePath.replaceAll(' ', '\\ ');
+    let cmd = `cd ${filePath} && git commit -m \"${commit_message_input_str}\"`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
