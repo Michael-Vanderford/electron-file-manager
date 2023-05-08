@@ -236,9 +236,9 @@ ipcMain.on("destination_folder", (e, directory) => {
 });
 
 function formatDate(date) {
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat("ko", {
         dateStyle: "medium",
-        timeStyle: "short",
+        timeStyle: "medium",
     }).format(date);
 }
 
@@ -2789,7 +2789,9 @@ function add_templates_menu(menu, e, args) {
             new MenuItem({
                 label: file.replace(path.extname(file), ""),
                 click: () => {
-                    e.sender.send("create_file_from_template", { file: file });
+                    e.sender.send("create_file_from_template", {
+                        file: `${file} ${formatDate()}`,
+                    });
                 },
             })
         );
@@ -3064,7 +3066,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             {
                 label: "Properties",
                 accelerator:
-                    process.platform == "darwin"
+                    process.platform === "darwin"
                         ? settings.keyboard_shortcuts.Properties
                         : settings.keyboard_shortcuts.Properties,
                 click: () => {
