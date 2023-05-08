@@ -4794,6 +4794,8 @@ async function get_disk_summary_view() {
 
 // GET LIST VIEW
 async function get_list_view(dir) {
+    ipcRenderer.send("current_directory", dir);
+
     let list_view = document.getElementById("list_view");
 
     list_view.innerHTML = "";
@@ -9774,6 +9776,11 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.oncontextmenu = (e) => {
         ipcRenderer.send("show-context-menu");
     };
+
+    let btnCommit = document.getElementById("git_commit");
+    btnCommit.addEventListener("click", (e) => {
+        ipcRenderer.send("git_commit");
+    });
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
@@ -9788,5 +9795,20 @@ ipcRenderer.on("confirm_git_rename", (e, filePath) => {
 
     btn_git_rename_cancel.onclick = (e) => {
         ipcRenderer.send("git_rename_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_commit", (e, filePath) => {
+    let btn_git_commit_confirm = document.getElementById("btn_git_commit_confirm");
+    let btn_git_commit_cancel = document.getElementById("btn_git_commit_cancel");
+    let git_commit_input = document.getElementById("git_commit_message_input");
+
+    btn_git_commit_confirm.onclick = (e) => {
+        let commit_input_str = git_commit_input.value;
+        ipcRenderer.send("git_commit_confirmed", filePath, commit_input_str);
+    };
+
+    btn_git_commit_cancel.onclick = (e) => {
+        ipcRenderer.send("git_commit_canceled");
     };
 });
