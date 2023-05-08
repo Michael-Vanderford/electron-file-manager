@@ -3917,11 +3917,11 @@ function gitInitialize(filePath) {
     let cmd = `cd ${filePath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
-            console.error(`Error: ${error}`);
+            console.error(`${error}`);
             return;
         }
         if (stderr) {
-            console.error(`Stderr: ${stderr}`);
+            console.error(`${stderr}`);
             return;
         }
         console.log(stdout);
