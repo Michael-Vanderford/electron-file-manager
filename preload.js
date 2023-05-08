@@ -4794,6 +4794,8 @@ async function get_disk_summary_view() {
 
 // GET LIST VIEW
 async function get_list_view(dir) {
+    ipcRenderer.send("current_directory", dir);
+
     let list_view = document.getElementById("list_view");
 
     list_view.innerHTML = "";
