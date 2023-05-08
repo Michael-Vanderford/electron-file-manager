@@ -3913,6 +3913,39 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
+function gitInitialize(filePath) {
+    let cmd = `cd ${filePath} && git init`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        console.log(stdout);
+    });
+}
+
+ipcMain.on("git_init", (e) => {
+    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git | wc -l`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            gitInitialize(current_directory);
+        }
+    });
+});
+
 ipcMain.on("git_commit", (e) => {
     gitCommitDialog(current_directory);
 });

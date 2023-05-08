@@ -9777,6 +9777,11 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("show-context-menu");
     };
 
+    let btnInit = document.getElementById("git_init");
+    btnInit.addEventListener("click", (e) => {
+        ipcRenderer.send("git_init");
+    });
+
     let btnCommit = document.getElementById("git_commit");
     btnCommit.addEventListener("click", (e) => {
         ipcRenderer.send("git_commit");
