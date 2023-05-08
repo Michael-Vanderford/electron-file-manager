@@ -5148,13 +5148,15 @@ async function get_list_view(dir) {
                                                 gitStatusMap.set(gitStatus.substr(3), "Staged");
                                             }
                                             else if (gitStatus[0] === "?") {
-                                                gitStatusMap.set(gitStatus.substr(3), "Untracked");
+                                                    gitStatusMap.set(gitStatus.substr(3), "Untracked");
                                             }
                                         }
-                                        if (gitStatusMap.has(file))
+                                        if (stats.isDirectory() && gitStatusMap.has(file + '/')) {
+                                            td.append(gitStatusMap.get(file + '/'));
+                                        }
+                                        else if (gitStatusMap.has(file))
                                             td.append(gitStatusMap.get(file));
                                     })
-                                    //td.append(stats.isDirectory());
                                     break;
                                 }
                             }
