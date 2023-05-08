@@ -5136,15 +5136,28 @@ async function get_list_view(dir) {
                                     break;
                                 }
                                 case "Git Status": {
-                                    //ipcRenderer.send("current_directory", dir);
-                                    let cmd = `cd ${dir} && ls -a | grep -w .git`;
+                                    let gitStatusMap = new Map();
+                                    let cmd = `cd ${dir} && git status -s`;
                                     exec(cmd, (error, stdout, stderr) => {
-                                        td.append(stdout);
+                                        let gitStatusResult = stdout.trim().split("\n");
+                                        for (let gitStatus of gitStatusResult) {
+                                            let gitStatusSplit = gitStatus.trim().split(" ");
+
+                                            if (gitStatusSplit[0] === "M") {
+                                                gitStatusMap.set(gitStatusSplit[1], "Modified");
+                                            }
+                                            else if (gitStatusSplit[0] === "A") {
+                                                gitStatusMap.set(gitStatusSplit[2], "Staged");
+                                            }
+                                            else if (gitStatusSplit[0] === "??") {
+                                                gitStatusMap.set(gitStatusSplit[1], "Untracked");
+                                            }
+                                        }
+                                        td.append(gitStatusMap.get(file));
                                     })
                                     break;
                                 }
                             }
-
                             tr.append(td);
                         }
 
