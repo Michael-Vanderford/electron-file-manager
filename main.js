@@ -3916,14 +3916,31 @@ ipcMain.on("git_rename_canceled", (e) => {
 function gitInitialize(filePath) {
     let cmd = `cd ${filePath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
-        // console.log(stdout);
+        if (error) {
+            console.error(`Error: ${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`Stderr: ${stderr}`);
+            return;
+        }
+        console.log(stdout);
     });
 }
 
 ipcMain.on("git_init", (e) => {
-    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git`;
+    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git | wc -l`;
     exec(checkGitRepo, (error, stdout, stderr) => {
-        if (stdout.trim() !== ".git") {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
             gitInitialize(current_directory);
         }
     });
