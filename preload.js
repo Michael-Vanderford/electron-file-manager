@@ -5143,7 +5143,7 @@ async function get_list_view(dir) {
                                         for (let gitStatus of gitStatusResult) {
                                             let gitStatusSplit = gitStatus.trim().split(" ");
 
-                                            if (gitStatusSplit[0] === "M") {
+                                            if (gitStatusSplit[0] === "M" || gitStatusSplit[0] === "AM") {
                                                 gitStatusMap.set(gitStatusSplit[1], "Modified");
                                             }
                                             else if (gitStatusSplit[0] === "A") {
