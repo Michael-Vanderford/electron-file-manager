@@ -8595,9 +8595,8 @@ function rename_file(source, destination_name, callback) {
     } else {
         let filename = path.join(path.dirname(source), destination_name);
         if (fs.existsSync(filename)) {
-            // todo: this is not working correctly
-            // alert(filename + ' already exists!')
-            // return false
+            alert(filename + " already exists!");
+            return false;
         } else {
             console.log(source, filename);
             if (is_gio_file(source)) {
