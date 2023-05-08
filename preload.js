@@ -5141,21 +5141,20 @@ async function get_list_view(dir) {
                                     exec(cmd, (error, stdout, stderr) => {
                                         let gitStatusResult = stdout.split("\n");
                                         for (let gitStatus of gitStatusResult) {
-                                            let gitStatusSplit = gitStatus.split(" ");
-
                                             if (gitStatus[1] === "M") {
                                                 gitStatusMap.set(gitStatus.substr(3), "Modified");
                                             }
                                             else if (gitStatus[0] === "A") {
                                                 gitStatusMap.set(gitStatus.substr(3), "Staged");
                                             }
-                                            else if (gitStatusSplit[0] === "??") {
-                                                gitStatusMap.set(gitStatusSplit[1], "Untracked");
+                                            else if (gitStatus[0] === "?") {
+                                                gitStatusMap.set(gitStatus.substr(3), "Untracked");
                                             }
                                         }
                                         if (gitStatusMap.has(file))
                                             td.append(gitStatusMap.get(file));
                                     })
+                                    //td.append(stats.isDirectory());
                                     break;
                                 }
                             }
