@@ -5139,12 +5139,12 @@ async function get_list_view(dir) {
                                     let gitStatusMap = new Map();
                                     let cmd = `cd ${dir} && git status -s`;
                                     exec(cmd, (error, stdout, stderr) => {
-                                        let gitStatusResult = stdout.trim().split("\n");
+                                        let gitStatusResult = stdout.split("\n");
                                         for (let gitStatus of gitStatusResult) {
-                                            let gitStatusSplit = gitStatus.trim().split(" ");
+                                            let gitStatusSplit = gitStatus.split(" ");
 
-                                            if (gitStatusSplit[0] === "M" || gitStatusSplit[0] === "AM") {
-                                                gitStatusMap.set(gitStatusSplit[1], "Modified");
+                                            if (gitStatus[1] === "M") {
+                                                gitStatusMap.set(gitStatus.substr(3), "Modified");
                                             }
                                             else if (gitStatusSplit[0] === "A") {
                                                 gitStatusMap.set(gitStatusSplit[2], "Staged");
@@ -5159,6 +5159,7 @@ async function get_list_view(dir) {
                                     break;
                                 }
                             }
+
                             tr.append(td);
                         }
 
