@@ -78,6 +78,11 @@ ipcRenderer.on('remove_card', (e, href) => {
     })
 })
 
+ipcRenderer.on('replace_card', (e, href, file) => {
+    let card = document.querySelector(`[data-href="${href}"]`);
+    card.replaceWith(getCard(file));
+})
+
 // Set Progress
 ipcRenderer.on('set_progress', (e, data) => {
 
@@ -262,12 +267,12 @@ function edit() {
             let destination = path.join(location.value, path.basename(e.target.value))
             ipcRenderer.send('rename', source, destination);
 
-            card.dataset.href = destination;
-            header_link.innerHTML = input.value;
-            header_link.href = destination;
+            // card.dataset.href = destination;
+            // header_link.innerHTML = input.value;
+            // header_link.href = destination;
 
-            header.classList.remove('hidden')
-            input.classList.add('hidden')
+            // header.classList.remove('hidden')
+            // input.classList.add('hidden')
         })
 
         document.addEventListener('keyup', (e) => {
@@ -637,11 +642,13 @@ function getCard(file) {
     card.addEventListener('dragover', (e) => {
         if (is_dir) {
             card.classList.add('highlight_target');
+            msg(`Move Item to "${path.basename(file.href)}"`);
         }
     })
 
     card.addEventListener('dragleave', (e) => {
         card.classList.remove('highlight_target');
+        msg('');
     })
 
     try {
@@ -792,22 +799,22 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Get mouse events on main
         document.addEventListener('keydown', (e) => {
 
-            // Ctrl+C (Copy)
-            if (e.ctrlKey === true && e.key == 'c') {
-                getSelectedFiles();
-            }
+            // // Ctrl+C (Copy)
+            // if (e.ctrlKey === true && e.key == 'c') {
+            //     getSelectedFiles();
+            // }
 
-            // Ctrl+V (Paste)
-            if (e.ctrlKey === true && e.key == 'v') {
-                paste();
-            }
+            // // Ctrl+V (Paste)
+            // if (e.ctrlKey === true && e.key == 'v') {
+            //     paste();
+            // }
 
-            // Escape (Cancel)
-            if (e.key == 'Escape') {
-                // Clear Arrays
-                selected_files_arr = [];
-                copy_arr = [];
-            }
+            // // Escape (Cancel)
+            // if (e.key == 'Escape') {
+            //     // Clear Arrays
+            //     selected_files_arr = [];
+            //     copy_arr = [];
+            // }
         })
 
         // Get on mouse over
@@ -835,6 +842,23 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // Edit
             if (e.key === 'F2') {
                 edit();
+            }
+
+            // Ctrl+C (Copy)
+            if (e.ctrlKey === true && e.key == 'c') {
+                getSelectedFiles();
+            }
+
+            // Ctrl+V (Paste)
+            if (e.ctrlKey === true && e.key == 'v') {
+                paste();
+            }
+
+            // Escape (Cancel)
+            if (e.key == 'Escape') {
+                // Clear Arrays
+                selected_files_arr = [];
+                copy_arr = [];
             }
 
             // Nagigate back

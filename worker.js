@@ -31,10 +31,17 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
+    // todo: properly handle the rename error in preoad edit.
+
     // Rename
     if (data.cmd === 'rename') {
-        gio.mv(data.source, data.destination);
-        // parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination})
+        try {
+            gio.mv(data.source, data.destination);
+            parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination});
+            parentPort.postMessage({cmd: 'msg', msg: `Renamed "${path.basename(data.source)}" to "${path.basename(data.destination)}"`});
+        } catch (err) {
+            parentPort.postMessage({cmd: 'msg', msg: err});
+        }
     }
 
     // New Folder

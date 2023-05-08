@@ -176,7 +176,7 @@ progress::-webkit-progress-bar {
     background: #334c74;
 }
 .highlight_target {
-    border: 1px solid var(--warning);
+    /* border: 1px solid var(--orange); */
     background: #334c74;
 }
 

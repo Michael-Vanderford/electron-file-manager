@@ -47,9 +47,8 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'rename_done') {
-        win.send('remove_card', data.source);
         gio_utils.get_file(data.destination, file => {
-            win.send('get_card', file);
+            win.send('replace_card', data.source, file);
         })
     }
 
