@@ -8598,27 +8598,16 @@ function rename_file(source, destination_name, callback) {
             alert(filename + " already exists!");
             return false;
         } else {
-            console.log(source, filename);
-            if (is_gio_file(source)) {
-                console.log("shit");
-                gio.rename(source, destination_name, () => {
-                    console.log("updating card", destination_name);
-                    update_card1(destination_name);
+            fs.rename(source, filename, function (err) {
+                if (!err) {
                     notification(`Renamed ${source} to ${filename}`);
+                    refreshView();
                     return callback(1);
-                });
-            } else {
-                fs.rename(source, filename, function (err) {
-                    if (!err) {
-                        notification(`Renamed ${source} to ${filename}`);
-                        refreshView();
-                        return callback(1);
-                    } else {
-                        notification(err);
-                        return callback(err);
-                    }
-                });
-            }
+                } else {
+                    notification(err);
+                    return callback(err);
+                }
+            });
         }
     }
 }
