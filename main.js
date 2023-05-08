@@ -2735,9 +2735,7 @@ const template = [
             {
                 label: "Show Sidebar",
                 accelerator:
-                    process.platform === "darwin"
-                        ? settings.keyboard_shortcuts.ShowSidebar
-                        : settings.keyboard_shortcuts.ShowSidebar,
+                    settings.keyboard_shortcuts.ShowSidebar,
                 click: () => {
                     let win = window.getFocusedWindow();
                     win.webContents.send("sidebar");
