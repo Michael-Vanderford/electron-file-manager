@@ -272,40 +272,6 @@ if (active_minibar_item == null) {
             break;
     }
 }
-
-// Settings View
-btn_settings_view.addEventListener("click", (e) => {
-    window.api.get_settings_view();
-});
-
-/* List view */
-btn_list_view.addEventListener("click", (e) => {
-    e.preventDefault();
-
-    localStorage.setItem("view", "list");
-    window.api.get_view(localStorage.getItem("folder"));
-
-    btn_list_view.classList.add("active");
-    btn_grid_view.classList.remove("active");
-});
-
-// ICON VIEW
-btn_grid_view.addEventListener("click", (e) => {
-    e.preventDefault();
-
-    localStorage.setItem("view", "grid");
-    window.api.get_view(localStorage.getItem("folder"));
-    btn_list_view.classList.remove("active");
-    btn_grid_view.classList.add("active");
-});
-
-btn_disk_view.addEventListener("click", (e) => {
-    e.preventDefault();
-    localStorage.setItem("view", "disk_summary");
-    window.api.get_view(localStorage.getItem("folder"));
-    this.classList.add("active");
-});
-
 // File menu
 
 // Home

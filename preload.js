@@ -261,9 +261,9 @@ ipcRenderer.on("confirm_delete", (e, delete_arr) => {
     let delete_files = document.getElementById("delete_files");
     let delete_button = document.getElementById("delete_button");
     let cancel_delete_button = document.getElementById("cancel_delete_button");
-    console.log(delete_arr);
+
     delete_arr.forEach((item) => {
-        delete_files.append(item.source, add_br());
+        if (item.source !== null) delete_files.append(item.source, add_br());
     });
 
     delete_button.onclick = (e) => {
@@ -4521,89 +4521,33 @@ async function get_view(dir) {
     let file_menu_items = file_menu.querySelectorAll(".item");
 
     let sidebar_items = document.getElementById("sidebar_items");
-    let sidebar_menu_items = sidebar_items.querySelectorAll(".item");
 
-    /* Get reference to grids */
-    let grid_view = document.getElementById("grid_view");
+    /* Get reference to list */
     let list_view = document.getElementById("list_view");
-    let info_view = document.getElementById("info_view");
 
-    view0 = view;
-    view = localStorage.getItem("view");
+    file_menu_items.forEach((item) => {
+        if (item.innerText === path.basename(dir)) {
+            item.classList.add("active");
+        } else {
+            item.classList.remove("active");
+        }
+    });
 
-    /* Grid View */
-    if (view === "grid") {
-        file_menu_items.forEach((item) => {
-            if (item.innerText == path.basename(dir)) {
-                item.classList.add("active");
-            } else {
-                item.classList.remove("active");
-            }
-        });
+    let btn_list_view = document.getElementById("btn_list_view");
+    btn_list_view.classList.add("active");
+    btn_grid_view.classList.remove("active");
+    btn_disk_view.classList.remove("active");
 
-        let btn_grid_view = document.getElementById("btn_grid_view");
-        btn_grid_view.classList.add("active");
-        btn_list_view.classList.remove("active");
-        btn_disk_view.classList.remove("active");
+    list_view.classList.remove("hidden");
+    list_view.innerHTML = "";
 
-        grid_view.classList.remove("hidden");
+    info_view.classList.add("hidden");
+    info_view.innerHTML = "";
 
-        list_view.classList.add("hidden");
-        list_view.innerHTML = "";
+    grid_view.classList.add("hidden");
 
-        info_view.classList.add("hidden");
-        info_view.innerHTML = "";
-
-        // Add tab if first page
-        let tabs = document.getElementById("tabs");
-        tabs.innerHTML = "";
-
-        // Get grid view
-        get_grid_view(dir);
-
-        /* List View */
-    } else if (view === "list") {
-        file_menu_items.forEach((item) => {
-            if (item.innerText === path.basename(dir)) {
-                item.classList.add("active");
-            } else {
-                item.classList.remove("active");
-            }
-        });
-
-        let btn_list_view = document.getElementById("btn_list_view");
-        btn_list_view.classList.add("active");
-        btn_grid_view.classList.remove("active");
-        btn_disk_view.classList.remove("active");
-
-        list_view.classList.remove("hidden");
-        list_view.innerHTML = "";
-
-        info_view.classList.add("hidden");
-        info_view.innerHTML = "";
-
-        grid_view.classList.add("hidden");
-
-        get_list_view(dir);
-
-        /* Disk Summary */
-    } else if (view === "disk_summary") {
-        let btn_disk_view = document.getElementById("btn_disk_view");
-        btn_disk_view.classList.add("active");
-        btn_list_view.classList.remove("active");
-        btn_grid_view.classList.remove("active");
-
-        info_view.classList.remove("hidden");
-        info_view.innerHTML = "";
-
-        list_view.classList.add("hidden");
-        grid_view.classList.add("hidden");
-        localStorage.setItem("view", view0);
-
-        get_disk_summary_view();
-    } else if (view === "settings") {
-        get_settings_view();
-    }
+    localStorage.setItem("view", "list");
+    get_list_view(dir);
 
     /* Change target on view */
     ipcRenderer.send("is_main_view", 1);
@@ -8256,6 +8200,12 @@ window.notification = function notification(msg) {
     }, 3000);
 };
 
+/** Refresh Main View */
+function refreshView() {
+    get_view(breadcrumbs.value);
+    localStorage.setItem("folder", breadcrumbs.value);
+}
+
 /** Create Folder */
 function create_folder(folder) {
     let folder_grid = document.getElementById("folder_grid");
@@ -8364,6 +8314,7 @@ function create_folder(folder) {
             }
         }
     });
+    refreshView();
     ipcRenderer.send("get_disk_space", {
         href: breadcrumbs.value,
         folder_count: get_folder_count(),
@@ -8615,38 +8566,11 @@ function create_file_from_template(filename) {
 
     info_view.innerHTML = "";
 
-    console.log("running create file " + template + " destin " + destination);
-    console.log(breadcrumbs.value);
-
-    if (fs.existsSync(destination) == true) {
+    if (fs.existsSync(destination) === true) {
         alert("this file already exists");
     } else {
-        console.log("done");
-
-        gio.cp1(template, destination, (res) => {
-            let file_grid = document.getElementById("file_grid");
-            file_grid.classList.remove("hidden");
-            gio.get_file(destination, (file) => {
-                let card = get_card1(file);
-                let col = add_column("three");
-                col.append(card);
-                file_grid.prepend(card);
-
-                let header_link = card.querySelector(".header_link");
-                let input = card.querySelector(".input");
-
-                header_link.classList.add("hidden");
-                input.classList.remove("hidden");
-
-                info_view.classList.add("hidden");
-
-                input.select();
-                input.setSelectionRange(
-                    0,
-                    input.value.length - path.extname(filename).length
-                );
-            });
-        });
+        fs.writeFileSync(destination, "");
+        refreshView();
 
         ipcRenderer.send("get_disk_space", {
             href: breadcrumbs.value,
@@ -8781,8 +8705,8 @@ function delete_files() {
             list += href + "\n";
 
             item.classList.remove(
-                "highloght",
-                ".highlight_select",
+                "highlight",
+                "highlight_select",
                 "ds-selected"
             );
         }
@@ -9255,8 +9179,13 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     // CREATE NEW FOLDER
     if (command === "new_folder") {
         let folder = breadcrumbs.value;
-        if (folder != "") {
-            create_folder(folder + "/Untitled Folder");
+        function timestamp() {
+            const today = new Date();
+            today.setHours(today.getHours() + 9);
+            return today.toISOString().replace("T", " ").substring(0, 19);
+        }
+        if (folder !== "") {
+            create_folder(folder + "/Untitled Folder " + timestamp());
         }
     }
 
@@ -9838,5 +9767,20 @@ window.addEventListener("DOMContentLoaded", () => {
 
     main_view.oncontextmenu = (e) => {
         ipcRenderer.send("show-context-menu");
+    };
+});
+
+ipcRenderer.on("confirm_git_rename", (e, filePath) => {
+    let btn_git_rename_confirm = document.getElementById("btn_git_rename_confirm");
+    let btn_git_rename_cancel = document.getElementById("btn_git_rename_cancel");
+    let git_rename_input = document.getElementById("git_rename_input");
+
+    btn_git_rename_confirm.onclick = (e) => {
+        let rename_input_str = git_rename_input.value;
+        ipcRenderer.send("git_rename_confirmed", filePath, rename_input_str);
+    };
+
+    btn_git_rename_cancel.onclick = (e) => {
+        ipcRenderer.send("git_rename_canceled");
     };
 });

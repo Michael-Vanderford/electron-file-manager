@@ -919,13 +919,14 @@ button .button .link {
     min-height: 18px !important;
 }
 #main_view {
-    /* position: relative; */
+    position: relative;
     /* outline: none; */
     /* border: none; */
     margin-top: 10px;
     /* margin-bottom: 150px; */
     /* margin-right: 0px; */
     height: 100%;
+    left: -150px;
     /* margin-left: 0px; */
     /* overflow-x: hidden; */
     /* overflow-y: scroll; */
@@ -933,7 +934,7 @@ button .button .link {
     /* padding-top: 25px; */
     /* padding-bottom: 40px; */
     /* z-index: 0; */
-    /* width: 100%; */
+    width: 100%;
     /* background: red; */
     /* box-sizing: border-box; */
 
