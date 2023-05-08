@@ -222,7 +222,7 @@ ipcMain.on("item_count_recursive", (e, filename) => {
 });
 
 ipcMain.on("current_directory", (e, directory) => {
-    if (directory != current_directory) {
+    if (directory !== current_directory) {
         current_directory = directory;
     }
 });
