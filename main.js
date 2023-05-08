@@ -3394,36 +3394,6 @@ let files_menu_template = [];
 ipcMain.on("show-context-menu-files", (e, args) => {
     files_menu_template = [
         {
-            label: "Open with Code",
-            click: () => {
-                e.sender.send("context-menu-command", "vscode");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            id: "launchers",
-            label: "Open with",
-            submenu: [],
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Add to workspace",
-            accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.AddWorkspace
-                    : settings.keyboard_shortcuts.AddWorkspace,
-            click: () => {
-                e.sender.send("add_workspace");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "Sort",
             submenu: [
                 {
@@ -3520,27 +3490,6 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             type: "separator",
         },
         {
-            label: "Compress",
-            accelerator:
-                process.platform === "darwin"
-                    ? settings.keyboard_shortcuts.Compress
-                    : settings.keyboard_shortcuts.Compress,
-            submenu: [
-                {
-                    label: "tar.gz",
-                    click: () => {
-                        e.sender.send(
-                            "context-menu-command",
-                            "compress_folder"
-                        );
-                    },
-                },
-            ],
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "Delete file",
             accelerator:
                 process.platform === "darwin"
@@ -3548,28 +3497,6 @@ ipcMain.on("show-context-menu-files", (e, args) => {
                     : settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Terminal",
-            click: () => {
-                e.sender.send("context-menu-command", "open_terminal");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Properties",
-            accelerator:
-                process.platform == "darwin"
-                    ? settings.keyboard_shortcuts.Properties
-                    : settings.keyboard_shortcuts.Properties,
-            click: () => {
-                e.sender.send("context-menu-command", "props");
             },
         },
         {
