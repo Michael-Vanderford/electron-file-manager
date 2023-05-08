@@ -5153,7 +5153,8 @@ async function get_list_view(dir) {
                                                 gitStatusMap.set(gitStatusSplit[1], "Untracked");
                                             }
                                         }
-                                        td.append(gitStatusMap.get(file));
+                                        if (gitStatusMap.has(file))
+                                            td.append(gitStatusMap.get(file));
                                     })
                                     break;
                                 }
