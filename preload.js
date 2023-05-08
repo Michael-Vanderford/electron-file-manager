@@ -5136,7 +5136,11 @@ async function get_list_view(dir) {
                                     break;
                                 }
                                 case "Git Status": {
-                                    td.append("status");
+                                    //ipcRenderer.send("current_directory", dir);
+                                    let cmd = `cd ${dir} && ls -a | grep -w .git`;
+                                    exec(cmd, (error, stdout, stderr) => {
+                                        td.append(stdout);
+                                    })
                                     break;
                                 }
                             }
