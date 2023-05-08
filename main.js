@@ -3913,6 +3913,19 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
+ipcMain.on("git_init", (e) => {
+    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (stdout.trim() === ".git") {
+            // already git repo
+            console.log(stdout);
+        }
+        else if (stdout === ""){
+            // git init
+        }
+    });
+});
+
 ipcMain.on("git_commit", (e) => {
     gitCommitDialog(current_directory);
 });
