@@ -8590,7 +8590,7 @@ function create_file_from_template(filename) {
 
 // RENAME FILE OR FOLDER
 function rename_file(source, destination_name, callback) {
-    if (destination_name == "") {
+    if (destination_name === "") {
         alert("Enter a file name");
     } else {
         let filename = path.join(path.dirname(source), destination_name);
@@ -8612,6 +8612,7 @@ function rename_file(source, destination_name, callback) {
                 fs.rename(source, filename, function (err) {
                     if (!err) {
                         notification(`Renamed ${source} to ${filename}`);
+                        refreshView();
                         return callback(1);
                     } else {
                         notification(err);
@@ -9777,8 +9778,12 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
-    let btn_git_rename_confirm = document.getElementById("btn_git_rename_confirm");
-    let btn_git_rename_cancel = document.getElementById("btn_git_rename_cancel");
+    let btn_git_rename_confirm = document.getElementById(
+        "btn_git_rename_confirm"
+    );
+    let btn_git_rename_cancel = document.getElementById(
+        "btn_git_rename_cancel"
+    );
     let git_rename_input = document.getElementById("git_rename_input");
 
     btn_git_rename_confirm.onclick = (e) => {
