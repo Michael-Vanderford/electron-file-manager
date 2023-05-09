@@ -8710,6 +8710,10 @@ function delete_files() {
     clear_items();
 }
 
+ipcRenderer.on("refresh", () => {
+    refreshView();
+});
+
 /**
  *
  * @returns Number of Folders in the Current VIew
