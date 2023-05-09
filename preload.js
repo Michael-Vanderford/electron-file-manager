@@ -1116,7 +1116,6 @@ ipcRenderer.on("du_folder_size", (e, folder_size) => {
 
 // ON FOLDER SIZE
 ipcRenderer.on("folder_size", (e, data) => {
-    console.log(data);
     try {
         let cards = document.querySelectorAll(
             '[data-href="' + data.href + '"]'
@@ -1207,7 +1206,6 @@ ipcRenderer.on("gio_devices", (e, res) => {
                     menu_items.appendChild(menu_item);
                     device_grid.appendChild(menu_items);
                     is_activationroot = 1;
-                    console.log("activation uuid", uuid);
                 }
                 if (
                     subitem.indexOf("default_location=") > -1 &&
@@ -1445,7 +1443,6 @@ ipcRenderer.on("clear_sidebar", (e) => {
 
 // On file properties window
 ipcRenderer.on("file_properties_window", (e, data) => {
-    console.log("what", data);
     let sb_items = document.getElementById("sidebar_items");
     sb_items.innerHTML = "";
     get_properties(source);
@@ -1559,8 +1556,6 @@ function get_recent_files(href, call) {
                     } else {
                         file_grid.append(col);
                     }
-
-                    console.log(file);
                 });
             });
         }
@@ -1610,7 +1605,6 @@ function get_sidebar_home() {
     console.log(my_computer_arr.length);
     for (let i = 0; i < my_computer_arr.length; i++) {
         let href = my_computer_paths_arr[i];
-        console.log(my_computer_arr[i]);
 
         let item = add_div();
         item.classList.add("flex");
@@ -1882,7 +1876,6 @@ async function get_image_properties(image) {
  * @param {object} file_properties_obj
  */
 async function get_properties(file_properties_obj) {
-    console.log("get_properties");
 
     let filename = file_properties_obj["Name"];
     let ext = path.extname(filename);
@@ -2092,7 +2085,6 @@ function set_progress_msg(msg) {
 let prog_state = 0;
 
 function set_progress(max, value) {
-    console.log(max, value);
 
     if (prog_state === 0) {
         prog_state = 1;
