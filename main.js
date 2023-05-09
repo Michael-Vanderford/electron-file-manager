@@ -3819,7 +3819,8 @@ const getGitStatus = (filePath, isDirectory) => {
 
             let gitStatusResult = stdout.trim().split(" ")[0];
             if(stdout[0] === "M" && stdout[1] === "M"){
-
+                // Modified File
+                resolve(2);
             }else if(stdout[0] === "M"){
                 // Staged File
                 resolve(3);
