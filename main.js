@@ -3960,7 +3960,8 @@ ipcMain.on("git_commit", (e) => {
             return;
         }
 
-        if (stdout.trimEnd()[0] === "A" || stdout.trimEnd()[0] === "M" || stdout.trimEnd()[0] === "D") {
+        if (stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U") {
             gitCommitDialog(current_directory);
         }
     });
