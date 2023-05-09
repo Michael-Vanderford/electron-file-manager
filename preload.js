@@ -5138,8 +5138,10 @@ async function get_list_view(dir) {
                                 case "Git Status": {
                                     if (stats.isDirectory())
                                         break;
+
                                     let dirPath = dir.replaceAll(" ", "\\ ");
-                                    let cmd = `cd ${dirPath} && git status -s "${file}"`;
+                                    let fileName = file.replaceAll("\"", "\\\"");
+                                    let cmd = `cd ${dirPath} && git status -s "${fileName}"`;
                                     exec(cmd, (error, stdout, stderr) => {
                                         if (error) {
                                             console.error(`${error}`);
@@ -5161,36 +5163,7 @@ async function get_list_view(dir) {
                                         else if (stdout[0] === "?") {
                                             td.append("Untracked");
                                         }
-                                        //td.append(stdout);
                                     })
-
-                                    // let gitStatusMap = new Map();
-                                    // let dirPath = dir.replaceAll(" ", "\\ ");
-                                    // let cmd = `cd ${dirPath} && git status -s`;
-                                    // exec(cmd, (error, stdout, stderr) => {
-
-                                    //     let gitStatusResult = stdout.split("\n");
-                                    //     for (let gitStatus of gitStatusResult) {
-                                    //         let fileName = gitStatus.substr(3);
-                                    //         if (gitStatus[3] === "\"") {
-                                    //             fileName = gitStatus.slice(4, -1);
-                                    //         }
-
-                                    //         if (gitStatus[1] === "M" || gitStatus[1] === "D" || gitStatus[0] === "R") {
-                                    //             gitStatusMap.set(fileName, "Modified");
-                                    //         }
-                                    //         else if (gitStatus[0] === "A") {
-                                    //             gitStatusMap.set(fileName, "Staged");
-                                    //         }
-                                    //         else if (gitStatus[0] === "?") {
-                                    //             gitStatusMap.set(fileName, "Untracked");
-                                    //         }
-                                    //     }
-                                    //     if (stats.isDirectory() && gitStatusMap.has(file + '/'))
-                                    //         td.append(gitStatusMap.get(file + '/'));
-                                    //     else if (gitStatusMap.has(file))
-                                    //         td.append(gitStatusMap.get(file));
-                                    // })
                                     break;
                                 }
                             }
