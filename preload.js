@@ -5139,6 +5139,15 @@ async function get_list_view(dir) {
                                     let gitStatusMap = new Map();
                                     let cmd = `cd ${dir} && git status -s`;
                                     exec(cmd, (error, stdout, stderr) => {
+                                        if (error) {
+                                            console.error(`${error}`);
+                                            return;
+                                        }
+                                        if (stderr) {
+                                            console.error(`${stderr}`);
+                                            return;
+                                        }
+
                                         let gitStatusResult = stdout.split("\n");
                                         for (let gitStatus of gitStatusResult) {
                                             if (gitStatus[1] === "M" || gitStatus[1] === "D" || gitStatus[0] === "R") {
