@@ -3817,16 +3817,15 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            if(stdout[0] === "M" && stdout[1] === "M"){
+            if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
+                || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
                 // Modified File
                 resolve(2);
-            }else if(stdout[0] === "A" || stdout[0] === "M"){
+            }else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+                || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
                 // Staged File
                 resolve(3);
-            }else if(stdout[1] === "M"){
-                // Modified File
-                resolve(2);
-            }else if(stdout[0] === "?" || stdout[0] === "D") {
+            }else if(stdout[0] === "?") {
                 // Untracked File
                 resolve(1);
             }else{
