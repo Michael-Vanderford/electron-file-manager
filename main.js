@@ -222,7 +222,7 @@ ipcMain.on("item_count_recursive", (e, filename) => {
 });
 
 ipcMain.on("current_directory", (e, directory) => {
-    if (directory != current_directory) {
+    if (directory !== current_directory) {
         current_directory = directory;
     }
 });
@@ -3759,6 +3759,103 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
 });
 
 ipcMain.on("git_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+function gitInitialize(filePath) {
+    let cmd = `cd ${filePath} && git init`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        console.log(stdout);
+    });
+}
+
+ipcMain.on("git_init", (e) => {
+    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git | wc -l`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            gitInitialize(current_directory);
+        }
+    });
+});
+
+ipcMain.on("git_commit", (e) => {
+    gitCommitDialog(current_directory);
+});
+
+const gitCommitDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_commit_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Commit Changed";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_commit", filePath);
+    });
+};
+
+ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git commit -m \"${commit_message_input_str}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+    });
+});
+
+ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
