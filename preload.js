@@ -5138,7 +5138,7 @@ async function get_list_view(dir) {
                                 case "Git Status": {
                                     let dirPath = dir.replaceAll(" ", "\\ ");
                                     let cmd = `cd ${dirPath} && git status -s "${file}"`;
-                                    //td.append(file);
+                                    
                                     exec(cmd, (error, stdout, stderr) => {
                                         if (error) {
                                             console.error(`${error}`);
@@ -5148,7 +5148,17 @@ async function get_list_view(dir) {
                                             console.error(`${stderr}`);
                                             return;
                                         }
-                                        td.append(stdout);
+
+                                        if (stdout[1] === "M" || stdout[1] === "D" || stdout[0] === "R") {
+                                            td.append("Modified");
+                                        }
+                                        else if (stdout[0] === "A") {
+                                            td.append("Staged");
+                                        }
+                                        else if (stdout[0] === "?") {
+                                            td.append("Untracked");
+                                        }
+                                        //td.append(stdout);
                                     })
 
                                     // let gitStatusMap = new Map();
