@@ -500,12 +500,6 @@ document.getElementById("left").addEventListener("click", function (e) {
     window.api.navigate("left");
 });
 
-// GO FOWARD
-document.getElementById("right").addEventListener("click", function (e) {
-    e.preventDefault;
-    window.api.navigate("right");
-});
-
 var resizeableColumns = document.querySelectorAll(".resizable");
 var table = document.querySelector("table");
 
