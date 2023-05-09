@@ -2799,7 +2799,7 @@ function add_templates_menu(menu, e, args) {
                 label: file.replace(path.extname(file), ""),
                 click: () => {
                     e.sender.send("create_file_from_template", {
-                        file: `${file} ${formatDate()}`,
+                        file: `${formatDate()} ${file}`,
                     });
                 },
             })
