@@ -5136,9 +5136,10 @@ async function get_list_view(dir) {
                                     break;
                                 }
                                 case "Git Status": {
+                                    if (stats.isDirectory())
+                                        break;
                                     let dirPath = dir.replaceAll(" ", "\\ ");
                                     let cmd = `cd ${dirPath} && git status -s "${file}"`;
-                                    
                                     exec(cmd, (error, stdout, stderr) => {
                                         if (error) {
                                             console.error(`${error}`);
@@ -5149,7 +5150,8 @@ async function get_list_view(dir) {
                                             return;
                                         }
 
-                                        if (stdout[1] === "M" || stdout[1] === "D" || stdout[0] === "R") {
+                                        if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
+                                            || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
                                             td.append("Modified");
                                         }
                                         else if (stdout[0] === "A") {
@@ -5165,14 +5167,6 @@ async function get_list_view(dir) {
                                     // let dirPath = dir.replaceAll(" ", "\\ ");
                                     // let cmd = `cd ${dirPath} && git status -s`;
                                     // exec(cmd, (error, stdout, stderr) => {
-                                    //     if (error) {
-                                    //         console.error(`${error}`);
-                                    //         return;
-                                    //     }
-                                    //     if (stderr) {
-                                    //         console.error(`${stderr}`);
-                                    //         return;
-                                    //     }
 
                                     //     let gitStatusResult = stdout.split("\n");
                                     //     for (let gitStatus of gitStatusResult) {
