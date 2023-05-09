@@ -5154,7 +5154,8 @@ async function get_list_view(dir) {
                                             || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
                                             td.append("Modified");
                                         }
-                                        else if (stdout[0] === "A") {
+                                        else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+                                            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
                                             td.append("Staged");
                                         }
                                         else if (stdout[0] === "?") {
