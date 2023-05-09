@@ -1361,85 +1361,91 @@ async function cp_gio_files(source, destination, callback) {
  * @param {int} callback *
  */
 async function delete_file(href, callback) {
-    if (href !== null && !isGioFile(href)) {
-        fs.stat(href, (err, stats) => {
-            if (!err) {
-                /* Folder */
-                if (stats.isDirectory()) {
-                    fs.rm(href, { recursive: true }, (err) => {
-                        if (err) {
-                            win.send("notification", err);
-                            callback(err);
-                        } else {
-                            try {
-                                windows.forEach((win) => {
+    return new Promise((res) => {
+        if (href !== null && !isGioFile(href)) {
+            fs.stat(href, (err, stats) => {
+                if (!err) {
+                    /* Folder */
+                    if (stats.isDirectory()) {
+                        fs.rm(href, { recursive: true }, (err) => {
+                            if (err) {
+                                win.send("notification", err);
+                                callback(err);
+                                res(0);
+                            } else {
+                                try {
+                                    windows.forEach((win) => {
+                                        win.send("remove_card", href);
+                                    });
+                                } catch (err) {
+                                    win.send("notification", err);
+                                    win.send("notification", err);
+                                }
+
+                                // Update disk size
+                                get_disk_space(
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
+
+                                callback(1);
+                                res(1);
+                            }
+                        });
+                        /* File */
+                    } else {
+                        fs.unlink(href, (err) => {
+                            if (err) {
+                                win.send("notification", err);
+                                callback(err);
+                                res(0);
+                            } else {
+                                try {
                                     win.send("remove_card", href);
-                                });
-                            } catch (err) {
-                                win.send("notification", err);
-                                win.send("notification", err);
-                            }
-
-                            // Update disk size
-                            get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
+                                } catch (err) {
+                                    win.send("notification", err);
                                 }
-                            );
 
-                            callback(1);
-                        }
-                    });
-                    /* File */
+                                // Update disk size
+                                get_disk_space(
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
+
+                                callback(1);
+                                res(1);
+                            }
+                        });
+                    }
                 } else {
-                    fs.unlink(href, (err) => {
-                        if (err) {
-                            win.send("notification", err);
-                            callback(err);
-                        } else {
-                            try {
-                                win.send("remove_card", href);
-                            } catch (err) {
-                                win.send("notification", err);
-                            }
-
-                            // Update disk size
-                            get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
-                                }
-                            );
-
-                            callback(1);
+                    if (href.indexOf("smb") > -1 || href.indexOf("sftp") > -1) {
+                        gio.rm(href, () => {});
+                        win.send("remove_card", href);
+                    }
+                }
+            });
+        } else {
+            gio.get_file(href, (file) => {
+                if (file.type == "directory") {
+                    rm_gio_files(href, () => {
+                        if (isMainView) {
+                            win.send("remove_card", href);
+                        }
+                    });
+                } else {
+                    gio.rm(href, (res) => {
+                        if (isMainView) {
+                            win.send("remove_card", href);
                         }
                     });
                 }
-            } else {
-                if (href.indexOf("smb") > -1 || href.indexOf("sftp") > -1) {
-                    gio.rm(href, () => {});
-                    win.send("remove_card", href);
-                }
-            }
-        });
-    } else {
-        gio.get_file(href, (file) => {
-            if (file.type == "directory") {
-                rm_gio_files(href, () => {
-                    if (isMainView) {
-                        win.send("remove_card", href);
-                    }
-                });
-            } else {
-                gio.rm(href, (res) => {
-                    if (isMainView) {
-                        win.send("remove_card", href);
-                    }
-                });
-            }
-        });
-    }
+            });
+        }
+    });
 }
 
 /**
@@ -2380,11 +2386,15 @@ function createDeleteDialog(delete_files_arr) {
     });
 }
 
-ipcMain.on("delete_confirmed", (e, delete_files_arr) => {
+ipcMain.on("delete_confirmed", async (e, delete_files_arr) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
     delete_files_arr.forEach((item) => {
-        delete_file(item.source);
+        delete_file(item.source).then((res) => {
+            if (res === 1) {
+                e.sender.send("refresh");
+            }
+        });
     });
 });
 
