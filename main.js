@@ -3949,7 +3949,22 @@ ipcMain.on("git_init", (e) => {
 });
 
 ipcMain.on("git_commit", (e) => {
-    gitCommitDialog(current_directory);
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trimEnd()[0] === "M" || stdout.trimEnd()[0] === "D") {
+            gitCommitDialog(current_directory);
+        }
+    });
 });
 
 const gitCommitDialog = (filePath) => {
