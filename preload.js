@@ -5137,7 +5137,8 @@ async function get_list_view(dir) {
                                 }
                                 case "Git Status": {
                                     let gitStatusMap = new Map();
-                                    let cmd = `cd ${dir} && git status -s`;
+                                    let dirPath = dir.replaceAll(" ", "\\ ");
+                                    let cmd = `cd ${dirPath} && git status -s`;
                                     exec(cmd, (error, stdout, stderr) => {
                                         if (error) {
                                             console.error(`${error}`);
@@ -5150,19 +5151,23 @@ async function get_list_view(dir) {
 
                                         let gitStatusResult = stdout.split("\n");
                                         for (let gitStatus of gitStatusResult) {
+                                            let fileName = gitStatus.substr(3);
+                                            if (gitStatus[3] === "\"") {
+                                                fileName = gitStatus.slice(4, -1);
+                                            }
+
                                             if (gitStatus[1] === "M" || gitStatus[1] === "D" || gitStatus[0] === "R") {
-                                                gitStatusMap.set(gitStatus.substr(3), "Modified");
+                                                gitStatusMap.set(fileName, "Modified");
                                             }
                                             else if (gitStatus[0] === "A") {
-                                                gitStatusMap.set(gitStatus.substr(3), "Staged");
+                                                gitStatusMap.set(fileName, "Staged");
                                             }
                                             else if (gitStatus[0] === "?") {
-                                                gitStatusMap.set(gitStatus.substr(3), "Untracked");
+                                                gitStatusMap.set(fileName, "Untracked");
                                             }
                                         }
-                                        if (stats.isDirectory() && gitStatusMap.has(file + '/')) {
+                                        if (stats.isDirectory() && gitStatusMap.has(file + '/'))
                                             td.append(gitStatusMap.get(file + '/'));
-                                        }
                                         else if (gitStatusMap.has(file))
                                             td.append(gitStatusMap.get(file));
                                     })
