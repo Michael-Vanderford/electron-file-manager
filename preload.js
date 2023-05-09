@@ -8341,10 +8341,9 @@ function add_copy_file() {
         ".highlight_select, .highlight, .ds-selected"
     );
     cards.forEach((card) => {
-        let file = file_arr.filter((x) => x.href == card.dataset.href);
-        console.log(file[0]);
+        let file = card.dataset.href;
         if (file) {
-            copy_files_arr.push(file[0]);
+            copy_files_arr.push(file);
 
             if (file.is_dir) {
                 ++folder_count;
@@ -8592,35 +8591,24 @@ function create_file_from_template(filename) {
 
 // RENAME FILE OR FOLDER
 function rename_file(source, destination_name, callback) {
-    if (destination_name == "") {
+    if (destination_name === "") {
         alert("Enter a file name");
     } else {
         let filename = path.join(path.dirname(source), destination_name);
         if (fs.existsSync(filename)) {
-            // todo: this is not working correctly
-            // alert(filename + ' already exists!')
-            // return false
+            alert(filename + " already exists!");
+            return false;
         } else {
-            console.log(source, filename);
-            if (is_gio_file(source)) {
-                console.log("shit");
-                gio.rename(source, destination_name, () => {
-                    console.log("updating card", destination_name);
-                    update_card1(destination_name);
+            fs.rename(source, filename, function (err) {
+                if (!err) {
                     notification(`Renamed ${source} to ${filename}`);
+                    refreshView();
                     return callback(1);
-                });
-            } else {
-                fs.rename(source, filename, function (err) {
-                    if (!err) {
-                        notification(`Renamed ${source} to ${filename}`);
-                        return callback(1);
-                    } else {
-                        notification(err);
-                        return callback(err);
-                    }
-                });
-            }
+                } else {
+                    notification(err);
+                    return callback(err);
+                }
+            });
         }
     }
 }
@@ -8723,6 +8711,10 @@ function delete_files() {
 
     clear_items();
 }
+
+ipcRenderer.on("refresh", () => {
+    refreshView();
+});
 
 /**
  *
@@ -9249,7 +9241,52 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     // PASTE COMMAND
     if (command === "paste") {
         // PAST FILES
-        paste();
+        state = 2;
+        ipcRenderer.send("is_main_view", 1);
+        // RUN MOVE TO FOLDER
+        if (cut_files == 1) {
+            cut_files = 0;
+            copy_files_arr.forEach((copyItem) => {
+                let inputPath = copyItem.replaceAll(" ", "\\ ");
+                let destPath = breadcrumbs.value.replaceAll(" ", "\\ ");
+                exec(`mv ${inputPath} ${destPath}`, (err, stdout, stderr) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    if (stderr) {
+                        console.log(stderr);
+                    }
+                    if (stdout) {
+                        console.log(stdout);
+                    }
+                    refreshView();
+                });
+            });
+            // RUN COPY FUNCTION
+        } else {
+            copy_files_arr.forEach((copyItem) => {
+                let inputPath = copyItem.replaceAll(" ", "\\ ");
+                let destPath = breadcrumbs.value.replaceAll(" ", "\\ ");
+                exec(
+                    `cp -rf ${inputPath} ${destPath}`,
+                    (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                        }
+                        if (stderr) {
+                            console.log(stderr);
+                        }
+                        if (stdout) {
+                            console.log(stdout);
+                        }
+                        refreshView();
+                    }
+                );
+            });
+        }
+        // CLEAN UP
+        clear_items();
+        copy_files_arr = [];
     }
 
     // IF WE RECIEVE DELETE CONFIRMED THEN DELETE FILE/S
@@ -9789,8 +9826,12 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
-    let btn_git_rename_confirm = document.getElementById("btn_git_rename_confirm");
-    let btn_git_rename_cancel = document.getElementById("btn_git_rename_cancel");
+    let btn_git_rename_confirm = document.getElementById(
+        "btn_git_rename_confirm"
+    );
+    let btn_git_rename_cancel = document.getElementById(
+        "btn_git_rename_cancel"
+    );
     let git_rename_input = document.getElementById("git_rename_input");
 
     btn_git_rename_confirm.onclick = (e) => {
@@ -9804,8 +9845,12 @@ ipcRenderer.on("confirm_git_rename", (e, filePath) => {
 });
 
 ipcRenderer.on("confirm_git_commit", (e, filePath) => {
-    let btn_git_commit_confirm = document.getElementById("btn_git_commit_confirm");
-    let btn_git_commit_cancel = document.getElementById("btn_git_commit_cancel");
+    let btn_git_commit_confirm = document.getElementById(
+        "btn_git_commit_confirm"
+    );
+    let btn_git_commit_cancel = document.getElementById(
+        "btn_git_commit_cancel"
+    );
     let git_commit_input = document.getElementById("git_commit_message_input");
 
     btn_git_commit_confirm.onclick = (e) => {
