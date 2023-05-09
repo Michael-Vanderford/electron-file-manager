@@ -9253,6 +9253,7 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
                     if (stdout) {
                         console.log(stdout);
                     }
+                    refreshView();
                 });
             });
             // RUN COPY FUNCTION
@@ -9272,11 +9273,11 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
                         if (stdout) {
                             console.log(stdout);
                         }
+                        refreshView();
                     }
                 );
             });
         }
-
         // CLEAN UP
         clear_items();
         copy_files_arr = [];
