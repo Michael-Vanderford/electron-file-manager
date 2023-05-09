@@ -768,7 +768,6 @@ function copyfolder(source, destination, callback) {
 // Add files to copy array
 ipcMain.on("add_copy_files", function (e, data) {
     copy_files_arr = data;
-    e.sender.send("clear_copy_arr");
 });
 
 const copy_write = (source, destination, callback) => {
