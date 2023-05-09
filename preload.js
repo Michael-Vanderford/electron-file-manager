@@ -8339,10 +8339,9 @@ function add_copy_file() {
         ".highlight_select, .highlight, .ds-selected"
     );
     cards.forEach((card) => {
-        let file = file_arr.filter((x) => x.href == card.dataset.href);
-        console.log(file[0]);
+        let file = card.dataset.href;
         if (file) {
-            copy_files_arr.push(file[0]);
+            copy_files_arr.push(file);
 
             if (file.is_dir) {
                 ++folder_count;
@@ -9236,7 +9235,51 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     // PASTE COMMAND
     if (command === "paste") {
         // PAST FILES
-        paste();
+        state = 2;
+        ipcRenderer.send("is_main_view", 1);
+        // RUN MOVE TO FOLDER
+        if (cut_files == 1) {
+            cut_files = 0;
+            copy_files_arr.forEach((copyItem) => {
+                let inputPath = copyItem.replaceAll(" ", "\\ ");
+                let destPath = breadcrumbs.value.replaceAll(" ", "\\ ");
+                exec(`mv ${inputPath} ${destPath}`, (err, stdout, stderr) => {
+                    if (err) {
+                        console.log(err);
+                    }
+                    if (stderr) {
+                        console.log(stderr);
+                    }
+                    if (stdout) {
+                        console.log(stdout);
+                    }
+                });
+            });
+            // RUN COPY FUNCTION
+        } else {
+            copy_files_arr.forEach((copyItem) => {
+                let inputPath = copyItem.replaceAll(" ", "\\ ");
+                let destPath = breadcrumbs.value.replaceAll(" ", "\\ ");
+                exec(
+                    `cp -rf ${inputPath} ${destPath}`,
+                    (err, stdout, stderr) => {
+                        if (err) {
+                            console.log(err);
+                        }
+                        if (stderr) {
+                            console.log(stderr);
+                        }
+                        if (stdout) {
+                            console.log(stdout);
+                        }
+                    }
+                );
+            });
+        }
+
+        // CLEAN UP
+        clear_items();
+        copy_files_arr = [];
     }
 
     // IF WE RECIEVE DELETE CONFIRMED THEN DELETE FILE/S
