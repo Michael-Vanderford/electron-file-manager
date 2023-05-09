@@ -3817,7 +3817,6 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            let gitStatusResult = stdout.trim().split(" ")[0];
             if(stdout[0] === "M" && stdout[1] === "M"){
                 // Modified File
                 resolve(2);
