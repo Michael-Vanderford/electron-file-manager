@@ -3839,6 +3839,7 @@ const getGitStatus = (filePath, isDirectory) => {
 
 const runGitCommand = (filePath, gitCmd) => {
     let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
