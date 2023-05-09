@@ -3827,7 +3827,7 @@ const getGitStatus = (filePath, isDirectory) => {
             }else if(stdout[1] === "M"){
                 // Modified File
                 resolve(2);
-            }else if(stdout[0] === "?"){
+            }else if(stdout[0] === "?" || stdout[0] === "D") {
                 // Untracked File
                 resolve(1);
             }else{
