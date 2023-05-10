@@ -3747,6 +3747,7 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
     confirm.hide();
 
     let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && git mv ${filePath} ${rename_input_str}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
