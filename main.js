@@ -3873,6 +3873,7 @@ ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
 
