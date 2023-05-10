@@ -3668,15 +3668,15 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            let gitStatusResult = stdout.trim().split(" ")[0];
-            if (stdout[0] === "M" && stdout[1] === "M") {
-            } else if (stdout[0] === "M") {
-                // Staged File
-                resolve(3);
-            } else if (stdout[1] === "M") {
+            if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
+                || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
                 // Modified File
                 resolve(2);
-            } else if (stdout[0] === "?") {
+            }else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+                || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+                // Staged File
+                resolve(3);
+            }else if(stdout[0] === "?") {
                 // Untracked File
                 resolve(1);
             } else {
@@ -3688,7 +3688,8 @@ const getGitStatus = (filePath, isDirectory) => {
 };
 
 const runGitCommand = (filePath, gitCmd) => {
-    let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
+    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3763,8 +3764,8 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
-function gitInitialize(filePath) {
-    let cmd = `cd ${filePath} && git init`;
+function gitInitialize(dirPath) {
+    let cmd = `cd ${dirPath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
@@ -3779,7 +3780,8 @@ function gitInitialize(filePath) {
 }
 
 ipcMain.on("git_init", (e) => {
-    let checkGitRepo = `cd ${current_directory} && ls -a | grep -w .git | wc -l`;
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && ls -a | grep -w .git | wc -l`;
     exec(checkGitRepo, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
@@ -3791,13 +3793,29 @@ ipcMain.on("git_init", (e) => {
         }
 
         if (stdout.trim() === "0") {
-            gitInitialize(current_directory);
+            gitInitialize(dirPath);
         }
     });
 });
 
 ipcMain.on("git_commit", (e) => {
-    gitCommitDialog(current_directory);
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U") {
+            gitCommitDialog(current_directory);
+        }
+    });
 });
 
 const gitCommitDialog = (filePath) => {
