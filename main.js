@@ -3764,7 +3764,7 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
-function gitInitialize(dirPath) {
+function gitInitialize(dirPath, e) {
     let cmd = `cd ${dirPath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3776,6 +3776,7 @@ function gitInitialize(dirPath) {
             return;
         }
         console.log(stdout);
+        e.sender.send("refresh");
     });
 }
 
@@ -3793,7 +3794,7 @@ ipcMain.on("git_init", (e) => {
         }
 
         if (stdout.trim() === "0") {
-            gitInitialize(dirPath);
+            gitInitialize(dirPath, e);
         }
     });
 });
