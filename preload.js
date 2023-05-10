@@ -4817,6 +4817,10 @@ async function get_list_view(dir) {
             show: 1,
         },
         {
+            name: "Git Status",
+            show: 1
+        },
+        {
             name: "Size",
             sort: 3,
             show: 1,
@@ -5131,6 +5135,37 @@ async function get_list_view(dir) {
                                             timeStyle: "short",
                                         }).format(stats.birthtime)
                                     );
+                                    break;
+                                }
+                                case "Git Status": {
+                                    if (stats.isDirectory())
+                                        break;
+
+                                    let dirPath = dir.replaceAll(" ", "\\ ");
+                                    let fileName = file.replaceAll("\"", "\\\"");
+                                    let cmd = `cd ${dirPath} && git status -s "${fileName}"`;
+                                    exec(cmd, (error, stdout, stderr) => {
+                                        if (error) {
+                                            console.error(`${error}`);
+                                            return;
+                                        }
+                                        if (stderr) {
+                                            console.error(`${stderr}`);
+                                            return;
+                                        }
+
+                                        if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
+                                            || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
+                                            td.append("Modified");
+                                        }
+                                        else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+                                            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+                                            td.append("Staged");
+                                        }
+                                        else if (stdout[0] === "?") {
+                                            td.append("Untracked");
+                                        }
+                                    })
                                     break;
                                 }
                             }
