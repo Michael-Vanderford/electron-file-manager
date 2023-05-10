@@ -3758,6 +3758,7 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
 
