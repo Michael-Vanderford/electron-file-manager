@@ -1378,7 +1378,6 @@ async function delete_file(href, callback) {
                                 });
                             } catch (err) {
                                 win.send("notification", err);
-                                win.send("notification", err);
                             }
 
                             // Update disk size
@@ -2416,9 +2415,6 @@ function create_properties_window(filename) {
         },
     });
 
-    // LOAD INDEX FILE
-    win.loadFile("src/properties.html");
-
     win.once("ready-to-show", () => {
         win.title = path.basename(filename);
         win.show();
@@ -3446,7 +3442,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             type: "separator",
         },
         {
-            label: "Add to workspace",
+            label: "Add to workspace",  
             accelerator:
                 settings.keyboard_shortcuts.AddWorkspace,
             click: () => {

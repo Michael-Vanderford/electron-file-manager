@@ -1602,7 +1602,7 @@ function get_sidebar_home() {
     sidebar_items.append(add_header("Home"));
 
     // Get home
-    console.log(my_computer_arr.length);
+
     for (let i = 0; i < my_computer_arr.length; i++) {
         let href = my_computer_paths_arr[i];
 
@@ -2032,7 +2032,6 @@ async function get_properties(file_properties_obj) {
  * Send a request to main to get file properties
  */
 async function get_file_properties() {
-    console.log("getting props");
 
     file_properties_arr = [];
     let sb_items = document.getElementById("sidebar_items");
@@ -2114,7 +2113,6 @@ function set_progress(max, value) {
  * @param {string} destination_folder // folder to update after progress stops
  */
 function get_progress(total) {
-    console.log("progress total", total);
 
     let breadcrumbs = document.getElementById("breadcrumbs");
     let progress_div = document.getElementById("progress_div");
@@ -2122,7 +2120,6 @@ function get_progress(total) {
     let cancel = document.getElementById("cancel_operation");
 
     cancel.onclick = (e) => {
-        console.log("canceling copy");
         ipcRenderer.send("cancel");
     };
 
@@ -2255,7 +2252,6 @@ function set_default_launcher(desktop_file, mimetype) {
 // GET NETWORK
 // todo: this probrably needs to be removed
 async function get_network() {
-    console.log("getting network");
 
     let network_grid = document.getElementById("network_grid");
     network_grid.innerHTML = "";
@@ -2318,15 +2314,6 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
     let transfer_data_amount =
         parseInt(transfer_speed) * parseInt(transfer_time);
 
-    console.log("destination size " + get_file_size(destination_size));
-    console.log("source size " + get_file_size(source_size));
-
-    console.log("elapsed speed " + elapsed_time);
-
-    console.log("transfer speed " + get_file_size(transfer_speed));
-    console.log("transfer time " + transfer_time);
-    console.log("transfer amount " + get_file_size(transfer_data_amount));
-
     let options = {
         transfer_speed: transfer_speed,
         transfer_time: transfer_time,
@@ -2336,13 +2323,8 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
     return options;
 }
 
-function log(msg) {
-    console.log(msg);
-}
-
 // ADD CARD //////////////////////////////////////////////////////////////////////
 async function add_card(options) {
-    console.log("addin card");
 
     try {
         // Options
@@ -3009,14 +2991,14 @@ function get_card1(file) {
         e.preventDefault();
         e.stopPropagation();
         if (file.is_dir) {
-            console.log("dir context menu");
+
             card.classList.add("folder_card", "ds-selectable", "ds-selected");
 
             let filetype = mime.lookup(file.href);
             let associated_apps = get_available_launchers(filetype, file.href);
             ipcRenderer.send("show-context-menu-directory", associated_apps);
         } else {
-            console.log("file context menu", file);
+
             card.classList.add("file_card", "ds-selectable", "ds-selected");
 
             let filetype = mime.lookup(file.href);
@@ -3167,7 +3149,7 @@ function get_card1(file) {
         e.preventDefault();
         if (file.is_dir || file.type === "directory") {
             get_view(file.href);
-            console.log(file);
+
         } else {
             open(file.href);
         }
@@ -3219,7 +3201,6 @@ function get_card1(file) {
  *
  */
 function update_card1(href) {
-    console.log("running update card");
 
     let cards = document.querySelectorAll(`[data-href="${href}"]`);
     get_file(href, (file) => {
@@ -4626,8 +4607,6 @@ async function get_settings_view() {
             let key = input.id;
             settings.keyboard_shortcuts[key] = input.value;
 
-            console.log(key, input.value, userdata_dir);
-
             fs.writeFileSync(
                 path.join(userdata_dir, "settings.json"),
                 JSON.stringify(settings, null, 4)
@@ -5199,7 +5178,6 @@ async function get_list_view(dir) {
                                 filetype,
                                 filename
                             );
-                            console.log(filename, associated_apps);
                             try {
                                 fs.accessSync(filename, fs.X_OK);
                                 access = 1;
@@ -5309,7 +5287,6 @@ function build_copy_arr(source, destination, callback) {
             }
             copy_arr1.push(file);
         });
-        console.log("file_count", file_count1, "file_count 2", file_count2);
     });
 }
 
@@ -5328,7 +5305,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
     show_loader();
     gio.get_dir(dir, (dirents) => {
-        console.log(dir);
 
         let main_view = document.getElementById("main_view");
         let folder_grid = document.getElementById("folder_grid");
@@ -5512,8 +5488,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
 // MAIN GET FILES FUNCTION
 async function get_files(dir, callback) {
     // I dont think this is being used
-
-    console.log("running get files");
 
     // Init
     if (fs.existsSync(dir)) {
@@ -6913,7 +6887,6 @@ async function find_files(callback) {
                         let data = 0;
                         let c = 0;
                         let child = exec(cmd);
-                        // console.log(cmd)
                         child.stdout.on("data", (res) => {
                             data = 1;
                             search_info.innerHTML = "";
@@ -7541,7 +7514,6 @@ function autocomplete() {
 
             if (e.key === "ArrowDown") {
                 ++ac;
-                console.log(ac);
                 items[ac - 1].classList.add("highlight");
                 if (ac >= items.length) {
                     ac = 0;
@@ -8451,7 +8423,6 @@ function copyFileSync(source, target) {
             } else {
                 notification("copying folder files to " + targetFile);
             }
-            // console.log('copied file from ' + source + ' to ' + targetFile)
         }
     });
 }
@@ -8462,7 +8433,6 @@ let copy_folder_counter = 0;
 let destination0 = "";
 
 function copyFolderRecursiveSync(source, destination) {
-    console.log("folder_count " + folder_count);
     copy_folder_counter += 1;
 
     // COPY
@@ -8500,15 +8470,6 @@ function copyFolderRecursiveSync(source, destination) {
                                     cursource,
                                     curdestination
                                 );
-
-                                console.log("running copyfoldersync");
-                                console.log(
-                                    "running copyfoldersync",
-                                    "cursource ",
-                                    cursource,
-                                    "curdestination",
-                                    curdestination
-                                );
                                 // UPDATE FOLDER_SIZE
                                 ipcRenderer.send("get_folder_size", {
                                     href: destination,
@@ -8518,11 +8479,6 @@ function copyFolderRecursiveSync(source, destination) {
                             } else if (stats.isFile() == true) {
                                 // debugger
                                 copyFileSync(cursource, curdestination);
-                                console.log(
-                                    "running copyfilesync",
-                                    cursource,
-                                    curdestination
-                                );
                             }
                         }
                     });
@@ -9143,11 +9099,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
         compress();
     }
 
-    // RELOAD
-    if (command === "reload") {
-        // mainWindow.loadURL(mainAddr);
-    }
-
     if (command === "open_in_new_window") {
         let items = document.querySelectorAll(
             ".highlight, .highlight_selected, .ds-selected"
@@ -9321,21 +9272,18 @@ window.addEventListener("DOMContentLoaded", () => {
         /* Initialize sort */
         let sort = localStorage.getItem("sort");
         if (sort == null || sort == "") {
-            console.log("setting sort");
             localStorage.setItem("sort", 1);
         }
 
         /* Initialize sort direction */
         let sort_direction = localStorage.getItem("sort_direction");
         if (sort_direction == null || sort_direction == "") {
-            console.log("setting sort direction");
             localStorage.setItem("sort_direction", "desc");
         }
 
         /* Initialize view */
         view = localStorage.getItem("view");
         if (view == null || view == "") {
-            console.log("setting view");
             localStorage.setItem("view", "grid");
             view = "grid";
         }
@@ -9343,7 +9291,6 @@ window.addEventListener("DOMContentLoaded", () => {
         /* Initialize side bara */
         sidebar = localStorage.getItem("sidebar");
         if (sidebar == null || sidebar == "") {
-            console.log("setting sidebar to 1");
             localStorage.setItem("sidebar", 1);
         }
 
@@ -9643,13 +9590,11 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.ondragleave = (e) => {
         e.preventDefault();
         ipcRenderer.send("is_main_view", 0);
-        console.log("setting is main to 0");
         return false;
     };
 
     let state = 0;
     main_view.ondrop = function (e) {
-        console.log("main_view on drop");
 
         e.preventDefault();
         e.stopPropagation();
@@ -9701,8 +9646,6 @@ window.addEventListener("DOMContentLoaded", () => {
     main_view.onkeydown = (e) => {
         let regex = /^[A-Za-z0-9]*/;
 
-        console.log(e.key);
-
         // TEST FOR LETTERS AND NUMBERS
         if (
             regex.test(e.key) &&
@@ -9752,7 +9695,6 @@ window.addEventListener("DOMContentLoaded", () => {
         }
 
         if (e.key == "Escape") {
-            console.log("runnng escape");
             clear_items();
         }
     };
