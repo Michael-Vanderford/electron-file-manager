@@ -246,8 +246,6 @@ ipcRenderer.on("connect", (e) => {
                 }
             });
         }
-
-        console.log(conntection_type.value);
     };
 });
 
@@ -1125,11 +1123,6 @@ ipcRenderer.on("folder_size", (e, data) => {
     } catch (err) {
         console.log("on get folder size error:", err);
     }
-});
-
-//ON GIO VOLUMES
-ipcRenderer.on("gio_volumes", (e, res) => {
-    console.log("results ", res);
 });
 
 // ON GIO DEVICE
@@ -2779,7 +2772,6 @@ function get_card1(file) {
     card.dataset.href = file.href;
 
     if (file["access::can-write"] === "FALSE") {
-        console.log("what");
         card.style = "opacity: 0.6 !important";
     }
 
@@ -2801,7 +2793,6 @@ function get_card1(file) {
         // Setting folder size
         if (!is_gio_file(file.href)) {
             ipcRenderer.invoke("get_folder_size1", file.href).then((res) => {
-                // console.log('get_folder_size', file.href, res)
                 if (parseInt(res) > 4) {
                     file.size = parseInt(res) * 1024;
                     size.innerHTML = get_file_size(file.size); //get_file_size(parseInt(res.replace('.', '') * 1024))
@@ -3009,7 +3000,6 @@ function get_card1(file) {
 
     // On drag start
     card.ondragstart = (e) => {
-        console.log("on drag start");
         e.dataTransfer.effectAllowed = "copyMove";
         add_copy_file();
     };
@@ -3244,7 +3234,6 @@ function update_cards1(dir) {
 
 // Update card
 function update_card(href) {
-    console.log("updating card");
 
     if (fs.existsSync(href)) {
         let ext = path.extname(href);
@@ -3419,7 +3408,6 @@ function update_card(href) {
  * @param {*} view requires a valid view to update
  */
 function update_cards(view) {
-    console.log("running update cards");
 
     try {
         let cards = view.querySelectorAll(".nav_item");
@@ -3911,9 +3899,6 @@ async function get_sidebar_files(dir) {
 // GET FILE FROM TEMPLATE
 function get_templates(file) {
     let templates = fs.readdirSync("assets/templates");
-    for (let i = 0; i < templates.length; i++) {
-        console.log(templates[i]);
-    }
 }
 
 // DISK USAGE CHART
@@ -4519,10 +4504,6 @@ async function get_settings_view() {
 
     div.append(col1, col2);
     info_view.append(div);
-
-    for (let caption in settings.display.captions) {
-        console.log(caption);
-    }
 
     for (let shortcut in settings.keyboard_shortcuts) {
         let div = add_div();
@@ -5509,7 +5490,6 @@ async function get_files(dir, callback) {
     let gnome_disks = document.querySelectorAll(".gnome_disks");
     gnome_disks.forEach(function (e) {
         e.addEventListener("click", function (e) {
-            console.log("what");
             ipcRenderer.send("gnome_disks");
         });
     });
@@ -6016,8 +5996,6 @@ async function get_files(dir, callback) {
         settings.keyboard_shortcuts.Down.toLocaleLowerCase(),
         (e) => {
             clear_highlight();
-
-            console.log(nc, nc2);
 
             let items = main_view.querySelectorAll(".nav_item");
 
@@ -7153,7 +7131,6 @@ async function get_disk_space() {
  * Get Mounts and Display in Sidebar
  */
 async function get_devices() {
-    console.log("getting devices");
     try {
         // Init
         let devices = [];
@@ -7396,7 +7373,6 @@ function autocomplete() {
     );
 
     breadcrumbs.addEventListener("keyup", (e) => {
-        console.log("running autocomplete");
 
         breadcrumb_items.innerHTML = "";
         let search_results = [];
@@ -7917,7 +7893,6 @@ function get_icon_path(file) {
             ) {
                 icon = file;
                 let img_data = get_img_data(file);
-                console.log(img_data);
             } else if (
                 file_ext == ".xls" ||
                 file_ext == ".xlsx" ||
@@ -8155,8 +8130,6 @@ function create_folder(folder) {
             let header = card.querySelector(".header_link");
             let input = card.querySelector(".input");
 
-            console.log(input, header);
-
             input.classList.remove("hidden");
             header.classList.add("hidden");
 
@@ -8236,7 +8209,6 @@ function add_copy_file() {
     );
     cards.forEach((card) => {
         let file = file_arr.filter((x) => x.href == card.dataset.href);
-        console.log(file[0]);
         if (file) {
             copy_files_arr.push(file[0]);
 
@@ -8249,7 +8221,6 @@ function add_copy_file() {
     });
 
     notification(`${folder_count} Folders ${file_count} Files Copied`);
-    console.log(copy_files_arr);
     ipcRenderer.send("add_copy_files", copy_files_arr);
 }
 
@@ -8429,7 +8400,6 @@ function copyFolderRecursiveSync(source, destination) {
 // MOVE FOLDER - done
 // 이동을 할때 반영이 안되고, 폴더가 생성되면 바로 반영이 안됨
 function move_to_folder(destination, state) {
-    console.log("moving to folder");
     let info_view = document.getElementById("info_view");
     info_view.innerHTML = "";
     // // ADD DESTINATION TO ARRAY
@@ -8479,11 +8449,8 @@ function rename_file(source, destination_name, callback) {
             // alert(filename + ' already exists!')
             // return false
         } else {
-            console.log(source, filename);
             if (is_gio_file(source)) {
-                console.log("shit");
                 gio.rename(source, destination_name, () => {
-                    console.log("updating card", destination_name);
                     update_card1(destination_name);
                     notification(`Renamed ${source} to ${filename}`);
                     return callback(1);
@@ -8508,7 +8475,6 @@ delete_files_count = 0;
 delete_folder_count = 0;
 
 function delete_confirmed() {
-    console.log("delete confirmed");
 
     let info_view = document.getElementById("info_view");
 
@@ -8721,7 +8687,6 @@ function extract() {
         let ext = path.extname(source).toLowerCase();
         let makedir = 1;
 
-        console.log("extension ", source);
         let c = 0;
         switch (ext) {
             case ".zip":
@@ -8812,9 +8777,6 @@ function extract() {
                 break;
         }
 
-        console.log("cmd " + cmd);
-        console.log("uncompressed size cmd " + us_cmd);
-
         if (makedir) {
             fs.mkdirSync(filename);
         }
@@ -8824,12 +8786,9 @@ function extract() {
             execSync(us_cmd).toString().replaceAll(",", "")
         );
 
-        console.log("uncompressed size:", uncompressed_size);
-
         // RUN PROGRESS
         get_progress(uncompressed_size);
 
-        console.log("executing " + cmd);
         notification("Extracting " + source);
 
         open(cmd);
@@ -8841,7 +8800,6 @@ function extract() {
             { maxBuffer: Number.MAX_SAFE_INTEGER },
             (err, stdout, stderr) => {
                 if (err) {
-                    console.log("error " + err);
                     notification("error " + err);
                 } else {
                     try {
@@ -8863,9 +8821,6 @@ function extract() {
                                     col,
                                     folder_grid.firstChild
                                 );
-
-                                console.log(card);
-                                console.log(file_obj);
                             });
                         } else {
                             makedir = 1;
@@ -8910,8 +8865,6 @@ function compress() {
                     0,
                     file_name.length - path.extname(file_name).length
                 ) + ".tar.gz";
-
-            console.log(file_name);
         }
 
         let file = path.basename(card.dataset.href);
@@ -8929,12 +8882,10 @@ function compress() {
         file_name +
         '" ' +
         file_list;
-    console.log(cmd);
     exec(cmd, (err, stdout) => {
         if (err) {
             console.log(err);
         } else {
-            console.log(stdout);
             update_card(path.join(breadcrumbs.value, file_name));
             clearInterval(intervalid);
 
@@ -9080,6 +9031,7 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     //from here needs check
     // CREATE FILE
     if (command === "new_file") {
+        alert("!!!");
     }
 
     // RENAME FILE
@@ -9153,13 +9105,10 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
         );
         items.forEach((item) => {
             let cmd = args;
-            console.log("cmd args", args);
             cmd = cmd.replace("%U", "'" + item.dataset.href + "'");
             cmd = cmd.replace("%F", "'" + item.dataset.href + "'");
             cmd = cmd.replace("%u", "'" + item.dataset.href + "'");
             cmd = cmd.replace("%f", "'" + item.dataset.href + "'");
-
-            console.log("cmd " + cmd);
             exec(cmd);
         });
     }
@@ -9311,7 +9260,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Right.toLocaleLowerCase(),
             () => {
-                console.log("back pressed");
                 navigate("right");
             }
         );
@@ -9320,7 +9268,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Extract.toLocaleLowerCase(),
             (e) => {
-                console.log("extracting file");
                 extract();
             }
         );
@@ -9384,7 +9331,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Rename.toLocaleLowerCase(),
             () => {
-                console.log("f2 pressed");
 
                 let cards = document.querySelectorAll(
                     ".highlight, .highlight_select, .ds-selected"
@@ -9404,8 +9350,6 @@ window.addEventListener("DOMContentLoaded", () => {
                                     path.extname(header.href).length
                             );
                             input.focus();
-
-                            console.log("running focus");
                         }
                     });
                 }
@@ -9614,7 +9558,6 @@ window.addEventListener("DOMContentLoaded", () => {
                         let href = card
                             .querySelector(".header_link")
                             .innerText.toLowerCase();
-                        console.log(href, txt_search.value);
 
                         if (
                             href.indexOf(
