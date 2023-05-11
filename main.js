@@ -3574,7 +3574,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             gitMenuList.push({
                 label: "Git: Unstage",
                 click: () => {
-                    runGitCommand(args.href, "git restore --staged", e);
+                    runGitCommand(args.href, "git rm --cached", e);
                 },
             });
         }
