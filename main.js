@@ -3529,14 +3529,14 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             gitMenuList.push({
                 label: "Git: Untrack",
                 click: () => {
-                    runGitCommand(args.href, "git rm --cached");
+                    runGitCommand(args.href, "git rm --cached", e);
                 },
             });
             // git rm
             gitMenuList.push({
                 label: "Git: Delete",
                 click: () => {
-                    runGitCommand(args.href, "git rm");
+                    runGitCommand(args.href, "git rm", e);
                 },
             });
             // git mv
@@ -3551,7 +3551,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             gitMenuList.push({
                 label: "Git: Add to Stage",
                 click: () => {
-                    runGitCommand(args.href, "git add");
+                    runGitCommand(args.href, "git add", e);
                 },
             });
         } else if (fileStatus === 2) {
@@ -3559,14 +3559,14 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             gitMenuList.push({
                 label: "Git: Add to Stage",
                 click: () => {
-                    runGitCommand(args.href, "git add");
+                    runGitCommand(args.href, "git add", e);
                 },
             });
             // git restore
             gitMenuList.push({
                 label: "Git: Undo Modification",
                 click: () => {
-                    runGitCommand(args.href, "git restore");
+                    runGitCommand(args.href, "git restore", e);
                 },
             });
         } else if (fileStatus === 3) {
@@ -3574,7 +3574,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             gitMenuList.push({
                 label: "Git: Unstage",
                 click: () => {
-                    runGitCommand(args.href, "git restore --staged");
+                    runGitCommand(args.href, "git restore --staged", e);
                 },
             });
         }
@@ -3687,7 +3687,7 @@ const getGitStatus = (filePath, isDirectory) => {
     });
 };
 
-const runGitCommand = (filePath, gitCmd) => {
+const runGitCommand = (filePath, gitCmd, e) => {
     let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
     filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
@@ -3700,6 +3700,7 @@ const runGitCommand = (filePath, gitCmd) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        e.sender.send("refresh");
         resolve(1);
     });
 };
@@ -3746,6 +3747,7 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
     confirm.hide();
 
     let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && git mv ${filePath} ${rename_input_str}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3756,6 +3758,7 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
 
@@ -3764,7 +3767,7 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
-function gitInitialize(dirPath) {
+function gitInitialize(dirPath, e) {
     let cmd = `cd ${dirPath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3776,6 +3779,7 @@ function gitInitialize(dirPath) {
             return;
         }
         console.log(stdout);
+        e.sender.send("refresh");
     });
 }
 
@@ -3793,7 +3797,7 @@ ipcMain.on("git_init", (e) => {
         }
 
         if (stdout.trim() === "0") {
-            gitInitialize(dirPath);
+            gitInitialize(dirPath, e);
         }
     });
 });
@@ -3870,6 +3874,7 @@ ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
 
