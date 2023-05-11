@@ -152,9 +152,6 @@ if (!fs.existsSync(thumbnails_dir)) {
     fs.mkdirSync(thumbnails_dir);
 }
 
-ipcMain.on("get_sidebar_view", (e) => {
-    win.send("get_sidebar_view");
-});
 
 ipcMain.on("get_devices", (e) => {
     win.send("get_devices");
@@ -2725,16 +2722,6 @@ const template = [
                         },
                     },
                 ],
-            },
-            { type: "separator" },
-            {
-                label: "Show Sidebar",
-                accelerator:
-                    settings.keyboard_shortcuts.ShowSidebar,
-                click: () => {
-                    let win = window.getFocusedWindow();
-                    win.webContents.send("sidebar");
-                },
             },
             {
                 type: "separator",

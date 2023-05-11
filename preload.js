@@ -128,10 +128,6 @@ ipcRenderer.on("set_progress", (e, max, value) => {
     set_progress(max, value);
 });
 
-ipcRenderer.on("get_sidebar_view", (e) => {
-    get_sidebar_view();
-});
-
 ipcRenderer.on("get_devices", (e) => {
     get_devices();
 });
@@ -1423,23 +1419,6 @@ ipcRenderer.on("create_file_from_template", function (e, file) {
     create_file_from_template(file.file);
 });
 
-// On sidebar
-ipcRenderer.on("sidebar", (e) => {
-    let sidebar = document.getElementById("sidebar");
-    if (sidebar.classList.contains("hidden")) {
-        localStorage.setItem("sidebar", 1);
-        show_sidebar();
-    } else {
-        localStorage.setItem("sidebar", 0);
-        show_sidebar();
-    }
-});
-
-// On clear sidebar
-ipcRenderer.on("clear_sidebar", (e) => {
-    let sb_items = document.getElementById("sidebar_items");
-    sb_items.innerHTML = "";
-});
 
 // On file properties window
 ipcRenderer.on("file_properties_window", (e, data) => {
@@ -1782,36 +1761,6 @@ function notification(msg) {
 // CLEAR CACHE
 function clear_cache() {
     let folder_cache = path.join(__dirname, "/", "folder_cache.json");
-}
-
-/**
- * Get view for sidebar
- */
-function get_sidebar_view() {
-    try {
-        switch (localStorage.getItem("minibar")) {
-            case "mb_home":
-                get_sidebar_home();
-                break;
-            case "mb_workspace":
-                get_workspace();
-                break;
-            case "mb_find":
-                find_files(() => {});
-                break;
-            case "mb_fs":
-                get_sidebar_files("/");
-                break;
-            case "mb_devices":
-                get_devices();
-                break;
-            case "mb_info":
-                get_info();
-                break;
-        }
-    } catch (err) {
-        console.log(err);
-    }
 }
 
 /**
@@ -4335,9 +4284,6 @@ function add_workspace() {
     );
     let workspace_arr = [];
 
-    localStorage.setItem("sidebar", 1);
-    show_sidebar();
-
     if (localStorage.getItem("workspace") === null) {
         cards.forEach((card) => {
             let file = file_arr.filter((x) => x.href === card.dataset.href)[0];
@@ -5264,14 +5210,6 @@ async function get_list_view(dir) {
             }
         }
     });
-
-    // 여기 == -> === 로 바꿨더니 망가짐
-    // SHOW SIDEBAR
-    if (localStorage.getItem("sidebar") == 1) {
-        show_sidebar();
-    } else {
-        hide_sidebar();
-    }
 }
 
 let copy_arr1 = [];
@@ -9139,7 +9077,7 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
     }
 
     // FILES /////////////////////////////////////////////////////////////////////
-
+    //from here needs check
     // CREATE FILE
     if (command === "new_file") {
     }
@@ -9152,7 +9090,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
         if (cards.length > 0) {
             cards.forEach((card) => {
                 if (card) {
-                    console.log(card);
                     let header = card.querySelector("a");
                     header.classList.add("hidden");
 
@@ -9164,8 +9101,6 @@ ipcRenderer.on("context-menu-command", (e, command, args) => {
                         input.value.length - path.extname(header.href).length
                     );
                     input.focus();
-
-                    console.log("running focus");
                 }
             });
         }
