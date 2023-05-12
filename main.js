@@ -219,7 +219,7 @@ ipcMain.on("item_count_recursive", (e, filename) => {
 });
 
 ipcMain.on("current_directory", (e, directory) => {
-    if (directory != current_directory) {
+    if (directory !== current_directory) {
         current_directory = directory;
     }
 });
@@ -765,7 +765,6 @@ function copyfolder(source, destination, callback) {
 // Add files to copy array
 ipcMain.on("add_copy_files", function (e, data) {
     copy_files_arr = data;
-    e.sender.send("clear_copy_arr");
 });
 
 const copy_write = (source, destination, callback) => {
@@ -1359,84 +1358,98 @@ async function cp_gio_files(source, destination, callback) {
  * @param {int} callback *
  */
 async function delete_file(href, callback) {
-    if (href !== null && !isGioFile(href)) {
-        fs.stat(href, (err, stats) => {
-            if (!err) {
-                /* Folder */
-                if (stats.isDirectory()) {
-                    fs.rm(href, { recursive: true }, (err) => {
-                        if (err) {
-                            win.send("notification", err);
-                            callback(err);
-                        } else {
-                            try {
-                                windows.forEach((win) => {
+    return new Promise((res) => {
+        if (href !== null && !isGioFile(href)) {
+            fs.stat(href, (err, stats) => {
+                if (!err) {
+                    /* Folder */
+                    if (stats.isDirectory()) {
+                        fs.rm(href, { recursive: true }, (err) => {
+                            if (err) {
+                                win.send("notification", err);
+                                callback(err);
+                                res(0);
+                            } else {
+                                try {
+                                    windows.forEach((win) => {
+                                        win.send("remove_card", href);
+                                    });
+                                } catch (err) {
+                                    win.send("notification", err);
+                                    win.send("notification", err);
+                                }
+
+                                // Update disk size
+                                get_disk_space(
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
+
+                                callback(1);
+                                res(1);
+                            }
+                        });
+                        /* File */
+                    } else {
+                        fs.unlink(href, (err) => {
+                            if (err) {
+                                win.send("notification", err);
+                                callback(err);
+                                res(0);
+                            } else {
+                                try {
                                     win.send("remove_card", href);
+                                } catch (err) {
+                                    win.send("notification", err);
+                                }
+
+                                // Update disk size
+                                get_disk_space(
+                                { href: current_directory },
+                                (res) => {
+                                    win.send("disk_space", res);
                                 });
-                            } catch (err) {
-                                win.send("notification", err);
+
+                                // Update disk size
+                                get_disk_space(
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
+
+                                callback(1);
+                                res(1);
                             }
-
-                            // Update disk size
-                            get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
-                                }
-                            );
-
-                            callback(1);
-                        }
-                    });
-                    /* File */
+                        });
+                    }
                 } else {
-                    fs.unlink(href, (err) => {
-                        if (err) {
-                            win.send("notification", err);
-                            callback(err);
-                        } else {
-                            try {
-                                win.send("remove_card", href);
-                            } catch (err) {
-                                win.send("notification", err);
-                            }
-
-                            // Update disk size
-                            get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
-                                }
-                            );
-
-                            callback(1);
+                    if (href.indexOf("smb") > -1 || href.indexOf("sftp") > -1) {
+                        gio.rm(href, () => {});
+                        win.send("remove_card", href);
+                    }
+                }
+            });
+        } else {
+            gio.get_file(href, (file) => {
+                if (file.type == "directory") {
+                    rm_gio_files(href, () => {
+                        if (isMainView) {
+                            win.send("remove_card", href);
+                        }
+                    });
+                } else {
+                    gio.rm(href, (res) => {
+                        if (isMainView) {
+                            win.send("remove_card", href);
                         }
                     });
                 }
-            } else {
-                if (href.indexOf("smb") > -1 || href.indexOf("sftp") > -1) {
-                    gio.rm(href, () => {});
-                    win.send("remove_card", href);
-                }
-            }
-        });
-    } else {
-        gio.get_file(href, (file) => {
-            if (file.type == "directory") {
-                rm_gio_files(href, () => {
-                    if (isMainView) {
-                        win.send("remove_card", href);
-                    }
-                });
-            } else {
-                gio.rm(href, (res) => {
-                    if (isMainView) {
-                        win.send("remove_card", href);
-                    }
-                });
-            }
-        });
-    }
+            });
+        }
+    });
 }
 
 /**
@@ -2377,11 +2390,15 @@ function createDeleteDialog(delete_files_arr) {
     });
 }
 
-ipcMain.on("delete_confirmed", (e, delete_files_arr) => {
+ipcMain.on("delete_confirmed", async (e, delete_files_arr) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
     delete_files_arr.forEach((item) => {
-        delete_file(item.source);
+        delete_file(item.source).then((res) => {
+            if (res === 1) {
+                e.sender.send("refresh");
+            }
+        });
     });
 });
 
@@ -2771,7 +2788,7 @@ function add_templates_menu(menu, e, args) {
                 label: file.replace(path.extname(file), ""),
                 click: () => {
                     e.sender.send("create_file_from_template", {
-                        file: `${file} ${formatDate()}`,
+                        file: `${formatDate()} ${file}`,
                     });
                 },
             })
@@ -3213,27 +3230,10 @@ ipcMain.on("show-context-menu", (e, options) => {
 ipcMain.on("show-context-menu-directory", (e, args) => {
     const template1 = [
         {
-            label: "Open with Code",
-            click: () => {
-                e.sender.send("context-menu-command", "vscode");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "New Window",
             click: () => {
                 e.sender.send("context-menu-command", "open_in_new_window");
             },
-        },
-        {
-            id: "launchers",
-            label: "Open with",
-            submenu: [],
-        },
-        {
-            type: "separator",
         },
         {
             type: "separator",
@@ -3300,17 +3300,6 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
             type: "separator",
         },
         {
-            label: "Add to workspace",
-            accelerator:
-                settings.keyboard_shortcuts.AddWorkspace,
-            click: () => {
-                e.sender.send("add_workspace");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "Cut",
             accelerator:
                 settings.keyboard_shortcuts.Cut,
@@ -3346,25 +3335,6 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
             type: "separator",
         },
         {
-            label: "Compress",
-            accelerator:
-                settings.keyboard_shortcuts.Compress,
-            submenu: [
-                {
-                    label: "tar.gz",
-                    click: () => {
-                        e.sender.send(
-                            "context-menu-command",
-                            "compress_folder"
-                        );
-                    },
-                },
-            ],
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "Delete",
             accelerator:
                 settings.keyboard_shortcuts.Delete,
@@ -3374,27 +3344,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             type: "separator",
-        },
-        {
-            label: "Open in terminal",
-            click: () => {
-                e.sender.send("context-menu-command", "open_terminal");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Properties",
-            accelerator:
-                settings.keyboard_shortcuts.Properties,
-            click: () => {
-                e.sender.send("context-menu-command", "props");
-            },
-        },
-        {
-            type: "separator",
-        },
+        }
     ];
 
     const menu1 = Menu.buildFromTemplate(template1);
@@ -3411,34 +3361,6 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
 let files_menu_template = [];
 ipcMain.on("show-context-menu-files", (e, args) => {
     files_menu_template = [
-        {
-            label: "Open with Code",
-            click: () => {
-                e.sender.send("context-menu-command", "vscode");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            id: "launchers",
-            label: "Open with",
-            submenu: [],
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Add to workspace",  
-            accelerator:
-                settings.keyboard_shortcuts.AddWorkspace,
-            click: () => {
-                e.sender.send("add_workspace");
-            },
-        },
-        {
-            type: "separator",
-        },
         {
             label: "Sort",
             submenu: [
@@ -3528,50 +3450,11 @@ ipcMain.on("show-context-menu-files", (e, args) => {
             type: "separator",
         },
         {
-            label: "Compress",
-            accelerator:
-                settings.keyboard_shortcuts.Compress,
-            submenu: [
-                {
-                    label: "tar.gz",
-                    click: () => {
-                        e.sender.send(
-                            "context-menu-command",
-                            "compress_folder"
-                        );
-                    },
-                },
-            ],
-        },
-        {
-            type: "separator",
-        },
-        {
             label: "Delete file",
             accelerator:
                 settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Terminal",
-            click: () => {
-                e.sender.send("context-menu-command", "open_terminal");
-            },
-        },
-        {
-            type: "separator",
-        },
-        {
-            label: "Properties",
-            accelerator:
-                settings.keyboard_shortcuts.Properties,
-            click: () => {
-                e.sender.send("context-menu-command", "props");
             },
         },
         {
@@ -3590,73 +3473,59 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         console.log(fileStatus);
 
         let gitMenuList = [];
-        if(fileStatus === 0){
+        if (fileStatus === 0) {
             // git rm --cached
-            gitMenuList.push(
-                {
-                    label: "Git: Untrack",
-                    click: () => {
-                        runGitCommand(args.href, "git rm --cached");
-                    },
-                }
-            )
+            gitMenuList.push({
+                label: "Git: Untrack",
+                click: () => {
+                    runGitCommand(args.href, "git rm --cached", e);
+                },
+            });
             // git rm
-            gitMenuList.push(
-                {
-                    label: "Git: Delete",
-                    click: () => {
-                        runGitCommand(args.href, "git rm")
-                    },
-                }
-            )
+            gitMenuList.push({
+                label: "Git: Delete",
+                click: () => {
+                    runGitCommand(args.href, "git rm", e);
+                },
+            });
             // git mv
-            gitMenuList.push(
-                {
-                    label: "Git: Rename",
-                    click: () => {
-                        gitRenameDialog(args.href);
-                    },
-                }
-            )
-        }else if(fileStatus === 1){
+            gitMenuList.push({
+                label: "Git: Rename",
+                click: () => {
+                    gitRenameDialog(args.href);
+                },
+            });
+        } else if (fileStatus === 1) {
             // git add
-            gitMenuList.push(
-                {
-                    label: "Git: Add to Stage",
-                    click: () => {
-                        runGitCommand(args.href, "git add")
-                    },
-                }
-            )
-        }else if(fileStatus === 2){
+            gitMenuList.push({
+                label: "Git: Add to Stage",
+                click: () => {
+                    runGitCommand(args.href, "git add", e);
+                },
+            });
+        } else if (fileStatus === 2) {
             // git add
-            gitMenuList.push(
-                {
-                    label: "Git: Add to Stage",
-                    click: () => {
-                        runGitCommand(args.href, "git add")
-                    },
-                }
-            )
+            gitMenuList.push({
+                label: "Git: Add to Stage",
+                click: () => {
+                    runGitCommand(args.href, "git add", e);
+                },
+            });
             // git restore
-            gitMenuList.push(
-                {
-                    label: "Git: Undo Modification",
-                    click: () => {
-                        runGitCommand(args.href, "git restore")
-                    },
-                }
-            )
-        }else if(fileStatus === 3){
+            gitMenuList.push({
+                label: "Git: Undo Modification",
+                click: () => {
+                    runGitCommand(args.href, "git restore", e);
+                },
+            });
+        } else if (fileStatus === 3) {
             // git restore --staged
-            gitMenuList.push(
-                {
-                    label: "Git: Unstage",
-                    click: () => {
-                        runGitCommand(args.href, "git restore --staged")
-                    },
-                }
-            )
+            gitMenuList.push({
+                label: "Git: Unstage",
+                click: () => {
+                    runGitCommand(args.href, "git restore --staged", e);
+                },
+            });
         }
 
         gitMenuList.forEach((gitMenuItem) => {
@@ -3733,9 +3602,11 @@ ipcMain.on("quit", () => {
 
 const getGitStatus = (filePath, isDirectory) => {
     return new Promise((resolve) => {
-        let filePathBase = path.basename(filePath).replaceAll(' ', '\\ ');
-        let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
-        let cmd = `cd ${filePathDir} && git status -s ${isDirectory ? filePathDir : filePathBase}`;
+        let filePathBase = path.basename(filePath).replaceAll(" ", "\\ ");
+        let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePathDir} && git status -s ${
+            isDirectory ? filePathDir : filePathBase
+        }`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 console.log(`Error: ${error.message}`);
@@ -3746,28 +3617,28 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            let gitStatusResult = stdout.trim().split(" ")[0];
-            if(stdout[0] === "M" && stdout[1] === "M"){
-
-            }else if(stdout[0] === "M"){
-                // Staged File
-                resolve(3);
-            }else if(stdout[1] === "M"){
+            if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
+                || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
                 // Modified File
                 resolve(2);
-            }else if(stdout[0] === "?"){
+            }else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+                || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+                // Staged File
+                resolve(3);
+            }else if(stdout[0] === "?") {
                 // Untracked File
                 resolve(1);
-            }else{
+            } else {
                 // Unmodified / Committed File
                 resolve(0);
             }
         });
     });
-}
+};
 
-const runGitCommand = (filePath, gitCmd) => {
+const runGitCommand = (filePath, gitCmd, e) => {
     let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3778,9 +3649,10 @@ const runGitCommand = (filePath, gitCmd) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        e.sender.send("refresh");
         resolve(1);
     });
-}
+};
 
 const gitRenameDialog = (filePath) => {
     let bounds = win.getBounds();
@@ -3817,13 +3689,14 @@ const gitRenameDialog = (filePath) => {
 
         confirm.send("confirm_git_rename", filePath);
     });
-}
+};
 
 ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
-    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
+    filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && git mv ${filePath} ${rename_input_str}`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
@@ -3834,10 +3707,127 @@ ipcMain.on("git_rename_confirmed", (e, filePath, rename_input_str) => {
             console.log(`Stderr: ${stderr}`);
             resolve(-1);
         }
+        BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
 
 ipcMain.on("git_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+function gitInitialize(dirPath, e) {
+    let cmd = `cd ${dirPath} && git init`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        console.log(stdout);
+        e.sender.send("refresh");
+    });
+}
+
+ipcMain.on("git_init", (e) => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && ls -a | grep -w .git | wc -l`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            gitInitialize(dirPath, e);
+        }
+    });
+});
+
+ipcMain.on("git_commit", (e) => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
+            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U") {
+            gitCommitDialog(current_directory);
+        }
+    });
+});
+
+const gitCommitDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_commit_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Commit Changed";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_commit", filePath);
+    });
+};
+
+ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git commit -m \"${commit_message_input_str}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
