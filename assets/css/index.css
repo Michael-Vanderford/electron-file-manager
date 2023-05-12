@@ -32,10 +32,7 @@ html, body {
         background: #424242;
         font-size: 12px;
         height: 18px;
-        width: 350px;
-    }
-    #navigation_menu input[type=text]:focus {
-        outline: 0;
+        width: 450px;
     }
     #navigation_menu .item {
         padding: 5px;
@@ -49,19 +46,6 @@ html, body {
         display: flex;
         width: 100%;
         height: 100%;
-    }
-    #minibar {
-        display: flex;
-        background: #222222;
-        padding: 5px;
-        width: 250px;
-        height: 100%
-    }
-    #sidebar {
-        background: #252525;
-        padding: 5px;
-        width: 325px;
-        height: 100%
     }
 
     #main {
@@ -82,14 +66,49 @@ html, body {
 
     #progress {
         color: #cfcfcf;
-        /* background-color: #222222; */
+        background-color: rgb(0 0 0 / 0.8);
         border-radius: 5px;
         padding: 5px;
         width: 350px;
     }
 
+    #progress_bar {
+        height: 12px;
+    }
+
     #progress_msg {
         color: #cfcfcf;
+    }
+
+    .bi {
+        color: var(--white);
+    }
+
+    /* Dialogs */
+    .connect {
+        background: var(--dark);
+        color: var(--default);
+        padding: 25px;
+    }
+
+    .connect > .label {
+        display:block;
+        margin-bottom: 2px;
+    }
+
+    .connect > .input {
+        border: none;
+        height: 23px;
+        background: var(--lessdark);
+        color: var(--white);
+        display: block;
+        margin-bottom: 15px;
+        width: 350px;
+    }
+
+    .connect > .msg {
+        color: #ff0000;
+        padding: 5px;
     }
 
 }
@@ -107,19 +126,12 @@ progress::-webkit-progress-bar {
 }
 
 .folder_grid {
-    /* border: 1px solid green; */
-    /* display: grid; */
-    /* grid-template-columns: repeat(5, 1fr); */
-    /* grid-template-rows: auto; */
     padding: 5px;
     width: 100%;
 }
 .file_grid {
-    /* border: 1px solid red; */
-    /* display: grid; */
-    /* grid-template-columns: repeat(5, 1fr); */
-    /* grid-template-rows: auto; */
     padding: 5px;
+    padding-bottom: 50px;
     width: 100%;
 }
 
@@ -129,19 +141,21 @@ progress::-webkit-progress-bar {
 
 .card {
     display: flex;
-    margin: 5px;
+    margin: 2px;
     padding: 5px;
-    width: 80%;
+    width: 90%;
     border-radius: 5px;
+    background: transparent;
     color: #cfcfcf;
 }
-.card .icon {
+.icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
     width: 42px;
 }
+
 .card .content{
     padding: 2px;
-    margin-left: 5px;
+    margin-left: 10px;
     line-height: 16px;
 }
 .card:hover {
@@ -162,6 +176,20 @@ progress::-webkit-progress-bar {
     word-break: none;
 }
 
+.list {
+    display: flex;
+    padding: 2px;
+    width: 98%;
+}
+
+.list .icon {
+    width: 24px;
+}
+
+.list > .item {
+    width: 33%;
+}
+
 .input {
     position: relative;
     border-radius: 5px;;
@@ -169,19 +197,50 @@ progress::-webkit-progress-bar {
 
 }
 
+input[type=text]:focus {
+    outline: none;
+}
+
+.title {
+    position:absolute;
+    display: block;
+    /* top: 0; */
+    /* left: 100%; */
+    transform: translate(-50%, -50%);
+    background-color: var(--black);
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
 .highlight {
     background: #334c74;
 }
 .highlight_select {
+    border-radius: 5px;
     background: #334c74;
 }
 .highlight_target {
-    /* border: 1px solid var(--orange); */
+    border-radius: 5px;
     background: #334c74;
+}
+.ds-selected {
+    background: #334c74;
+}
+
+.drag_select {
+    /* border: 1px solid var(--grey); */
+    background: rgb(0 0 0 / 0.4)
 }
 
 .hidden {
     display: none;
+}
+
+.grid1 {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    grid-template-rows: auto;
 }
 
 .grid5 {
@@ -194,6 +253,10 @@ progress::-webkit-progress-bar {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: auto;
+}
+
+.bi {
+    padding: 10px;
 }
 
 .bottom {
@@ -234,17 +297,61 @@ progress::-webkit-progress-bar {
 }
 
 .button.warning {
+    color: var(--white);
     background: var(--warning);
 }
 
+.context-menu-icon {
+    width: 8px;
+    height: 8px;
+}
+
+/* Mobile */
+@media only screen and (max-width: 768px) {
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: auto;
+    }
+}
+
+/* Tablet */
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto;
+    }
+  }
+
+/* Laptop Desctop */
+@media only screen and (min-width: 1024px) {
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: auto;
+    }
+}
+
+/* Large Desktop */
+@media only screen and (min-width: 1440px) {
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: auto;
+    }
+}
+
 :root {
+    --dark: #252525;
+    --lessdark: #2f2f2f;
     --black: #000000;
     --white: #FFFFFF;
     --grey: #808080;
     --default: #C0C0C0;
     --warning: #FF0000;
     --green: #008000;
-    --blue: #0000FF;
+    --blue: #334c74;
     --yellow: #FFFF00;
     --orange: #FFA500;
 

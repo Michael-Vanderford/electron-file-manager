@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
   <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css">
+  <!-- <link rel="stylesheet" href="./node_modules/semantic-ui-icon/icon.min.css"> -->
   <link rel="stylesheet" href="./assets/css/index.css" />
+  <link rel="stylesheet" href="./assets/css/sidebar.css" />
   <title></title>
   <style>
     #selection-rect {
@@ -20,11 +22,16 @@
     <div id="header_menu">
         <div class="item"><a href="#" class="home"><i class="bi bi-house"></i> Home</a></div>
         <div class="item"><a href="#" class="documents"><i class="bi bi-folder"></i> Documents</a></div>
-        <div class="item"><a href="#" class="downloads"><i class="bi bi-arrow-bar-down"></i> Downloads</a></div>
+        <div class="item"><a href="#" class="downloads"><i class="bi bi-download"></i> Downloads</a></div>
+        <div class="item"><a href="#" class="music"><i class="bi bi-image"></i> Music</a></div>
         <div class="item"><a href="#" class="pictures"><i class="bi bi-image"></i> Pictures</a></div>
+        <div class="item"><a href="#" class="videos"><i class="bi bi-image"></i> Videos</a></div>
+        <div class="item"><a href="#" class="grid_view"><i class="bi bi-grid"></i> Grid</a></div>
+        <div class="item"><a href="#" class="list_view"><i class="bi bi-list"></i> List</a></div>
+
     </div>
     <div id="navigation_menu">
-        <div class="item"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
+        <div class="item" id="left"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
         <div class="item"><a href="#"><i class="bi bi-chevron-right"></i></a></div>
         <div class="input">
             <input type="text" spellcheck="false" id="location" />
@@ -33,26 +40,58 @@
 
     <div class="container">
 
-        <div id="sidebar"></div>
+        <div id="minibar" class="minibar">
+
+            <div class="item" id="mb_home" title="Home (Ctrl+B)">
+                <i class="bi bi-house large"></i>
+            </div>
+            <br>
+            <div class="item" id="mb_workspace" title="Workspace">
+                <i class="bi bi-clipboard large"></i>
+            </div>
+            <br>
+            <div class="item" id="mb_find" title="Find">
+                <i class="bi bi-search large"></i>
+            </div>
+            <br>
+            <div class="item" id="mb_fs" title="File System">
+                <i class="bi bi-hdd large"></i>
+            </div>
+            <br>
+            <div class="item" id="mb_devices" title="Devices">
+                <i class="bi bi-usb-symbol large"></i>
+            </div>
+            <br>
+            <div class="item" id="mb_info" title="Info">
+                <i class="bi bi-info-circle large"></i>
+            </div>
+
+        </div>
+
+        <div id="sidebar" class="sidebar sidebar-left">
+            <div id="home"></div>
+            <div id="workspace"></div>
+            <div id="devices"></div>
+        </div>
+
+        <div id="draghandle" class="draghandle"></div>
 
         <div id="main">
+
             <div id="folder_grid"></div>
             <div id="file_grid"></div>
 
             <div id="progress" class="bottom left hidden">
                 <div id="progress_msg"></div>
-
                 <progress id="progress_bar"></progress>
             </div>
             <div id="msg" class="bottom hidden">ahhhhhhhhhh</div>
 
         </div>
 
-
-
     </div>
 
-    <div id="selection-rect"> 123</div>
+
 
     <!-- <script src="index.js"></script> -->
 

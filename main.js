@@ -18,6 +18,7 @@ const home = app.getPath('home');
 let win;
 let window_id = 0;
 let window_id0 = 0;
+let is_main = 1;
 
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
 let settings = {};
@@ -46,6 +47,11 @@ worker.on('message', (data) => {
         win.send('msg', data.msg);
     }
 
+    if (data.cmd === 'move_done') {
+        win.send('remove_card', data.source);
+        win.send('clear');
+    }
+
     if (data.cmd === 'rename_done') {
         gio_utils.get_file(data.destination, file => {
             win.send('replace_card', data.source, file);
@@ -53,13 +59,23 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'copy_done') {
-        gio_utils.get_file(data.destination, file => {
-            win.send('get_card', file);
-        })
+
+        if (is_main) {
+            gio_utils.get_file(data.destination, file => {
+                win.send('get_card', file);
+            })
+        } else {
+            let href = path.dirname(data.destination)
+            gio_utils.get_file(href, file => {
+                win.send('replace_card', href, file);
+            })
+        }
+        win.send('clear');
     }
 
     if (data.cmd === 'delete_done') {
         win.send('remove_card', data.source);
+        win.send('msg', `Deleted "${path.basename(data.source)}"`)
     }
 
     if (data.cmd === 'progress') {
@@ -79,12 +95,72 @@ worker.on('message', (data) => {
 
 // Get files array
 function get_files(source, callback) {
+
+    // get files from gio module
+    // worker.postMessage({cmd: 'ls', source: source});
+
     gio_utils.get_dir(source, dirents => {
         return callback(dirents);
     })
 }
 
 // IPC ////////////////////////////////////////////////////
+
+// Get Devices
+ipcMain.handle('get_devices', async (e) => {
+    return new Promise((resolve, reject) => {
+        gio_utils.get_devices(device_arr => {
+            console.log(device_arr);
+            resolve(device_arr);
+        });
+    });
+})
+
+// Add Workspace
+ipcMain.on('add_workspace', (e, selected_files_arr) => {
+
+    let settings_file = path.join(app.getPath('userData'), 'settings.json');
+    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'))
+
+    selected_files_arr.forEach(item => {
+        let workspace_item = {
+            name: path.basename(item),
+            href: item
+        }
+        settings['workspace'].push(workspace_item)
+    })
+    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    win.send('get_workspace');
+    selected_files_arr = [];
+})
+
+// Remove Workspace
+ipcMain.on('remove_workspace', (e, href) => {
+
+    let settings_file = path.join(app.getPath('userData'), 'settings.json');
+    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'));
+
+    settings['workspace'] = settings['workspace'].filter(data => data.href !== href);
+    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+
+    win.send('get_workspace');
+
+    selected_files_arr = [];
+})
+
+// Get Workspae
+ipcMain.handle('get_workspace', async (e) => {
+    let settings_file = path.join(app.getPath('userData'), 'settings.json');
+    let workspace_items = JSON.parse(fs.readFileSync(settings_file, 'utf-8')).workspace;
+    return workspace_items;
+
+})
+
+// Set isMain Flag
+ipcMain.on('main', (e, flag) => {
+    // console.log('setting main to ', flag)
+    is_main = flag;
+})
 
 // New Folder
 ipcMain.on('mkdir', (e, href) => {
@@ -109,6 +185,11 @@ ipcMain.handle('get_icon', async (e, href) => {
 ipcMain.on('paste', (e, copy_arr) => {
     worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
     copy_arr = [];
+})
+
+// Move
+ipcMain.on('move', (e, selecte_files_arr ) => {
+    worker.postMessage({cmd: 'mv', selected_items: selecte_files_arr})
 })
 
 // Get Folder Size
@@ -187,9 +268,7 @@ function createWindow() {
     win = new BrowserWindow(options);
     win.loadFile('index.html');
 
-    win.webContents.on('mouseover', (e) => {
-        console.log('testing')
-    })
+
 
     win.once('ready-to-show', () => {
         win.show();
@@ -241,6 +320,45 @@ ipcMain.on('get_files', (e, source) => {
 
 // Dialogs ////////////////////////////////////////////////////////////
 
+// Network connect dialog
+function connectDialog() {
+
+    let bounds = win.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 550) / 2);
+    let y = bounds.y + parseInt((bounds.height - 350) / 2);
+
+
+    let connect = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        width: 550,
+        height: 350,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: true,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+    })
+
+    connect.loadFile('dialogs/connect.html')
+    // connect.webContents.openDevTools()
+
+    // SHOW DIALG
+    connect.once('ready-to-show', () => {
+        let title = 'Connect to Server'
+        connect.title = title
+        connect.removeMenu()
+        connect.send('connect')
+    })
+
+}
+
 // Create Delete Dialog
 ipcMain.on('delete', (e, selecte_files_arr) => {
     let bounds = win.getBounds()
@@ -288,6 +406,7 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 
 })
 
+// Delete Confirmed
 ipcMain.on('delete_confirmed', (e, selecte_files_arr) => {
 
     // Send array to worker
@@ -297,6 +416,11 @@ ipcMain.on('delete_confirmed', (e, selecte_files_arr) => {
     confirm.hide();
 })
 
+// Delete Canceled
+ipcMain.on('delete_canceled', (e) => {
+    let confirm = BrowserWindow.getFocusedWindow()
+    confirm.hide()
+})
 
 // Menus////////////////////////////////////////////////////////////////
 
@@ -359,6 +483,7 @@ ipcMain.on('main_menu', (e, options) => {
         submenu: [
             {
                 label: 'Date',
+                icon: './assets/icons/menus/terminal.png',
                 click: () => {win.send('sort', 'date')}
             },
             {
@@ -398,7 +523,7 @@ ipcMain.on('main_menu', (e, options) => {
     {
       label: 'Terminal',
       click: () => {
-        e.sender.send('context-menu-command', 'open_terminal')
+        e.sender.send('context-menu-command', 'terminal')
       }
     },
     {
@@ -510,7 +635,7 @@ ipcMain.on('folder_menu', (e, args) => {
             label: 'Add to workspace',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
             click: () => {
-                e.sender.send('add_workspace')
+                e.sender.send('context-menu-command', 'add_workspace');
             },
         },
         {
@@ -642,7 +767,7 @@ ipcMain.on('file_menu', (e, args) => {
             label: 'Add to workspace',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
             click: () => {
-                e.sender.send('add_workspace')
+                e.sender.send('context-menu-command', 'add_workspace')
             }
         },
         {
@@ -742,7 +867,7 @@ ipcMain.on('file_menu', (e, args) => {
         type: 'separator'
         },
         {
-            label: 'Delete file',
+            label: 'Delete File',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
             click: () => {
                 // e.sender.send('context-menu-command', 'delete_file')
@@ -798,6 +923,65 @@ ipcMain.on('file_menu', (e, args) => {
     // }
 
     menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
+// Devices Menu
+ipcMain.on('device_menu', (e, args) => {
+
+    device_menu_template = [
+        // {
+        //     label: 'Unmount',
+        //     click: () => {
+
+        //     }
+        // },
+        {
+            label: 'Connect',
+            click: () => {
+                connectDialog()
+            }
+        }
+    ]
+
+    let menu = Menu.buildFromTemplate(device_menu_template)
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
+// Workspace Menu
+ipcMain.on('workspace_menu', (e, file) => {
+
+    // console.log(file)
+    let workspace_menu_template = [
+        {
+            label: 'Remove From Workspace',
+            click: () => {
+                win.send('remove_workspace', file.href);
+            }
+        },
+        {
+            label: 'Open Location',
+            click: () => {
+                win.send('get_view', path.dirname(file.href))
+            }
+        }
+    ]
+
+    let menu = Menu.buildFromTemplate(workspace_menu_template)
+
+    // ADD TEMPLATES
+    // add_templates_menu(menu, e, args)
+
+    // ADD LAUNCHER MENU
+    // add_launcher_menu(menu, e, args.apps)
+
+
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+    menu.on('menu-will-close', () => {
+        win.send('clear_items');
+    });
 
 })
 

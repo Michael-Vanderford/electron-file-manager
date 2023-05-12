@@ -33,6 +33,32 @@ parentPort.on('message', data => {
 
     // todo: properly handle the rename error in preoad edit.
 
+    if (data.cmd === 'ls') {
+        let dirents = gio.ls(data.source);
+        console.log(dirents);
+    }
+
+    if (data.cmd === 'mv') {
+        try {
+
+            let selected_files_arr = data.selected_items;
+            for (let i = 0; i < selected_files_arr.length; i++) {
+                let f = selected_files_arr[i];
+                gio.mv(f.source, f.destination);
+                parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
+                if (i === selected_files_arr.length - 1) {{
+                    parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
+                }}
+
+            }
+
+        } catch (err) {
+
+            parentPort.postMessage({cmd: 'msg', msg: err});
+
+        }
+    }
+
     // Rename
     if (data.cmd === 'rename') {
         try {
@@ -155,14 +181,9 @@ parentPort.on('message', data => {
             let copy_item = copy_arr[idx];
             idx++
 
-            let file = gio_utils.get_file(copy_item.source, file => {
+            gio_utils.get_file(copy_item.source, file => {
 
                 if (file.type === 'directory') {
-
-                    if (copy_item.source === copy_item.destination) {
-                        parentPort.postMessage({cmd: 'msg', msg: 'Error: Source and Destination are the Same'})
-                        return;
-                    }
 
                     get_files_arr(copy_item.source, copy_item.destination, dirents => {
 
@@ -179,7 +200,7 @@ parentPort.on('message', data => {
                                     max: dirents.length,
                                     value: cpc
                                 }
-                                parentPort.postMessage(data)
+                                parentPort.postMessage(data);
                             }
                         }
 
@@ -195,7 +216,7 @@ parentPort.on('message', data => {
                                     value: cpc
 
                                 }
-                                parentPort.postMessage(data)
+                                parentPort.postMessage(data);
                             }
                         }
 
@@ -205,7 +226,7 @@ parentPort.on('message', data => {
                                 cmd: 'copy_done',
                                 destination: copy_item.destination
                             }
-                            parentPort.postMessage(data)
+                            parentPort.postMessage(data);
                             copy_next();
                         }
 
@@ -219,7 +240,8 @@ parentPort.on('message', data => {
                         cmd: 'copy_done',
                         destination: copy_item.destination
                     }
-                    parentPort.postMessage(data)
+                    parentPort.postMessage(data);
+                    parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
                     copy_next();
 
                 }

@@ -1,15 +1,173 @@
 const { ipcRenderer, shell } = require('electron');
+const { exec }   = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
 const os         = require('os');
 const DragSelect = require('dragselect');
 const gio_utils  = require('./utils/gio.js');
 
+
 // Global Arrays
 let selected_files_arr  = [];
 let copy_arr            = [];
 
+let ds;
+let sort = 'date';
+
+let view = 'grid';
+if (localStorage.getItem('view') == null) {
+    localStorage.setItem('view', view);
+} else {
+    view = localStorage.getItem('view')
+}
+
 // IPC ///////////////////////////////////////////////////////////////////
+
+ipcRenderer.on('get_workspace', (e) => {
+    getWorkspace();
+})
+
+// Remove Workspace
+ipcRenderer.on('remove_workspace', (e, href) => {
+    ipcRenderer.send('remove_workspace', (e, href));
+})
+
+ipcRenderer.on('sort', (e, sort_by) => {
+    let location = document.getElementById('location');
+    if (sort_by === 'date') {
+        sort = 'date';
+    }
+    if (sort_by == 'name') {
+        sort = 'namae'
+    }
+    if (sort_by == 'size') {
+        sort = 'size'
+    }
+    if (sort_by == 'type') {
+        sort = 'type'
+    }
+    getView(location.value, () => {});
+})
+
+// Connect to Network
+ipcRenderer.on('connect', (e) => {
+
+    // Init
+    let cmd = '';
+    let connect = document.querySelector('.connect')
+    let chk_pk = document.getElementById('chk_pk')
+    let btn_connect = document.getElementById('button_connect')
+    let btn_close = document.getElementById('button_close')
+    let password = document.getElementById('txt_password')
+    btn_connect.tabIndex = 1
+
+    connect.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            window.close()
+        }
+    })
+
+    btn_close.onclick = (e) => {
+        window.close()
+    }
+
+    chk_pk.onchange = () => {
+        if (chk_pk.checked) {
+            password.disabled = true
+        } else {
+            password.disabled = false
+        }
+    }
+
+    btn_connect.onclick = (e) => {
+
+        e.preventDefault()
+
+        // Inputs
+        let state = 0;
+        let conntection_type = document.getElementById('connection_type')
+        let server = document.getElementById('txt_server')
+        let username = document.getElementById('txt_username')
+
+        let connect_msg = document.getElementById('connect_msg')
+
+        connect_msg.innerHTML = `Connecting to ${server.value}`
+
+        // Process
+        let inputs = [].slice.call(document.querySelectorAll('.input, .checkbox'))
+
+        inputs.every(input => {
+
+            if (input.value == '' && input.disabled == false) {
+                connect_msg.innerHTML = `${input.placeholder} Required.`, add_br()
+                state = 0;
+                return false
+            } else {
+                state = 1
+                return true
+            }
+
+        })
+
+        // Output
+        if (state == 1) {
+            if (conntection_type.value == 'ssh') {
+                // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
+                cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+            } else if (conntection_type.value == 'smb') {
+                cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
+            }
+            exec(cmd, (err, stdout, stderr) => {
+                if (!err) {
+                    connect_msg.style.color = 'green';
+                    connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+
+                } else {
+                    if (stderr) {
+                        connect_msg.innerHTML = stderr;
+                    }
+                }
+            })
+        }
+        console.log(conntection_type.value);
+    }
+})
+
+// Devices
+ipcRenderer.on('devices', (e, device_arr) => {
+
+    let location = document.getElementById('location');
+    let sidebar = document.getElementById('sidebar');
+    device_arr.forEach(item => {
+
+        let device = document.createElement('div');
+        let a = document.createElement('a');
+
+        a.preventDefault = true;
+        a.href = item.href;
+        a.innerHTML = item.name;
+
+        device.classList.add('item');
+
+        if (item.type == 0) {
+            device.append(add_icon('usb-symbol'), a);
+        } else {
+            device.append(add_icon('hdd-network'), a);
+        }
+
+        device.addEventListener('click', (e) => {
+            e.preventDefault();
+            location.value = item.href;
+            getView(item.href, () => {});
+        })
+
+        device.addEventListener('contextmenu', (e) => {
+            ipcRenderer.send('device_menu');
+        })
+
+        sidebar.append(device);
+    })
+})
 
 // Msg
 ipcRenderer.on('msg', (e, message) => {
@@ -19,6 +177,10 @@ ipcRenderer.on('msg', (e, message) => {
 // Edit mode
 ipcRenderer.on('edit', (e) => {
     edit();
+})
+
+ipcRenderer.on('clear', (e) => {
+    clear();
 })
 
 // Confirm delete
@@ -80,7 +242,8 @@ ipcRenderer.on('remove_card', (e, href) => {
 
 ipcRenderer.on('replace_card', (e, href, file) => {
     let card = document.querySelector(`[data-href="${href}"]`);
-    card.replaceWith(getCard(file));
+    let newcard = getCard(file);
+    card.replaceWith(newcard);
 })
 
 // Set Progress
@@ -118,7 +281,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
         }
         case 'mkdir': {
             console.log('running new folder')
-            ipcRenderer.send('mkdir', `${path.join(location.value, 'New Folder')}`)
+            ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
             break;
         }
         case 'copy': {
@@ -126,7 +289,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break
         }
         case 'paste': {
-            paste();
+            paste(location.value);
             break;
         }
         case 'delete': {
@@ -134,6 +297,24 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             ipcRenderer.send('delete', (selected_files_arr));
             selected_files_arr = []
             break;
+        }
+        case 'terminal': {
+            let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+            if (cards.length > 0) {
+                cards.forEach(card => {
+                    exec(`gnome-terminal --working-directory="${card.dataset.href}"`, (error, data, getter) => { });
+                })
+            } else {
+                exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
+            }
+        }
+        case 'connect': {
+            ipcRenderer.send('connect');
+        }
+        case 'add_workspace': {
+            getSelectedFiles();
+            ipcRenderer.send('add_workspace', selected_files_arr);
+            clear()
         }
     }
 
@@ -143,16 +324,55 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
 // Utilities ///////////////////////////////////////////////////////////////
 
-function isImage(href) {
-    return new Promise((resolve, reject) => {
-        let isImage = 0;
-        gio_utils.get_file(href, file => {
-            if (file.type.indexOf('image') > -1) {
-                isImage = 1;
-            }
-            resolve(isImage);
-        })
+// Clear Items
+function clear() {
+    let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
+    console.log(cards)
+    cards.forEach(item => {
+        item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
     })
+    selected_files_arr = [];
+}
+
+// Add Div
+function add_div() {
+    let div = document.createElement('div')
+    return div
+}
+
+// Add Link
+function add_link(href, text) {
+
+    let link = document.createElement('a')
+    link.href = href
+    link.text = text
+    link.title = href
+
+    link.onclick = (e) => {
+        e.preventDefault()
+    }
+    return link
+}
+
+// Add Icon
+function add_icon(icon_name) {
+    let icon = document.createElement('i');
+    icon.classList.add('bi', `bi-${icon_name}`, 'icon');
+
+    let icon_names = icon_name.split(',');
+    icon_names.forEach(item => {
+        icon.classList.add(item)
+    })
+    return icon
+}
+
+// Add Header
+function add_header(text) {
+    let header = add_div() //document.createElement('h5');
+    header.classList.add('header');
+    header.title = text
+    header.innerHTML = text
+    return header;
 }
 
 // Get icon theme path
@@ -249,6 +469,7 @@ function getDateTime (date) {
     }
 }
 
+// Edit Mode
 function edit() {
 
     getSelectedFiles();
@@ -257,14 +478,17 @@ function edit() {
         let header = card.querySelector('.header');
         let header_link = card.querySelector('a');
         let input = card.querySelector('input');
+
         header.classList.add('hidden');
         input.classList.remove('hidden');
+
+        input.select()
         input.focus();
 
         input.addEventListener('change', (e) => {
             let location = document.getElementById('location');
             let source = href;
-            let destination = path.join(location.value, path.basename(e.target.value))
+            let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
             ipcRenderer.send('rename', source, destination);
 
             // card.dataset.href = destination;
@@ -290,19 +514,39 @@ function edit() {
 // Sidebar Functions /////////////////////////////////////////////////////////////
 function sidebarHome() {
 
-    let home_dir = '' //get_home();
+    let sidebar = document.getElementById('sidebar')
+
+    getHome(home => {
+        sidebar.append(home)
+    })
+
+    // Workspace
+    getWorkspace(workspace => {
+        sidebar.append(workspace)
+    })
+
+    // Get Device
+    getDevices(devices => {
+        sidebar.append(devices)
+    })
+
+}
+
+function getHome(callback) {
+
+    let location = document.getElementById('location');
+    let home_dir = os.homedir();
     let my_computer_arr = ['Home', 'Documents', 'Music', 'Pictures', 'Videos', 'Downloads', 'Recent', 'File System']
-    let my_computer_paths_arr = [home_dir, `${path.join(home_dir, 'Documents')}`, `${path.join(home_dir, 'Music')}`, `${path.join(home_dir, 'Pictures')}`, `${path.join(home_dir, 'Video')}`, `${path.join(home_dir, 'Downloads')}`, 'Recent', 'Recent']
-    let my_computer_icons_arr = ['home', 'folder', 'music', 'image', 'video', 'download', 'history', 'hdd']
+    let my_computer_paths_arr = [home_dir, `${path.join(home_dir, 'Documents')}`, `${path.join(home_dir, 'Music')}`, `${path.join(home_dir, 'Pictures')}`, `${path.join(home_dir, 'Videos')}`, `${path.join(home_dir, 'Downloads')}`, 'Recent', 'Recent']
+    let my_computer_icons_arr = ['house', 'folder', 'file-music', 'image', 'film', 'download', 'clock-history', 'hdd']
 
     localStorage.setItem('minibar', 'mb_home')
 
-    let sidebar = document.getElementById('sidebar')
-    sidebar.innerHTML = ''
-    sidebar.append(add_header('Home'))
+    let home = document.getElementById('home')
+    home.innerHTML = ''
+    home.append(add_header('Home'))
 
     // Get home
-    console.log(my_computer_arr.length)
     for (let i = 0; i < my_computer_arr.length; i++) {
 
         let href = my_computer_paths_arr[i]
@@ -313,166 +557,135 @@ function sidebarHome() {
 
         let link = add_link(my_computer_paths_arr[i], my_computer_arr[i])
 
-
         item.classList.add('item')
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
 
-        sidebar.append(item)
+        home.append(item)
 
         item.onclick = () => {
 
-            let items = sidebar.querySelectorAll('.item')
+            let items = home.querySelectorAll('.item')
             items.forEach(item => {
                 item.classList.remove('active')
             })
 
             item.classList.add('active')
             if (href === 'Recent') {
-                get_recent_files(`${get_home()}/Documents`)
+                get_recent_files(`${home_dir}/Documents`)
             } else {
-                gio.get_file(href, (file) => {
-                    if (file.type === 'directory') {
-                        get_view(file.href);
-                    } else {
-                        open(file.href);
-                    }
-                })
+                location.value = my_computer_paths_arr[i];
+                getView(location.value, () => {});
             }
         }
 
     }
 
-    // Workspace
-    // sidebar_items.append(add_header('Workspace'))
-    // local_items = JSON.parse(localStorage.getItem('workspace'))
-    // if (local_items != undefined) {
-    //     if (local_items.length > 0 && local_items != undefined) {
-    //         local_items.forEach((item, idx) => {
+    return callback(home)
 
-    //             let div = add_div()
-    //             let col1 = add_div()
-    //             let col2 = add_div()
-    //             let rm_icon = add_icon('times')
+}
 
-    //             rm_icon.classList.add('small');
-    //             rm_icon.style = 'margin-left: auto;';
+function getWorkspace(callback) {
 
-    //             div.style = 'display: flex; padding: 6px; width: 100%;'
-    //             div.classList.add('item')
-    //             col1.append(add_icon('bookmark'));
-    //             col2.append(item.name);
-    //             div.append(col1, col2, rm_icon);
-    //             sidebar_items.append(div);
+    ipcRenderer.invoke('get_workspace').then(res => {
+        let workspace = document.getElementById('workspace');
+        workspace.innerHTML = ''
+        workspace.append(add_header('Workspace'));
 
-    //             div.title = item.href
-    //             div.onclick = (e) => {
+        res.forEach(item => {
 
-    //                 gio.get_file(item.href, file => {
-    //                     if (file.type == 'directory') {
-    //                         get_view(item.href)
-    //                     } else {
-    //                         open(item.href)
-    //                     }
-    //                 })
-    //             }
+            let workspace_item = document.createElement('div');
+            workspace_item.classList.add('item');
 
-    //             rm_icon.onclick = (e) => {
+            let a = document.createElement('a');
+            a.href = item.href;
+            a.innerHTML = item.name;
+            a.preventDefault = true;
 
-    //                 e.preventDefault()
-    //                 e.stopPropagation()
+            workspace_item.append(add_icon('bookmark'), a);
+            workspace.append(workspace_item);
 
-    //                 div.remove();
-    //                 local_items.splice(idx, 1);
-    //                 if (local_items.length > 0) {
-    //                     localStorage.setItem('workspace', JSON.stringify(local_items));
-    //                 } else {
-    //                     localStorage.removeItem('workspace')
-    //                 }
-    //             }
+            // Show Workspace Context Menu
+            workspace_item.addEventListener( 'contextmenu', (e) => {
+                ipcRenderer.send('workspace_menu', item);
+                workspace_item.classList.add('highlight_select')
+            });
 
-    //             div.oncontextmenu = (e) => {
-    //                 div.classList.add('highlight_select')
-    //                 ipcRenderer.send('show-context-menu-workspace', item);
-    //             }
+            // Open Workspace Item
+            workspace_item.addEventListener('click', (e) => {
+                e.preventDefault();
+                gio_utils.get_file(item.href, file => {
+                    if (file.type === 'directory') {
+                        getView(file.href, () => {});
+                    } else {
+                        ipcRenderer.invoke('open', file.href);
+                    }
+                })
+            })
+        })
+        return callback(workspace);
+    })
 
-    //         })
+}
 
-    //     }
+function getDevices(callback) {
 
-    // }
+    let location = document.getElementById('location');
+    let devices = document.createElement('devices');
+    devices.innerHTML = ''
+    devices.append(add_header('Devices'));
 
-    // // Get devices
-    // sidebar_items.append(add_header('Devices'))
-    // gio.get_devices(devices => {
+    ipcRenderer.invoke('get_devices').then(device_arr => {
+        device_arr.forEach(item => {
 
-    //     devices.forEach((device, idx) => {
-
-    //         let link = add_link(device.href, device.name);
-    //         let icon = add_icon('hdd');
-    //         let umount = add_icon('eject');
-    //         let div = add_div()
-
-    //         let col1 = add_div().innerHTML = (icon)
-    //         let col2 = add_div().innerHTML = (link)
-    //         let col3 = add_div().innerHTML = (umount)
-
-    //         link.style = 'display: block'
-    //         col2.style = 'width: 100%'
-    //         col3.style = 'margin-left: auto'
-
-    //         div.append(col1, col2, col3)
-    //         div.style = 'display: flex; padding: 6px; width: 100%;'
-    //         div.classList.add('item')
-
-    //         umount.addEventListener('click', (e) => {
-
-    //             e.preventDefault()
-    //             e.stopPropagation()
-
-    //             // let cmd = `gio mount -u -f "${item.href}"`
-    //             // console.log(cmd)
-
-    //             exec(`gio mount -u -f "${device.href}"`, (err, stdout) => {
-
-    //                 if (!err) {
-    //                     div.remove()
-    //                     notification(stdout)
-    //                 } else {
-    //                     notification(err)
-    //                 }
-    //             })
+            let device = document.createElement('div');
 
 
-    //         })
+            let a = document.createElement('a');
+            a.preventDefault = true;
+            a.href = item.href;
+            a.innerHTML = item.name;
 
-    //         div.onclick = (e) => {
-    //             get_view(device.href);
-    //         }
+            device.classList.add('item');
 
-    //         div.oncontextmenu = (e) => {
-    //             ipcRenderer.send('show-context-menu-devices');
-    //         }
+            if (item.type == 0) {
+                device.append(add_icon('usb-symbol'), a);
+            } else {
+                device.append(add_icon('hdd-network'), a);
+            }
 
-    //         sidebar_items.append(div)
-    //     })
+            device.addEventListener('click', (e) => {
+                e.preventDefault();
+                location.value = item.href;
+                getView(item.href, () => {});
+            })
 
+            device.addEventListener('contextmenu', (e) => {
+                ipcRenderer.send('device_menu');
+            })
 
+            devices.append(device);
+        })
 
-    // })
+        return callback(devices)
+
+    })
 
 }
 
 // Main Functions ////////////////////////////////////////////////////////////////
 
 // Get Files
-function get_files(source, callback) {
+function getFiles(source, callback) {
     ipcRenderer.send('get_files', source);
     ipcRenderer.on('get_files', (e, dirents) => {
-        return callback(dirents)
+        let filter = dirents.filter(x => x.is_hidden != 1);
+        return callback(filter)
     })
 }
 
-// Copy selected items to array
+/**
+ * Add Highlighted Divs to selected_files_arr[]
+ */
 function getSelectedFiles() {
     selected_files_arr = [];
     let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
@@ -488,14 +701,14 @@ function getSelectedFiles() {
     }
 }
 
-function paste() {
+function paste(destination) {
     // todo: check if location is valid
-    let location = document.getElementById('location');
+    let location = destination; //document.getElementById('location');
     if (selected_files_arr.length > 0) {
         for(let i = 0; i < selected_files_arr.length; i++) {
             let copy_data = {
                 source: selected_files_arr[i],
-                destination: path.join(location.value, path.basename(selected_files_arr[i]))
+                destination: path.format({dir: location, base: path.basename(selected_files_arr[i])}),  //path.join(location, path.basename(selected_files_arr[i]))
             }
             copy_arr.push(copy_data);
         }
@@ -508,6 +721,28 @@ function paste() {
     }
 }
 
+function move(destination) {
+
+    let location = destination; //document.getElementById('location');
+
+    if (selected_files_arr.length > 0) {
+        for(let i = 0; i < selected_files_arr.length; i++) {
+            let copy_data = {
+                source: selected_files_arr[i],
+                destination: path.format({dir: location, base: path.basename(selected_files_arr[i])})
+            }
+            copy_arr.push(copy_data);
+        }
+        console.log('sending array', copy_arr);
+        ipcRenderer.send('move', copy_arr);
+        selected_files_arr = [];
+        copy_arr = [];
+    } else {
+        msg(`Nothing to Paste`);
+    }
+
+}
+
 /**
  * Get Card for Grid View
  * @param {File} file
@@ -515,30 +750,50 @@ function paste() {
  */
 function getCard(file) {
 
-    let location = document.getElementById('location');
+    console.log(file)
 
-    let is_dir = 0;
+    let location    = document.getElementById('location');
+    let is_dir      = 0;
 
     let card    = document.createElement('div');
+    let title   = document.createElement('div')
     let content = document.createElement('div')
     let icon    = document.createElement('div');
     let img     = document.createElement('img');
     let header  = document.createElement('div');
     let href    = document.createElement('a');
-    let date    = document.createElement('div');
+    let mtime   = document.createElement('div');
+    let atime   = document.createElement('div');
+    let ctime   = document.createElement('div');
     let size    = document.createElement('div');
     let input   = document.createElement('input');
 
     card.classList.add('card');
-    header.classList.add('header')
-    input.classList.add('input', 'hidden');
+    title.classList.add('title', 'hidden')
+    header.classList.add('header', 'item');
+    input.classList.add('input', 'item', 'hidden');
     img.classList.add('icon');
+    mtime.classList.add('date', 'item');
+    atime.classList.add('date', 'item', 'hidden');
+    ctime.classList.add('date', 'item', 'hidden');
+    size.classList.add('size', 'item');
     content.classList.add('content');
+
+    if (view == 'list') {
+        card.classList.add('list');
+        content.classList.add('list');
+    }
+
+    if (view === 'grid') {
+        card.classList.remove('list');
+        content.classList.remove('list');
+    }
 
     href.href = file.href;
     href.innerHTML = path.basename(file.href);
 
     input.spellcheck = false;
+    input.type = 'text';
     input.dataset.href = file.href;
     input.value = path.basename(file.href);
 
@@ -551,17 +806,26 @@ function getCard(file) {
 
         is_dir = 1;
 
-        // // Get Icon
+        // Get Icon
         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
             img.src = folder_icon;
         })
-        ipcRenderer.invoke('get_folder_size', (file.href)).then(res => {
-            if ((res / 4096) > 1) {
-                size.append(getFileSize(res))
-            } else {
-                size.append(`0 items`)
-            }
-        })
+
+        // if (localStorage.getItem(file.href) == null) {
+            ipcRenderer.invoke('get_folder_size', (file.href)).then(res => {
+                if ((res / 4096) > 1) {
+                    size.append(getFileSize(res));
+                    localStorage.setItem(file.href, res);
+                } else {
+                    localStorage.setItem(file.href, 0);
+                    size.append(`0 items`);
+                }
+            })
+        // } else {
+        //     size.append(getFileSize(parseFloat(localStorage.getItem(file.href))));
+        // }
+
+
         href.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
@@ -582,12 +846,21 @@ function getCard(file) {
 
     } else {
         // Get Icon
-        if (file["standard::content-type"].indexOf('image') > -1) {
-            img.src = file.href;
-        } else {
+        try {
+            if (file["standard::content-type"].indexOf('image') > -1) {
+                img.classList.add('lazy');
+                img.dataset.src = file.href;
+                // img.src = file.href;
+            } else {
+                ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                    img.src = res;
+                })
+            }
+        } catch (err) {
             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                 img.src = res;
             })
+            console.log('fix images for sftp files')
         }
         // Open href in default application
         href.addEventListener('click', (e) => {
@@ -610,12 +883,36 @@ function getCard(file) {
 
     // Mouse Over
     card.addEventListener('mouseover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         card.classList.add('highlight');
+        if (is_dir) {
+            ipcRenderer.send('main', 0);
+        }
+
+
+        // size = get_file_size(localStorage.getItem(href));
+        // title.classList.remove('hidden');
+        // title.innerHTML = ''
+        card.title =
+            'Name: ' + path.basename(file.href) +
+            '\n' +
+            'Size: ' + getFileSize(file.size) +
+            '\n' +
+            'Accessed: ' + getDateTime(file["time::access"]) +
+            '\n' +
+            'Modified: ' + getDateTime(file["time::modified"]) +
+            '\n' +
+            'Created: ' + getDateTime(file["time::created"])
+
+
     })
 
     // Mouse Leave
     card.addEventListener('mouseleave', (e) => {
         card.classList.remove('highlight');
+        title.classList.add('hidden');
+        ipcRenderer.send('main', 1);
     })
 
     // Card ctrl onclick
@@ -632,7 +929,7 @@ function getCard(file) {
     })
 
     card.addEventListener('dragstart', (e) => {
-
+        getSelectedFiles();
     })
 
     card.addEventListener('dragenter', (e) => {
@@ -640,15 +937,36 @@ function getCard(file) {
     })
 
     card.addEventListener('dragover', (e) => {
+        e.preventDefault();
         if (is_dir) {
             card.classList.add('highlight_target');
-            msg(`Move Item to "${path.basename(file.href)}"`);
+            if (e.ctrlKey) {
+                e.dataTransfer.dropEffect = "copy";
+                msg(`Copy Item to "${path.basename(file.href)}"`);
+            } else {
+                e.dataTransfer.dropEffect = "move";
+                msg(`Move Item to "${path.basename(file.href)}"`);
+            }
+
         }
     })
 
     card.addEventListener('dragleave', (e) => {
         card.classList.remove('highlight_target');
+        ipcRenderer.send('main', 1);
         msg('');
+    })
+
+    card.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (e.ctrlKey) {
+            paste(file.href);
+        } else {
+            move(file.href);
+            // msg('not yet implemented !');
+        }
+
+
     })
 
     try {
@@ -656,52 +974,112 @@ function getCard(file) {
     } catch (err) {
     }
 
-    date.append(getDateTime(file["time::modified"]));
+    mtime.append(getDateTime(file["time::modified"]));
+    ctime.append(getDateTime(file["time::created"]));
+    atime.append(getDateTime(file["time::access"]));
+
     icon.append(img);
     header.append(href)
 
-    content.append(header, input, date, size);
+    content.append(header, input, mtime, ctime, atime, size);
     card.append(icon, content);
+
+    ds.addSelectables(card)
+
+    lazyload();
 
     return card;
 }
 
 /**
  * Get Grid View
- * @param {*} source
+ * @param {*} dir
  * @param {*} callback
  */
-function get_grid_view(source, callback) {
+function getView(dir, callback) {
+
+    document.title = path.basename(dir);
 
     let main = document.getElementById('main');
+    let location = document.getElementById('location');
     let folder_grid = document.getElementById('folder_grid')
     let file_grid = document.getElementById('file_grid')
 
-    folder_grid.classList.add('folder_grid', 'grid5')
-    file_grid.classList.add('file_grid', 'grid5')
+    location.value = dir;
+
+    folder_grid.classList.add('folder_grid');
+    file_grid.classList.add('file_grid');
+
+    if (view == 'list') {
+
+        folder_grid.classList.remove('grid');
+        file_grid.classList.remove('grid');
+
+        folder_grid.classList.add('grid1');
+        file_grid.classList.add('grid1');
+
+    } else {
+
+        folder_grid.classList.remove('grid1');
+        file_grid.classList.remove('grid1');
+
+        folder_grid.classList.add('grid');
+        file_grid.classList.add('grid');
+    }
 
     let sort_flag = 0;
 
-    get_files(source, dirents => {
+    getFiles(dir, dirents => {
 
         folder_grid.innerHTML = ''
         file_grid.innerHTML = ''
 
         // Sort by date
-        dirents.sort((a, b) => {
-            try {
+        if (sort === 'date') {
+            dirents.sort((a, b) => {
                 if (sort_flag == 0) {
                     return b["time::modified"] - a["time::modified"]
                 } else {
                     return a["time::modified"] - b["time::modified"]
                 }
-            } catch (err) {
-                console.log(err)
-            }
-        })
+            })
+        }
+
+        // Sort by Name
+        if (sort === 'name') {
+            dirents.sort((a, b) => {
+                return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
+            })
+        }
+
+        // Sort by Size
+        if (sort === 'size') {
+            dirents.sort((a, b) => {
+                let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
+                let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
+
+                if (sort_flag == 0) {
+                    return s2 - s1;
+                } else {
+                    s1 - s2;
+                }
+            })
+        }
+
+        // Sort by Type
+        if (sort === 'type') {
+            dirents.sort((a, b) => {
+                let ext1 = path.extname(path.basename(a.href));
+                let ext2 = path.extname(path.basename(b.href));
+                if (ext1 < ext2) return -1;
+                if (ext1 > ext2) return 1;
+                if (a.mtime < b.mtime) return -1;
+                if (a.mtime > b.mtime) return 1;
+            })
+        }
 
         // Loop Files Array
-        for (let i = 0; i < dirents.length; i++) {
+        for (let i = 0; i < 500; i++) {
             let file = dirents[i]
             if (file.type == 'directory') {
                 folder_grid.append(getCard(file))
@@ -709,6 +1087,7 @@ function get_grid_view(source, callback) {
                 file_grid.append(getCard(file))
             }
         }
+
         main.append(folder_grid, file_grid)
         return callback()
     })
@@ -724,7 +1103,28 @@ function clearContextMenu(e) {
     }
 }
 
-let state = 0
+function lazyload() {
+    // LAZY LOAD IMAGES
+    let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
+    // CHECK IF WINDOW
+    if ("IntersectionObserver" in window) {
+        // GET REFERENCE TO LAZY IMAGE
+        let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
+            entries.forEach((e, idx) => {
+                if (e.isIntersecting) {
+                    let lazyImage = e.target;
+                    lazyImage.src = lazyImage.dataset.src;
+                    lazyImage.classList.remove("lazy");
+                    lazyImageObserver.unobserve(lazyImage);
+                }
+            })
+        })
+        // THIS RUNS ON INITIAL LOAD
+        lazyImages.forEach(function (lazyImage) {
+            lazyImageObserver.observe(lazyImage)
+        })
+    }
+}
 
 // Main - This runs after html page loads.
 window.addEventListener('DOMContentLoaded', (e) => {
@@ -734,6 +1134,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Primary Controls
         let location = document.getElementById('location');
         let main = document.getElementById('main')
+        let sidebar = document.getElementById('sidebar');
 
         // Local Storage //////////////////////////////////////////////
         // Handle Location
@@ -741,8 +1142,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // todo: validate path before reusing
             location.value = localStorage.getItem('location');
         } else {
-            location.value = os.homedir()
-            localStorage.setItem('location', location.value)
+            location.value = os.homedir();
+            localStorage.setItem('location', location.value);
         }
 
         ///////////////////////////////////////////////////////////////
@@ -778,6 +1179,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
             }
         });
 
+        // Music
+        let music = document.querySelectorAll('.music');
+        music.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = path.join(os.homedir(), 'Music');
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
         // Pictures
         let pictures = document.querySelectorAll('.pictures');
         pictures.forEach(item => {
@@ -788,33 +1199,48 @@ window.addEventListener('DOMContentLoaded', (e) => {
             }
         });
 
+        let videos = document.querySelectorAll('.videos');
+        videos.forEach(item => {
+            item.onclick = (e) => {
+                e.preventDefault();
+                location.value = path.join(os.homedir(), 'Videos');
+                location.dispatchEvent(new Event('change'));
+            }
+        });
+
+        let list_view = document.querySelectorAll('.list_view');
+        list_view.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                view = 'list';
+                localStorage.setItem('view', view);
+                getView(location.value, () => {});
+            })
+        })
+
+        let grid_view = document.querySelectorAll('.grid_view');
+        grid_view.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                view = 'grid';
+                localStorage.setItem('view', view);
+                getView(location.value, () => {});
+            })
+        })
+
+        let left = document.getElementById('left');
+        left.addEventListener('click', (e) => {
+            location.value = path.dirname(location.value);
+            getView(location.value, () => {});
+            localStorage.setItem('location', location.value);
+        })
+
         /////////////////////////////////////////////////////////////////
 
         // Main Context Menu
         main.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             ipcRenderer.send('main_menu');
-        })
-
-        // Get mouse events on main
-        document.addEventListener('keydown', (e) => {
-
-            // // Ctrl+C (Copy)
-            // if (e.ctrlKey === true && e.key == 'c') {
-            //     getSelectedFiles();
-            // }
-
-            // // Ctrl+V (Paste)
-            // if (e.ctrlKey === true && e.key == 'v') {
-            //     paste();
-            // }
-
-            // // Escape (Cancel)
-            // if (e.key == 'Escape') {
-            //     // Clear Arrays
-            //     selected_files_arr = [];
-            //     copy_arr = [];
-            // }
         })
 
         // Get on mouse over
@@ -832,11 +1258,12 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // Escape
             if (e.key == 'Escape') {
                 clearContextMenu(e);
+                clear();
             }
 
             // Reload
             if (e.key === 'F5') {
-                get_grid_view(location.value, () => {})
+                getView(location.value, () => {})
             }
 
             // Edit
@@ -849,9 +1276,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 getSelectedFiles();
             }
 
+            // Ctrl+C (Copy)
+            if (e.ctrlKey === true && e.key == 'x') {
+                getSelectedFiles();
+            }
+
             // Ctrl+V (Paste)
             if (e.ctrlKey === true && e.key == 'v') {
-                paste();
+                paste(location.value);
             }
 
             // Escape (Cancel)
@@ -859,6 +1291,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 // Clear Arrays
                 selected_files_arr = [];
                 copy_arr = [];
+                msg('');
             }
 
             // Nagigate back
@@ -869,22 +1302,97 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         })
 
-        let view = 'grid';
-        if (view == 'grid') {
+        if (location.value != "") {
+            getView(location.value, () => {})
+        }
+
+        location.onchange = () => {
             if (location.value != "") {
-                get_grid_view(location.value, () => {})
+                getView(location.value, () => {})
+                localStorage.setItem('location', location.value)
             }
-
-            location.onchange = () => {
-                if (location.value != "") {
-                    get_grid_view(location.value, () => {})
-                    localStorage.setItem('location', location.value)
-                }
-            }
-
         }
 
         sidebarHome();
+
+        // INITIALIZE DRAG SELECT
+        try {
+
+            ds = new DragSelect({
+                area: main,
+                selectorClass: 'drag_select',
+                keyboardDragSpeed: 0,
+            })
+
+            let sc = 0;
+            ds.subscribe('elementselect', (e) => {
+                msg(`${++sc} Items Selected`)
+            });
+            ds.subscribe('elementunselect', (e) => {
+                if (--sc == 0) {
+                    msg('')
+                } else {
+                    msg(`${sc} Items Selected`)
+                }
+
+            });
+
+            ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+                if (isDragging || isDraggingKeyboard) {
+                    ds.break()
+                } else {
+
+                }
+            })
+
+
+        } catch (err) {
+            console.log(err);
+        }
+
+        // Resize Sidebar
+        let sidebar_width = '350';
+        if (localStorage.getItem('sidebar_width') === null) {
+            localStorage.setItem('sidebar_width', sidebar_width);
+        } else {
+            sidebar_width = localStorage.getItem('sidebar_width');
+            sidebar.style = `width: ${sidebar_width}px;`
+        }
+
+        if (sidebar) {
+            let resizer = document.getElementById('draghandle')
+            resizer.addEventListener('mousedown', initResize, false)
+        }
+
+        /* Init resize sidebar */
+        function initResize(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.addEventListener('mousemove', Resize, false);
+            window.addEventListener('mouseup', stopResize, false);
+        }
+
+        /* Resize sidebar */
+        function Resize(e) {
+            if (e.clientX < 400) {
+                sidebar.style.width = (e.clientX - sidebar.offsetLeft) + 'px';
+                // main.style.marginLeft = (e.clientX - (sidebar.offsetLeft - 40)) + 'px'
+            }
+        }
+
+        /* Stop resize of sidebar */
+        function stopResize(e) {
+            console.log('running')
+            window.removeEventListener('mousemove', Resize, false);
+            window.removeEventListener('mouseup', stopResize, false);
+            localStorage.setItem('sidebar_width', sidebar.clientWidth);
+            console.log(sidebar.clientWidth)
+        }
+
+        main.addEventListener('mouseover', (e) => {
+            ipcRenderer.send('main', 1);
+        })
+
 
     } catch (err) {
 

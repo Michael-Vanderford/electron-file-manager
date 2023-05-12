@@ -5,7 +5,6 @@ const execSync = require('child_process').exec;
 const { spawn } = require('child_process');
 const { Worker } = require('worker_threads');
 
-
 let file_arr = []
 
 function get_dir_recursive(dir, state) {
@@ -309,7 +308,6 @@ exports.get_dir = (dir, callback) => {
 
 }
 
-
 exports.get_devices = (callback) => {
 
     exec(`gio mount -l | grep "Mount("`, (err, stdout, stderr) => {
@@ -319,7 +317,6 @@ exports.get_devices = (callback) => {
             devices = []
             let output = stdout.split('\n')
             output.forEach(item => {
-                console.log(item)
                 let device = {}
                 let gio_mounts = item.split(': ')
                 gio_mounts.forEach((gio_mount, idx) => {
