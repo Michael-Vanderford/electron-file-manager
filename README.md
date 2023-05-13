@@ -30,6 +30,7 @@
     ```bash
     yong@macBookAir ~/$ git config --global init.defaultBranch master
     ```
+- OS 환경에서 파일에 접근하기 위한 모든 권한이 올바르게 부여되어있어야 합니다.
 
 ### How to Compile / Run
 1. 본 프로젝트를 적절한 경로에 `Clone`하고, 디렉토리 내부로 이동합니다.
