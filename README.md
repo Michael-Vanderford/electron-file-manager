@@ -9,7 +9,7 @@
 
 ### Check before Run
 
-- 본 프로젝트는 `Node.JS Electron` 라이브러리에 기반하므로, `Node.JS`의 설치가 필요합니다. [다음 링크](https://nodejs.org/ko)에서 `Node.JS 18.16.0 LTS` 버전을 다운로드해 설치해주세요.
+- 본 프로젝트는 `Node.JS Electron` 라이브러리에 기반하므로, `Node.JS`의 설치가 필요합니다. [다음 링크](https://nodejs.org/ko)에서 `Node.JS 18.16.0 LTS` 버전을 다운로드해 설치한 뒤, `PATH` 환경변수에 `Node` 및 `npm` 명령을 등록합니다.
 - `Unix` 환경에서의 Shell 명령을 기반으로 제작된 프로젝트입니다. `Mac OS 13 Ventura`에서 작동을 테스트하였으며, 이외의 환경(`Windows`, `Linux` 등)에서는 정상적으로 동작하지 않을 수 있습니다.
 - `Git`에서 제공하는 일부 기본 설정이 이루어진 환경에서 정상적으로 동작합니다. 다음 설정값이 존재하지 않거나 올바르지 않은 경우, 프로그램이 의도와 다르게 동작할 수 있습니다.
   1. 기본 사용자 이름 및 이메일
@@ -23,3 +23,18 @@
     ```
 
 ### How to Compile / Run
+1. 본 프로젝트를 적절한 경로에 `Clone`하고, 디렉토리 내부로 이동합니다.
+```bash
+yong@macBookAir ~/$ git clone https://github.com/CAU-OSS-2023-Team15/Project-1 Project1
+yong@macBookAir ~/$ cd Project1 
+```
+
+2. `Node.JS` 의존성 패키지를 설치합니다.
+```bash
+yong@macBookAir ~/Project1$ npm install
+```
+
+3. 프로젝트를 컴파일하고 실행합니다. `package.json` 내에 `start` 명령으로 정의되어있습니다.
+```bash
+yong@macBookAir ~/Project1$ npm start
+```
