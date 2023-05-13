@@ -1,5 +1,11 @@
 ## File Manager with Git VCS
 
+### Screenshots
+
+<img src="README_Assets/Proj1_1.png" width="75%">
+<img src="README_Assets/Proj1_2.png" width="75%">
+<img src="README_Assets/Proj1_3.png" width="75%">
+
 ### Team 15
 
 | | 유용민 (CAU CSE 19") | 이상윤 (CAU CSE 19") | 이지윤 (CAU CSE 20") | 장세환 (CAU CSE 19") |
