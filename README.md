@@ -56,3 +56,18 @@ yong@macBookAir ~/Project1$ npm start
 - 간혹 프로그램을 컴파일하고 실행했을 때, 프로그램의 일부 버튼이 동작하지 않는 경우가 있습니다. 해결을 시도하였으나,
 원본 프로젝트에서부터 이어져온 Issue이며, 별도의 Error Log도 발생하지 않아 원인을 파악하지 못했습니다.
 이러한 경우, 다시 컴파일하고 실행해보면 정상적으로 작동합니다.
+
+### How to Use
+
+- `Git Repository`가 아닌 디렉토리에서 상단 메뉴의 `Git Init` 버튼을 클릭하면,
+`.git` 디렉토리가 하위에 생성되고, `Git`을 이용해 프로젝트를 관리할 준비가 완료됩니다.
+
+- `Git Repository` 디렉토리에서 특정 파일을 우클릭하면 `Context Menu`가 렌더링되며,
+메뉴 최하단의 `Git` 하위메뉴에서 Staging 상태를 조작할 수 있습니다. 이때, 각 파일의 상태에 따라
+표시되는 하위메뉴 항목은 다음 표와 같습니다.
+
+| Git 상태 | 하위메뉴 항목 |
+|---------|-----------|
+| Untracked | Add to Stage |
+| Staged | Unstage |
+| Committed <br> Unmodified | Untrack <br> Delete <br> Rename |
