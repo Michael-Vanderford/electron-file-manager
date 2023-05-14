@@ -71,3 +71,8 @@ yong@macBookAir ~/Project1$ npm start
 | Untracked | Add to Stage |
 | Staged | Unstage |
 | Committed <br> Unmodified | Untrack <br> Delete <br> Rename |
+
+- `Git Repository` 디렉토리에서 `Staged` 상태의 파일이 존재하는 경우,
+상단 메뉴의 `Git Commit` 버튼을 클릭하면, `Commit Message`를 입력하기 위한
+다이얼로그가 렌더링됩니다. `Commit Message`를 입력하고 버튼을 클릭하면 `Staged` 상태의
+모든 파일이 `Committed` 상태로 저장됩니다.
