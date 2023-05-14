@@ -64,7 +64,7 @@ yong@macBookAir ~/Project1$ npm start
 - `Git Repository`가 아닌 디렉토리에서 상단 메뉴의 `Git Init` 버튼을 클릭하면,
 `.git` 디렉토리가 하위에 생성되고, `Git`을 이용해 프로젝트를 관리할 준비가 완료됩니다.
 
-<img src="README_Assets/Proj1_5.png" width="75%">
+<img src="README_Assets/Proj1_5.png" width="40%">
 
 - `Git Repository` 디렉토리에서 특정 파일을 우클릭하면 `Context Menu`가 렌더링되며,
 메뉴 최하단의 `Git` 하위메뉴에서 Staging 상태를 조작할 수 있습니다. 이때, 각 파일의 상태에 따라
