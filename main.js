@@ -3832,3 +3832,19 @@ ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+ipcMain.on("git_merge", (e) => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        gitMergeDialog(current_directory);
+    });
+});
