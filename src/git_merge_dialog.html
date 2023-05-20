@@ -10,21 +10,27 @@
 </head>
 <body>
 
-    <div id="confirm_git_rename" style="padding: 20px">
-        <div class="ui h5 warning">
-            <i class="icon warning circle"></i> Rename this file to :
-        </div>
-
-        <div style="padding: 20px;">
-            <input id="git_rename_input" type="text">
-        </div>
-
-        <div>
-            <input id="btn_git_rename_cancel" tabindex="2" class="ui small button default" type="button" value="Cancel">
-            <input id="btn_git_rename_confirm" tabindex="1" autofocus class="ui small button default red" type="button" value="Rename">
-        </div>
-
+<div id="confirm_git_merge" style="padding: 20px">
+    <div class="ui h5 warning">
+        <i class="icon warning circle"></i> Select Merge branch into base :
     </div>
+
+    <div style="padding: 20px;">
+        <form action="#">
+            <label for="branch">Select Branch</label>
+            <select name="Branch Select" id="branch" size="4">
+            </select>
+            <input type="submit" value="Submit" />
+        </form>
+    </div>
+
+    <div>
+        <input id="btn_git_merge_cancel" tabindex="2" class="ui small button default" type="button" value="Cancel">
+        <input id="btn_git_merge_confirm" tabindex="1" autofocus class="ui small button default red" type="button"
+               value="Merge">
+    </div>
+
+</div>
 
 </body>
 </html>
