@@ -154,7 +154,7 @@ progress::-webkit-progress-bar {
 .card {
     display: flex;
     margin: 2px;
-    padding: 5px;
+    padding: 2px;
     width: 90%;
     border-radius: 5px;
     border:none;

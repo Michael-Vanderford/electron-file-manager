@@ -16,6 +16,7 @@ const gio_utils = require('./utils/gio');
 // Bootstrap Init
 const store = new Store();
 const worker = new Worker('./worker.js', );
+// const ls = new Worker('./ls.js', );
 const home = app.getPath('home');
 
 let win;
@@ -45,6 +46,13 @@ ipcMain.on('active_window', (e) => {
 })
 
 // Worker Threads ///////////////////////////////////////////
+
+// ls.on('message', (data) => {
+//     if (data.cmd === 'ls_done') {
+//         win.send('ls', data.dirents);
+//     }
+// })
+
 let progress_counter = 0;
 worker.on('message', (data) => {
 

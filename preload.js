@@ -123,10 +123,10 @@ ipcRenderer.on('ls', (e, dirents) => {
         if (file.is_dir) {
 
             folder_grid.append(card)
-            // getFolderSize(file.href)
+            getFolderSize(file.href)
 
             // this is slowing the load time down dont use for now
-            // getFolderCount(file.href);
+            getFolderCount(file.href);
 
         } else {
             file_grid.append(card)
@@ -150,7 +150,7 @@ ipcRenderer.on('ls', (e, dirents) => {
 
 // Get Folder Size
 ipcRenderer.on('folder_size', (e, source, folder_size) => {
-    console.log(source, folder_size)
+    // console.log(source, folder_size)
     let card = document.querySelector(`[data-href="${source}"]`)
     let size = card.querySelector('.size')
     size.innerHTML = ''
@@ -159,7 +159,7 @@ ipcRenderer.on('folder_size', (e, source, folder_size) => {
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
-    console.log(source, item_count)
+    // console.log(source, item_count)
     let card = document.querySelector(`[data-href="${source}"]`)
     let count = card.querySelector('.count')
     count.innerHTML = ''
@@ -1246,7 +1246,11 @@ function getCardGio(file) {
     } else {
         // Get Icon
         try {
-            if (file["standard::content-type"].indexOf('image') > -1) {
+            // console.log(file.content-type)
+            if (file.content_type.indexOf('image') > -1) {
+
+                console.log('whererergeger')
+
                 img.classList.add('lazy');
                 img.dataset.src = file.href;
                 // img.src = file.href;
@@ -1255,7 +1259,7 @@ function getCardGio(file) {
                     img.src = res;
                 })
             }
-            if (file["standard::content-type"] === 'image/svg+xml') {
+            if (file.content_type === 'image/svg+xml') {
                 img.src = file.href;
                 img.classList.add('svg')
             }
