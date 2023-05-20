@@ -1412,7 +1412,6 @@ ipcRenderer.on("create_file_from_template", function (e, file) {
     create_file_from_template(file.file);
 });
 
-
 // On file properties window
 ipcRenderer.on("file_properties_window", (e, data) => {
     let sb_items = document.getElementById("sidebar_items");
@@ -1818,7 +1817,6 @@ async function get_image_properties(image) {
  * @param {object} file_properties_obj
  */
 async function get_properties(file_properties_obj) {
-
     let filename = file_properties_obj["Name"];
     let ext = path.extname(filename);
     let execute_chk_div = add_checkbox("", "Make Executable");
@@ -1974,7 +1972,6 @@ async function get_properties(file_properties_obj) {
  * Send a request to main to get file properties
  */
 async function get_file_properties() {
-
     file_properties_arr = [];
     let sb_items = document.getElementById("sidebar_items");
     let main_view = document.getElementById("main_view");
@@ -2026,7 +2023,6 @@ function set_progress_msg(msg) {
 let prog_state = 0;
 
 function set_progress(max, value) {
-
     if (prog_state === 0) {
         prog_state = 1;
         let progress_div = document.getElementById("progress_div");
@@ -2055,7 +2051,6 @@ function set_progress(max, value) {
  * @param {string} destination_folder // folder to update after progress stops
  */
 function get_progress(total) {
-
     let breadcrumbs = document.getElementById("breadcrumbs");
     let progress_div = document.getElementById("progress_div");
     let progress = document.getElementById("progress");
@@ -2194,7 +2189,6 @@ function set_default_launcher(desktop_file, mimetype) {
 // GET NETWORK
 // todo: this probrably needs to be removed
 async function get_network() {
-
     let network_grid = document.getElementById("network_grid");
     network_grid.innerHTML = "";
 
@@ -2267,7 +2261,6 @@ function get_transfer_speed(source_size, destination_size, elapsed_time) {
 
 // ADD CARD //////////////////////////////////////////////////////////////////////
 async function add_card(options) {
-
     try {
         // Options
         let id = options.id;
@@ -2931,14 +2924,12 @@ function get_card1(file) {
         e.preventDefault();
         e.stopPropagation();
         if (file.is_dir) {
-
             card.classList.add("folder_card", "ds-selectable", "ds-selected");
 
             let filetype = mime.lookup(file.href);
             let associated_apps = get_available_launchers(filetype, file.href);
             ipcRenderer.send("show-context-menu-directory", associated_apps);
         } else {
-
             card.classList.add("file_card", "ds-selectable", "ds-selected");
 
             let filetype = mime.lookup(file.href);
@@ -3088,7 +3079,6 @@ function get_card1(file) {
         e.preventDefault();
         if (file.is_dir || file.type === "directory") {
             get_view(file.href);
-
         } else {
             open(file.href);
         }
@@ -3140,7 +3130,6 @@ function get_card1(file) {
  *
  */
 function update_card1(href) {
-
     let cards = document.querySelectorAll(`[data-href="${href}"]`);
     get_file(href, (file) => {
         cards.forEach((card) => {
@@ -3234,7 +3223,6 @@ function update_cards1(dir) {
 
 // Update card
 function update_card(href) {
-
     if (fs.existsSync(href)) {
         let ext = path.extname(href);
         let cards = document.querySelectorAll('[data-href="' + href + '"]');
@@ -3408,7 +3396,6 @@ function update_card(href) {
  * @param {*} view requires a valid view to update
  */
 function update_cards(view) {
-
     try {
         let cards = view.querySelectorAll(".nav_item");
         let cards_arr = [];
@@ -4710,7 +4697,7 @@ async function get_list_view(dir) {
         },
         {
             name: "Git Status",
-            show: 1
+            show: 1,
         },
         {
             name: "Size",
@@ -5030,11 +5017,10 @@ async function get_list_view(dir) {
                                     break;
                                 }
                                 case "Git Status": {
-                                    if (stats.isDirectory())
-                                        break;
+                                    if (stats.isDirectory()) break;
 
                                     let dirPath = dir.replaceAll(" ", "\\ ");
-                                    let fileName = file.replaceAll("\"", "\\\"");
+                                    let fileName = file.replaceAll('"', '\\"');
                                     let cmd = `cd ${dirPath} && git status -s "${fileName}"`;
                                     exec(cmd, (error, stdout, stderr) => {
                                         if (error) {
@@ -5046,18 +5032,30 @@ async function get_list_view(dir) {
                                             return;
                                         }
 
-                                        if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
-                                            || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
+                                        if (
+                                            stdout[1] === "M" ||
+                                            stdout[1] === "T" ||
+                                            stdout[1] === "A" ||
+                                            stdout[1] === "D" ||
+                                            stdout[1] === "R" ||
+                                            stdout[1] === "C" ||
+                                            stdout[1] === "U"
+                                        ) {
                                             td.append("Modified");
-                                        }
-                                        else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
-                                            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+                                        } else if (
+                                            stdout[0] === "M" ||
+                                            stdout[0] === "T" ||
+                                            stdout[0] === "A" ||
+                                            stdout[0] === "D" ||
+                                            stdout[0] === "R" ||
+                                            stdout[0] === "C" ||
+                                            stdout[0] === "U"
+                                        ) {
                                             td.append("Staged");
-                                        }
-                                        else if (stdout[0] === "?") {
+                                        } else if (stdout[0] === "?") {
                                             td.append("Untracked");
                                         }
-                                    })
+                                    });
                                     break;
                                 }
                             }
@@ -5261,7 +5259,6 @@ function get_grid_view(dir, page_number = 1, page_size = 2000) {
 
     show_loader();
     gio.get_dir(dir, (dirents) => {
-
         let main_view = document.getElementById("main_view");
         let folder_grid = document.getElementById("folder_grid");
         let hidden_folder_grid = document.getElementById("hidden_folder_grid");
@@ -7410,7 +7407,6 @@ function autocomplete() {
     );
 
     breadcrumbs.addEventListener("keyup", (e) => {
-
         breadcrumb_items.innerHTML = "";
         let search_results = [];
 
@@ -8504,7 +8500,6 @@ delete_files_count = 0;
 delete_folder_count = 0;
 
 function delete_confirmed() {
-
     let info_view = document.getElementById("info_view");
 
     // LOOP OVER ITEMS DELETE ARRAY
@@ -9409,7 +9404,6 @@ window.addEventListener("DOMContentLoaded", () => {
         Mousetrap.bind(
             settings.keyboard_shortcuts.Rename.toLocaleLowerCase(),
             () => {
-
                 let cards = document.querySelectorAll(
                     ".highlight, .highlight_select, .ds-selected"
                 );
@@ -9552,7 +9546,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
     let state = 0;
     main_view.ondrop = function (e) {
-
         e.preventDefault();
         e.stopPropagation();
 
@@ -9667,6 +9660,11 @@ window.addEventListener("DOMContentLoaded", () => {
     let btnCommit = document.getElementById("git_commit");
     btnCommit.addEventListener("click", (e) => {
         ipcRenderer.send("git_commit");
+    });
+
+    let btnMerge = document.getElementById("git_merge");
+    btnMerge.addEventListener("click", (e) => {
+        ipcRenderer.send("git_merge");
     });
 });
 
