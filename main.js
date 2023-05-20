@@ -152,7 +152,6 @@ if (!fs.existsSync(thumbnails_dir)) {
     fs.mkdirSync(thumbnails_dir);
 }
 
-
 ipcMain.on("get_devices", (e) => {
     win.send("get_devices");
 });
@@ -1407,10 +1406,11 @@ async function delete_file(href, callback) {
 
                                 // Update disk size
                                 get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
-                                });
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
 
                                 // Update disk size
                                 get_disk_space(
@@ -2932,8 +2932,7 @@ function add_convert_audio_menu(menu, href) {
 function extract_menu(menu, e) {
     let menu_item = new MenuItem({
         label: "&Extract",
-        accelerator:
-            settings.keyboard_shortcuts.Extract,
+        accelerator: settings.keyboard_shortcuts.Extract,
         click: () => {
             e.sender.send("context-menu-command", "extract_here");
         },
@@ -2999,8 +2998,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Add to workspace",
-                accelerator:
-                    settings.keyboard_shortcuts.AddWorkspace,
+                accelerator: settings.keyboard_shortcuts.AddWorkspace,
                 click: () => {
                     e.sender.send("add_workspace");
                 },
@@ -3010,24 +3008,21 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Cut",
-                accelerator:
-                    settings.keyboard_shortcuts.Cut,
+                accelerator: settings.keyboard_shortcuts.Cut,
                 click: () => {
                     e.sender.send("context-menu-command", "cut");
                 },
             },
             {
                 label: "Copy",
-                accelerator:
-                    settings.keyboard_shortcuts.Copy,
+                accelerator: settings.keyboard_shortcuts.Copy,
                 click: () => {
                     e.sender.send("context-menu-command", "copy");
                 },
             },
             {
                 label: "&Rename",
-                accelerator:
-                    settings.keyboard_shortcuts.Rename,
+                accelerator: settings.keyboard_shortcuts.Rename,
                 click: () => {
                     e.sender.send("context-menu-command", "rename");
                 },
@@ -3040,8 +3035,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Delete file",
-                accelerator:
-                    settings.keyboard_shortcuts.Delete,
+                accelerator: settings.keyboard_shortcuts.Delete,
                 click: () => {
                     e.sender.send("context-menu-command", "delete");
                 },
@@ -3051,8 +3045,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Properties",
-                accelerator:
-                    settings.keyboard_shortcuts.Properties,
+                accelerator: settings.keyboard_shortcuts.Properties,
                 click: () => {
                     e.sender.send("context-menu-command", "props");
                 },
@@ -3119,8 +3112,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         },
         {
             label: "New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3180,8 +3172,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         },
         {
             label: "Paste",
-            accelerator:
-                settings.keyboard_shortcuts.Paste,
+            accelerator: settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
@@ -3272,8 +3263,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3301,32 +3291,28 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "Cut",
-            accelerator:
-                settings.keyboard_shortcuts.Cut,
+            accelerator: settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
         },
         {
             label: "Copy",
-            accelerator:
-                settings.keyboard_shortcuts.Copy,
+            accelerator: settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
         },
         {
             label: "Paste",
-            accelerator:
-                settings.keyboard_shortcuts.Paste,
+            accelerator: settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
         },
         {
             label: "&Rename",
-            accelerator:
-                settings.keyboard_shortcuts.Rename,
+            accelerator: settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3336,15 +3322,14 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "Delete",
-            accelerator:
-                settings.keyboard_shortcuts.Delete,
+            accelerator: settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
         },
         {
             type: "separator",
-        }
+        },
     ];
 
     const menu1 = Menu.buildFromTemplate(template1);
@@ -3395,24 +3380,21 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "Cut",
-            accelerator:
-                settings.keyboard_shortcuts.Cut,
+            accelerator: settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
         },
         {
             label: "Copy",
-            accelerator:
-                settings.keyboard_shortcuts.Copy,
+            accelerator: settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
         },
         {
             label: "&Rename",
-            accelerator:
-                settings.keyboard_shortcuts.Rename,
+            accelerator: settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3440,8 +3422,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "&New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3451,8 +3432,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "Delete file",
-            accelerator:
-                settings.keyboard_shortcuts.Delete,
+            accelerator: settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
@@ -3617,15 +3597,29 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
-                || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
+            if (
+                stdout[1] === "M" ||
+                stdout[1] === "T" ||
+                stdout[1] === "A" ||
+                stdout[1] === "D" ||
+                stdout[1] === "R" ||
+                stdout[1] === "C" ||
+                stdout[1] === "U"
+            ) {
                 // Modified File
                 resolve(2);
-            }else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
-                || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+            } else if (
+                stdout[0] === "M" ||
+                stdout[0] === "T" ||
+                stdout[0] === "A" ||
+                stdout[0] === "D" ||
+                stdout[0] === "R" ||
+                stdout[0] === "C" ||
+                stdout[0] === "U"
+            ) {
                 // Staged File
                 resolve(3);
-            }else if(stdout[0] === "?") {
+            } else if (stdout[0] === "?") {
                 // Untracked File
                 resolve(1);
             } else {
@@ -3637,7 +3631,7 @@ const getGitStatus = (filePath, isDirectory) => {
 };
 
 const runGitCommand = (filePath, gitCmd, e) => {
-    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
     filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
     exec(cmd, (error, stdout, stderr) => {
@@ -3764,8 +3758,15 @@ ipcMain.on("git_commit", (e) => {
             return;
         }
 
-        if (stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
-            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U") {
+        if (
+            stdout[0] === "M" ||
+            stdout[0] === "T" ||
+            stdout[0] === "A" ||
+            stdout[0] === "D" ||
+            stdout[0] === "R" ||
+            stdout[0] === "C" ||
+            stdout[0] === "U"
+        ) {
             gitCommitDialog(current_directory);
         }
     });
