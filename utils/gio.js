@@ -1,15 +1,16 @@
 const util  = require('util')
 const path  = require('path')
 const exec  = util.promisify(require('child_process').exec)
-const execSync = require('child_process').exec;
-const { spawn } = require('child_process');
+const exec1 = require('child_process').exec;
+const { spawn, execSync } = require('child_process');
 const { Worker } = require('worker_threads');
+// const gio           = require('../gio/build/Release/obj.target/gio')
 
 let file_arr = []
 
 function get_dir_recursive(dir, state) {
 
-    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
+    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024^8}, (err, stdout, stderr) => {
 
         if (!err) {
 
@@ -139,7 +140,6 @@ exports.get_file1 = async (href) => {
         return file_obj
 
     })
-
 }
 
 exports.get_dir_async = async (dir, callback) => {
@@ -215,11 +215,11 @@ exports.get_file = (href, callback) => {
 
         if (!err) {
 
-            let files = stdout.split('\n').map(p => p.trim().split(': '))
-            file_obj = {}
+            let files = stdout.split('\n').map(p => p.trim().split(': '));
+            file_obj = {};
 
-            file_obj.href = href
-            file_obj.name = path.basename(href)
+            file_obj.href = href;
+            file_obj.name = path.basename(href);
 
             files.forEach(item => {
                 file_obj[item[0]] = item[1]
@@ -229,13 +229,41 @@ exports.get_file = (href, callback) => {
             })
 
             // file_arr = dirents;
-            return callback(file_obj)
+            return callback(file_obj, null)
 
         } else {
-            return callback(err)
+            return callback(null, err)
         }
 
     })
+}
+
+exports.exists = (href) => {
+
+    let exists = 0;
+    try {
+        execSync(`gio info ${href}`);
+        exists = 1;
+    } catch (err) {
+        exists = 0;
+    }
+    console.log('exists', exists)
+    return exists;
+}
+
+exports.getFileSync = (href) => {
+
+    let file_info = exec1(`gio info "${href}"`);
+    let file_arr = JSON.stringify(file_info).split('\n').map(p => p.trim().split(': '));
+
+    file_obj = {};
+    file_obj.href = href;
+    file_obj.name = path.basename(href);
+    file_arr.forEach(item => {
+        file_obj[item[0]] = item[1];
+    })
+    console.log('whwhwhh', file_obj);
+    return file_obj;
 }
 
 exports.get_dir = (dir, callback) => {
@@ -243,7 +271,7 @@ exports.get_dir = (dir, callback) => {
     let dirents = []
     file_arr    = []
 
-    execSync(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024 * 1024}, (err, stdout, stderr) => {
+    exec1(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024 * 1024}, (err, stdout, stderr) => {
 
         if (!err) {
 
@@ -285,7 +313,40 @@ exports.get_dir = (dir, callback) => {
                         // Add attributes
                         attributes = files[3].split(' ').map(pair => pair.split('='))
                         attributes.forEach(attribute => {
-                            file_obj[attribute[0]] = attribute[1]
+
+                            if (
+                                attribute[0] != 'metadata::nautilus-icon-view-sort-reversed' &&
+                                attribute[0] != 'metadata::nautilus-list-view-sort-column' &&
+                                attribute[0] != 'metadata::nautilus-list-view-sort-reversed' &&
+                                attribute[0] != 'metadata::nemo-icon-view-auto-layout' &&
+                                attribute[0] != 'metadata::nemo-list-view-sort-column' &&
+                                attribute[0] != 'metadata::nemo-list-view-sort-reversed' &&
+                                attribute[0] != 'metadata::nemo-list-view-zoom-level' &&
+                                attribute[0] != 'metadata::nautilus-icon-view-sort-by' &&
+                                attribute[0] != 'standard::fast-content-type' &&
+                                attribute[0] != 'standard::allocated-size' &&
+                                attribute[0] != 'standard::symbolic-icon' &&
+                                attribute[0] != 'standard::display-name' &&
+                                attribute[0] != 'standard::edit-name' &&
+                                attribute[0] != 'standard::copy-name' &&
+                                attribute[0] != 'etag::value' &&
+                                attribute[0] != 'id::file' &&
+                                attribute[0] != 'id::filesystem' &&
+                                attribute[0] != 'standard::icon' &&
+                                attribute[0] != 'unix::inode' &&
+                                attribute[0] != 'unix::uid' &&
+                                attribute[0] != 'unix::rdev' &&
+                                attribute[0] != 'unix::block-size' &&
+                                attribute[0] != 'unix::blocks' &&
+                                attribute[0] != 'unix::nlink' &&
+                                attribute[0] != 'unix::gid'
+                            )
+                            {
+                                // console.log(attribute[0])
+                                file_obj[attribute[0]] = attribute[1]
+                            }
+
+
                         })
 
                     }
@@ -390,6 +451,8 @@ function copyToGio(sourcePath, destinationPath) {
   });
 }
 
+
+
 exports.cp = (source, destination, callback) => {
     const worker = new Worker(`
         const { execSync } = require('child_process');
@@ -479,7 +542,7 @@ exports.cp1 = (sourcePath, destinationPath, callback) => {
  * @param {string} callback
  */
 exports.mkdir = function(destination, callback) {
-    return callback(execSync(`gio mkdir "${destination}"`))
+    return callback(exec1(`gio mkdir "${destination}"`))
     // exec(`gio mkdir "${destination}"`).then(res => {
     //     return callback(res)
     // }).catch(err => {
@@ -488,7 +551,7 @@ exports.mkdir = function(destination, callback) {
 }
 
 exports.rename = function(source, destination, callback) {
-    return callback(execSync(`gio rename "${source}" "${destination}"`))
+    return callback(exec1(`gio rename "${source}" "${destination}"`))
 }
 
 /**

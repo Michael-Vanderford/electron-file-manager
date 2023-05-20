@@ -8,6 +8,11 @@ html, body {
 
 @media (prefers-color-scheme: dark) {
 
+    html, body {
+        background: var(--dark);
+        color: var(--default);
+    }
+
     #header_menu {
         display: flex;
         background: #252525;
@@ -58,10 +63,11 @@ html, body {
 
     #msg {
         color: #cfcfcf;
-        background-color: rgb(0 0 0 / 0.8);
+        background-color: var(--dark);
+         /* rgb(0 0 0 / 0.8); */
         border-radius: 5px;
         padding: 10px;
-        z-index: 1;
+        z-index: 100;
     }
 
     #progress {
@@ -78,10 +84,6 @@ html, body {
 
     #progress_msg {
         color: #cfcfcf;
-    }
-
-    .bi {
-        color: var(--white);
     }
 
     /* Dialogs */
@@ -111,7 +113,17 @@ html, body {
         padding: 5px;
     }
 
+    #confirm {
+        padding: 40px;
+    }
+
+    #confirm .header {
+        font-weight: bold;
+    }
+
 }
+
+
 
 progress {
     height: 20px;
@@ -145,22 +157,30 @@ progress::-webkit-progress-bar {
     padding: 5px;
     width: 90%;
     border-radius: 5px;
+    border:none;
     background: transparent;
     color: #cfcfcf;
 }
+
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
     width: 42px;
 }
-
+.svg {
+    background:rgba(250, 250, 250, .9);
+    filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
+}
 .card .content{
     padding: 2px;
     margin-left: 10px;
     line-height: 16px;
 }
+
 .card:hover {
     background: #334c74;
 }
+
 .card a {
     display: block;
     word-break: break-all;
@@ -183,7 +203,7 @@ progress::-webkit-progress-bar {
 }
 
 .list .icon {
-    width: 24px;
+    width: 16px;
 }
 
 .list > .item {
@@ -216,14 +236,24 @@ input[type=text]:focus {
 .highlight {
     background: #334c74;
 }
+
 .highlight_select {
     border-radius: 5px;
     background: #334c74;
 }
+
 .highlight_target {
+    box-sizing: border-box;
+    border: 1px solid var(--orange);
     border-radius: 5px;
     background: #334c74;
 }
+
+.active {
+    border-radius: 5px;
+    background: var(--lessdark)
+}
+
 .ds-selected {
     background: #334c74;
 }
@@ -280,7 +310,7 @@ input[type=text]:focus {
 }
 
 .error {
-    color: var(--warning);
+    color: var(--orange) !important;
 }
 
 .button {
@@ -322,7 +352,7 @@ input[type=text]:focus {
         grid-template-columns: repeat(3, 1fr);
         grid-template-rows: auto;
     }
-  }
+}
 
 /* Laptop Desctop */
 @media only screen and (min-width: 1024px) {
@@ -344,14 +374,16 @@ input[type=text]:focus {
 
 :root {
     --dark: #252525;
+    --moredark: #222222;
     --lessdark: #2f2f2f;
     --black: #000000;
     --white: #FFFFFF;
     --grey: #808080;
     --default: #C0C0C0;
-    --warning: #FF0000;
+    --warning: #960000;
     --green: #008000;
-    --blue: #334c74;
+    --blue: #233654;
+    --lightblue: #506585;
     --yellow: #FFFF00;
     --orange: #FFA500;
 

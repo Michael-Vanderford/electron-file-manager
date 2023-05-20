@@ -6,6 +6,7 @@
         color: var(--light);
         padding: 15px;
         height: 100%;
+        overflow: auto;
     }
 
     .draghandle {
@@ -28,7 +29,7 @@
         padding: 8px;
         width: 24px;
         float:left;
-        background-color: var(--dark);
+        background-color: var(--moredark);
         border-right: 1px solid var(--lessdark);
         height:110%
     }
@@ -45,7 +46,7 @@
     /* } */
 
     #sidebar .header {
-        color: var(--blue);
+        color: var(--lightblue);
         font-weight: bold;
         font-size: 12px;
     }

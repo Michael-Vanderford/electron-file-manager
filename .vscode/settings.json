@@ -1,0 +1,16 @@
+{
+    "files.associations": {
+        "*.php": "php",
+        "*.mbs": "vb",
+        "optional": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "array": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp"
+    }
+}

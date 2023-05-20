@@ -73,6 +73,10 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
  ../node_modules/nan/nan_private.h \
  ../node_modules/nan/nan_typedarray_contents.h \
  ../node_modules/nan/nan_json.h ../node_modules/nan/nan_scriptorigin.h \
+ /home/michael/.cache/node-gyp/24.1.3/include/node/node_api.h \
+ /home/michael/.cache/node-gyp/24.1.3/include/node/js_native_api.h \
+ /home/michael/.cache/node-gyp/24.1.3/include/node/js_native_api_types.h \
+ /home/michael/.cache/node-gyp/24.1.3/include/node/node_api_types.h \
  /usr/include/glib-2.0/gio/gio.h /usr/include/glib-2.0/gio/giotypes.h \
  /usr/include/glib-2.0/gio/gioenums.h /usr/include/glib-2.0/glib-object.h \
  /usr/include/glib-2.0/gobject/gbinding.h /usr/include/glib-2.0/glib.h \
@@ -390,6 +394,10 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
 ../node_modules/nan/nan_typedarray_contents.h:
 ../node_modules/nan/nan_json.h:
 ../node_modules/nan/nan_scriptorigin.h:
+/home/michael/.cache/node-gyp/24.1.3/include/node/node_api.h:
+/home/michael/.cache/node-gyp/24.1.3/include/node/js_native_api.h:
+/home/michael/.cache/node-gyp/24.1.3/include/node/js_native_api_types.h:
+/home/michael/.cache/node-gyp/24.1.3/include/node/node_api_types.h:
 /usr/include/glib-2.0/gio/gio.h:
 /usr/include/glib-2.0/gio/giotypes.h:
 /usr/include/glib-2.0/gio/gioenums.h:

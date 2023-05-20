@@ -1,0 +1,20 @@
+{
+    "configurations": [
+      {
+        "name": "Linux",
+        "includePath": [
+          "${workspaceFolder}/**",
+          "/usr/include/glib-2.0",
+          "/usr/include/gio-unix-2.0",
+          "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+          "/usr/lib/x86_64-linux-gnu/glib-2.0/include"
+        ],
+        "defines": [],
+        "compilerPath": "/usr/bin/gcc",
+        "cStandard": "c11",
+        "cppStandard": "c++17",
+        "intelliSenseMode": "gcc-x64"
+      }
+    ],
+    "version": 4
+  }
