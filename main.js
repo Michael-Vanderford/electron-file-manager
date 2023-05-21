@@ -3867,6 +3867,8 @@ const gitMergeDialog = (filePath) => {
         }
     );
 
+    if (branchs.length === 0) return;
+
     // DIALOG SETTINGS
     let confirm = new BrowserWindow({
         parent: window.getFocusedWindow(),
