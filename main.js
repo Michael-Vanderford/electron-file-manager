@@ -32,6 +32,7 @@ const { promisify } = require("util");
 const execPromise = util.promisify(exec);
 const Gio = require("gio");
 const { session } = require("electron");
+const { resolve } = require("chart.js/helpers");
 
 let copy_files_arr = [];
 let canceled = 0;
@@ -151,7 +152,6 @@ let thumbnails_dir = path.join(app.getPath("userData"), "thumbnails");
 if (!fs.existsSync(thumbnails_dir)) {
     fs.mkdirSync(thumbnails_dir);
 }
-
 
 ipcMain.on("get_devices", (e) => {
     win.send("get_devices");
@@ -1407,10 +1407,11 @@ async function delete_file(href, callback) {
 
                                 // Update disk size
                                 get_disk_space(
-                                { href: current_directory },
-                                (res) => {
-                                    win.send("disk_space", res);
-                                });
+                                    { href: current_directory },
+                                    (res) => {
+                                        win.send("disk_space", res);
+                                    }
+                                );
 
                                 // Update disk size
                                 get_disk_space(
@@ -2932,8 +2933,7 @@ function add_convert_audio_menu(menu, href) {
 function extract_menu(menu, e) {
     let menu_item = new MenuItem({
         label: "&Extract",
-        accelerator:
-            settings.keyboard_shortcuts.Extract,
+        accelerator: settings.keyboard_shortcuts.Extract,
         click: () => {
             e.sender.send("context-menu-command", "extract_here");
         },
@@ -2999,8 +2999,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Add to workspace",
-                accelerator:
-                    settings.keyboard_shortcuts.AddWorkspace,
+                accelerator: settings.keyboard_shortcuts.AddWorkspace,
                 click: () => {
                     e.sender.send("add_workspace");
                 },
@@ -3010,24 +3009,21 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Cut",
-                accelerator:
-                    settings.keyboard_shortcuts.Cut,
+                accelerator: settings.keyboard_shortcuts.Cut,
                 click: () => {
                     e.sender.send("context-menu-command", "cut");
                 },
             },
             {
                 label: "Copy",
-                accelerator:
-                    settings.keyboard_shortcuts.Copy,
+                accelerator: settings.keyboard_shortcuts.Copy,
                 click: () => {
                     e.sender.send("context-menu-command", "copy");
                 },
             },
             {
                 label: "&Rename",
-                accelerator:
-                    settings.keyboard_shortcuts.Rename,
+                accelerator: settings.keyboard_shortcuts.Rename,
                 click: () => {
                     e.sender.send("context-menu-command", "rename");
                 },
@@ -3040,8 +3036,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Delete file",
-                accelerator:
-                    settings.keyboard_shortcuts.Delete,
+                accelerator: settings.keyboard_shortcuts.Delete,
                 click: () => {
                     e.sender.send("context-menu-command", "delete");
                 },
@@ -3051,8 +3046,7 @@ ipcMain.on("context-menu-find", (e, args) => {
             },
             {
                 label: "Properties",
-                accelerator:
-                    settings.keyboard_shortcuts.Properties,
+                accelerator: settings.keyboard_shortcuts.Properties,
                 click: () => {
                     e.sender.send("context-menu-command", "props");
                 },
@@ -3119,8 +3113,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         },
         {
             label: "New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3180,8 +3173,7 @@ ipcMain.on("show-context-menu", (e, options) => {
         },
         {
             label: "Paste",
-            accelerator:
-                settings.keyboard_shortcuts.Paste,
+            accelerator: settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
@@ -3272,8 +3264,7 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3301,32 +3292,28 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "Cut",
-            accelerator:
-                settings.keyboard_shortcuts.Cut,
+            accelerator: settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
         },
         {
             label: "Copy",
-            accelerator:
-                settings.keyboard_shortcuts.Copy,
+            accelerator: settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
         },
         {
             label: "Paste",
-            accelerator:
-                settings.keyboard_shortcuts.Paste,
+            accelerator: settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send("context-menu-command", "paste");
             },
         },
         {
             label: "&Rename",
-            accelerator:
-                settings.keyboard_shortcuts.Rename,
+            accelerator: settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3336,15 +3323,14 @@ ipcMain.on("show-context-menu-directory", (e, args) => {
         },
         {
             label: "Delete",
-            accelerator:
-                settings.keyboard_shortcuts.Delete,
+            accelerator: settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
         },
         {
             type: "separator",
-        }
+        },
     ];
 
     const menu1 = Menu.buildFromTemplate(template1);
@@ -3395,24 +3381,21 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "Cut",
-            accelerator:
-                settings.keyboard_shortcuts.Cut,
+            accelerator: settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send("context-menu-command", "cut");
             },
         },
         {
             label: "Copy",
-            accelerator:
-                settings.keyboard_shortcuts.Copy,
+            accelerator: settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send("context-menu-command", "copy");
             },
         },
         {
             label: "&Rename",
-            accelerator:
-                settings.keyboard_shortcuts.Rename,
+            accelerator: settings.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send("context-menu-command", "rename");
             },
@@ -3440,8 +3423,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "&New Folder",
-            accelerator:
-                settings.keyboard_shortcuts.NewFolder,
+            accelerator: settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send("context-menu-command", "new_folder");
             },
@@ -3451,8 +3433,7 @@ ipcMain.on("show-context-menu-files", (e, args) => {
         },
         {
             label: "Delete file",
-            accelerator:
-                settings.keyboard_shortcuts.Delete,
+            accelerator: settings.keyboard_shortcuts.Delete,
             click: () => {
                 e.sender.send("context-menu-command", "delete");
             },
@@ -3617,15 +3598,29 @@ const getGitStatus = (filePath, isDirectory) => {
                 resolve(-1);
             }
 
-            if(stdout[1] === "M" || stdout[1] === "T" || stdout[1] === "A"
-                || stdout[1] === "D" || stdout[1] === "R" || stdout[1] === "C" || stdout[1] === "U"){
+            if (
+                stdout[1] === "M" ||
+                stdout[1] === "T" ||
+                stdout[1] === "A" ||
+                stdout[1] === "D" ||
+                stdout[1] === "R" ||
+                stdout[1] === "C" ||
+                stdout[1] === "U"
+            ) {
                 // Modified File
                 resolve(2);
-            }else if(stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
-                || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U"){
+            } else if (
+                stdout[0] === "M" ||
+                stdout[0] === "T" ||
+                stdout[0] === "A" ||
+                stdout[0] === "D" ||
+                stdout[0] === "R" ||
+                stdout[0] === "C" ||
+                stdout[0] === "U"
+            ) {
                 // Staged File
                 resolve(3);
-            }else if(stdout[0] === "?") {
+            } else if (stdout[0] === "?") {
                 // Untracked File
                 resolve(1);
             } else {
@@ -3637,7 +3632,7 @@ const getGitStatus = (filePath, isDirectory) => {
 };
 
 const runGitCommand = (filePath, gitCmd, e) => {
-    let filePathDir = path.dirname(filePath).replaceAll(' ', '\\ ');
+    let filePathDir = path.dirname(filePath).replaceAll(" ", "\\ ");
     filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePathDir} && ${gitCmd} ${filePath}`;
     exec(cmd, (error, stdout, stderr) => {
@@ -3764,8 +3759,15 @@ ipcMain.on("git_commit", (e) => {
             return;
         }
 
-        if (stdout[0] === "M" || stdout[0] === "T" || stdout[0] === "A"
-            || stdout[0] === "D" || stdout[0] === "R" || stdout[0] === "C" || stdout[0] === "U") {
+        if (
+            stdout[0] === "M" ||
+            stdout[0] === "T" ||
+            stdout[0] === "A" ||
+            stdout[0] === "D" ||
+            stdout[0] === "R" ||
+            stdout[0] === "C" ||
+            stdout[0] === "U"
+        ) {
             gitCommitDialog(current_directory);
         }
     });
@@ -3830,4 +3832,157 @@ ipcMain.on("git_commit_confirmed", (e, filePath, commit_message_input_str) => {
 ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
+});
+
+ipcMain.on("git_merge", (e) => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        gitMergeDialog(current_directory);
+    });
+});
+
+const gitMergeDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    let branches = [];
+    getBranchData(filePath).then(
+        (result) => {
+            branches = result
+                .filter((item) => item[0] === " ")
+                .map((item) => item.trim());
+
+            // DIALOG SETTINGS
+            let confirm = new BrowserWindow({
+                parent: window.getFocusedWindow(),
+                modal: true,
+                width: 550,
+                height: 200,
+                backgroundColor: "#2e2c29",
+                x: x,
+                y: y,
+                frame: true,
+                webPreferences: {
+                    nodeIntegration: true, // is default value after Electron v5
+                    contextIsolation: true, // protect against prototype pollution
+                    enableRemoteModule: false, // turn off remote
+                    nodeIntegrationInWorker: false,
+                    preload: path.join(__dirname, "preload.js"),
+                },
+            });
+            // LOAD FILE
+            confirm.loadFile("src/git_merge_dialog.html");
+
+            // SHOW DIALG
+            confirm.once("ready-to-show", () => {
+                let title = "Merge Requested";
+                confirm.title = title;
+                confirm.removeMenu();
+
+                confirm.send("confirm_git_merge", filePath, branches);
+            });
+        },
+        (error) => {
+            console.log(error);
+        }
+    );
+};
+
+const getBranchData = (filePath) => {
+    return new Promise((resolve, reject) => {
+        filePath = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePath} && git branch -a`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                reject(error.message);
+            }
+            if (stderr) {
+                reject(stderr);
+            }
+            if (stdout.trim() === "") {
+                reject("there has no branch");
+            }
+            resolve(stdout.split("\n"));
+        });
+    });
+};
+
+ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git merge ${targetBranch} -m \"merge ${targetBranch}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        let bounds = win.getBounds();
+
+        let x = bounds.x + parseInt((bounds.width - 400) / 2);
+        let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+        let confirm = new BrowserWindow({
+            parent: window.getFocusedWindow(),
+            modal: true,
+            width: 550,
+            height: 200,
+            backgroundColor: "#2e2c29",
+            x: x,
+            y: y,
+            frame: true,
+            webPreferences: {
+                nodeIntegration: true, // is default value after Electron v5
+                contextIsolation: true, // protect against prototype pollution
+                enableRemoteModule: false, // turn off remote
+                nodeIntegrationInWorker: false,
+                preload: path.join(__dirname, "preload.js"),
+            },
+        });
+
+        if (error) {
+            exec(`cd ${filePath} && git merge --abort`);
+            console.log(`Error: ${error.message}`);
+            confirm.loadFile("src/git_merge_dialog_fail.html");
+            confirm.once("ready-to-show", () => {
+                let title = "Merge Requested";
+                confirm.title = title;
+                confirm.removeMenu();
+
+                confirm.send("git_merge_fail");
+                BrowserWindow.getFocusedWindow().send("refresh");
+            });
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            confirm.loadFile("src/git_merge_dialog_fail.html");
+            confirm.once("ready-to-show", () => {
+                let title = "Merge Requested";
+                confirm.title = title;
+                confirm.removeMenu();
+
+                confirm.send("git_merge_fail");
+                BrowserWindow.getFocusedWindow().send("refresh");
+            });
+            return;
+        }
+        confirm.loadFile("src/git_merge_dialog_success.html");
+        // SHOW DIALG
+        confirm.once("ready-to-show", () => {
+            let title = "Merge Requested";
+            confirm.title = title;
+            confirm.removeMenu();
+
+            confirm.send("git_merge_success");
+        });
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
 });
