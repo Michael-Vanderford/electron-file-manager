@@ -9705,3 +9705,26 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
         ipcRenderer.send("git_commit_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_merge", (e, filePath) => {
+    const btn_git_merge_confirm = document.getElementById(
+        "btn_git_merge_confirm"
+    );
+    const btn_git_merge_cancel = document.getElementById(
+        "btn_git_merge_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    const option = document.createElement("option");
+    option.text = "text";
+    selectBox.add(option);
+
+    btn_git_merge_confirm.onclick = (e) => {
+        let rename_input_str = git_rename_input.value;
+        ipcRenderer.send("git_rename_confirmed", filePath, rename_input_str);
+    };
+
+    btn_git_merge_cancel.onclick = (e) => {
+        ipcRenderer.send("git_rename_canceled");
+    };
+});
