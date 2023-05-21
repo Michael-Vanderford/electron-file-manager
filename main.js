@@ -3855,6 +3855,19 @@ const gitMergeDialog = (filePath) => {
     let x = bounds.x + parseInt((bounds.width - 400) / 2);
     let y = bounds.y + parseInt((bounds.height - 250) / 2);
 
+    let branchs = [];
+    getBranchData(filePath).then(
+        (result) => {
+            branchs = result
+                .filter((item) => item[0] === " ")
+                .map((item) => item.trim());
+            console.log(branchs);
+        },
+        (error) => {
+            console.log(error);
+        }
+    );
+
     // DIALOG SETTINGS
     let confirm = new BrowserWindow({
         parent: window.getFocusedWindow(),
@@ -3882,6 +3895,25 @@ const gitMergeDialog = (filePath) => {
         confirm.title = title;
         confirm.removeMenu();
 
-        confirm.send("confirm_git_merge", filePath);
+        confirm.send("confirm_git_merge", filePath, branchs);
+    });
+};
+
+const getBranchData = (filePath) => {
+    return new Promise((resolve, reject) => {
+        filePath = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePath} && git branch -a`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                reject(error.message);
+            }
+            if (stderr) {
+                reject(stderr);
+            }
+            if (stdout.trim() === "") {
+                reject("there has no branch");
+            }
+            resolve(stdout.split("\n"));
+        });
     });
 };
