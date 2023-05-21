@@ -9706,7 +9706,7 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
     };
 });
 
-ipcRenderer.on("confirm_git_merge", (e, filePath, branchs) => {
+ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     const btn_git_merge_confirm = document.getElementById(
         "btn_git_merge_confirm"
     );
@@ -9714,10 +9714,8 @@ ipcRenderer.on("confirm_git_merge", (e, filePath, branchs) => {
         "btn_git_merge_cancel"
     );
 
-    if (!branchs.length) ipcRenderer.send("git_rename_canceled");
-
     const selectBox = document.getElementById("branch");
-    branchs.forEach((branch) => {
+    branches.forEach((branch) => {
         const option = document.createElement("option");
         option.text = branch;
         selectBox.add(option);
