@@ -3917,3 +3917,22 @@ const getBranchData = (filePath) => {
         });
     });
 };
+
+ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git merge ${targetBranch} -m \"merge ${targetBranch}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            exec(`cd ${filePath} && git merge --abort`);
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
