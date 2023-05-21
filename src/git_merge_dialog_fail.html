@@ -7,15 +7,26 @@
     <title>Document</title>
     <link rel="stylesheet" href="../assets/css/semantic.min.css" />
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <style>
+        #confirm_git_merge {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            flex-direction: column
+        }
+        #btn_git_merge_fail_cancel{
+            margin-top: 50px
+        }
+    </style>
 </head>
 <body>
 
 <div id="confirm_git_merge" style="padding: 20px">
     <div class="ui h5 warning">
-        <i class="icon warning circle"></i> Merge Fail:
+        <span style="font-size: 30px">Merge Fail!</span>
     </div>
     <div>
-        <input id="btn_git_merge_fail_cancel" tabindex="2" class="ui small button default" type="button" value="Cancel">
+        <input id="btn_git_merge_fail_cancel" tabindex="2" class="ui small button default" type="button" value="OK">
     </div>
 
 </div>
