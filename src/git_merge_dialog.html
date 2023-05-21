@@ -7,6 +7,35 @@
     <title>Document</title>
     <link rel="stylesheet" href="../assets/css/semantic.min.css" />
     <link rel="stylesheet" href="../assets/css/style.css" />
+    <style>
+        .selectbox::before {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 20%;
+            height: 10%;
+            text-align: center;
+            font-size: 5px;
+            line-height: 10px;
+            color: rgba(255, 255, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+        }
+        .selectbox select {
+            background-color: rgba(0,0,10, 0.2);
+            color: white;
+            padding: 12px;
+            width: 250px;
+            border: none;
+            font-size: 15px;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+            outline: none;
+        }
+
+        .selectbox select option {
+            padding: 10px;
+        }
+    </style>
 </head>
 <body>
 
@@ -15,10 +44,9 @@
         <i class="icon warning circle"></i> Select Merge branch into base :
     </div>
 
-    <div style="padding: 20px;">
-        <label for="branch">Select Branch</label>
-            <select name="Branch Select" id="branch" size="4">
-        </select>
+    <div style="padding: 15px;" class="selectbox">
+        <label for="branch" style="font-size: 15px">Select Branch</label>
+        <select name="Branch Select" id="branch"></select>
     </div>
 
     <div>
