@@ -3923,15 +3923,55 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
     filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePath} && git merge ${targetBranch} -m \"merge ${targetBranch}\"`;
     exec(cmd, (error, stdout, stderr) => {
+        let bounds = win.getBounds();
+
+        let x = bounds.x + parseInt((bounds.width - 400) / 2);
+        let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+        let confirm = new BrowserWindow({
+            parent: window.getFocusedWindow(),
+            modal: true,
+            width: 550,
+            height: 200,
+            backgroundColor: "#2e2c29",
+            x: x,
+            y: y,
+            frame: true,
+            webPreferences: {
+                nodeIntegration: true, // is default value after Electron v5
+                contextIsolation: true, // protect against prototype pollution
+                enableRemoteModule: false, // turn off remote
+                nodeIntegrationInWorker: false,
+                preload: path.join(__dirname, "preload.js"),
+            },
+        });
+
         if (error) {
             exec(`cd ${filePath} && git merge --abort`);
             console.log(`Error: ${error.message}`);
-            resolve(-1);
+            confirm.loadFile("src/git_merge_dialog_fail.html");
+            confirm.once("ready-to-show", () => {
+                let title = "Merge Requested";
+                confirm.title = title;
+                confirm.removeMenu();
+            });
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
-            resolve(-1);
+            confirm.loadFile("src/git_merge_dialog_fail.html");
+            confirm.once("ready-to-show", () => {
+                let title = "Merge Requested";
+                confirm.title = title;
+                confirm.removeMenu();
+            });
         }
+        confirm.loadFile("src/git_merge_dialog_success.html");
+        // SHOW DIALG
+        confirm.once("ready-to-show", () => {
+            let title = "Merge Requested";
+            confirm.title = title;
+            confirm.removeMenu();
+        });
         BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
