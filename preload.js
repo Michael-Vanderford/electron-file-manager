@@ -9732,3 +9732,21 @@ ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
         ipcRenderer.send("git_rename_canceled");
     };
 });
+
+ipcRenderer.on("git_merge_success", (e) => {
+    const btn_git_merge_success_cancel = document.getElementById(
+        "btn_git_merge_success_cancel"
+    );
+    btn_git_merge_success_cancel.onclick = (e) => {
+        ipcRenderer.send("git_rename_canceled");
+    };
+});
+
+ipcRenderer.on("git_merge_fail", (e) => {
+    const btn_git_merge_fail_cancel = document.getElementById(
+        "btn_git_merge_fail_cancel"
+    );
+    btn_git_merge_fail_cancel.onclick = (e) => {
+        ipcRenderer.send("git_rename_canceled");
+    };
+});
