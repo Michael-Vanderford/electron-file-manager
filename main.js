@@ -3861,7 +3861,6 @@ const gitMergeDialog = (filePath) => {
             branchs = result
                 .filter((item) => item[0] === " ")
                 .map((item) => item.trim());
-            console.log(branchs);
         },
         (error) => {
             console.log(error);
