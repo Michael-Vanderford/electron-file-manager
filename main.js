@@ -32,6 +32,7 @@ const { promisify } = require("util");
 const execPromise = util.promisify(exec);
 const Gio = require("gio");
 const { session } = require("electron");
+const { resolve } = require("chart.js/helpers");
 
 let copy_files_arr = [];
 let canceled = 0;
@@ -3954,7 +3955,11 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
                 let title = "Merge Requested";
                 confirm.title = title;
                 confirm.removeMenu();
+
+                confirm.send("git_merge_fail");
+                BrowserWindow.getFocusedWindow().send("refresh");
             });
+            return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
@@ -3963,7 +3968,11 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
                 let title = "Merge Requested";
                 confirm.title = title;
                 confirm.removeMenu();
+
+                confirm.send("git_merge_fail");
+                BrowserWindow.getFocusedWindow().send("refresh");
             });
+            return;
         }
         confirm.loadFile("src/git_merge_dialog_success.html");
         // SHOW DIALG
@@ -3971,6 +3980,8 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
             let title = "Merge Requested";
             confirm.title = title;
             confirm.removeMenu();
+
+            confirm.send("git_merge_success");
         });
         BrowserWindow.getFocusedWindow().send("refresh");
     });
