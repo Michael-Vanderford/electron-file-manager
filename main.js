@@ -3773,6 +3773,28 @@ ipcMain.on("git_commit", (e) => {
     });
 });
 
+ipcMain.on("git_history", (e) => {
+    let checkGitRepo = `cd ${current_directory} && git log --pretty=format:"%h" --graph`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        let list = stdout.split("\n");
+        let parse_list = new Array;
+        // stdout을 파싱
+        //console.log(stdout);
+        for(var i in list)
+            parse_list[i] = list[i].split(/ +/);
+        console.log(parse_list);
+        //gitCommitHistory(current_directory);
+    });
+});
+
 const gitCommitDialog = (filePath) => {
     let bounds = win.getBounds();
 
