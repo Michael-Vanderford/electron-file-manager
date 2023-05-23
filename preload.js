@@ -9245,7 +9245,7 @@ window.addEventListener("DOMContentLoaded", () => {
             view = "grid";
         }
 
-        /* Initialize side bara */
+        /* Initialize side bar */
         sidebar = localStorage.getItem("sidebar");
         if (sidebar == null || sidebar == "") {
             localStorage.setItem("sidebar", 1);
@@ -9666,6 +9666,12 @@ window.addEventListener("DOMContentLoaded", () => {
     btnMerge.addEventListener("click", (e) => {
         ipcRenderer.send("git_merge");
     });
+
+    let btnHistory = document.getElementById("git_history");
+    btnHistory.addEventListener("click", (e) => {
+        ipcRenderer.send("git_history");
+    });
+
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
@@ -9705,6 +9711,7 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
         ipcRenderer.send("git_commit_canceled");
     };
 });
+
 
 ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     const btn_git_merge_confirm = document.getElementById(
