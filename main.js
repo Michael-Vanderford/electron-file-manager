@@ -3798,9 +3798,46 @@ ipcMain.on("git_history", (e) => {
         for(var i in list)
             parse_list[i] = list[i].split(/ +/);
         
-        //gitCommitHistory(current_directory,parse_list);
+        gitCommitHistory(current_directory,parse_list);
     });
 });
+
+const gitCommitHistory = (filePath,parse_list) => {
+    let bounds = win.getBounds();
+    
+    let x = bounds.x + parseInt((bounds.width - 800) / 2);
+    let y = bounds.y + parseInt((bounds.height - 600) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 800,
+        height: 600,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_history.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Commit History";
+        confirm.title = title;
+        confirm.removeMenu();
+        drawGraph(parse_list);
+        confirm.send("git_commit_history", filePath);
+    });
+};
 
 const gitCommitDialog = (filePath) => {
     let bounds = win.getBounds();
