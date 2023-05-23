@@ -3225,12 +3225,13 @@ ipcMain.on("show-context-menu", (e, options) => {
 
     // CALL BUILD TEMPLATE. CREATE NEW FILES
     let menu = Menu.buildFromTemplate(template);
-
-    // ADD TEMPLATES
-    add_templates_menu(menu, e, options);
-
-    // SHOW MENU
-    menu.popup(BrowserWindow.fromWebContents(e.sender));
+    getGitBranchList(current_directory).then((branchList) => {
+        console.log(branchList);
+        // ADD TEMPLATES
+        add_templates_menu(menu, e, options);
+        // SHOW MENU
+        menu.popup(BrowserWindow.fromWebContents(e.sender));
+    });
 });
 
 // FOLDERS MENU
@@ -3838,3 +3839,35 @@ ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+const getGitBranchList = (filePath) => {
+    console.log(filePath);
+    return new Promise((resolve) => {
+        let filePathDir = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePathDir} && git branch -a`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                resolve(-1);
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                resolve(-1);
+            }
+
+            branchList = stdout.split("\n");
+            for(let i = 0; i < branchList.length; i++){
+                branchList[i] = branchList[i].trim();
+                if(branchList[i][0] === "*"){
+                    branchList.splice(branchList.indexOf(branchList[i]), 1);
+                    i--;
+                }else if(branchList[i] === ""){
+                    branchList.splice(branchList.indexOf(branchList[i]), 1);
+                    i--;
+                }
+            }
+            console.log(branchList);
+            resolve(branchList);
+        });
+    });
+};
