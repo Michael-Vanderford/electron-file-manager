@@ -3241,6 +3241,7 @@ ipcMain.on("show-context-menu", (e, options) => {
                 label: "Git Branch: Delete Current Branch",
                 click: () => {
                     console.log("Git Branch Delete");
+                    gitBranchDeleteDialog(current_directory);
                 },
             },
             {
