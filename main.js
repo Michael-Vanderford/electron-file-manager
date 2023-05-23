@@ -3945,3 +3945,27 @@ const gitBranchCreateDialog = (filePath) => {
         confirm.send("confirm_git_branch_create", filePath);
     });
 };
+
+ipcMain.on("git_branch_create_confirmed", (e, filePath, name_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch \"${name_input_str}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_create_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
