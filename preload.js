@@ -9785,3 +9785,30 @@ ipcRenderer.on("confirm_git_branch_rename", (e, filePath, branchList) => {
         ipcRenderer.send("git_branch_rename_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_branch_checkout", (e, filePath, branchList) => {
+    const btn_git_branch_checkout_confirm = document.getElementById(
+        "btn_git_branch_checkout_confirm"
+    );
+    const btn_git_branch_checkout_cancel = document.getElementById(
+        "btn_git_branch_checkout_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_checkout_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1) ipcRenderer.send("git_branch_checkout_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_checkout_confirmed", filePath, targetBranch);
+    };
+
+    btn_git_branch_checkout_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_checkout_canceled");
+    };
+});
