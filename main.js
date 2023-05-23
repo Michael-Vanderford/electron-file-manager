@@ -3214,6 +3214,13 @@ ipcMain.on("show-context-menu", (e, options) => {
                 e.sender.send("context-menu-command", "show_hidden");
             },
         },
+        {
+            type: "separator",
+        },
+        {
+            label: "Git Branch:",
+            submenu: [],
+        },
     ];
 
     // CALL BUILD TEMPLATE. CREATE NEW FILES
