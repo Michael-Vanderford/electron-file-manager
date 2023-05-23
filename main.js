@@ -3963,6 +3963,8 @@ ipcMain.on("git_branch_create_confirmed", (e, filePath, name_input_str) => {
             BrowserWindow.getFocusedWindow().send("notification", stderr);
             resolve(-1);
         }
+
+        BrowserWindow.getFocusedWindow().send("notification", `SuccessfullyCreated ${name_input_str} Branch`);
         BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
