@@ -3238,14 +3238,14 @@ ipcMain.on("show-context-menu", (e, options) => {
                 },
             },
             {
-                label: "Git Branch: Delete Current Branch",
+                label: "Git Branch: Delete a Branch",
                 click: () => {
                     console.log("Git Branch Delete");
                     gitBranchDeleteDialog(current_directory, branchList);
                 },
             },
             {
-                label: "Git Branch: Rename Current Branch",
+                label: "Git Branch: Rename a Branch",
                 click: () => {
                     console.log("Git Branch Rename");
                     gitBranchRenameDialog(current_directory, branchList);
