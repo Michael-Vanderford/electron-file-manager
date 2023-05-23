@@ -9726,3 +9726,30 @@ ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
         ipcRenderer.send("git_branch_create_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_branch_delete", (e, filePath, branchList) => {
+    const btn_git_branch_delete_confirm = document.getElementById(
+        "btn_git_branch_delete_confirm"
+    );
+    const btn_git_branch_delete_cancel = document.getElementById(
+        "btn_git_branch_delete_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_delete_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1) ipcRenderer.send("git_branch_delete_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_delete_confirmed", filePath, targetBranch);
+    };
+
+    btn_git_branch_delete_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_delete_canceled");
+    };
+});
