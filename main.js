@@ -3248,6 +3248,7 @@ ipcMain.on("show-context-menu", (e, options) => {
                 label: "Git Branch: Rename Current Branch",
                 click: () => {
                     console.log("Git Branch Rename");
+                    gitBranchRenameDialog(current_directory, branchList);
                 },
             },
             {
