@@ -4076,3 +4076,31 @@ const gitBranchRenameDialog = (filePath, branchList) => {
         confirm.send("confirm_git_branch_rename", filePath, branchList);
     });
 };
+
+ipcMain.on("git_branch_rename_confirmed", (e, filePath, branchName, newName) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch -m \"${branchName}\" \"${newName}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            resolve(-1);
+        }
+
+        BrowserWindow.getFocusedWindow().send("notification", `Successfully Renamed ${branchName} Branch to ${newName}`);
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
