@@ -3241,7 +3241,7 @@ ipcMain.on("show-context-menu", (e, options) => {
                 label: "Git Branch: Delete Current Branch",
                 click: () => {
                     console.log("Git Branch Delete");
-                    gitBranchDeleteDialog(current_directory);
+                    gitBranchDeleteDialog(current_directory, branchList);
                 },
             },
             {
@@ -3973,7 +3973,7 @@ ipcMain.on("git_branch_create_canceled", (e) => {
     confirm.hide();
 });
 
-const gitBranchDeleteDialog = (filePath) => {
+const gitBranchDeleteDialog = (filePath, branchList) => {
     let bounds = win.getBounds();
 
     let x = bounds.x + parseInt((bounds.width - 400) / 2);
@@ -4006,6 +4006,32 @@ const gitBranchDeleteDialog = (filePath) => {
         confirm.title = title;
         confirm.removeMenu();
 
-        confirm.send("confirm_git_branch_delete", filePath);
+        confirm.send("confirm_git_branch_delete", filePath, branchList);
     });
 };
+
+ipcMain.on("git_branch_delete_confirmed", (e, filePath, name_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch -D \"${name_input_str}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_delete_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
