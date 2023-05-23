@@ -3218,6 +3218,7 @@ ipcMain.on("show-context-menu", (e, options) => {
             type: "separator",
         },
         {
+            id: "vcs-branch",
             label: "Git Branch:",
             submenu: [],
         },
