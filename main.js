@@ -4010,12 +4010,12 @@ const gitBranchDeleteDialog = (filePath, branchList) => {
     });
 };
 
-ipcMain.on("git_branch_delete_confirmed", (e, filePath, name_input_str) => {
+ipcMain.on("git_branch_delete_confirmed", (e, filePath, branchName) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
     filePath = filePath.replaceAll(" ", "\\ ");
-    let cmd = `cd ${filePath} && git branch -D \"${name_input_str}\"`;
+    let cmd = `cd ${filePath} && git branch -D \"${branchName}\"`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
@@ -4027,6 +4027,8 @@ ipcMain.on("git_branch_delete_confirmed", (e, filePath, name_input_str) => {
             BrowserWindow.getFocusedWindow().send("notification", stderr);
             resolve(-1);
         }
+
+        BrowserWindow.getFocusedWindow().send("notification", `Successfully Deleted ${branchName} Branch`);
         BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
