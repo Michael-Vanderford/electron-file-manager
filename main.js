@@ -3255,6 +3255,7 @@ ipcMain.on("show-context-menu", (e, options) => {
                 label: "Git Branch: Checkout to other Branch",
                 click: () => {
                     console.log("Git Branch Checkout");
+                    gitBranchCheckoutDialog(current_directory, branchList);
                 },
             },
         ]
@@ -4153,11 +4154,13 @@ ipcMain.on("git_branch_checkout_confirmed", (e, filePath, branchName) => {
         if (error) {
             console.log(`Error: ${error.message}`);
             BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
             BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
         }
 
