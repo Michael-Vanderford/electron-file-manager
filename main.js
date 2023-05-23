@@ -3955,10 +3955,12 @@ ipcMain.on("git_branch_create_confirmed", (e, filePath, name_input_str) => {
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
             resolve(-1);
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
             resolve(-1);
         }
         BrowserWindow.getFocusedWindow().send("refresh");
