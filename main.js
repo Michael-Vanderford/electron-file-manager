@@ -3241,6 +3241,7 @@ ipcMain.on("show-context-menu", (e, options) => {
                 label: "Git Branch: Delete Current Branch",
                 click: () => {
                     console.log("Git Branch Delete");
+                    gitBranchDeleteDialog(current_directory, branchList);
                 },
             },
             {
@@ -3970,6 +3971,71 @@ ipcMain.on("git_branch_create_confirmed", (e, filePath, name_input_str) => {
 });
 
 ipcMain.on("git_branch_create_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+const gitBranchDeleteDialog = (filePath, branchList) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_branch_delete_dialog.html");
+
+    // SHOW DIALOG
+    confirm.once("ready-to-show", () => {
+        let title = "Delete a Branch";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_branch_delete", filePath, branchList);
+    });
+};
+
+ipcMain.on("git_branch_delete_confirmed", (e, filePath, branchName) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch -D \"${branchName}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            resolve(-1);
+        }
+
+        BrowserWindow.getFocusedWindow().send("notification", `Successfully Deleted ${branchName} Branch`);
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_delete_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
