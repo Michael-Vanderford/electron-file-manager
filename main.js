@@ -4093,11 +4093,13 @@ ipcMain.on("git_branch_rename_confirmed", (e, filePath, branchName, newName) => 
         if (error) {
             console.log(`Error: ${error.message}`);
             BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
             BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
         }
 
