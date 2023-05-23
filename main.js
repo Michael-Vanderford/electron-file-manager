@@ -3778,20 +3778,27 @@ ipcMain.on("git_history", (e) => {
     exec(checkGitRepo, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
             return;
         }
         if (stderr) {
             console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
             return;
         }
+
         let list = stdout.split("\n");
         let parse_list = new Array;
         // stdout을 파싱
         //console.log(stdout);
         for(var i in list)
             parse_list[i] = list[i].split(/ +/);
-        console.log(parse_list);
-        //gitCommitHistory(current_directory);
+        
+        //gitCommitHistory(current_directory,parse_list);
     });
 });
 
