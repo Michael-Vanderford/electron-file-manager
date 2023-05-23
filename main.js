@@ -4317,12 +4317,14 @@ ipcMain.on("git_branch_checkout_confirmed", (e, filePath, branchName) => {
             BrowserWindow.getFocusedWindow().send("notification", error.message);
             BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
             BrowserWindow.getFocusedWindow().send("notification", stderr);
             BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
 
         BrowserWindow.getFocusedWindow().send("notification", `Successfully Checkout to ${branchName} Branch`);
