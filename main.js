@@ -3228,6 +3228,41 @@ ipcMain.on("show-context-menu", (e, options) => {
     let menu = Menu.buildFromTemplate(template);
     getGitBranchList(current_directory).then((branchList) => {
         console.log(branchList);
+
+        let gitBranchMenuList = [
+            {
+                label: "Git Branch: Create New Branch",
+                click: () => {
+                    console.log("Git Branch Create");
+                },
+            },
+            {
+                label: "Git Branch: Delete Current Branch",
+                click: () => {
+                    console.log("Git Branch Delete");
+                },
+            },
+            {
+                label: "Git Branch: Rename Current Branch",
+                click: () => {
+                    console.log("Git Branch Rename");
+                },
+            },
+            {
+                label: "Git Branch: Checkout to other Branch",
+                click: () => {
+                    console.log("Git Branch Checkout");
+                },
+            },
+        ]
+        if(branchList !== -1){
+            gitBranchMenuList.forEach((gitBranchMenuItem) => {
+                menu.getMenuItemById("vcs-branch").submenu.append(
+                    new MenuItem(gitBranchMenuItem)
+                );
+            });
+        }
+
         // ADD TEMPLATES
         add_templates_menu(menu, e, options);
         // SHOW MENU
