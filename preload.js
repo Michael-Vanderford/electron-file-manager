@@ -9707,3 +9707,22 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
         ipcRenderer.send("git_commit_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
+    let btn_git_branch_create_confirm = document.getElementById(
+        "btn_git_branch_create_confirm"
+    );
+    let btn_git_branch_create_cancel = document.getElementById(
+        "btn_git_branch_create_cancel"
+    );
+    let git_branch_name_input = document.getElementById("git_branch_name_input");
+
+    btn_git_branch_create_confirm.onclick = (e) => {
+        let name_input_str = git_branch_name_input.value;
+        ipcRenderer.send("git_branch_create_confirmed", filePath, name_input_str);
+    };
+
+    btn_git_branch_create_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_create_canceled");
+    };
+});
