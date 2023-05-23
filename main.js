@@ -4142,3 +4142,31 @@ const gitBranchCheckoutDialog = (filePath, branchList) => {
         confirm.send("confirm_git_branch_checkout", filePath, branchList);
     });
 };
+
+ipcMain.on("git_branch_checkout_confirmed", (e, filePath, branchName) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git checkout \"${branchName}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            resolve(-1);
+        }
+
+        BrowserWindow.getFocusedWindow().send("notification", `Successfully Checkout to ${branchName} Branch`);
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_checkout_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
