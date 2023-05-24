@@ -9712,6 +9712,13 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
     };
 });
 
+ipcRenderer.on("draw_git_history", (e, filePath) => {
+    let hTagCount=1
+    let tagArea = document.getElementById('git_history_storage');
+    
+    tagArea.innerHTML="test";
+});
+
 
 ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     const btn_git_merge_confirm = document.getElementById(
