@@ -3985,15 +3985,8 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
-            confirm.loadFile("src/git_merge_dialog_fail.html");
-            confirm.once("ready-to-show", () => {
-                let title = "Merge Requested";
-                confirm.title = title;
-                confirm.removeMenu();
-
-                confirm.send("git_merge_fail");
-                BrowserWindow.getFocusedWindow().send("refresh");
-            });
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
         confirm.loadFile("src/git_merge_dialog_success.html");
