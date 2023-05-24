@@ -3989,15 +3989,10 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
             BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
-        confirm.loadFile("src/git_merge_dialog_success.html");
-        // SHOW DIALG
-        confirm.once("ready-to-show", () => {
-            let title = "Merge Requested";
-            confirm.title = title;
-            confirm.removeMenu();
-
-            confirm.send("git_merge_success");
-        });
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `branch ${targetBranch} witb Merge Success`
+        );
         BrowserWindow.getFocusedWindow().send("refresh");
     });
 });
