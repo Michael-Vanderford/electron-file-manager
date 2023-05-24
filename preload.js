@@ -9750,3 +9750,108 @@ ipcRenderer.on("git_merge_fail", (e) => {
         ipcRenderer.send("git_rename_canceled");
     };
 });
+
+ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
+    let btn_git_branch_create_confirm = document.getElementById(
+        "btn_git_branch_create_confirm"
+    );
+    let btn_git_branch_create_cancel = document.getElementById(
+        "btn_git_branch_create_cancel"
+    );
+    let git_branch_name_input = document.getElementById("git_branch_name_input");
+
+    btn_git_branch_create_confirm.onclick = (e) => {
+        let name_input_str = git_branch_name_input.value;
+        ipcRenderer.send("git_branch_create_confirmed", filePath, name_input_str);
+    };
+
+    btn_git_branch_create_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_create_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_branch_delete", (e, filePath, branchList) => {
+    const btn_git_branch_delete_confirm = document.getElementById(
+        "btn_git_branch_delete_confirm"
+    );
+    const btn_git_branch_delete_cancel = document.getElementById(
+        "btn_git_branch_delete_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_delete_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1) ipcRenderer.send("git_branch_delete_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_delete_confirmed", filePath, targetBranch);
+    };
+
+    btn_git_branch_delete_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_delete_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_branch_rename", (e, filePath, branchList) => {
+    const btn_git_branch_rename_confirm = document.getElementById(
+        "btn_git_branch_rename_confirm"
+    );
+    const btn_git_branch_rename_cancel = document.getElementById(
+        "btn_git_branch_rename_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    let git_branch_name_input = document.getElementById("git_branch_name_input");
+
+    btn_git_branch_rename_confirm.onclick = (e) => {
+        let name_input_str = git_branch_name_input.value;
+        if (name_input_str === "") return;
+
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1) ipcRenderer.send("git_branch_rename_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_rename_confirmed", filePath, targetBranch, name_input_str);
+    };
+
+    btn_git_branch_rename_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_rename_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_branch_checkout", (e, filePath, branchList) => {
+    const btn_git_branch_checkout_confirm = document.getElementById(
+        "btn_git_branch_checkout_confirm"
+    );
+    const btn_git_branch_checkout_cancel = document.getElementById(
+        "btn_git_branch_checkout_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_checkout_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1) ipcRenderer.send("git_branch_checkout_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_checkout_confirmed", filePath, targetBranch);
+    };
+
+    btn_git_branch_checkout_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_checkout_canceled");
+    };
+});
