@@ -3773,72 +3773,6 @@ ipcMain.on("git_commit", (e) => {
     });
 });
 
-ipcMain.on("git_history", (e) => {
-    let checkGitRepo = `cd ${current_directory} && git log --pretty=format:"%h" --graph`;
-    exec(checkGitRepo, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`${error}`);
-            BrowserWindow.getFocusedWindow().send("notification", error.message);
-            BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
-            return;
-        }
-        if (stderr) {
-            console.error(`${stderr}`);
-            BrowserWindow.getFocusedWindow().send("notification", stderr);
-            BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
-            return;
-        }
-
-        let list = stdout.split("\n");
-        let parse_list = new Array;
-        // stdout을 파싱
-        //console.log(stdout);
-        for(var i in list)
-            parse_list[i] = list[i].split(/ +/);
-        
-        gitCommitHistory(current_directory,parse_list);
-    });
-});
-
-const gitCommitHistory = (filePath,parse_list) => {
-    let bounds = win.getBounds();
-    
-    let x = bounds.x + parseInt((bounds.width - 800) / 2);
-    let y = bounds.y + parseInt((bounds.height - 600) / 2);
-
-    // DIALOG SETTINGS
-    let confirm = new BrowserWindow({
-        parent: window.getFocusedWindow(),
-        modal: true,
-        width: 800,
-        height: 600,
-        backgroundColor: "#2e2c29",
-        x: x,
-        y: y,
-        frame: true,
-        webPreferences: {
-            nodeIntegration: true, // is default value after Electron v5
-            contextIsolation: true, // protect against prototype pollution
-            enableRemoteModule: false, // turn off remote
-            nodeIntegrationInWorker: false,
-            preload: path.join(__dirname, "preload.js"),
-        },
-    });
-    // LOAD FILE
-    confirm.loadFile("src/git_history.html");
-
-    // SHOW DIALG
-    confirm.once("ready-to-show", () => {
-        let title = "Commit History";
-        confirm.title = title;
-        confirm.removeMenu();
-        drawGraph(parse_list);
-        confirm.send("git_commit_history", filePath);
-    });
-};
-
 const gitCommitDialog = (filePath) => {
     let bounds = win.getBounds();
 
@@ -3899,6 +3833,73 @@ ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+ipcMain.on("git_history", (e) => {
+    let checkGitRepo = `cd ${current_directory} && git log --pretty=format:"%h" --graph`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+
+        let list = stdout.split("\n");
+        let parse_list = new Array;
+
+        // stdout을 파싱
+        //console.log(stdout);
+        // for(var i in list)
+        //     parse_list[i] = list[i].split('');
+        console.log(list);
+        gitCommitHistory(current_directory,list);
+        
+    });
+});
+
+const gitCommitHistory = (filePath,list) => {
+    let bounds = win.getBounds();
+    
+    let x = bounds.x + parseInt((bounds.width - 800) / 2);
+    let y = bounds.y + parseInt((bounds.height - 600) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 800,
+        height: 600,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_history.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Commit History";
+        confirm.title = title;
+        confirm.removeMenu();
+        confirm.send("draw_git_history", filePath, list);
+    });
+};
 
 ipcMain.on("git_merge", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
