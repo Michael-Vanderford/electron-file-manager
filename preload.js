@@ -9712,11 +9712,39 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
     };
 });
 
-ipcRenderer.on("draw_git_history", (e, filePath) => {
-    let hTagCount=1
+ipcRenderer.on("draw_git_history", (e, filePath, list) => {
+    let pTagCount=1;
     let tagArea = document.getElementById('git_history_storage');
     
-    tagArea.innerHTML="test";
+    for(var i in list){
+        let new_pTag = document.createElement('p');
+        let new_spanTag = document.createElement('span');
+        let str = "";
+        let id_arr = new Array;
+        for(let j=0;j<list[i].length; j++){
+            switch(list[i][j]){
+                case '*':
+                    let id = "graph"+j;
+                    str+="<span id = "+id+">*</span>";
+                    id_arr.push(id);
+                    break;
+                case '|':
+                case '/':
+                case '_':
+                case '\\':
+                case ' ':str+=list[i][j];break;
+            }        
+        }        
+        new_pTag.innerHTML = str;
+        tagArea.appendChild(new_pTag);
+        pTagCount++;
+    }  
+    for(let i in id_arr){
+        let t = document.getElementById(id_arr[i]);
+                t.addEventListener('click',function(event){
+                    //function
+        });  
+    }
 });
 
 
