@@ -59,7 +59,7 @@ INCS_Debug := \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
-	"-I$(srcdir)/\"/home/michael/source/repos/string-file-manager/node_modules/node-addon-api\""
+	-I$(srcdir)/node_modules/nan
 
 DEFS_Release := \
 	'-DNODE_GYP_MODULE_NAME=hello' \
@@ -115,7 +115,7 @@ INCS_Release := \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
-	"-I$(srcdir)/\"/home/michael/source/repos/string-file-manager/node_modules/node-addon-api\""
+	-I$(srcdir)/node_modules/nan
 
 OBJS := \
 	$(obj).target/$(TARGET)/src/hello.o

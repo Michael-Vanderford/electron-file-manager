@@ -59,10 +59,6 @@ parentPort.on('message', data => {
     if (data.cmd === 'ls') {
         let dirents = gio.ls(data.source);
         parentPort.postMessage({cmd: 'ls_done', dirents: dirents});
-        // dirents.forEach(item => {
-        //     console.log(item.name, gio_utils.getDateTime(item.mtime))
-        // })
-        // console.log(dirents);
     }
 
     if (data.cmd === 'mv') {
@@ -105,7 +101,7 @@ parentPort.on('message', data => {
 
     // Copy File for Overwrite
     if (data.cmd === 'cp') {
-        if (gio.exists.destination) {
+        if (gio.exists(data.destination)) {
             gio.cp(data.source, data.destination, data.overwrite_flag)
         } else {
             gio.cp(data.source, data.destination, 0);
@@ -216,13 +212,35 @@ parentPort.on('message', data => {
             }
 
             let copy_item = copy_arr[idx];
+            let source = copy_item.source;
+            let destination = copy_item.destination;
             idx++
 
             gio_utils.get_file(copy_item.source, file => {
 
                 if (file.type === 'directory') {
 
-                    get_files_arr(copy_item.source, copy_item.destination, dirents => {
+                    let c = 0;
+                    while(gio.exists(destination)) {
+                        ++c;
+                        var pattern = /\((\d+)\)$/;
+                        var match = pattern.exec(destination);
+
+                        if (match) {
+                            let last_c = parseInt(match[1]);
+                            let next_c = last_c + 1;
+                            destination = destination.replace(pattern, `(${next_c})`);
+                        } else {
+                            destination = `${destination} (1)`
+                        }
+
+                        if (c > 10) {
+                            // Bail
+                            return;
+                        }
+                    }
+
+                    get_files_arr(copy_item.source, destination, dirents => {
                         let cpc = 0;
                         for (let i = 0; i < dirents.length; i++) {
                             let f = dirents[i]
@@ -247,7 +265,6 @@ parentPort.on('message', data => {
                             let f = dirents[i]
                             if (f.type == 'file') {
                                 cpc++
-
                                 if (gio.exists(f.destination)) {
                                     gio.cp(f.source, f.destination, copy_item.overwrite_flag)
                                 } else {
@@ -268,7 +285,7 @@ parentPort.on('message', data => {
                             console.log('done copying files');
                             data = {
                                 cmd: 'copy_done',
-                                destination: copy_item.destination
+                                destination: destination
                             }
                             parentPort.postMessage(data);
                             copy_next();
@@ -297,13 +314,11 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'monitor') {
-        try {
-            gio.monitor(function(device) {
-                console.log('connected');
-            })
-        } catch (err) {
-            console.log(err);
-        }
+
+        // gio.monitor(function(device) {
+        //     console.log('connected');
+        // })
+
     }
 
 })

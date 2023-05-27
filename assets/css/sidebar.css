@@ -34,7 +34,12 @@
         height:110%
     }
 
+    #minibar .bi {
+        padding: 5px;
+    }
+
     #minibar .item  {
+        cursor: pointer;
         padding-bottom: 5px;
     }
 

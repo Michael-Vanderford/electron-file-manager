@@ -9,8 +9,14 @@ parentPort.on('message', data => {
 
     // List Files
     if (data.cmd === 'ls') {
-        let dirents = gio.ls(data.source);
-        parentPort.postMessage({cmd: 'ls_done', dirents: dirents});
+        console.log('source', data.source)
+        try {
+            let dirents = gio.ls(data.source);
+            parentPort.postMessage({cmd: 'ls_done', dirents: dirents});
+        } catch (err) {
+            console.log(err)
+        }
+
     }
 
 })

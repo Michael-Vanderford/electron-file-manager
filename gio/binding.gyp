@@ -20,27 +20,25 @@
             'cflags': [
                 '<!@(<(pkg-config) --libs --cflags glib-2.0)',
             ],
+        "defines": [
+            "NAN_MODULE_WORKER_ENABLED"
+        ]
         }
     ]
 }
 
 # {
-#     'variables': {
+#   'variables': {
 #         'pkg-config': 'pkg-config'
 #     },
 #     "targets": [
 #         {
-#         "target_name": "hello",
-#         # "binary_name": "gio",
-#         "builddir": "hello",
-#         "sources": [ "src/hello.cc" ],
+#         "target_name": "node_gio",
+#         "builddir": "gio",
+#         "sources": [ "src/node_gio.cc" ],
 #         "include_dirs": [
-#                 "/usr/include/glib-2.0",
-#                 "<!(node -p \"require('node-addon-api').include\")"
-#                 # "<!(node -e \"require('nan')\")"
-#             ],
-#         "dependencies": [
-#                 "<!(node -p \"require('node-addon-api').gyp\")"
+#                 "/usr/include/glib-2.0"
+#                 # "<!(node -e \"require('napi')\")"
 #             ],
 #             "libraries": [
 #                 "-lgio-2.0",
@@ -50,6 +48,9 @@
 #             'cflags': [
 #                 '<!@(<(pkg-config) --libs --cflags glib-2.0)',
 #             ],
+#         "defines": [
+#             "NAN_MODULE_WORKER_ENABLED"
+#         ]
 #         }
 #     ]
 # }

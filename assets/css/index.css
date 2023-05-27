@@ -2,7 +2,8 @@ html, body {
     overflow: hidden;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11px;
-    margin: 0px;
+    margin: 0;
+    padding: 0;
     height: 100%;
 }
 
@@ -18,53 +19,75 @@ html, body {
         background: #252525;
         padding: 5px;
         width: 100%;
+        /* height: 16px; */
     }
+
+    #header_menu .item {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    #header_menu .settings {
+        position: relative;
+        height: 12px;
+    }
+
     #header_menu a {
         color: #ffffff;
         cursor: pointer;
         text-decoration: none;
+        outline: none;
     }
+
     #navigation_menu {
         display: flex;
         background: #252525;
         padding: 5px;
         width: 100%;
+        /* height: 16px; */
     }
+
     #navigation_menu input[type=text] {
         border-radius: 5px;
         border: none;
         color: #cfcfcf;
-        background: #424242;
+        background: var(--lessdark);
         font-size: 12px;
         height: 18px;
-        width: 450px;
+        width: 98%;
     }
+
     #navigation_menu .item {
         padding: 5px;
     }
+
     #navigation_menu .item a {
         padding: 5px;
         color: #cfcfcf;
     }
 
     .container {
+        position: relative;
         display: flex;
         width: 100%;
-        height: 100%;
+        height: 92%;
     }
 
     #main {
+        position: absolute;
         overflow: auto;
+        overflow-x: hidden;
+        /* border: 1px solid red; */
         background: #2f2f2f;
+        border-radius: 5px;
         padding: 10px;
         width: 100%;
-        height: 100%;
+        /* height: 100%; */
     }
 
     #msg {
         color: #cfcfcf;
         background-color: var(--dark);
-         /* rgb(0 0 0 / 0.8); */
         border-radius: 5px;
         padding: 10px;
         z-index: 100;
@@ -76,6 +99,7 @@ html, body {
         border-radius: 5px;
         padding: 5px;
         width: 350px;
+        z-index: 100;
     }
 
     #progress_bar {
@@ -84,6 +108,23 @@ html, body {
 
     #progress_msg {
         color: #cfcfcf;
+    }
+
+    #quicksearch {
+        border-radius: 5px;
+        border: 1px solid var(--moredark);
+        background: var(--dark);
+        padding: 5px;
+        height: 14px;
+        width: 350px;
+        z-index: 100;
+        outline: none;
+    }
+
+    #txt_quicksearch {
+        border-radius: 5px;
+        width: 100%;
+        font-size: 12px;
     }
 
     /* Dialogs */
@@ -143,12 +184,11 @@ progress::-webkit-progress-bar {
 }
 .file_grid {
     padding: 5px;
-    padding-bottom: 50px;
     width: 100%;
 }
 
 .item {
-    padding-right: 20px;
+    /* padding-right: 20px; */
 }
 
 .card {
@@ -160,21 +200,53 @@ progress::-webkit-progress-bar {
     border:none;
     background: transparent;
     color: #cfcfcf;
+    opacity: 0;
+    transition: opacity 0.5s;
+
 }
 
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
-    width: 42px;
+    width: 48px;
 }
+
+/* Handle Icon Scaling */
+.icon16 {
+    height: 16px !important;
+    width: 16px !important;
+}
+.icon24 {
+    height: 24px !important;
+    width: 24px !important;
+}
+.icon32 {
+    height: 32px !important;
+    width: 32px !important;
+}
+
+.icon48 {
+    height: 48px !important;
+    width: 48px !important;
+}
+.icon64 {
+    height: 64px !important;
+    width: 64px !important;
+}
+
+/* .lazy {
+    border: 1px solid var(--orange);
+} */
+
 .svg {
     background:rgba(250, 250, 250, .9);
     filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
 }
 .card .content{
-    padding: 2px;
+    padding: 1px;
     margin-left: 10px;
-    line-height: 16px;
+    width: 100%;
+    /* line-height: 14px; */
 }
 
 .card:hover {
@@ -195,6 +267,13 @@ progress::-webkit-progress-bar {
 .card .content .date {
     word-break: none;
 }
+.card .content .type {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 10px;
+    /* max-width: 100px; */
+}
 
 .list {
     display: flex;
@@ -212,9 +291,11 @@ progress::-webkit-progress-bar {
 
 .input {
     position: relative;
-    border-radius: 5px;;
-    font-size: 10px;
-
+    border: none;
+    border-radius: 5px;
+    font-size: 11px;
+    width: 100%;
+    padding: 2px;
 }
 
 input[type=text]:focus {
@@ -251,6 +332,7 @@ input[type=text]:focus {
 
 .active {
     border-radius: 5px;
+    /* width: 100%; */
     background: var(--lessdark)
 }
 
@@ -264,13 +346,38 @@ input[type=text]:focus {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .grid1 {
     display: grid;
     grid-template-columns: repeat(1, 1fr);
     grid-template-rows: auto;
+}
+
+.grid1 .header {
+    /* min-width: 400px; */
+}
+
+.grid1 .date {
+    text-align: right;
+}
+
+.grid1 .size {
+    text-align: right;
+}
+
+.grid1 .type {
+    text-align: right;
+}
+
+.grid1 .count {
+    text-align: right;
+}
+
+.grid1 .input {
+    /* min-width: 400px; */
+    /* width: 100%; */
 }
 
 .grid5 {
@@ -286,7 +393,7 @@ input[type=text]:focus {
 }
 
 .bi {
-    padding: 10px;
+    padding-right: 10px;
 }
 
 .bottom {
@@ -301,7 +408,8 @@ input[type=text]:focus {
     right: auto;
 }
 .right  {
-    left: auto;
+    margin-left: auto;
+    /* margin-right: 25px; */
     right: 25px;
 }
 
@@ -334,6 +442,19 @@ input[type=text]:focus {
 .context-menu-icon {
     width: 8px;
     height: 8px;
+}
+
+/* Style for the tooltip */
+.tooltip {
+    border: 1px solid var(--grey);
+    border-radius: 5px;
+    line-height: 18px;
+    padding: 10px;
+    width: 200px;
+    background: rgba(0, 0, 0, .8);
+    position: fixed;
+    display: block;
+    z-index: 100;
 }
 
 /* Mobile */

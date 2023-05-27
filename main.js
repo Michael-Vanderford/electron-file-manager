@@ -10,13 +10,12 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 const Store = require('electron-store');
 const gio_utils = require('./utils/gio');
-
-
+const gio = require('./gio/build/Release/gio')
 
 // Bootstrap Init
 const store = new Store();
-const worker = new Worker('./worker.js', );
-// const ls = new Worker('./ls.js', );
+const worker = new Worker('./worker.js');
+const ls = new Worker('./ls.js');
 const home = app.getPath('home');
 
 let win;
@@ -47,18 +46,18 @@ ipcMain.on('active_window', (e) => {
 
 // Worker Threads ///////////////////////////////////////////
 
-// ls.on('message', (data) => {
-//     if (data.cmd === 'ls_done') {
-//         win.send('ls', data.dirents);
-//     }
-// })
+ls.on('message', (data) => {
+    if (data.cmd === 'ls_done') {
+        win.send('ls', data.dirents);
+    }
+})
 
 let progress_counter = 0;
 worker.on('message', (data) => {
 
-    if (data.cmd === 'ls_done') {
-        win.send('ls', data.dirents);
-    }
+    // if (data.cmd === 'ls_done') {
+    //     win.send('ls', data.dirents);
+    // }
 
     if (data.cmd === 'confirm_overwrite') {
         confirmOverwrite(data.source, data.destination);
@@ -82,9 +81,8 @@ worker.on('message', (data) => {
     if (data.cmd === 'copy_done') {
 
         if (is_main) {
-            gio_utils.get_file(data.destination, file => {
-                win.send('get_card', file);
-            })
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             let href = path.dirname(data.destination)
             gio_utils.get_file(href, file => {
@@ -122,6 +120,50 @@ worker.on('message', (data) => {
 
 // Functions //////////////////////////////////////////////
 
+function new_folder(destination) {
+    gio.mkdir(destination);
+    win.send('new_folder', gio.get_file(destination));
+}
+
+function watch_for_theme_change() {
+    let watch_dir = path.join(path.dirname(app.getPath('userData')), 'dconf')
+    // watch_dirs.forEach(watch_dir => {
+    if (gio.exists(watch_dir)) {
+        let file = gio.get_file(watch_dir)
+        let fsTimeout
+        fs.watchFile(watch_dir, (e) => {
+            let file0 = gio.get_file(watch_dir)
+            if (file0.mtime > file.mtime) {
+                console.log('theme changed')
+                // win.send('theme_changed')
+                win.webContents.reloadIgnoringCache();
+                fsTimeout = setTimeout(function() {
+                    fsTimeout = null
+                }, 5000)
+            }
+        })
+    } else {
+        console.log('error getting gnome settings directory')
+    }
+
+}
+
+
+function getFileSize(fileSizeInBytes) {
+    var i = -1;
+    var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+    do {
+        fileSizeInBytes = fileSizeInBytes / 1024;
+        i++;
+    } while (fileSizeInBytes > 1024);
+    return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
+};
+
+function get_properties (href, callback) {
+    let properties = gio.get_file(href)
+    win.send('properties', properties);
+}
+
 let file_arr = [];
 let cp_recursive = 0;
 function get_files_arr (source, destination, callback) {
@@ -152,7 +194,15 @@ function get_files_arr (source, destination, callback) {
 function get_files(source, callback) {
 
     // get files from gio module
-    worker.postMessage({cmd: 'ls', source: source});
+    let exists = gio.exists(source);
+    if (exists) {
+        let file = gio.get_file(source);
+        if (file.is_dir) {
+            ls.postMessage({cmd: 'ls', source: source});
+        }
+    } else {
+        win.send('msg', 'Error: Directory does not exist!');
+    }
     // gio_utils.get_dir(source, dirents => {
     //     return callback(dirents);
     // })
@@ -173,8 +223,13 @@ function copyOverwrite (copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
-// Confirm Overwrite
+ipcMain.on('get_card_gio', (e, destination) => {
+    win.send('get_card_gio', gio.get_file(destination));
+})
 
+ipcMain.handle('get_subfolders', (e, source) => {
+    return gio.ls(source)
+})
 
 ipcMain.handle('settings', (e) => {
     let settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
@@ -202,7 +257,7 @@ ipcMain.on('ondragstart', (e, filePath) => {
 ipcMain.handle('get_devices', async (e) => {
     return new Promise((resolve, reject) => {
         gio_utils.get_devices(device_arr => {
-            console.log(device_arr);
+            // console.log(device_arr);
             resolve(device_arr);
         });
     });
@@ -370,6 +425,7 @@ function createWindow() {
 
     win.once('ready-to-show', () => {
         win.show();
+        // watch_for_theme_change();
     });
 
     win.on('closed', () => {
@@ -395,8 +451,15 @@ function createWindow() {
 
 };
 
+process.on('uncaughtException', (error) => {
+    win.send('msg', error.message);
+})
+
 // Define the app events
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+    createWindow();
+});
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
@@ -413,6 +476,9 @@ ipcMain.on('get_files', (e, source) => {
     get_files(source, dirents => {
         win.send('get_files', dirents);
     })
+
+    let du = gio.du(source);
+    console.log('disk usage', getFileSize(Math.abs(du)));
 
 })
 
@@ -500,14 +566,150 @@ function confirmOverwrite(source_file, destination_file, copy_overwrite_arr) {
     })
 }
 
+// // Confirm Overwrite
+// function confirm(source_file, destination_file, copy_overwrite_arr) {
+
+//     let source = source_file.href;
+//     let destination = destination_file.href;
+
+//     let source_date = source_file["time::modified"];
+//     let destination_date = destination_file["time::modified"];
+
+//     // console.log(source, destination)
+
+//     let is_newer = 0;
+//     if (destination_date > source_date) {
+//         is_newer = 1;
+//     } else if (destination_date < source_date) {
+//         is_newer = 0;
+//     } else if (destination_date == source_date) {
+//         is_newer = 2;
+//         // copy_overwrite_arr.splice(0, 1);
+//         // overWriteNext(copy_overwrite_arr);
+//         // return;
+//     }
+
+//     let is_dir = 0;
+//     if (source_file.type == 'directory') {
+//         is_dir = 1;
+//     } else {
+//         is_dir = 0;
+//     }
+
+//     let title = ''
+//     let msg = ''
+//     let buttons = []
+
+//     if (is_dir) {
+
+//         title = `Folder Conflict "${path.basename(source)}"`
+//         msg = `Merge Folder "${path.basename(source)}"\n`
+
+//         if (is_newer) {
+//             msg = msg + `A newer folder with the same name already exists.\n`
+//         } else {
+//             msg = msg + `A older folder with the same name already exists.\n`
+//         }
+
+//         msg = msg + `Merging will ask for confirmation before replacing any files in te folder that confilict with the files being copied.\n`
+
+//         msg = msg + `\nOriginal Folder\n`
+//         buttons = ['Cancel', 'Merge', 'Skip'];
+
+//     } else {
+
+//         title = `File Confict "${path.basename(source)}"`
+//         msg = msg +  `Replace File "${path.basename(source)}"\n`
+
+//         if (is_newer == 1) {
+//             msg = msg + `A newer file with the same name already exists. `
+//         } else if (is_newer == 0) {
+//             msg = msg + `An older file with the same name already exists. `
+//         } else if (is_newer == 2) {
+//             msg = msg + `An file with the same name already exists. `
+//         }
+
+//         msg = msg + `Replacing it will overwrite its content\n`
+
+//         msg = msg + `\nOriginal File\n`
+//         buttons = ['Cancel', 'Replace', 'Skip'];
+//     }
+
+//     msg = msg + `Last Modified: ${gio_utils.getDateTime(destination_date)}\n\n`
+
+//     if (is_dir) {
+//         msg = msg + `Merge With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
+//     } else {
+//         msg = msg + `Replace With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
+//     }
+
+//     dialog.showMessageBox(win, {
+
+//         type: 'warning',
+//         title: title, //`Merge Folder "${path.basename(source)}"`,
+//         message: msg,
+//         buttons: buttons, //['Cancel', 'Merge', 'Skip'],
+//         checkboxLabel: 'Apply this action to all files and folders',
+
+//     }).then((response) => {
+//         let overwrite_all = response.checkboxChecked;
+//         switch (response.response) {
+//             case 0: {
+//                 // Cancel
+//                 break;
+//             }
+//             case 1: {
+//                 // Merge / Replace
+//                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+//                 copy_arr[0].overwrite_flag = 1;
+
+//                 console.log(`Overwrite Confirmed ${source} with ${destination}`);
+
+//                 if (!is_dir) {
+//                     worker.postMessage({cmd: 'paste', copy_arr: copy_arr});
+//                 }
+//                 copy_overwrite_arr.splice(0, 1);
+
+//                 if (overwrite_all) {
+//                     overWriteNext(copy_overwrite_arr, 1);
+//                 } else {
+//                     overWriteNext(copy_overwrite_arr);
+//                 }
+
+//                 break;
+//             }
+//             case 2: {
+//                 // Skip
+//                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+//                 copy_arr[0].overwrite_flag = 1;
+
+//                 console.log(`Overwrite Skipped ${source} with ${destination}`);
+
+//                 copy_overwrite_arr.splice(0, 1);
+//                 overWriteNext(copy_overwrite_arr);
+
+//                 break;
+//             }
+//             default:
+//                 // Cancel
+//                 break;
+
+//           }
+
+//     }).catch((error) => {
+//         console.error(error);
+//     });
+
+// }
+
 // Confirm Overwrite
 function confirm(source_file, destination_file, copy_overwrite_arr) {
 
     let source = source_file.href;
     let destination = destination_file.href;
 
-    let source_date = source_file["time::modified"];
-    let destination_date = destination_file["time::modified"];
+    let source_date = source_file.mtime;
+    let destination_date = destination_file.mtime;
 
     // console.log(source, destination)
 
@@ -524,7 +726,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     }
 
     let is_dir = 0;
-    if (source_file.type == 'directory') {
+    if (source_file.is_dir) {
         is_dir = 1;
     } else {
         is_dir = 0;
@@ -537,7 +739,6 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     if (is_dir) {
 
         title = `Folder Conflict "${path.basename(source)}"`
-
         msg = `Merge Folder "${path.basename(source)}"\n`
 
         if (is_newer) {
@@ -554,7 +755,6 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     } else {
 
         title = `File Confict "${path.basename(source)}"`
-
         msg = msg +  `Replace File "${path.basename(source)}"\n`
 
         if (is_newer == 1) {
@@ -562,7 +762,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
         } else if (is_newer == 0) {
             msg = msg + `An older file with the same name already exists. `
         } else if (is_newer == 2) {
-            msg = msg + `An file with the same name already exists. `
+            msg = msg + `A file with the same name already exists. `
         }
 
         msg = msg + `Replacing it will overwrite its content\n`
@@ -588,24 +788,41 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
         checkboxLabel: 'Apply this action to all files and folders',
 
     }).then((response) => {
-        const overwrite_all = response.checkboxChecked;
+        let overwrite_all = response.checkboxChecked;
         switch (response.response) {
             case 0: {
                 // Cancel
                 break;
             }
             case 1: {
+
                 // Merge / Replace
-                let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
-                copy_arr[0].overwrite_flag = 1;
+                // let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+                // console.log(`Overwrite Confirmed ${source} with ${destination}`);
 
-                console.log(`Overwrite Confirmed ${source} with ${destination}`);
+                // if (!is_dir) {
+                    // worker.postMessage({cmd: 'paste', copy_arr: copy_arr, overwrite_flag: 1});
+                    // worker.postMessage({cmd: 'cp', })
+                // }
 
-                if (!is_dir) {
-                    worker.postMessage({cmd: 'paste', copy_arr: copy_arr});
-                }
                 copy_overwrite_arr.splice(0, 1);
-                overWriteNext(copy_overwrite_arr);
+
+                // first file
+                if (!gio.exists(destination)) {
+                    if (is_dir) {
+                        console.log(`getting directory ${destination}`)
+                        gio.mkdir(destination)
+                    } else {
+                        console.log(`copying file ${source} ${destination}`)
+                        gio.cp(source, destination);
+                    }
+                }
+
+                if (overwrite_all) {
+                    overWriteNext(copy_overwrite_arr, 1);
+                } else {
+                    overWriteNext(copy_overwrite_arr);
+                }
 
                 break;
             }
@@ -634,19 +851,121 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
 }
 
 // Handle Processing each OverWrite Dialog
-function overWriteNext(copy_overwrite_arr) {
+function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
 
     copy_overwrite_arr.every((item, idx) => {
-        gio_utils.get_file(item.source, source_file => {
-            gio_utils.get_file(item.destination, destination_file => {
-                // Show Overwrite Dialog
-                // confirmOverwrite(source_file, destination_file, copy_overwrite_arr);
-                confirm(source_file, destination_file, copy_overwrite_arr);
 
-                return false;
-            })
-        })
+        let source_file = gio.get_file(item.source);
+        let destination_file = gio.get_file(item.destination);
+
+        if (overwrite_all) {
+            return false;
+        } else {
+            // confirm(source_file, destination_file, copy_overwrite_arr);
+            return false;
+        }
+
+        // if (overwrite_all) {
+        //     if (item.type === 'directory') {
+        //         // confirm(gio.get_file(item.source), gio.get_file(item.destination), copy_overwrite_arr);
+        //         if (!gio.exists(item.destination)) {
+        //             worker.postMessage({cmd: 'mkdir', destination: item.destination});
+        //         }
+        //         return true;
+        //     } else {
+        //         if (gio.exists(item.destination)) {
+        //             worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination});
+        //         } else {
+        //             worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination});
+        //         }
+        //         console.log(copy_overwrite_arr.length);
+        //         return true
+        //     }
+        // } else {
+        //     if (item.type === 'directory') {
+
+        //         let source_file = gio.get_file(item.source);
+        //         let destination_file = gio.get_file(item.destination);
+
+        //         if (gio.exists(item.destination)) {
+        //             confirm(source_file, destination_file, copy_overwrite_arr);
+        //         } else {
+        //             worker.postMessage({cmd: 'mkdir', destination: item.destination});
+        //         }
+        //         return false;
+        //     } else {
+        //         if (gio.exists(item.destination)) {
+
+        //             let source_file = gio.get_file(item.source);
+        //             let destination_file = gio.get_file(item.destination);
+
+        //             console.log('source', item.source, 'destination', item.destination)
+
+        //             if (source_file && destination_file) {
+        //                 confirm(source_file, destination_file, copy_overwrite_arr);
+        //             }
+        //             return false;
+        //         } else {
+        //             gio.cp(item.sourcem, item,destination);
+        //             // worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination});
+        //         }
+        //         copy_overwrite_arr.splice(0, idx);
+        //         console.log(copy_overwrite_arr.length);
+        //         return true
+        //     }
+        // }
+
     })
+
+    // copy_overwrite_arr.every((item) => {
+    //     gio_utils.get_file(item.source, source_file => {
+    //         if (!gio.exists(item.destination)) {
+
+    //             console.log('destination does not exist');
+    //             worker.postMessage({cmd: 'paste', copy_arr: copy_overwrite_arr, overwrite_flag: 0});
+    //             return false
+
+    //         } else {
+    //             gio_utils.get_file(item.destination, destination_file => {
+
+    //                 if (overwrite_all) {
+
+    //                     copy_overwrite_arr.every((item, idx) => {
+
+    //                         if (item.type === 'directory') {
+
+    //                             confirm(source_file, destination_file, copy_overwrite_arr);
+    //                             return false;
+    //                             // gio_utils.get_file(item.source, source_file1 => {
+    //                             //     gio_utils.get_file(item.destination, destination_file1 => {
+    //                             //         confirm(source_file1, destination_file1, copy_overwrite_arr);
+    //                             //         // copy_overwrite_arr.splice(0, idx);
+    //                             //         return false;
+    //                             //     })
+    //                             // })
+    //                         } else {
+    //                             if (gio.exists(destination_file.href)) {
+    //                                 worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination, overwrite_flag: 1});
+    //                             } else {
+    //                                 worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination, overwrite_flag: 0});
+    //                             }
+    //                             copy_overwrite_arr.splice(0, idx);
+    //                             return true;
+    //                         }
+    //                     })
+
+
+    //                 } else {
+    //                     // Show Overwrite Dialog
+    //                     confirm(source_file, destination_file, copy_overwrite_arr);
+    //                     return false;
+    //                 }
+
+    //             })
+    //         }
+    //     })
+
+    // })
 }
 
 // Call Confirm Overwrite function
@@ -713,7 +1032,7 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 
         parent: window.getFocusedWindow(),
         modal:true,
-        width: 550,
+        width: 500,
         height: 300,
         backgroundColor: '#2e2c29',
         x: x,
@@ -782,13 +1101,13 @@ function get_launchers(file) {
 
     let launchers = []
     try {
-        let filetype = file["standard::content-type"];
+        let filetype = file.content_type;
         let cmd = `grep "${filetype}" /usr/share/applications/mimeinfo.cache`
         let desktop_launchers = execSync(cmd).toString().replace(filetype + '=', '').split(';')
         if (desktop_launchers.length > 0) {
             for (let i = 0; i < desktop_launchers.length; i++) {
                 let filepath = path.join('/usr/share/applications', desktop_launchers[i])
-                console.log(filepath)
+                // console.log(filepath)
                 if (file.type !== 'directory') {
 
                     // GET DESKTOP LAUNCHER EXECUTE PATH
@@ -836,17 +1155,15 @@ function get_launchers(file) {
 
     } catch (err) {
 
-        console.log(err)
-
-        let options = {
-            name: 'Code', //exec_name[0].replace('Name=', ''),
-            icon: '',
-            exec: '/usr/bin/code "' + file.href + '"',
-            desktop: '', //desktop_launchers[i],
-            mimetype: 'application/text'
-        }
-
-        launchers.push(options)
+        // console.log(err)
+        // let options = {
+        //     name: 'Code', //exec_name[0].replace('Name=', ''),
+        //     icon: '',
+        //     exec: '/usr/bin/code "' + file.href + '"',
+        //     desktop: '', //desktop_launchers[i],
+        //     mimetype: 'application/text'
+        // }
+        // launchers.push(options)
     }
 
     return launchers
@@ -855,13 +1172,10 @@ function get_launchers(file) {
 // Lanucher Menu
 let launcher_menu
 function add_launcher_menu(menu, e, file) {
-
     launchers = get_launchers(file);
-    console.log(file.href, launchers)
     launcher_menu = menu.getMenuItemById('launchers')
     try {
         for(let i = 0; i < launchers.length; i++) {
-            console.log('launchers', launchers[i])
             launcher_menu.submenu.append(new MenuItem({
                 label: launchers[i].name,
                 click: () => {
@@ -870,7 +1184,7 @@ function add_launcher_menu(menu, e, file) {
                     // Set Default Application
                     execSync(`xdg-mime default ${launchers[i].desktop} ${launchers[i].mimetype}`);
                     shell.openPath(file.href);
-
+                    win.send('clear');
                 }
             }))
         }
@@ -920,7 +1234,9 @@ ipcMain.on('main_menu', (e, destination) => {
         label: 'New Folder',
         accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
         click: () => {
-            win.send('context-menu-command', 'mkdir')
+            let folder = path.format({dir: destination, base: 'New Folder'})
+            new_folder(path.format({dir: destination, base: 'New Folder'}))
+            // win.send('context-menu-command', 'mkdir')
         }
     },
     {
@@ -997,8 +1313,10 @@ ipcMain.on('main_menu', (e, destination) => {
     {
         label: 'Show Hidden',
         type: 'checkbox',
-        click: () => {
-            e.sender.send('context-menu-command', 'show_hidden')
+        checked: false,
+        click: (e) => {
+            // e.sender.send('context-menu-command', 'show_hidden')
+            win.send('toggle_hidden');
         }
     },
     ]
@@ -1147,7 +1465,7 @@ ipcMain.on('folder_menu', (e, href) => {
                     {
                         label: 'tar.gz',
                         click: () => {
-                            e.sender.send('context-menu-command', 'compress_folder')
+                            e.sender.send('context-menu-command', 'compress')
                         }
                     },
                     // {
@@ -1222,10 +1540,6 @@ ipcMain.on('file_menu', (e, file) => {
         {
             id: 'launchers',
             label: 'Open with',
-            // click: () => {
-            //     // e.sender.send('open_with_application')
-            //     win.send('')
-            // },
             submenu: []
         },
         {
@@ -1320,7 +1634,7 @@ ipcMain.on('file_menu', (e, file) => {
                     {
                         label: 'tar.gz',
                         click: () => {
-                            e.sender.send('context-menu-command', 'compress_folder')
+                            e.sender.send('context-menu-command', 'compress')
                         }
                     },
                     // {
@@ -1360,8 +1674,9 @@ ipcMain.on('file_menu', (e, file) => {
             label: 'Properties',
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click:()=>{
+                get_properties(file.href);
                 // createPropertiesWindow()
-                e.sender.send('context-menu-command', 'props')
+                // e.sender.send('context-menu-command', 'props')
             }
         },
     ]

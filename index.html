@@ -19,6 +19,7 @@
   </style>
 </head>
 <body>
+
     <div id="header_menu">
         <div class="item"><a href="#" class="home"><i class="bi bi-house"></i> Home</a></div>
         <div class="item"><a href="#" class="documents"><i class="bi bi-folder"></i> Documents</a></div>
@@ -26,9 +27,12 @@
         <div class="item"><a href="#" class="music"><i class="bi bi-image"></i> Music</a></div>
         <div class="item"><a href="#" class="pictures"><i class="bi bi-image"></i> Pictures</a></div>
         <div class="item"><a href="#" class="videos"><i class="bi bi-image"></i> Videos</a></div>
-        <div class="item"><a href="#" class="grid_view"><i class="bi bi-grid"></i> </a></div>
-        <div class="item"><a href="#" class="list_view"><i class="bi bi-list"></i> </a></div>
-
+        <div class="item grid_view"><a href="#" class=""><i class="bi bi-grid"></i> </a></div>
+        <div class="item list_view"><a href="#" class=""><i class="bi bi-list"></i> </a></div>
+        <div class="item show_hidden"><a href="#" class="" title="Show hidden Files"><i class="bi bi-eye"></i> </a></div>
+        <div class="item right settings">
+            <input class="slider" type="range" id="icon_size_selector" value="1" min="0" max="4" step="0" title="Adjust icon size"></ipnut>
+        </div>
     </div>
     <div id="navigation_menu">
         <div class="item" id="left"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
@@ -36,11 +40,12 @@
         <div class="input">
             <input type="text" spellcheck="false" id="location" />
         </div>
+
     </div>
 
     <div class="container">
 
-
+        <div id="loader"></div>
 
         <div id="minibar" class="">
 
@@ -71,9 +76,7 @@
         </div>
 
         <div id="sidebar" class="sidebar sidebar-left">
-            <div id="home"></div>
-            <div id="workspace"></div>
-            <div id="devices"></div>
+
         </div>
 
         <div id="draghandle" class="draghandle"></div>
@@ -81,13 +84,19 @@
         <div id="main">
 
             <div id="folder_grid"></div>
+            <div id="hidden_folder_grid" class="hidden"></div>
+
             <div id="file_grid"></div>
+            <div id="hidden_file_grid" class="hidden"></div>
 
             <div id="progress" class="bottom left hidden">
                 <div id="progress_msg"></div>
                 <progress id="progress_bar"></progress>
             </div>
             <div id="msg" class="bottom hidden"></div>
+            <div id="quicksearch" class="bottom right hidden">
+                <input type="text" id="txt_quicksearch" />
+            </div>
 
         </div>
 
