@@ -28,6 +28,8 @@ let settings = {};
 try {
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 } catch (err) {
+    fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
+    settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
     // File does not exist or is invalid
 }
 
