@@ -1441,13 +1441,13 @@ ipcMain.on('folder_menu', (e, href) => {
                 e.sender.send('context-menu-command', 'copy')
             }
         },
-        {
-            label: 'Paste',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
-            click: () => {
-                e.sender.send('context-menu-command', 'paste')
-            }
-        },
+        // {
+        //     label: 'Paste',
+        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+        //     click: () => {
+        //         e.sender.send('context-menu-command', 'paste')
+        //     }
+        // },
         {
             label: '&Rename',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
