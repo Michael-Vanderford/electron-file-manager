@@ -9733,24 +9733,6 @@ ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     };
 });
 
-ipcRenderer.on("git_merge_success", (e) => {
-    const btn_git_merge_success_cancel = document.getElementById(
-        "btn_git_merge_success_cancel"
-    );
-    btn_git_merge_success_cancel.onclick = (e) => {
-        ipcRenderer.send("git_rename_canceled");
-    };
-});
-
-ipcRenderer.on("git_merge_fail", (e) => {
-    const btn_git_merge_fail_cancel = document.getElementById(
-        "btn_git_merge_fail_cancel"
-    );
-    btn_git_merge_fail_cancel.onclick = (e) => {
-        ipcRenderer.send("git_rename_canceled");
-    };
-});
-
 ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
     let btn_git_branch_create_confirm = document.getElementById(
         "btn_git_branch_create_confirm"
@@ -9758,11 +9740,17 @@ ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
     let btn_git_branch_create_cancel = document.getElementById(
         "btn_git_branch_create_cancel"
     );
-    let git_branch_name_input = document.getElementById("git_branch_name_input");
+    let git_branch_name_input = document.getElementById(
+        "git_branch_name_input"
+    );
 
     btn_git_branch_create_confirm.onclick = (e) => {
         let name_input_str = git_branch_name_input.value;
-        ipcRenderer.send("git_branch_create_confirmed", filePath, name_input_str);
+        ipcRenderer.send(
+            "git_branch_create_confirmed",
+            filePath,
+            name_input_str
+        );
     };
 
     btn_git_branch_create_cancel.onclick = (e) => {
@@ -9787,7 +9775,8 @@ ipcRenderer.on("confirm_git_branch_delete", (e, filePath, branchList) => {
 
     btn_git_branch_delete_confirm.onclick = (e) => {
         const selectedIndex = selectBox.selectedIndex;
-        if (selectedIndex === -1) ipcRenderer.send("git_branch_delete_canceled");
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_delete_canceled");
         const targetBranch = selectBox.options[selectedIndex].text;
         ipcRenderer.send("git_branch_delete_confirmed", filePath, targetBranch);
     };
@@ -9812,16 +9801,24 @@ ipcRenderer.on("confirm_git_branch_rename", (e, filePath, branchList) => {
         selectBox.add(option);
     });
 
-    let git_branch_name_input = document.getElementById("git_branch_name_input");
+    let git_branch_name_input = document.getElementById(
+        "git_branch_name_input"
+    );
 
     btn_git_branch_rename_confirm.onclick = (e) => {
         let name_input_str = git_branch_name_input.value;
         if (name_input_str === "") return;
 
         const selectedIndex = selectBox.selectedIndex;
-        if (selectedIndex === -1) ipcRenderer.send("git_branch_rename_canceled");
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_rename_canceled");
         const targetBranch = selectBox.options[selectedIndex].text;
-        ipcRenderer.send("git_branch_rename_confirmed", filePath, targetBranch, name_input_str);
+        ipcRenderer.send(
+            "git_branch_rename_confirmed",
+            filePath,
+            targetBranch,
+            name_input_str
+        );
     };
 
     btn_git_branch_rename_cancel.onclick = (e) => {
@@ -9846,9 +9843,14 @@ ipcRenderer.on("confirm_git_branch_checkout", (e, filePath, branchList) => {
 
     btn_git_branch_checkout_confirm.onclick = (e) => {
         const selectedIndex = selectBox.selectedIndex;
-        if (selectedIndex === -1) ipcRenderer.send("git_branch_checkout_canceled");
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_checkout_canceled");
         const targetBranch = selectBox.options[selectedIndex].text;
-        ipcRenderer.send("git_branch_checkout_confirmed", filePath, targetBranch);
+        ipcRenderer.send(
+            "git_branch_checkout_confirmed",
+            filePath,
+            targetBranch
+        );
     };
 
     btn_git_branch_checkout_cancel.onclick = (e) => {
