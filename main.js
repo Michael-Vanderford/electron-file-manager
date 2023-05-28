@@ -3991,7 +3991,7 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
         }
         BrowserWindow.getFocusedWindow().send(
             "notification",
-            `branch ${targetBranch} witb Merge Success`
+            `Merge branch ${targetBranch} Success`
         );
         BrowserWindow.getFocusedWindow().send("refresh");
     });
