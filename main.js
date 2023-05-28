@@ -3950,7 +3950,7 @@ const gitMergeDialog = (filePath) => {
 const getBranchData = (filePath) => {
     return new Promise((resolve, reject) => {
         filePath = filePath.replaceAll(" ", "\\ ");
-        let cmd = `cd ${filePath} && git branch -a`;
+        let cmd = `cd ${filePath} && git branch`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 reject(error.message);
