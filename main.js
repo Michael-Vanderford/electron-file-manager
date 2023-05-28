@@ -4001,7 +4001,7 @@ const getGitBranchList = (filePath) => {
     console.log(filePath);
     return new Promise((resolve) => {
         let filePathDir = filePath.replaceAll(" ", "\\ ");
-        let cmd = `cd ${filePathDir} && git branch -a`;
+        let cmd = `cd ${filePathDir} && git branch`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 console.log(`Error: ${error.message}`);
