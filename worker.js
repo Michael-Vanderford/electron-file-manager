@@ -3,29 +3,53 @@ const path          = require('path');
 const gio_utils     = require('./utils/gio');
 const gio           = require('./gio/build/Release/obj.target/gio')
 
+// let file_arr = [];
+// let cp_recursive = 0;
+// function get_files_arr (source, destination, callback) {
+//     cp_recursive++
+//     file_arr.push({type: 'directory', source: source, destination: destination})
+//     gio_utils.get_dir(source, dirents => {
+//         for (let i = 0; i < dirents.length; i++) {
+//             let file = dirents[i]
+//             parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
+//             if (file.type == 'directory') {
+//                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
+//             } else {
+//                 file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
+//             }
+//         }
+//         if (--cp_recursive == 0) {
+//             parentPort.postMessage({cmd: 'msg', msg: ``})
+
+//             let file_arr1 = file_arr;
+//             file_arr = []
+//             return callback(file_arr1);
+//         }
+//     })
+// }
+
 let file_arr = [];
 let cp_recursive = 0;
 function get_files_arr (source, destination, callback) {
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
-    gio_utils.get_dir(source, dirents => {
-        for (let i = 0; i < dirents.length; i++) {
-            let file = dirents[i]
-            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-            if (file.type == 'directory') {
-                get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
-            } else {
-                file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
-            }
+    let dirents = gio.ls(source)
+    for (let i = 0; i < dirents.length; i++) {
+        let file = dirents[i]
+        parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
+        if (file.is_dir) {
+            get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
+        } else {
+            file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
         }
-        if (--cp_recursive == 0) {
-            parentPort.postMessage({cmd: 'msg', msg: ``})
+    }
+    if (--cp_recursive == 0) {
+        parentPort.postMessage({cmd: 'msg', msg: ``})
 
-            let file_arr1 = file_arr;
-            file_arr = []
-            return callback(file_arr1);
-        }
-    })
+        let file_arr1 = file_arr;
+        file_arr = []
+        return callback(file_arr1);
+    }
 }
 
 // Handle Worker Messages
@@ -58,7 +82,7 @@ parentPort.on('message', data => {
 
     if (data.cmd === 'ls') {
         let dirents = gio.ls(data.source);
-        parentPort.postMessage({cmd: 'ls_done', dirents: dirents});
+        parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source});
     }
 
     if (data.cmd === 'mv') {
@@ -140,7 +164,7 @@ parentPort.on('message', data => {
                                 gio.rm(f.source)
                                 data = {
                                     cmd: 'progress',
-                                    msg: `Deleted File ${path.basename(f.source)}`,
+                                    msg: `Deleted File  ${i} of ${dirents.length} / ${path.basename(f.source)} `,
                                     max: dirents.length,
                                     value: cpc
                                 }
@@ -216,98 +240,111 @@ parentPort.on('message', data => {
             let destination = copy_item.destination;
             idx++
 
-            gio_utils.get_file(copy_item.source, file => {
+            let is_writable = 0;
+            if (gio.is_writable(path.dirname(destination))) {
+                is_writable = 1;
+            } else {
+                is_writable = 0;
+            }
 
-                if (file.type === 'directory') {
+            if (is_writable) {
 
-                    let c = 0;
-                    while(gio.exists(destination)) {
-                        ++c;
-                        var pattern = /\((\d+)\)$/;
-                        var match = pattern.exec(destination);
+                gio_utils.get_file(copy_item.source, file => {
 
-                        if (match) {
-                            let last_c = parseInt(match[1]);
-                            let next_c = last_c + 1;
-                            destination = destination.replace(pattern, `(${next_c})`);
-                        } else {
-                            destination = `${destination} (1)`
+                    if (file.type === 'directory') {
+
+                        let c = 0;
+                        while(gio.exists(destination)) {
+                            ++c;
+                            var pattern = /\((\d+)\)$/;
+                            var match = pattern.exec(destination);
+
+                            if (match) {
+                                let last_c = parseInt(match[1]);
+                                let next_c = last_c + 1;
+                                destination = destination.replace(pattern, `(${next_c})`);
+                            } else {
+                                destination = `${destination} (1)`
+                            }
+
+                            if (c > 10) {
+                                // Bail
+                                return;
+                            }
                         }
 
-                        if (c > 10) {
-                            // Bail
-                            return;
-                        }
-                    }
+                        get_files_arr(copy_item.source, destination, dirents => {
+                            let cpc = 0;
+                            for (let i = 0; i < dirents.length; i++) {
+                                let f = dirents[i]
+                                if (f.type == 'directory') {
 
-                    get_files_arr(copy_item.source, destination, dirents => {
-                        let cpc = 0;
-                        for (let i = 0; i < dirents.length; i++) {
-                            let f = dirents[i]
-                            if (f.type == 'directory') {
+                                    cpc++
 
-                                cpc++
+                                    if (!gio.exists(f.destination)) {
+                                        gio.mkdir(f.destination)
+                                        data = {
+                                            cmd: 'progress',
+                                            msg: `Copied Folder ${path.basename(f.source)}`,
+                                            max: dirents.length,
+                                            value: cpc
+                                        }
+                                        parentPort.postMessage(data);
+                                    }
+                                }
+                            }
 
-                                if (!gio.exists(f.destination)) {
-                                    gio.mkdir(f.destination)
+                            for (let i = 0; i < dirents.length; i++) {
+                                let f = dirents[i]
+                                if (f.type == 'file') {
+                                    cpc++
+                                    if (gio.exists(f.destination)) {
+                                        gio.cp(f.source, f.destination, copy_item.overwrite_flag)
+                                    } else {
+                                        gio.cp(f.source, f.destination, 0)
+                                    }
                                     data = {
                                         cmd: 'progress',
-                                        msg: `Copied Folder ${path.basename(f.source)}`,
+                                        msg: `Copied File ${path.basename(f.source)}`,
                                         max: dirents.length,
                                         value: cpc
+
                                     }
                                     parentPort.postMessage(data);
                                 }
                             }
-                        }
 
-                        for (let i = 0; i < dirents.length; i++) {
-                            let f = dirents[i]
-                            if (f.type == 'file') {
-                                cpc++
-                                if (gio.exists(f.destination)) {
-                                    gio.cp(f.source, f.destination, copy_item.overwrite_flag)
-                                } else {
-                                    gio.cp(f.source, f.destination, 0)
-                                }
+                            if (cpc === dirents.length) {
+                                console.log('done copying files');
                                 data = {
-                                    cmd: 'progress',
-                                    msg: `Copied File ${path.basename(f.source)}`,
-                                    max: dirents.length,
-                                    value: cpc
-
+                                    cmd: 'copy_done',
+                                    destination: destination
                                 }
                                 parentPort.postMessage(data);
+                                copy_next();
                             }
+
+                        })
+
+                    // File
+                    } else {
+
+                        gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
+                        data = {
+                            cmd: 'copy_done',
+                            destination: copy_item.destination
                         }
+                        parentPort.postMessage(data);
+                        parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
+                        copy_next();
 
-                        if (cpc === dirents.length) {
-                            console.log('done copying files');
-                            data = {
-                                cmd: 'copy_done',
-                                destination: destination
-                            }
-                            parentPort.postMessage(data);
-                            copy_next();
-                        }
-
-                    })
-
-                // File
-                } else {
-
-                    gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
-                    data = {
-                        cmd: 'copy_done',
-                        destination: copy_item.destination
                     }
-                    parentPort.postMessage(data);
-                    parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
-                    copy_next();
 
-                }
+                })
 
-            })
+            } else {
+                parentPort.postMessage({cmd: 'msg', msg: 'Error: Permission Denied'});
+            }
 
         }
         copy_next();

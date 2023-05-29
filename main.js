@@ -50,7 +50,7 @@ ipcMain.on('active_window', (e) => {
 
 ls.on('message', (data) => {
     if (data.cmd === 'ls_done') {
-        win.send('ls', data.dirents);
+        win.send('ls', data.dirents, data.source);
     }
 })
 
@@ -70,7 +70,15 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'move_done') {
-        win.send('remove_card', data.source);
+
+        // Handle Cut / Move
+        if (is_main) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        } else {
+            win.send('remove_card', data.source);
+        }
+
         win.send('clear');
     }
 
@@ -121,6 +129,132 @@ worker.on('message', (data) => {
 })
 
 // Functions //////////////////////////////////////////////
+
+function get_disk_space(href) {
+
+    df = []
+    // RUN DISK FREE COMMAND
+
+    try {
+
+        let cmd = 'df "' + href + '"'
+        let data = execSync(cmd).toString()
+        let data_arr = data.split('\n')
+
+        // CREATE OPTIONS OBJECT
+        let options = {
+            disksize: 0,
+            usedspace: 0,
+            availablespace:0,
+            foldersize:0,
+            foldercount:0,
+            filecount:0
+        }
+
+        if (data_arr.length > 0) {
+
+            let res1 = data_arr[1].split(' ')
+
+            let c = 0;
+            res1.forEach((size, i) => {
+
+                if (size != '') {
+
+                    // 0 DISK
+                    // 6 SIZE OF DISK
+                    // 7 USED SPACE
+                    // 8 AVAILABLE SPACE
+                    // 10 PERCENTAGE USED
+                    // 11 CURRENT DIR
+
+                    switch (c) {
+                        case 1:
+                            options.disksize =  getFileSize(parseFloat(size) * 1024)
+                            break;
+                        case 2:
+                            options.usedspace = getFileSize(parseFloat(size) * 1024)
+                            break;
+                        case 3:
+                            options.availablespace = getFileSize(parseFloat(size) * 1024)
+                            break;
+                    }
+
+                    ++c;
+
+                }
+            })
+
+            // options.foldercount = href.folder_count
+            // options.filecount = href.file_count
+
+            df.push(options)
+
+            // SEND DISK SPACE
+            win.send('disk_space', df)
+
+            console.log(df);
+
+            cmd = 'cd "' + href.href + '"; du -s'
+            du = exec(cmd)
+
+            du.stdout.on('data', function (res) {
+                let size = parseInt(res.replace('.', '') * 1024)
+                size = get_file_size(size)
+                win.send('du_folder_size', size)
+            })
+
+        }
+
+    } catch {
+        win.send('disk_space', df)
+    }
+
+}
+
+function get_apps () {
+    let exe_arr = [];
+    let data = gio.ls('/usr/share/applications');
+    data.forEach(item => {
+        let content = fs.readFileSync(item.href, 'utf-8');
+        let data = content.split('\n');
+
+        let exe_obj = {};
+
+        for (const line of data) {
+
+            if (line.startsWith('Exec=')) {
+
+                const cmd = line.substring(5).trim();
+                const exe = cmd.split(' ')[0];
+
+                exe_obj.cmd = cmd;
+                exe_obj.exe = exe;
+
+            }
+
+            if (line.startsWith('Name=')) {
+                let name = line.substring(5).trim();
+                exe_obj.name = name;
+            }
+
+            if (line.startsWith('Type=')) {
+                let type = line.substring(5).trim();
+                exe_obj.type = type;
+            }
+
+        }
+
+        exe_arr.push(exe_obj);
+
+    })
+    const arr = exe_arr.reduce((accumulator, current) => {
+        if (!accumulator.find((item) => item.exe === current.exe)) {
+            accumulator.push(current);
+            }
+            return accumulator;
+        }, []);
+    return arr;
+}
 
 function new_folder(destination) {
     gio.mkdir(destination);
@@ -205,9 +339,13 @@ function get_files(source, callback) {
     } else {
         win.send('msg', 'Error: Directory does not exist!');
     }
+
     // gio_utils.get_dir(source, dirents => {
     //     return callback(dirents);
     // })
+
+    get_disk_space(source);
+
 }
 
 function copyOverwrite (copy_overwrite_arr) {
@@ -423,8 +561,6 @@ function createWindow() {
     win = new BrowserWindow(options);
     win.loadFile('index.html');
 
-
-
     win.once('ready-to-show', () => {
         win.show();
         // watch_for_theme_change();
@@ -479,14 +615,64 @@ ipcMain.on('get_files', (e, source) => {
         win.send('get_files', dirents);
     })
 
-    let du = gio.du(source);
-    console.log('disk usage', getFileSize(Math.abs(du)));
+    // let du = gio.du(source);
+    // console.log('disk usage', getFileSize(Math.abs(du)));
 
 })
 
 // Dialogs ////////////////////////////////////////////////////////////
 
 // Network connect dialog
+
+function open_with (file) {
+
+    let bounds = win.getBounds()
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // Dialog Settings
+    let confirm = new BrowserWindow({
+
+        parent: window.getFocusedWindow(),
+        modal:true,
+        width: 400,
+        height: 450,
+        backgroundColor: '#2e2c29',
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, 'preload.js'),
+        },
+
+    })
+
+    // Load file
+    confirm.loadFile('dialogs/openwith.html')
+
+    // Show dialog
+    confirm.once('ready-to-show', () => {
+
+        let title = 'Choose Application';
+        confirm.title = title;
+        confirm.removeMenu();
+
+        // confirm.webContents.openDevTools();
+        // get_desktop_apps();
+
+        let exe_arr = get_apps();
+        confirm.send('open_with', file, exe_arr);
+        exe_arr = [];
+
+    })
+
+}
+
 function connectDialog() {
 
     let bounds = win.getBounds()
@@ -1077,6 +1263,7 @@ ipcMain.on('delete_confirmed', (e, selecte_files_arr) => {
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
+
 })
 
 // Delete Canceled
@@ -1156,7 +1343,6 @@ function get_launchers(file) {
         }
 
     } catch (err) {
-
         // console.log(err)
         // let options = {
         //     name: 'Code', //exec_name[0].replace('Name=', ''),
@@ -1174,6 +1360,10 @@ function get_launchers(file) {
 // Lanucher Menu
 let launcher_menu
 function add_launcher_menu(menu, e, file) {
+
+    let available_launchers = gio.open_with(file.href);
+    console.log(available_launchers);
+
     launchers = get_launchers(file);
     launcher_menu = menu.getMenuItemById('launchers')
     try {
@@ -1190,6 +1380,15 @@ function add_launcher_menu(menu, e, file) {
                 }
             }))
         }
+        launcher_menu.submenu.append(new MenuItem({
+            type: 'separator'
+        }))
+        // launcher_menu.submenu.append(new MenuItem({
+        //     label: 'Other Application',
+        //     click: () => {
+        //         open_with(file);
+        //     }
+        // }))
 
     } catch (err) {
         console.log(err)
@@ -1214,6 +1413,21 @@ function add_templates_menu(menu, e, location) {
             }
         }));
     })
+}
+
+// Extract Menu
+function extract_menu(menu, e) {
+
+    let menu_item = new MenuItem (
+        {
+            label: '&Extract',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
+            click: () => {
+                e.sender.send('context-menu-command', 'extract')
+            }
+        }
+    )
+    menu.insert(15, menu_item)
 }
 
 // Main Menu
@@ -1321,6 +1535,16 @@ ipcMain.on('main_menu', (e, destination) => {
             win.send('toggle_hidden');
         }
     },
+    {
+        type: 'separator'
+    },
+    {
+        label: 'Disk Usage Analyzer',
+        click: () => {
+            exec(`baobab ${destination}`);
+        }
+
+    }
     ]
 
     // Create menu
@@ -1470,12 +1694,12 @@ ipcMain.on('folder_menu', (e, href) => {
                             e.sender.send('context-menu-command', 'compress')
                         }
                     },
-                    // {
-                    //     label: 'zip',
-                    //     click: () => {
-                    //         e.sender.send('context-menu-command', 'compress_folder')
-                    //     }
-                    // },
+                    {
+                        label: 'zip',
+                        click: () => {
+                            e.sender.send('context-menu-command', 'compress_zip')
+                        }
+                    },
                 ]
         },
         {
@@ -1511,6 +1735,13 @@ ipcMain.on('folder_menu', (e, href) => {
         },
         {
             type: 'separator'
+        },
+        {
+            label: 'Disk Usage Analyzer',
+            click: () => {
+                exec(`baobab ${href}`);
+            }
+
         }
     ]
 
@@ -1639,12 +1870,12 @@ ipcMain.on('file_menu', (e, file) => {
                             e.sender.send('context-menu-command', 'compress')
                         }
                     },
-                    // {
-                    //     label: 'zip',
-                    //     click: () => {
-                    //         e.sender.send('context-menu-command', 'compress_folder')
-                    //     }
-                    // },
+                    {
+                        label: 'zip',
+                        click: () => {
+                            e.sender.send('context-menu-command', 'compress_zip')
+                        }
+                    },
                 ]
         },
         {
@@ -1687,8 +1918,6 @@ ipcMain.on('file_menu', (e, file) => {
 
     let menu = Menu.buildFromTemplate(files_menu_template)
 
-
-
     // ADD TEMPLATES
     // add_templates_menu(menu, e, args)
 
@@ -1700,14 +1929,13 @@ ipcMain.on('file_menu', (e, file) => {
         // add_execute_menu(menu, e, args)
     // }
 
-    // let ext = path.extname(args.href);
+    let ext = path.extname(file.href);
     // if (ext == '.mp4' || ext == '.mp3') {
     //     add_convert_audio_menu(menu, args.href);
     // }
-
-    // if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
-    //     extract_menu(menu, e, args);
-    // }
+    if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
+        extract_menu(menu, e);
+    }
 
     menu.popup(BrowserWindow.fromWebContents(e.sender))
 

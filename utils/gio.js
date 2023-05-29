@@ -10,7 +10,7 @@ let file_arr = []
 
 function get_dir_recursive(dir, state) {
 
-    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024^8}, (err, stdout, stderr) => {
+    exec(`gio list -h -l -a "*" "${dir}"`, {maxBuffer: 1024*1024}, (err, stdout, stderr) => {
 
         if (!err) {
 

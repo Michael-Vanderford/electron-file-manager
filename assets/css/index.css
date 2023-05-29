@@ -7,11 +7,11 @@ html, body {
     height: 100%;
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) { */
 
     html, body {
         background: var(--dark);
-        color: var(--default);
+        color: var(--light);
     }
 
     #header_menu {
@@ -54,11 +54,18 @@ html, body {
         background: var(--lessdark);
         font-size: 12px;
         height: 18px;
-        width: 98%;
+        width: 100%;
+    }
+
+    #navigation_menu .disk_space {
+        /* border: 1px solid red; */
+        display: flex;
     }
 
     #navigation_menu .item {
         padding: 5px;
+        padding-right: 15px;
+        white-space: nowrap;
     }
 
     #navigation_menu .item a {
@@ -66,15 +73,8 @@ html, body {
         color: #cfcfcf;
     }
 
-    .container {
-        position: relative;
-        display: flex;
-        width: 100%;
-        height: 92%;
-    }
-
     #main {
-        position: absolute;
+        position: relative;
         overflow: auto;
         overflow-x: hidden;
         /* border: 1px solid red; */
@@ -82,11 +82,23 @@ html, body {
         border-radius: 5px;
         padding: 10px;
         width: 100%;
-        /* height: 100%; */
+        height: 100%;
+    }
+
+    #main a {
+        color: var(--white);
+    }
+
+
+
+    .active {
+        border-radius: 5px;
+        /* width: 100%; */
+        background: var(--lessdark)
     }
 
     #msg {
-        color: #cfcfcf;
+        color: var(--orange);
         background-color: var(--dark);
         border-radius: 5px;
         padding: 10px;
@@ -100,6 +112,7 @@ html, body {
         padding: 5px;
         width: 350px;
         z-index: 100;
+        white-space: nowrap;
     }
 
     #progress_bar {
@@ -130,7 +143,7 @@ html, body {
     /* Dialogs */
     .connect {
         background: var(--dark);
-        color: var(--default);
+        color: var(--light);
         padding: 25px;
     }
 
@@ -162,21 +175,22 @@ html, body {
         font-weight: bold;
     }
 
-}
+/* } */
 
+/*
 @media (prefers-color-scheme: light) {
 
     html, body {
         background: var(--dark);
-        color: var(--default);
+        color: var(--light);
     }
 
     #header_menu {
         display: flex;
-        background: #252525;
+        background: var(--lightest);
+        columns: var(--dark);
         padding: 5px;
         width: 100%;
-        /* height: 16px; */
     }
 
     #header_menu .item {
@@ -190,7 +204,7 @@ html, body {
     }
 
     #header_menu a {
-        color: #ffffff;
+        color: var(--dark);
         cursor: pointer;
         text-decoration: none;
         outline: none;
@@ -198,17 +212,16 @@ html, body {
 
     #navigation_menu {
         display: flex;
-        background: #252525;
+        background: var(--lightest);
         padding: 5px;
         width: 100%;
-        /* height: 16px; */
     }
 
     #navigation_menu input[type=text] {
         border-radius: 5px;
         border: none;
-        color: #cfcfcf;
-        background: var(--lessdark);
+        color: var(--dark);
+        background: var(--white);
         font-size: 12px;
         height: 18px;
         width: 98%;
@@ -220,7 +233,7 @@ html, body {
 
     #navigation_menu .item a {
         padding: 5px;
-        color: #cfcfcf;
+        color: var(--dark);
     }
 
     .container {
@@ -234,12 +247,23 @@ html, body {
         position: absolute;
         overflow: auto;
         overflow-x: hidden;
-        /* border: 1px solid red; */
-        background: #2f2f2f;
+        background: var(--white);
         border-radius: 5px;
         padding: 10px;
         width: 100%;
-        /* height: 100%; */
+    }
+
+    .card .content {
+        color:var(--dark);
+    }
+
+    .card .content a {
+        color:var(--dark);
+    }
+
+    .active {
+        border-radius: 5px;
+        background: var(--lighter)
     }
 
     #msg {
@@ -284,10 +308,9 @@ html, body {
         font-size: 12px;
     }
 
-    /* Dialogs */
     .connect {
         background: var(--dark);
-        color: var(--default);
+        color: var(--light);
         padding: 25px;
     }
 
@@ -319,6 +342,30 @@ html, body {
         font-weight: bold;
     }
 
+} */
+
+.menus {
+    position: relative;
+    height: 56px;
+    /* border:1px solid red; */
+}
+
+.container {
+    position: relative;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    /* border:1px solid red; */
+}
+
+.container:focus {
+    outline: none;
+    border: none;
+}
+
+.main:focus {
+    outline: none;
+    border: none;
 }
 
 progress {
@@ -485,11 +532,7 @@ input[type=text]:focus {
     background: #334c74;
 }
 
-.active {
-    border-radius: 5px;
-    /* width: 100%; */
-    background: var(--lessdark)
-}
+
 
 .ds-selected {
     background: #334c74;
@@ -504,29 +547,74 @@ input[type=text]:focus {
     display: none !important;
 }
 
+.list_view_columns {
+    display: grid;
+    width: 99%;
+    margin-top: -5px;
+
+    /* grid-template-columns: 1fr 1fr 1fr 1fr 1fr; */
+    grid-template-columns: repeat(4, 1fr);
+    /* grid-template-rows: auto; */
+    border:1px solid var(--moredark);
+    /* width: 100%; */
+    background: var(--moredark)
+}
+
+.list_view_columns .item {
+    border: 1px solid var(--lessdark);
+    padding: 5px;
+    /* width: 100%; */
+}
+
+.list_view_columns .name {
+    grid-template-columns: fit-content(50%);
+    /* grid-column: 1 / span 2; */
+    /* background: red; */
+}
+
+.list_view_columns .date {
+    text-align: right;
+}
+
+.list_view_columns .size {
+    text-align: right;
+}
+
+.list_view_columns .items {
+    text-align: right;
+}
+
 .grid1 {
     display: grid;
     grid-template-columns: repeat(1, 1fr);
     grid-template-rows: auto;
+    /* border:1px solid red; */
 }
 
 .grid1 .header {
+    grid-template-columns: fit-content(50%);
+    /* grid-column: 1 / span 2; */
+    /* width: 50% */
     /* min-width: 400px; */
 }
 
 .grid1 .date {
+    /* width: 16%; */
     text-align: right;
 }
 
 .grid1 .size {
+    /* width: 16%; */
     text-align: right;
 }
 
 .grid1 .type {
+    /* width: 16%; */
     text-align: right;
 }
 
 .grid1 .count {
+    /* width: 16%; */
     text-align: right;
 }
 
@@ -573,7 +661,7 @@ input[type=text]:focus {
 }
 
 .error {
-    color: var(--orange) !important;
+    color: var(--warning) !important;
 }
 
 .button {
@@ -654,14 +742,17 @@ input[type=text]:focus {
     --lessdark: #2f2f2f;
     --black: #000000;
     --white: #FFFFFF;
-    --grey: #808080;
-    --default: #C0C0C0;
     --warning: #960000;
     --green: #008000;
     --blue: #233654;
     --lightblue: #506585;
     --yellow: #FFFF00;
     --orange: #FFA500;
+    --link: #4183c4;
+
+    --light: #C0C0C0;
+    --lighter: #cfcfcf;
+    --lightest: #cacaca;
 
 }
 

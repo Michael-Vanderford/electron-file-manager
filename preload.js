@@ -31,6 +31,98 @@ ipcRenderer.on('settings', (e, settings_data) => {
     settings = settings_data;
 })
 
+// ON DISk SPACE - NEW
+ipcRenderer.on('disk_space', (e, data) => {
+
+    console.log('running get disk space');
+
+    // let info_view = document.getElementById('info_view')
+    let folder_count = 0; //get_folder_count();
+    let file_count = 0; //get_file_count();
+
+    if (folder_count === 0 && file_count === 0) {
+
+        // let msg = add_div();
+        // msg.classList.add('empty_folder');
+        // let icon = add_icon('folder');
+        // msg.append(icon, 'Folder is empty');
+        // info_view.classList.remove('hidden');
+        // info_view.append(msg);
+
+    }
+    let disk_space = document.getElementById('disk_space')
+    disk_space.innerHTML = ''
+
+    if (data.length > 0) {
+
+
+        let ds = add_div();
+        let us = add_div();
+        let as = add_div();
+
+        ds.classList.add('item')
+        us.classList.add('item')
+        as.classList.add('item')
+
+        ds.innerHTML = `Disk Space: ${data[0].disksize}`;
+        us.innerHTML = `Used Space: ${data[0].usedspace}`;
+        as.innerHTML = `Available: ${data[0].availablespace}`;
+
+        disk_space.append(ds, us, as)
+
+        // let ds = `Disk Space: ${data[0].disksize} | Used Space: ${data[0].usedspace} | Available: ${data[0].availablespace}`
+        // disk_space.innerHTML = ds;
+
+        // disk_space.innerHTML = ''
+        // let disksize = add_div()
+        // let usedspace = add_div()
+        // let availablespace = add_div()
+        // let foldersize = add_div()
+        // let foldercount = add_div()
+        // let filecount = add_div()
+
+        // foldersize.id = 'du_folder_size'
+
+        // data.forEach(item => {
+
+        //     disksize.innerHTML = '<div class="item">Disk size: <b>&nbsp' + item.disksize + '</b></div>'
+        //     usedspace.innerHTML = '<div class="item">Used space: <b>&nbsp' + item.usedspace + '</b></div>'
+        //     availablespace.innerHTML = '<div class="item">Available space: <b>&nbsp' + item.availablespace + '</b></div>'
+        //     foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
+        //     foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbspCalculating.... </b></div>'
+        //     foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + folder_count + '</b></div>'
+        //     filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + file_count + '</b></div>'
+
+        //     disk_space.appendChild(disksize)
+        //     disk_space.appendChild(usedspace)
+        //     disk_space.appendChild(availablespace)
+        //     disk_space.appendChild(foldersize)
+        //     disk_space.appendChild(foldercount)
+        //     disk_space.appendChild(filecount)
+
+        // })
+
+    } else {
+        console.log('no data found')
+    }
+
+})
+
+ipcRenderer.on('open_with', (e, file, exe_arr) => {
+    console.log('file', file)
+    let list = document.getElementById('list')
+    exe_arr.forEach(exe_item => {
+
+        let item = add_div();
+        item.classList.add('item');
+
+        item.append(add_icon('app'), exe_item.exe)
+        list.append(item)
+
+    })
+
+})
+
 // Refresh on theme change
 ipcRenderer.on('theme_changed', (e) => {
     if (localStorage.getItem('location' !== null)) {
@@ -40,6 +132,9 @@ ipcRenderer.on('theme_changed', (e) => {
 
 ipcRenderer.on('new_folder', (e, file) => {
 
+    console.log('running new folder');
+
+    let main = document.querySelector('.main')
     let folder_grid = document.getElementById('folder_grid');
     let card = getCardGio(file);
     folder_grid.prepend(card);
@@ -51,29 +146,29 @@ ipcRenderer.on('new_folder', (e, file) => {
     input.classList.remove('hidden');
 
     header.classList.add('hidden');
-        input.classList.remove('hidden');
+    input.classList.remove('hidden');
 
-        input.select()
-        input.focus();
+    input.select();
+    input.focus();
 
-        input.addEventListener('change', (e) => {
+    input.addEventListener('change', (e) => {
 
-            console.log('running rename')
+        console.log('running rename')
 
-            let location = document.getElementById('location');
-            let source = file.href;
-            let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
-            ipcRenderer.send('rename', source, destination);
+        let location = document.getElementById('location');
+        let source = file.href;
+        let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
+        ipcRenderer.send('rename', source, destination);
 
-        })
+    })
 
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'Escape') {
-                input.value = path.basename(file.href);
-                header.classList.remove('hidden');
-                input.classList.add('hidden');
-            }
-        })
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+            input.value = path.basename(file.href);
+            header.classList.remove('hidden');
+            input.classList.add('hidden');
+        }
+    })
 
 })
 
@@ -93,9 +188,11 @@ ipcRenderer.on('get_files', (e, dirents) => {
 })
 
 // Returns Files and Folders ot the main view
-ipcRenderer.on('ls', (e, dirents) => {
+ipcRenderer.on('ls', (e, dirents, source) => {
 
     console.log('running ls');
+
+    let main = document.querySelector('.main');
 
     let location = document.getElementById('location');
     let slider = document.getElementById('slider')
@@ -115,9 +212,22 @@ ipcRenderer.on('ls', (e, dirents) => {
     file_grid.classList.add('file_grid');
     hidden_file_grid.classList.add('hidden_file_grid');
 
+    location.value = source;
     document.title = path.basename(location.value);
 
     if (view == 'list') {
+
+        let list_view_columns = add_div();
+        list_view_columns.classList.add('list_view_columns')
+        list_view_columns.innerHTML = ''
+
+        let columns = ['Name', 'Date', 'Size', 'Items'];
+        columns.forEach(column => {
+            let item = add_item(column);
+            item.classList.add(column.toLocaleLowerCase())
+            list_view_columns.append(item);
+        })
+        // main.append(list_view_columns);
 
         list_view.classList.add('active');
         grid_view.classList.remove('active');
@@ -171,19 +281,18 @@ ipcRenderer.on('ls', (e, dirents) => {
         })
     }
 
-    // // Sort by Name
-    // if (sort === 'name') {
-    //     dirents.sort((a, b) => {
-    //         return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
-    //     })
-    // }
-
+    // Sort by Name
+    if (sort === 'name') {
+        dirents.sort((a, b) => {
+            console.log('sorting')
+            return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
+        })
+    }
     // // Sort by Size
     // if (sort === 'size') {
     //     dirents.sort((a, b) => {
     //         let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
     //         let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
-
     //         if (sort_flag == 0) {
     //             return s2 - s1;
     //         } else {
@@ -191,7 +300,6 @@ ipcRenderer.on('ls', (e, dirents) => {
     //         }
     //     })
     // }
-
     // // Sort by Type
     // if (sort === 'type') {
     //     dirents.sort((a, b) => {
@@ -255,6 +363,16 @@ ipcRenderer.on('ls', (e, dirents) => {
         paste(location.value);
     })
 
+    main.addEventListener('mouseenter', (e) => {
+        console.log("running mouse enter");
+        // document.addEventListener('keyup', quick_search)
+    })
+
+    main.addEventListener('mouseleave', (e) => {
+        console.log('running mouse leave')
+        document.removeEventListener('keyup', quick_search)
+    })
+
     main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
 
     // Set Icon Size
@@ -264,6 +382,19 @@ ipcRenderer.on('ls', (e, dirents) => {
         slider.value = icon_size;
         resizeIcons(icon_size);
     }
+
+    // let cards = document.querySelectorAll('.card')
+    // console.log(cards.length)
+    // cards.forEach((card, i) => {
+    //     card.addEventListener('click', (e) => {
+    //         if (e.shiftKey) {
+    //             if (card.classList.contains('ds-selected')) {
+    //                 console.log('you clicked me', card);
+    //                 card.classList.add('ds-selected')
+    //             }
+    //         }
+    //     })
+    // })
 
     // watch_dir(location.value);
 
@@ -583,17 +714,29 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             } else {
                 exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
             }
+            break;
         }
         case 'connect': {
             ipcRenderer.send('connect');
+            break;
         }
         case 'add_workspace': {
             getSelectedFiles();
             ipcRenderer.send('add_workspace', selected_files_arr);
             clear()
+            break;
         }
         case 'compress': {
             compress();
+            break;
+        }
+        case 'compress_zip': {
+            compress('zip');
+            break;
+        }
+        case 'extract': {
+            extract();
+            break;
         }
     }
 
@@ -618,35 +761,161 @@ function watch_dir(dir) {
     })
 }
 
-function compress() {
+function extract() {
+
+    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
+
+    items.forEach(item => {
+
+        let cmd = '';
+        let us_cmd = '';
+        let filename = '';
+        let source = item.dataset.href;
+        let ext = path.extname(source).toLowerCase();
+        let makedir = 1;
+
+        console.log('extension ', source);
+        let c = 0;
+        switch (ext) {
+            case '.zip':
+                filename = source.replace('.zip', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = "unzip '" + source + "' -d '" + filename + "'"
+                break;
+            case '.tar':
+                filename = source.replace('.tar', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+                break;
+            case '.gz':
+                filename = source.replace('.tar.gz', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location.value + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+
+                break;
+            case '.xz':
+                filename = source.replace('tar.xz', '')
+                filename = filename.replace('.img.xz', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
+                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                if (source.indexOf('img.xz') > -1) {
+                    makedir = 0;
+                    cmd = 'cd "' + location.value + '"; /usr/bin/unxz -k "' + source + '"';
+                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
+                } else {
+                    cmd = 'cd "' + location.value + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
+                }
+                break;
+            case '.bz2':
+                filename = source.replace('.bz2', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location.value + '"; /usr/bin/bzip2 -dk "' + source + '"'
+                break;
+
+        }
+
+        console.log('cmd ' + cmd);
+        console.log('uncompressed size cmd ' + us_cmd);
+
+        if (makedir) {
+            fs.mkdirSync(filename);
+        }
+
+        // GET UNCOMPRESSED SIZE
+        let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
+        console.log('uncompressed size:', uncompressed_size);
+
+        // RUN PROGRESS
+        // get_progress(get_raw_file_size(uncompressed_size))
+        // get_progress(uncompressed_size)
+
+        msg(`Extracting ${source}`)
+        // open(cmd);
+
+        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+        exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
+
+            if (err) {
+                console.log('error ' + err)
+                msg(err)
+            } else {
+                try {
+                    // GET REFERENCE TO FOLDER GRID
+                    ipcRenderer.send('get_card_gio', filename);
+                } catch (err) {
+                    console.log(err)
+                    msg(err)
+                }
+                msg(`Extracted ${source}`)
+            }
+        })
+    })
+}
+
+// Compress Files
+function compress(type) {
+
+    msg('running compression');
 
     let location = document.getElementById('location');
     let destination = '';
     let file_list = '';
+    let cmd = '';
 
     getSelectedFiles()
     selected_files_arr.forEach((item, idx) => {
-        if (idx == 0) {
-            destination = path.basename(item);
-            destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-            console.log(destination);
-        }
+        // if (idx == 0) {
+        //     destination = path.basename(item);
+        //     if (type === 'zip') {
+        //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+        //     } else {
+        //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
+        //     }
+        //     console.log(destination);
+        // }
         file_list += "'" + path.basename(item) + "' ";
 
     })
+
+    // Create command for compressed file
+    destination = path.basename(selected_files_arr[0]);
     selected_files_arr = [];
+
+    if (type === 'zip') {
+        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+        cmd = `cd '${location.value}'; zip -r '${destination}' ${file_list}`;
+    } else {
+        cmd = `cd '${location.value}'; tar czf '${destination}' ${file_list}`;
+    }
+
     console.log('file list', file_list);
-
-    // let cmd_size = 'cd "' + location.value + '"; tar czf "' + file_name + '" ' + file_list + ' | wc -c';
-    // exec(cmd_size, (err, stdout) => {
-    //     stdout.on('data', (res) => {
-    //         console.log('compressed size', res)
-    //     })
-    // })
-
-    // Create compressed file
-    let cmd = 'cd "' + location.value + '"; tar czf "' + destination + '" ' + file_list;
     console.log(cmd);
+
     exec(cmd, (err, stdout) => {
         if (err) {
             console.log(err);
@@ -669,9 +938,11 @@ function resizeIcons(icon_size) {
     let slider = document.getElementById('slider');
     let cards = document.querySelectorAll('.card');
     cards.forEach(card => {
-        let icon = card.querySelector('.icon');
-        icon.style.width = `${icon_size}px`;
-        icon.style.height = `${icon_size}px`;
+        if (!card.classList.contains('list')) {
+            let icon = card.querySelector('.icon');
+            icon.style.width = `${icon_size}px`;
+            icon.style.height = `${icon_size}px`;
+        }
     })
     slider.value = icon_size;
     localStorage.setItem('icon_size', icon_size);
@@ -945,6 +1216,10 @@ function getDateTime (date) {
 // Edit Mode
 function edit() {
 
+    console.log('running edit');
+    let main = document.querySelector('.main')
+    let quicksearch = document.querySelector('.quicksearch')
+
     getSelectedFiles();
     selected_files_arr.forEach(href => {
         let card = document.querySelector(`[data-href="${href}"]`);
@@ -958,8 +1233,14 @@ function edit() {
         input.select()
         input.focus();
 
-        input.addEventListener('change', (e) => {
+        main.removeEventListener('keydown', quick_search);
 
+
+        input.addEventListener('change', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            quicksearch.removeEventListener('keydown', quick_search);
             console.log('running rename')
 
             let location = document.getElementById('location');
@@ -980,7 +1261,6 @@ function edit() {
                 input.value = path.basename(href);
                 header.classList.remove('hidden');
                 input.classList.add('hidden');
-                quicksearch.classList('hidden')
             }
         })
 
@@ -1039,26 +1319,19 @@ function getHome(callback) {
     for (let i = 0; i < my_computer_arr.length; i++) {
 
         let href = my_computer_paths_arr[i]
-        console.log(my_computer_arr[i])
-
         let item = add_div()
-        item.classList.add('flex')
+
+        item.classList.add('flex', 'item')
 
         let link = add_link(my_computer_paths_arr[i], my_computer_arr[i])
-
-        item.classList.add('item')
-        // item.append(add_icon('chevron-right'), add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
-
         home.append(item)
 
         item.onclick = () => {
-
             let items = home.querySelectorAll('.item')
             items.forEach(item => {
                 item.classList.remove('active')
             })
-
             item.classList.add('active')
             if (href === 'Recent') {
                 get_recent_files(`${home_dir}/Documents`)
@@ -1366,7 +1639,7 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    console.log(file)
+    // console.log(file)
 
     let location    = document.getElementById('location');
     let is_dir      = 0;
@@ -1421,10 +1694,12 @@ function getCardGio(file) {
     // Mouse Over
     card.addEventListener('mouseover', (e) => {
 
+        console.log('running mouse over');
+
         e.preventDefault();
         e.stopPropagation();
-        card.classList.add('highlight');
 
+        card.classList.add('highlight');
         title =
             'Name: ' + path.basename(file.href) +
             '\n' +
@@ -1440,6 +1715,7 @@ function getCardGio(file) {
 
         card.title = title;
 
+        // main.tabIndex = 0;
         // tooltip_timeout = setTimeout(() => {
         //     var x = e.clientX - 75;
         //     var y = e.clientY + 20;
@@ -1457,8 +1733,15 @@ function getCardGio(file) {
         card.classList.remove('highlight');
     })
 
+    card.addEventListener('mouseenter', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('running mouse enter');
+    })
+
     // Mouse Leave
     card.addEventListener('mouseleave', (e) => {
+        // console.log('running mouse leave');
         // card.classList.remove('highlight');
         // clearTimeout(tooltip_timeout);
         // tooltip.classList.add('hidden');
@@ -1469,12 +1752,13 @@ function getCardGio(file) {
         e.preventDefault();
         e.stopPropagation();
         if (e.ctrlKey) {
-            if (card.classList.contains('highlight_select')) {
+            if (card.classList.contains('ds-selected')) {
                 card.classList.remove('highlight_select')
             } else {
                 card.classList.add('highlight_select')
             }
         }
+
     })
 
     card.addEventListener('dragstart', (e) => {
@@ -1619,7 +1903,7 @@ function getCardGio(file) {
     if (view == 'list') {
         card.classList.add('list');
         content.classList.add('list');
-        content.append(header, input, mtime, ctime, atime, size, type, count);
+        content.append(header, input, mtime, ctime, atime, size, count);
     }
 
     if (view === 'grid') {
@@ -1936,6 +2220,16 @@ function lazyload() {
     }
 }
 
+function quick_search (e) {
+    let quicksearch = document.getElementById('quicksearch');
+    let txt_quicksearch = document.getElementById('txt_quicksearch');
+    if (e.key && (!e.ctrlKey || e.shiftKey || e.altKey) &&  /^[A-Za-z]$/.test(e.key)) {
+        quicksearch.classList.remove('hidden');
+        txt_quicksearch.focus();
+    }
+
+}
+
 // Main - This runs after html page loads.
 window.addEventListener('DOMContentLoaded', (e) => {
 
@@ -1948,6 +2242,9 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let quicksearch = document.getElementById('quicksearch');
         let txt_quicksearch = document.getElementById('txt_quicksearch');
         let slider = document.getElementById('slider');
+
+        // Flags
+        let cutflag = 0;
 
         let minibar = document.getElementById('minibar')
         let mb_items = minibar.querySelectorAll('.item')
@@ -2073,8 +2370,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
             })
         })
 
-
-
         let show_hidden = document.querySelectorAll('.show_hidden')
         show_hidden.forEach(item => {
             item.addEventListener('click', (e) => {
@@ -2141,6 +2436,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
                 // Ctrl+X (Cut)
                 if (e.ctrlKey === true && e.key == 'x') {
+                    cutflag = 1;
                     getSelectedFiles();
                     selected_files_arr.forEach(item => {
                         let card = document.querySelector(`[data-href="${item}"]`)
@@ -2151,7 +2447,12 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 // Ctrl+V (Paste)
                 if (e.ctrlKey === true && e.key.toLowerCase() == 'v') {
                     ipcRenderer.send('main', 1);
-                    paste(location.value);
+                    if (cutflag) {
+                        move(location.value);
+                    } else {
+                        paste(location.value);
+                    }
+                    cutflag = 0;
                 }
 
                 // Escape (Cancel)
@@ -2184,12 +2485,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         item.classList.add('highlight')
                     })
                 }
-
-                if (e.key && (!e.ctrlKey || e.shiftKey || e.altKey) &&  /^[A-Za-z]$/.test(e.key)) {
-                    quicksearch.classList.remove('hidden')
-                    txt_quicksearch.focus();
-                }
-
 
             })
 
