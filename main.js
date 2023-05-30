@@ -35,7 +35,7 @@ try {
 
 const folderIconPath = systemPreferences
 
-worker.postMessage({cmd: 'monitor'});
+worker.postMessage({ cmd: 'monitor' });
 
 // Set window id
 ipcMain.on('active_window', (e) => {
@@ -130,11 +130,35 @@ worker.on('message', (data) => {
 
 // Functions //////////////////////////////////////////////
 
+// Get Folder Count
+function getFolderCount(source, callback) {
+    // let dirents = gio.ls(source)
+    try {
+        get_files_arr(source, '', dirents => {
+            let folder_count = dirents.reduce((c, x) => x.type === 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            return callback(folder_count);
+        })
+    } catch (err) {
+
+    }
+}
+
+// Get File Count
+function getFileCount(source, callback) {
+    try {
+        get_files_arr(source, '', dirents => {
+            let file_count = dirents.reduce((c, x) => !x.is_dir ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            return callback(file_count);
+        })
+    } catch (err) {
+        
+    }
+}
+
+// Get Disk Space
 function get_disk_space(href) {
 
     df = []
-    // RUN DISK FREE COMMAND
-
     try {
 
         let cmd = 'df "' + href + '"'
@@ -145,10 +169,10 @@ function get_disk_space(href) {
         let options = {
             disksize: 0,
             usedspace: 0,
-            availablespace:0,
-            foldersize:0,
-            foldercount:0,
-            filecount:0
+            availablespace: 0,
+            foldersize: 0,
+            foldercount: 0,
+            filecount: 0
         }
 
         if (data_arr.length > 0) {
@@ -169,7 +193,7 @@ function get_disk_space(href) {
 
                     switch (c) {
                         case 1:
-                            options.disksize =  getFileSize(parseFloat(size) * 1024)
+                            options.disksize = getFileSize(parseFloat(size) * 1024)
                             break;
                         case 2:
                             options.usedspace = getFileSize(parseFloat(size) * 1024)
@@ -211,7 +235,7 @@ function get_disk_space(href) {
 
 }
 
-function get_apps () {
+function get_apps() {
     let exe_arr = [];
     let data = gio.ls('/usr/share/applications');
     data.forEach(item => {
@@ -250,9 +274,9 @@ function get_apps () {
     const arr = exe_arr.reduce((accumulator, current) => {
         if (!accumulator.find((item) => item.exe === current.exe)) {
             accumulator.push(current);
-            }
-            return accumulator;
-        }, []);
+        }
+        return accumulator;
+    }, []);
     return arr;
 }
 
@@ -273,7 +297,7 @@ function watch_for_theme_change() {
                 console.log('theme changed')
                 // win.send('theme_changed')
                 win.webContents.reloadIgnoringCache();
-                fsTimeout = setTimeout(function() {
+                fsTimeout = setTimeout(function () {
                     fsTimeout = null
                 }, 5000)
             }
@@ -295,24 +319,20 @@ function getFileSize(fileSizeInBytes) {
     return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
 };
 
-function get_properties (href, callback) {
-    let properties = gio.get_file(href)
-    win.send('properties', properties);
-}
-
 let file_arr = [];
 let cp_recursive = 0;
-function get_files_arr (source, destination, callback) {
+function get_files_arr(source, destination, callback) {
     cp_recursive++
-    file_arr.push({type: 'directory', source: source, destination: destination})
-    gio_utils.get_dir(source, dirents => {
+    file_arr.push({ type: 'directory', source: source, destination: destination })
+    // gio.ls(source, dirents => {
+        let dirents = gio.ls(source);
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
             // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-            if (file.type == 'directory') {
-                get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
+            if (file.is_dir) {
+                get_files_arr(file.href, path.format({ dir: destination, base: file.name }), callback)
             } else {
-                file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name})})
+                file_arr.push({ type: 'file', source: file.href, destination: path.format({ dir: destination, base: file.name }) })
             }
         }
         if (--cp_recursive == 0) {
@@ -322,9 +342,8 @@ function get_files_arr (source, destination, callback) {
             file_arr = []
             return callback(file_arr1);
         }
-    })
+    // })
 }
-
 
 // Get files array
 function get_files(source, callback) {
@@ -332,10 +351,10 @@ function get_files(source, callback) {
     // get files from gio module
     let exists = gio.exists(source);
     if (exists) {
-        let file = gio.get_file(source);
-        if (file.is_dir) {
-            ls.postMessage({cmd: 'ls', source: source});
-        }
+        // let file = gio.get_file(source);
+        // if (file.is_dir) {
+        ls.postMessage({ cmd: 'ls', source: source });
+        // }
     } else {
         win.send('msg', 'Error: Directory does not exist!');
     }
@@ -348,7 +367,7 @@ function get_files(source, callback) {
 
 }
 
-function copyOverwrite (copy_overwrite_arr) {
+function copyOverwrite(copy_overwrite_arr) {
     copy_overwrite_arr.every(item => {
         gio_utils.get_file(item.source, source_file => {
 
@@ -363,6 +382,50 @@ function copyOverwrite (copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
+// On Get Folder Count
+ipcMain.on('get_folder_count', (e, href) => {
+    try {
+        getFolderCount(href, folder_count => {
+            win.send('folder_count', href, folder_count);
+        })
+    } catch (err) {
+        console.log(err);
+    }
+})
+
+// On Get Folder Count
+ipcMain.on('get_file_count', (e, href) => {
+    try {
+        getFileCount(href, file_count => {
+            win.send('file_count', href, file_count);
+        })
+    } catch (err) {
+        console.log(err);
+    }
+})
+
+// On Properties
+ipcMain.on('get_properties', (e, selecte_files_arr) => {
+    let properties_arr = [];
+    selecte_files_arr.forEach(item => {
+        let properties = gio.get_file(item);
+
+        // Get Folder Count
+        // Moved to ipcMain.on('get_folder_count', (e, href) => {
+
+        // let folder_count = getFolderCount(item);
+        // properties.folder_count = folder_count;
+
+        // let file_count = getFIleCount(item);
+        // properties.file_count = file_count;
+
+        properties_arr.push(properties);
+    })
+    console.log('props', properties_arr);
+    win.send('properties', properties_arr);
+})
+
+// On get card gio
 ipcMain.on('get_card_gio', (e, destination) => {
     win.send('get_card_gio', gio.get_file(destination));
 })
@@ -377,7 +440,7 @@ ipcMain.handle('settings', (e) => {
 })
 
 ipcMain.on('count', (e, href) => {
-    worker.postMessage({cmd: 'count', source: href});
+    worker.postMessage({ cmd: 'count', source: href });
 })
 
 // New Window
@@ -451,7 +514,7 @@ ipcMain.on('main', (e, flag) => {
 
 // New Folder
 ipcMain.on('mkdir', (e, href) => {
-    worker.postMessage({cmd: 'mkdir', destination: href})
+    worker.postMessage({ cmd: 'mkdir', destination: href })
 })
 
 // Open File in Native Application
@@ -475,8 +538,8 @@ ipcMain.on('paste', (e, copy_arr) => {
 })
 
 // Move
-ipcMain.on('move', (e, selecte_files_arr ) => {
-    worker.postMessage({cmd: 'mv', selected_items: selecte_files_arr})
+ipcMain.on('move', (e, selecte_files_arr) => {
+    worker.postMessage({ cmd: 'mv', selected_items: selecte_files_arr })
 })
 
 // Get Folder Size
@@ -499,7 +562,7 @@ ipcMain.handle('get_folder_size', async (e, href) => {
 
 
 ipcMain.on('rename', (e, source, destination) => {
-    worker.postMessage({cmd: 'rename', source: source, destination: destination });
+    worker.postMessage({ cmd: 'rename', source: source, destination: destination });
 })
 
 //////////////////////////////////////////////////////////////
@@ -624,7 +687,7 @@ ipcMain.on('get_files', (e, source) => {
 
 // Network connect dialog
 
-function open_with (file) {
+function open_with(file) {
 
     let bounds = win.getBounds()
 
@@ -635,7 +698,7 @@ function open_with (file) {
     let confirm = new BrowserWindow({
 
         parent: window.getFocusedWindow(),
-        modal:true,
+        modal: true,
         width: 400,
         height: 450,
         backgroundColor: '#2e2c29',
@@ -721,7 +784,7 @@ function confirmOverwrite(source_file, destination_file, copy_overwrite_arr) {
 
     const confirm = new BrowserWindow({
         parent: win,
-        modal:true,
+        modal: true,
         width: 550,
         height: 400,
         backgroundColor: '#2e2c29',
@@ -943,7 +1006,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     } else {
 
         title = `File Confict "${path.basename(source)}"`
-        msg = msg +  `Replace File "${path.basename(source)}"\n`
+        msg = msg + `Replace File "${path.basename(source)}"\n`
 
         if (is_newer == 1) {
             msg = msg + `A newer file with the same name already exists. `
@@ -989,8 +1052,8 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
                 // console.log(`Overwrite Confirmed ${source} with ${destination}`);
 
                 // if (!is_dir) {
-                    // worker.postMessage({cmd: 'paste', copy_arr: copy_arr, overwrite_flag: 1});
-                    // worker.postMessage({cmd: 'cp', })
+                // worker.postMessage({cmd: 'paste', copy_arr: copy_arr, overwrite_flag: 1});
+                // worker.postMessage({cmd: 'cp', })
                 // }
 
                 copy_overwrite_arr.splice(0, 1);
@@ -1030,7 +1093,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
                 // Cancel
                 break;
 
-          }
+        }
 
     }).catch((error) => {
         console.error(error);
@@ -1185,7 +1248,7 @@ ipcMain.on('overwrite_confirmed', (e, source, destination, copy_overwrite_arr) =
     copy_arr[0].overwrite_flag = 1;
 
     console.log(`Overwrite Confirmed ${source} with ${destination}`);
-    worker.postMessage({cmd: 'paste', copy_arr: copy_arr});
+    worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
 
     copy_overwrite_arr.splice(0, 1);
     overWriteNext(copy_overwrite_arr);
@@ -1219,7 +1282,7 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
     let confirm = new BrowserWindow({
 
         parent: window.getFocusedWindow(),
-        modal:true,
+        modal: true,
         width: 500,
         height: 300,
         backgroundColor: '#2e2c29',
@@ -1259,7 +1322,7 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 ipcMain.on('delete_confirmed', (e, selecte_files_arr) => {
 
     // Send array to worker
-    worker.postMessage({cmd: 'delete_confirmed', files_arr: selecte_files_arr});
+    worker.postMessage({ cmd: 'delete_confirmed', files_arr: selecte_files_arr });
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
@@ -1311,18 +1374,18 @@ function get_launchers(file) {
                     cmd = "xdg-mime query filetype '" + file.href + "'"
                     let exec_mime = execSync(cmd).toString()
 
-                    set_default_launcher(desktop_launchers[i],exec_mime[i].replace('MimeType=',''))
+                    set_default_launcher(desktop_launchers[i], exec_mime[i].replace('MimeType=', ''))
 
                     let exe_path
                     let launcher
 
-                    let desktop_file = fs.readFileSync(filepath,'utf8').split('\n')
+                    let desktop_file = fs.readFileSync(filepath, 'utf8').split('\n')
                     desktop_file.forEach((item, idx) => {
-                        item = item.replace(',','')
-                        if(item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
+                        item = item.replace(',', '')
+                        if (item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
                             launcher = item.replace('Name=', '')
                         }
-                        if(item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
+                        if (item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
                             exe_path = item.replace('Exec=', '')
                         }
                     })
@@ -1367,7 +1430,7 @@ function add_launcher_menu(menu, e, file) {
     launchers = get_launchers(file);
     launcher_menu = menu.getMenuItemById('launchers')
     try {
-        for(let i = 0; i < launchers.length; i++) {
+        for (let i = 0; i < launchers.length; i++) {
             launcher_menu.submenu.append(new MenuItem({
                 label: launchers[i].name,
                 click: () => {
@@ -1396,18 +1459,18 @@ function add_launcher_menu(menu, e, file) {
 }
 
 function createFileFromTemplate(source, destination) {
-    worker.postMessage({cmd: 'cp', source: source, destination: destination});
+    worker.postMessage({ cmd: 'cp', source: source, destination: destination });
 }
 
 // Templated Menu
 function add_templates_menu(menu, e, location) {
     let template_menu = menu.getMenuItemById('templates')
     let templates = fs.readdirSync(path.join(__dirname, 'assets/templates'))
-    templates.forEach((file,idx) => {
+    templates.forEach((file, idx) => {
         let source = path.join(__dirname, 'assets/templates', file);
-        let destination = path.format({dir: location, base: file});
+        let destination = path.format({ dir: location, base: file });
         template_menu.submenu.append(new MenuItem({
-            label: file.replace(path.extname(file),''),
+            label: file.replace(path.extname(file), ''),
             click: () => {
                 createFileFromTemplate(source, destination);
             }
@@ -1418,7 +1481,7 @@ function add_templates_menu(menu, e, location) {
 // Extract Menu
 function extract_menu(menu, e) {
 
-    let menu_item = new MenuItem (
+    let menu_item = new MenuItem(
         {
             label: '&Extract',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
@@ -1436,115 +1499,115 @@ ipcMain.on('main_menu', (e, destination) => {
     is_main = 1;
 
     const template = [
-    {
-        label: 'New Window',
-        click: () => {
-            createWindow(destination);
-            // e.sender.send('context-menu-command', 'open_in_new_window')
-        }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'New Folder',
-        accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
-        click: () => {
-            let folder = path.format({dir: destination, base: 'New Folder'})
-            new_folder(path.format({dir: destination, base: 'New Folder'}))
-            // win.send('context-menu-command', 'mkdir')
-        }
-    },
-    {
-        id: 'templates',
-        label: 'New Document',
-        submenu: [
         {
-            label: 'Open Templates Folder',
+            label: 'New Window',
             click: () => {
-                e.sender.send('context-menu-command', 'open_templates_folder'),
+                createWindow(destination);
+                // e.sender.send('context-menu-command', 'open_in_new_window')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Folder',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            click: () => {
+                let folder = path.format({ dir: destination, base: 'New Folder' })
+                new_folder(path.format({ dir: destination, base: 'New Folder' }))
+                // win.send('context-menu-command', 'mkdir')
+            }
+        },
+        {
+            id: 'templates',
+            label: 'New Document',
+            submenu: [
                 {
-                    type: 'separator'
+                    label: 'Open Templates Folder',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'open_templates_folder'),
+                        {
+                            type: 'separator'
+                        }
+                    }
+                }],
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Sort',
+            submenu: [
+                {
+                    label: 'Date',
+                    icon: './assets/icons/menus/terminal.png',
+                    click: () => { win.send('sort', 'date') }
+                },
+                {
+                    label: 'Name',
+                    click: () => { win.send('sort', 'name') }
+                },
+                {
+                    label: 'Size',
+                    click: () => { win.send('sort', 'size') }
+                },
+                {
+                    label: 'Type',
+                    click: () => { win.send('sort', 'type') }
                 }
+
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Paste',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+            click: () => {
+                e.sender.send('context-menu-command', 'paste')
             }
-        }],
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Sort',
-        submenu: [
-            {
-                label: 'Date',
-                icon: './assets/icons/menus/terminal.png',
-                click: () => {win.send('sort', 'date')}
-            },
-            {
-                label: 'Name',
-                click: () => {win.send('sort', 'name')}
-            },
-            {
-                label: 'Size',
-                click: () => {win.send('sort', 'size')}
-            },
-            {
-                label: 'Type',
-                click: () => {win.send('sort', 'type')}
+        },
+        {
+            label: 'Select all',
+            click: () => {
+                e.sender.send('select_all');
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Terminal',
+            click: () => {
+                e.sender.send('context-menu-command', 'terminal')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Show Hidden',
+            type: 'checkbox',
+            checked: false,
+            click: (e) => {
+                // e.sender.send('context-menu-command', 'show_hidden')
+                win.send('toggle_hidden');
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Disk Usage Analyzer',
+            click: () => {
+                exec(`baobab ${destination}`);
             }
 
-        ]
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Paste',
-        accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
-        click: () => {
-          e.sender.send('context-menu-command', 'paste')
         }
-    },
-    {
-        label: 'Select all',
-        click: () => {
-            e.sender.send('select_all');
-        }
-    },
-    {
-        type: 'separator'
-    },
-    {
-      label: 'Terminal',
-      click: () => {
-        e.sender.send('context-menu-command', 'terminal')
-      }
-    },
-    {
-      type: 'separator'
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Show Hidden',
-        type: 'checkbox',
-        checked: false,
-        click: (e) => {
-            // e.sender.send('context-menu-command', 'show_hidden')
-            win.send('toggle_hidden');
-        }
-    },
-    {
-        type: 'separator'
-    },
-    {
-        label: 'Disk Usage Analyzer',
-        click: () => {
-            exec(`baobab ${destination}`);
-        }
-
-    }
     ]
 
     // Create menu
@@ -1599,19 +1662,19 @@ ipcMain.on('folder_menu', (e, href) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {win.send('sort', 'date')}
+                    click: () => { win.send('sort', 'date') }
                 },
                 {
                     label: 'Name',
-                    click: () => {win.send('sort', 'name')}
+                    click: () => { win.send('sort', 'name') }
                 },
                 {
                     label: 'Size',
-                    click: () => {win.send('sort', 'size')}
+                    click: () => { win.send('sort', 'size') }
                 },
                 {
                     label: 'Type',
-                    click: () => {win.send('sort', 'type')}
+                    click: () => { win.send('sort', 'type') }
                 }
             ]
         },
@@ -1629,16 +1692,16 @@ ipcMain.on('folder_menu', (e, href) => {
             id: 'templates',
             label: 'New Document',
             submenu: [
-            {
-                label: 'Open Templates Folder',
-                click: () => {
-                    e.sender.send('context-menu-command', 'open_templates_folder'
-                ),
                 {
-                    type: 'separator'
-                }
-            }
-        },],
+                    label: 'Open Templates Folder',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'open_templates_folder'
+                        ),
+                        {
+                            type: 'separator'
+                        }
+                    }
+                },],
         },
         {
             type: 'separator'
@@ -1657,7 +1720,7 @@ ipcMain.on('folder_menu', (e, href) => {
             label: 'Cut',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
             click: () => {
-            e.sender.send('context-menu-command', 'cut')
+                e.sender.send('context-menu-command', 'cut')
             }
         },
         {
@@ -1686,35 +1749,35 @@ ipcMain.on('folder_menu', (e, href) => {
         },
         {
             label: 'Compress',
-                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
-                submenu: [
-                    {
-                        label: 'tar.gz',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress')
-                        }
-                    },
-                    {
-                        label: 'zip',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress_zip')
-                        }
-                    },
-                ]
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            submenu: [
+                {
+                    label: 'tar.gz',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress')
+                    }
+                },
+                {
+                    label: 'zip',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress_zip')
+                    }
+                },
+            ]
         },
         {
             type: 'separator'
         },
         {
-          label: 'Delete',
-          accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
-          click: () => {
-            // e.sender.send('context-menu-command', 'delete_folder')
-            e.sender.send('context-menu-command', 'delete')
-          }
+            label: 'Delete',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            click: () => {
+                // e.sender.send('context-menu-command', 'delete_folder')
+                e.sender.send('context-menu-command', 'delete')
+            }
         },
         {
-          type: 'separator'
+            type: 'separator'
         },
         {
             label: 'Open in terminal',
@@ -1728,9 +1791,8 @@ ipcMain.on('folder_menu', (e, href) => {
         {
             label: 'Properties',
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
-            click:()=>{
-                // createPropertiesWindow()
-                e.sender.send('context-menu-command', 'props');
+            click: () => {
+                e.sender.send('context-menu-command', 'properties')
             }
         },
         {
@@ -1793,19 +1855,19 @@ ipcMain.on('file_menu', (e, file) => {
             submenu: [
                 {
                     label: 'Date',
-                    click: () => {win.send('sort', 'date')}
+                    click: () => { win.send('sort', 'date') }
                 },
                 {
                     label: 'Name',
-                    click: () => {win.send('sort', 'name')}
+                    click: () => { win.send('sort', 'name') }
                 },
                 {
                     label: 'Size',
-                    click: () => {win.send('sort', 'size')}
+                    click: () => { win.send('sort', 'size') }
                 },
                 {
                     label: 'Type',
-                    click: () => {win.send('sort', 'type')}
+                    click: () => { win.send('sort', 'type') }
                 }
 
             ]
@@ -1817,7 +1879,7 @@ ipcMain.on('file_menu', (e, file) => {
             label: 'Cut',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
             click: () => {
-            e.sender.send('context-menu-command', 'cut')
+                e.sender.send('context-menu-command', 'cut')
             }
         },
         {
@@ -1839,22 +1901,22 @@ ipcMain.on('file_menu', (e, file) => {
             id: 'templates',
             label: 'New Document',
             submenu: [
-            {
-                label: 'Open Templates Folder',
-                click: () => {
-                    e.sender.send('context-menu-command', 'open_templates_folder'
-                ),
                 {
-                    type: 'separator'
-                }
-            }
-        }],
+                    label: 'Open Templates Folder',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'open_templates_folder'
+                        ),
+                        {
+                            type: 'separator'
+                        }
+                    }
+                }],
         },
         {
             label: '&New Folder',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
             click: () => {
-            e.sender.send('context-menu-command', 'new_folder')
+                e.sender.send('context-menu-command', 'new_folder')
             }
         },
         {
@@ -1862,24 +1924,24 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Compress',
-                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
-                submenu: [
-                    {
-                        label: 'tar.gz',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress')
-                        }
-                    },
-                    {
-                        label: 'zip',
-                        click: () => {
-                            e.sender.send('context-menu-command', 'compress_zip')
-                        }
-                    },
-                ]
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            submenu: [
+                {
+                    label: 'tar.gz',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress')
+                    }
+                },
+                {
+                    label: 'zip',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress_zip')
+                    }
+                },
+            ]
         },
         {
-        type: 'separator'
+            type: 'separator'
         },
         {
             label: 'Delete File',
@@ -1893,12 +1955,12 @@ ipcMain.on('file_menu', (e, file) => {
             type: 'separator'
         },
         {
-        label: 'Terminal',
-        click: () => {
-            e.sender.send(
-            'context-menu-command', 'open_terminal'
-            )
-        }
+            label: 'Terminal',
+            click: () => {
+                e.sender.send(
+                    'context-menu-command', 'open_terminal'
+                )
+            }
         },
         {
             type: 'separator'
@@ -1906,10 +1968,8 @@ ipcMain.on('file_menu', (e, file) => {
         {
             label: 'Properties',
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
-            click:()=>{
-                get_properties(file.href);
-                // createPropertiesWindow()
-                // e.sender.send('context-menu-command', 'props')
+            click: () => {
+                e.sender.send('context-menu-command', 'properties')
             }
         },
     ]
@@ -1926,7 +1986,7 @@ ipcMain.on('file_menu', (e, file) => {
 
     // Run as program
     // if (args.access) {
-        // add_execute_menu(menu, e, args)
+    // add_execute_menu(menu, e, args)
     // }
 
     let ext = path.extname(file.href);

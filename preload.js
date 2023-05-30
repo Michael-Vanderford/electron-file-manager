@@ -20,7 +20,7 @@ let view = 'grid';
 if (localStorage.getItem('view') == null) {
     localStorage.setItem('view', view);
 } else {
-    view = localStorage.getItem('view')
+    view = localStorage.getItem('view');
 }
 
 // IPC ///////////////////////////////////////////////////////////////////
@@ -31,7 +31,21 @@ ipcRenderer.on('settings', (e, settings_data) => {
     settings = settings_data;
 })
 
-// ON DISk SPACE - NEW
+// On folder count
+ipcRenderer.on('folder_count', (e, href, folder_count) => {
+    let cards = document.querySelectorAll('.properties');
+    console.log('cards', cards)
+    cards.forEach(card => {
+        if (card.dataset.href === href) {
+            console.log('card', card);
+            let count = card.querySelector('.folder_count');
+            count.innerHTML = `${folder_count} Folders`;
+        }
+    })
+    console.log('folder count', href, folder_count);
+})
+
+// On Disk Space
 ipcRenderer.on('disk_space', (e, data) => {
 
     console.log('running get disk space');
@@ -173,8 +187,13 @@ ipcRenderer.on('new_folder', (e, file) => {
 })
 
 // Properties
-ipcRenderer.on('properties', (e, properties) => {
-    getProperties(properties)
+ipcRenderer.on('properties', (e, properties_arr) => {
+    let sidebar = document.querySelector('.sidebar')
+    sidebar.append(add_header('Properties'));
+    getProperties(properties_arr, properties_view => {
+        sidebar.innerHTML = ''
+        sidebar.append(properties_view);
+    })
 })
 
 // Toggle Hidden
@@ -738,6 +757,12 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             extract();
             break;
         }
+        case 'properties': {
+            getSelectedFiles();
+            ipcRenderer.send('get_properties', selected_files_arr);
+            clear();
+            break;
+        }
     }
 
     clearHighlight();
@@ -981,19 +1006,191 @@ function add_item(text) {
     return item;
 }
 
-function getProperties(file_properties) {
+// Get Properties
+function get_properties () {
 
-    let sidebar = document.getElementById('sidebar')
-    let cards = document.querySelectorAll('.card')
+    let filename = file_properties_obj['Name'];
+    let type = file_properties_obj['Type'];
+    let ext = path.extname(filename);
+    let execute_chk_div = add_checkbox('', 'Make Executable')
+    let sb_items = document.getElementById('sidebar_items');
+    let mb_info = document.getElementById('mb_info')
+    let remove_btn = add_icon('times');
+    let card = add_div();
+    let content = add_div();
+    let image = add_div();
 
-    sidebar.innerHTML = ''
-    sidebar.append(add_header('Properties'))
-    sidebar.append(add_item(file_properties.name))
-    sidebar.append(add_item(file_properties.href))
-    sidebar.append(add_item(file_properties.size))
-    sidebar.append(add_item(file_properties.content_type))
-    sidebar.append(add_item(file_properties.mtime))
-    clear();
+    image.classList.add('image')
+    mb_info.style = 'color: #ffffff !important;';
+    remove_btn.classList.add('small');
+    remove_btn.style = 'display:block; float:right; width: 23px; cursor: pointer';
+    remove_btn.addEventListener('click', (e) => {
+        card.remove();
+        let items = sb_items.querySelectorAll('.nav_item')
+        if (items.length == 0) {
+            get_sidebar_view();
+        }
+    })
+
+    let execute_chk = execute_chk_div.querySelector('.checkbox')
+    execute_chk.addEventListener('change', (e) => {
+
+        if (execute_chk.checked) {
+            chmod = fs.chmodSync(filename, '755');
+        } else {
+            chmod = fs.chmodSync(filename, '33188');
+        }
+
+    })
+
+    card.dataset.href = filename
+    card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav');
+    card.style = 'color: #ffffff !important;';
+    content.classList.add('content');
+
+    content.append(remove_btn, add_br());
+
+    let c = 0;
+    for (const prop in file_properties_obj) {
+
+        ++c;
+        let div = add_div();
+        div.style = 'display: flex; padding: 5px; word-break: break-all';
+
+        let col1 = add_div();
+        let col2 = add_div();
+
+        col1.style = 'width: 30%;'
+        col2.style = 'width: 60%;'
+
+        switch (prop) {
+            case 'Name':
+
+                let link = add_link(file_properties_obj[prop], file_properties_obj[prop]);
+                link.addEventListener('click', (e) => {
+                    if (fs.statSync(file_properties_obj[prop]).isDirectory()) {
+                        get_view(file_properties_obj[prop]);
+                    } else {
+                        open(file_properties_obj[prop])
+                    }
+                })
+
+                col2.append(link)
+
+                // Directory
+                if (type == 'directory') {
+
+                    let img = add_img(folder_icon);
+                    img.src = img.dataset.src;
+                    img.classList.remove('lazy');
+                    image.append(img);
+
+                    col1.append(image);
+                    div.append(col1, col2)
+
+                    // Files
+                } else {
+
+                    ipcRenderer.invoke('get_icon', card.dataset.href).then(res => {
+                        let img = document.createElement('img')
+                        img.src = res
+                        image.append(img);
+                    })
+
+                    // ipcRenderer.send('get_icon_path', filename);
+
+                    col1.append(image);
+                    div.append(col1, col2)
+
+                }
+
+                break;
+            case 'Contents':
+
+                col1.append(prop);
+                // col2.append('calculating..');
+                col2.dataset.contents = filename
+                div.append(col1, col2);
+
+                ipcRenderer.invoke('get_folder_count_recursive', filename,).then(res => {
+                    col2.append(res + ' Folders, ')
+                })
+
+                ipcRenderer.invoke('get_file_count_recursive', filename,).then(res => {
+                    col2.append(res + ' Files ')
+                })
+
+                break;
+            case 'Size':
+
+                col1.append(prop);
+                col2.append(get_file_size(localStorage.getItem(filename)));
+                div.append(col1, col2);
+
+                break;
+            default:
+
+                col1.append(prop);
+                col2.append(`${file_properties_obj[prop]}`);
+                div.append(col1, col2)
+
+                break;
+        }
+
+        if (ext == '.sh') {
+            content.append(div, execute_chk_div)
+        } else {
+            content.append(div)
+        }
+
+    }
+
+}
+
+// Get Properties View
+function getProperties(properties_arr, callback) {
+
+    let properties_view = document.querySelector('.properties_view')
+    if (!properties_view) {
+        properties_view = add_div();
+        properties_view.classList.add('properties_view');
+    }
+
+    properties_view.innerHTML = ''
+
+    properties_arr.forEach(item => {
+
+        // let card = getCardGio(item);
+        let card = add_div();
+        let content = add_div();
+
+        card.dataset.href = item.href
+
+        card.classList.add('properties');
+        content.classList.add('grid2');
+
+        content.append(add_item('Name:'), add_item(item.name));
+
+        let folder_count = add_div();
+        folder_count.classList.add('item', 'folder_count');
+        // content.append(add_item('Foder Count:'), folder_count);
+
+        content.append(add_item('Type:'), item.content_type);
+
+        content.append(add_item(`Contents:`), folder_count);
+
+        content.append(add_item('Location:'), add_item(path.dirname(item.href)));
+        content.append(add_item('Size:'), add_item(getFileSize(item.size)));
+        content.append(add_item(`Modified:`), add_item(getDateTime(item.mtime)));
+
+        card.append(content);
+
+        properties_view.append(card);
+
+        ipcRenderer.send('get_folder_count', item.href);
+
+    })
+    return callback(properties_view);
 }
 
 function toggleHidden() {
@@ -1694,7 +1891,7 @@ function getCardGio(file) {
     // Mouse Over
     card.addEventListener('mouseover', (e) => {
 
-        console.log('running mouse over');
+        // console.log('running mouse over');
 
         e.preventDefault();
         e.stopPropagation();
@@ -1736,7 +1933,7 @@ function getCardGio(file) {
     card.addEventListener('mouseenter', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('running mouse enter');
+        // console.log('running mouse enter');
     })
 
     // Mouse Leave
@@ -1863,7 +2060,7 @@ function getCardGio(file) {
 
                 console.log('whererergeger')
 
-                img.classList.add('lazy');
+                img.classList.add('lazy', 'img');
                 img.dataset.src = file.href;
                 // img.src = file.href;
             } else {

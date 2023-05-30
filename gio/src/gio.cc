@@ -355,6 +355,12 @@ namespace gio {
         guint index = 0;
         GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, &error);
 
+        if (enumerator == NULL) {
+            GError *enum_err;
+            enum_err = g_error_new_literal(G_FILE_ERROR, G_FILE_ERROR_FAILED, "Failed to get child file");
+            return Nan::ThrowError(enum_err->message);
+        }
+
         if (error != NULL) {
             g_error_free(error);
             g_object_unref(src);

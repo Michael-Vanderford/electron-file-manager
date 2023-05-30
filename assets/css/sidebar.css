@@ -4,7 +4,7 @@
     .sidebar {
         background-color: var(--dark);
         color: var(--light);
-        padding: 15px;
+        padding: 10px;
         height: 100%;
         overflow: auto;
         width: 250px;

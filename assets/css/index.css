@@ -354,7 +354,7 @@ html, body {
     position: relative;
     display: flex;
     width: 100%;
-    height: 100%;
+    height: 110%;
     /* border:1px solid red; */
 }
 
@@ -405,6 +405,10 @@ progress::-webkit-progress-bar {
     opacity: 0;
     transition: opacity 0.5s;
 
+}
+
+.card .img {
+    border-radius: 5px;
 }
 
 .icon {
@@ -532,8 +536,6 @@ input[type=text]:focus {
     background: #334c74;
 }
 
-
-
 .ds-selected {
     background: #334c74;
 }
@@ -541,6 +543,14 @@ input[type=text]:focus {
 .drag_select {
     /* border: 1px solid var(--grey); */
     background: rgb(0 0 0 / 0.4)
+}
+
+.properties {
+    width: 100%;
+    border: 1px solid var(--highlight);
+    border-radius: 5px;
+    background: var(--lessdark);
+    margin-bottom: 10px;
 }
 
 .hidden {
@@ -621,6 +631,12 @@ input[type=text]:focus {
 .grid1 .input {
     /* min-width: 400px; */
     /* width: 100%; */
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    width: 100%;
 }
 
 .grid5 {
@@ -749,6 +765,7 @@ input[type=text]:focus {
     --yellow: #FFFF00;
     --orange: #FFA500;
     --link: #4183c4;
+    --highlight: #192b3c;
 
     --light: #C0C0C0;
     --lighter: #cfcfcf;
