@@ -3841,10 +3841,14 @@ ipcMain.on("git_history", (e) => {
     exec(checkGitRepo, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
         if (stderr) {
             console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
         draw_graph();
