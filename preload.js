@@ -9712,22 +9712,25 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
     };
 });
 
-ipcRenderer.on("draw_git_history", (e, filePath, list) => {
-    let pTagCount=1;
-    let tagArea = document.getElementById('git_history_storage');
-    
-    for(var i in list){
+ipcRenderer.on("show_git_commit_history",(e,str)=>{
+    let tagArea = document.getElementById('show_git_commit');
+    let arr = str.split("\n");
+    for(let i in arr){
         let new_pTag = document.createElement('p');
-        let new_spanTag = document.createElement('span');
+        new_pTag.innerHTML = arr[i];
+        tagArea.appendChild(new_pTag);
+    }
+});
+
+ipcRenderer.on("draw_git_history", (e, filePath, list) => {
+    let tagArea = document.getElementById('git_history_storage');
+    for(let i in list){
+        let new_pTag = document.createElement('p');
         let str = "";
-        let id_arr = new Array;
         for(let j=0;j<list[i].length; j++){
             switch(list[i][j]){
                 case '*':
-                    let id = "graph"+j;
-                    str+="<span id = "+id+">*</span>";
-                    id_arr.push(id);
-                    break;
+                    str+=`<span>*</span>`;break;
                 case '|':
                 case '/':
                 case '_':
@@ -9736,17 +9739,40 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
             }        
         }        
         new_pTag.innerHTML = str;
+        new_pTag.id = `graph"${i}`;
         tagArea.appendChild(new_pTag);
-        pTagCount++;
     }  
-    for(let i in id_arr){
-        let t = document.getElementById(id_arr[i]);
-                t.addEventListener('click',function(event){
-                    //function
-        });  
+    const doc_id = new Array;
+    for(let i in list){
+        doc_id[i]=document.getElementById(`graph"${i}`);
+        doc_id[i].onclick = (e) =>{
+            ipcRenderer.send("show_git_history_status",i,list.length);
+        }
     }
 });
 
+ipcRenderer.on("",(e,id)=>{
+    const text = document.getElementById("git_history_status");
+    let checkGitRepo = "git log";
+    exec(checkGitRepo,(err, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        let list = stdout.split("commit");
+        }
+    );
+});
 
 ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     const btn_git_merge_confirm = document.getElementById(
