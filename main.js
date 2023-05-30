@@ -3847,8 +3847,11 @@ ipcMain.on("git_history", (e) => {
             console.error(`${stderr}`);
             return;
         }
+        draw_graph();
     });
+});
 
+const draw_graph=()=>{
     let git_log = `git log --pretty=format:"%h" --graph`;      //git repo 확인
     exec(git_log, (error, stdout, stderr) => {
         if (error) {
@@ -3869,7 +3872,7 @@ ipcMain.on("git_history", (e) => {
         const list = stdout.split("\n");
         gitCommitHistory(current_directory,list);        
     });
-});
+}
 
 ipcMain.on("show_git_history_status", (e,idx,len) => {
     get_git_commit(idx).then(
