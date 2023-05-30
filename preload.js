@@ -9724,13 +9724,14 @@ ipcRenderer.on("show_git_commit_history",(e,str)=>{
 
 ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     let tagArea = document.getElementById('git_history_storage');
+    const id_arr = new Array;
     for(let i in list){
         let new_pTag = document.createElement('p');
         let str = "";
         for(let j=0;j<list[i].length; j++){
             switch(list[i][j]){
                 case '*':
-                    str+=`<span>*</span>`;break;
+                    str+=`<span>*</span>`;id_arr.push(i);break;
                 case '|':
                 case '/':
                 case '_':
@@ -9743,10 +9744,10 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         tagArea.appendChild(new_pTag);
     }  
     const doc_id = new Array;
-    for(let i in list){
-        doc_id[i]=document.getElementById(`graph"${i}`);
+    for(let i in id_arr){
+        doc_id[i]=document.getElementById(`graph"${id_arr[i]}`);
         doc_id[i].onclick = (e) =>{
-            ipcRenderer.send("show_git_history_status",i,list.length);
+            ipcRenderer.send("show_git_history_status",i,id_arr.length);
         }
     }
 });
