@@ -456,7 +456,8 @@ progress::-webkit-progress-bar {
 }
 
 .card:hover {
-    background: #334c74;
+    /* background: #334c74; */
+    background: var(--highlight)
 }
 
 .card a {
@@ -545,14 +546,6 @@ input[type=text]:focus {
     background: rgb(0 0 0 / 0.4)
 }
 
-.properties {
-    width: 100%;
-    border: 1px solid var(--highlight);
-    border-radius: 5px;
-    background: var(--lessdark);
-    margin-bottom: 10px;
-}
-
 .hidden {
     display: none !important;
 }
@@ -636,6 +629,16 @@ input[type=text]:focus {
 .grid2 {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    width: 100%;
+}
+
+.grid2 .iten {
+    overflow-wrap: break-word;
+}
+
+.grid3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     width: 100%;
 }
 
@@ -765,7 +768,7 @@ input[type=text]:focus {
     --yellow: #FFFF00;
     --orange: #FFA500;
     --link: #4183c4;
-    --highlight: #192b3c;
+    --highlight: #334c74;
 
     --light: #C0C0C0;
     --lighter: #cfcfcf;

@@ -6,8 +6,29 @@
         color: var(--light);
         padding: 10px;
         height: 100%;
-        overflow: auto;
+        overflow: none;
         width: 250px;
+    }
+
+    .properties_view {
+        overflow: hidden;
+        /* word-wrap: break-word; */
+        /* white-space: break-all; */
+        /* width: 90%; */
+    }
+
+    .properties {
+        width: 100%;
+        border-radius: 5px;
+        background: var(--lessdark);
+        margin-bottom: 10px;
+        padding: 5px;
+        box-sizing: border-box;
+    }
+
+    .scrollbar {
+        width: 0px;
+        background: var(--lessdark);
     }
 
     .draghandle {

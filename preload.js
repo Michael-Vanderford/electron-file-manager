@@ -39,11 +39,24 @@ ipcRenderer.on('folder_count', (e, href, folder_count) => {
         if (card.dataset.href === href) {
             console.log('card', card);
             let count = card.querySelector('.folder_count');
-            count.innerHTML = `${folder_count} Folders`;
+            count.innerHTML = `${folder_count} Items`;
         }
     })
     console.log('folder count', href, folder_count);
 })
+
+// // On file count
+// ipcRenderer.on('file_count', (e, href, file_count) => {
+//     let cards = document.querySelectorAll('.properties');
+//     console.log('file cards', cards)
+//     cards.forEach(card => {
+//         if (card.dataset.href === href) {
+//             console.log('card', card);
+//             let count = card.querySelector('.file_count');
+//             count.innerHTML = `${file_count} Files`;
+//         }
+//     })
+// })
 
 // On Disk Space
 ipcRenderer.on('disk_space', (e, data) => {
@@ -773,6 +786,13 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
 // Utilities ///////////////////////////////////////////////////////////////
 
+function add_img(src) {
+    let img = document.createElement('img')
+    img.width = 32
+    img.src = src
+    return img
+}
+
 function watch_dir(dir) {
     let fsTimeout
     let watcher = fs.watch(dir, (e, filename) => {
@@ -1164,6 +1184,12 @@ function getProperties(properties_arr, callback) {
         let card = add_div();
         let content = add_div();
 
+        console.log('item', item)
+
+        if (item.is_dir) {
+            card.append(add_img(folder_icon))
+        }
+
         card.dataset.href = item.href
 
         card.classList.add('properties');
@@ -1173,10 +1199,12 @@ function getProperties(properties_arr, callback) {
 
         let folder_count = add_div();
         folder_count.classList.add('item', 'folder_count');
+
+        // let file_count = add_div();
+        // file_count.classList.add('item', 'file_count');
         // content.append(add_item('Foder Count:'), folder_count);
 
-        content.append(add_item('Type:'), item.content_type);
-
+        content.append(add_item('Type:'), add_item(item.content_type));
         content.append(add_item(`Contents:`), folder_count);
 
         content.append(add_item('Location:'), add_item(path.dirname(item.href)));
@@ -1188,6 +1216,9 @@ function getProperties(properties_arr, callback) {
         properties_view.append(card);
 
         ipcRenderer.send('get_folder_count', item.href);
+
+        // note:
+        // ipcRenderer.send('get_file_count', item.href);
 
     })
     return callback(properties_view);

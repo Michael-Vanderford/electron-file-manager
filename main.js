@@ -135,7 +135,8 @@ function getFolderCount(source, callback) {
     // let dirents = gio.ls(source)
     try {
         get_files_arr(source, '', dirents => {
-            let folder_count = dirents.reduce((c, x) => x.type === 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            // let folder_count = dirents.reduce((c, x) => x.type === 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            let folder_count = dirents.length;
             return callback(folder_count);
         })
     } catch (err) {
@@ -151,7 +152,7 @@ function getFileCount(source, callback) {
             return callback(file_count);
         })
     } catch (err) {
-        
+
     }
 }
 
