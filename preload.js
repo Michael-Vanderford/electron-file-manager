@@ -25,10 +25,61 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
-// Get Settings
-let settings = []
-ipcRenderer.on('settings', (e, settings_data) => {
-    settings = settings_data;
+// On Sort
+ipcRenderer.on('sort', (e, sort) => {
+    switch (sort) {
+        case 'date': {
+            localStorage.setItem('sort', 'date')
+            break
+        }
+        case 'name': {
+            localStorage.setItem('sort', 'name')
+            break
+        }
+        case 'size': {
+            localStorage.setItem('sort', 'size')
+            break
+        }
+        case 'type': {
+            localStorage.setItem('sort', 'type')
+            break
+        }
+    }
+    let location = document.querySelector('.location')
+    getView(location, () => {});
+})
+
+// On Recent Files
+ipcRenderer.on('recent_files', (e, dir, recent_files_arr) => {
+
+    let main = document.querySelector('.main');
+    let recent_folders = add_div();
+    let recent_files = add_div();
+
+    recent_folders.classList.add('recent_folder');
+    recent_files.classList.add('recent_files');
+
+    recent_folders.append(add_header('Recent Folders'));
+    recent_files.append(add_header('Recent Files'));
+
+    main.innerHTML = '';
+
+    main.append(recent_folders);
+    main.append(recent_files);
+
+    // recent_files.forEach('')
+
+})
+
+// On Get Folder Size
+ipcRenderer.on('get_folder_size', (e, href, size) => {
+    let cards = document.querySelectorAll('.properties');
+    cards.forEach(card => {
+        if (card.dataset.href === href) {
+            let folder_size = card.querySelector('.size')
+            folder_size.innerHTML = size;
+        }
+    })
 })
 
 // On folder count
@@ -81,7 +132,6 @@ ipcRenderer.on('disk_space', (e, data) => {
     disk_space.innerHTML = ''
 
     if (data.length > 0) {
-
 
         let ds = add_div();
         let us = add_div();
@@ -161,7 +211,7 @@ ipcRenderer.on('new_folder', (e, file) => {
 
     console.log('running new folder');
 
-    let main = document.querySelector('.main')
+    let main = document.querySelector('.main');
     let folder_grid = document.getElementById('folder_grid');
     let card = getCardGio(file);
     folder_grid.prepend(card);
@@ -180,7 +230,7 @@ ipcRenderer.on('new_folder', (e, file) => {
 
     input.addEventListener('change', (e) => {
 
-        console.log('running rename')
+        console.log('running rename');
 
         let location = document.getElementById('location');
         let source = file.href;
@@ -230,10 +280,31 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     let slider = document.getElementById('slider')
 
     let folder_grid = document.getElementById('folder_grid');
+    if (!folder_grid) {
+        folder_grid = add_div()
+        folder_grid.classList.add('folder_grid')
+        folder_grid.id = 'folder_grid'
+    }
     let file_grid = document.getElementById('file_grid');
+    if (!file_grid) {
+        file_grid = add_div()
+        file_grid.classList.add('file_grid')
+        file_grid.id = 'file_grid'
+    }
 
     let hidden_folder_grid = document.getElementById('hidden_folder_grid');
+    if (!hidden_folder_grid) {
+        hidden_folder_grid = add_div()
+        hidden_folder_grid.classList.add('hidden_folder_grid')
+        hidden_folder_grid.id = 'hidden_folder_grid'
+    }
+
     let hidden_file_grid = document.getElementById('hidden_file_grid');
+    if (!hidden_file_grid) {
+        hidden_file_grid = add_div()
+        hidden_file_grid.classList.add('hidden_file_grid')
+        hidden_file_grid.id = 'hidden_file_grid'
+    }
 
     let grid_view = document.querySelector('.grid_view');
     let list_view = document.querySelector('.list_view');
@@ -302,6 +373,12 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     hidden_folder_grid.innerHTML = ''
     hidden_file_grid.innerHTML = ''
 
+    if (localStorage.getItem('sort') === null) {
+        sort = 'date';
+    } else {
+        sort = localStorage.getItem('sort');
+    }
+
     // Sort by date
     if (sort === 'date') {
         dirents.sort((a, b) => {
@@ -320,29 +397,29 @@ ipcRenderer.on('ls', (e, dirents, source) => {
             return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
         })
     }
-    // // Sort by Size
-    // if (sort === 'size') {
-    //     dirents.sort((a, b) => {
-    //         let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
-    //         let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
-    //         if (sort_flag == 0) {
-    //             return s2 - s1;
-    //         } else {
-    //             s1 - s2;
-    //         }
-    //     })
-    // }
-    // // Sort by Type
-    // if (sort === 'type') {
-    //     dirents.sort((a, b) => {
-    //         let ext1 = path.extname(path.basename(a.href));
-    //         let ext2 = path.extname(path.basename(b.href));
-    //         if (ext1 < ext2) return -1;
-    //         if (ext1 > ext2) return 1;
-    //         if (a.mtime < b.mtime) return -1;
-    //         if (a.mtime > b.mtime) return 1;
-    //     })
-    // }
+    // Sort by Size
+    if (sort === 'size') {
+        dirents.sort((a, b) => {
+            let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
+            let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
+            if (sort_flag == 0) {
+                return s2 - s1;
+            } else {
+                s1 - s2;
+            }
+        })
+    }
+    // Sort by Type
+    if (sort === 'type') {
+        dirents.sort((a, b) => {
+            let ext1 = path.extname(path.basename(a.href));
+            let ext2 = path.extname(path.basename(b.href));
+            if (ext1 < ext2) return -1;
+            if (ext1 > ext2) return 1;
+            if (a.mtime < b.mtime) return -1;
+            if (a.mtime > b.mtime) return 1;
+        })
+    }
 
     // const chunck = 500;
     // let currentidx = 0;
@@ -352,7 +429,7 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     // Loop Files Array
     for (let i = 0; i < dirents.length; i++) {
-        if (i < 1000) {
+        if (i < 500) {
             let file = dirents[i]
             let card = getCardGio(file);
             if (file.is_dir) {
@@ -382,6 +459,8 @@ ipcRenderer.on('ls', (e, dirents, source) => {
                 }
 
             }
+        } else {
+            msg('Maximum file limit of 500 has been exceeded')
         }
     }
 
@@ -438,7 +517,7 @@ ipcRenderer.on('folder_size', (e, source, folder_size) => {
     let card = document.querySelector(`[data-href="${source}"]`)
     let size = card.querySelector('.size')
     size.innerHTML = ''
-    size.innerHTML = `${folder_size}`;
+    size.innerHTML = getFileSize(folder_size);
 })
 
 // Get Folder and File Count
@@ -1178,44 +1257,61 @@ function getProperties(properties_arr, callback) {
 
     properties_view.innerHTML = ''
 
-    properties_arr.forEach(item => {
+    properties_arr.forEach(file => {
 
         // let card = getCardGio(item);
         let card = add_div();
         let content = add_div();
 
-        console.log('item', item)
-
-        if (item.is_dir) {
-            card.append(add_img(folder_icon))
-        }
-
-        card.dataset.href = item.href
+        console.log('item', file)
+        card.dataset.href = file.href
 
         card.classList.add('properties');
         content.classList.add('grid2');
 
-        content.append(add_item('Name:'), add_item(item.name));
+        let icon = add_div()
+        icon.classList.add('icon')
+        card.append(icon)
+
+        content.append(add_item('Name:'), add_item(file.name));
 
         let folder_count = add_div();
         folder_count.classList.add('item', 'folder_count');
+
+        let size = add_div();
+        size.classList.add('size')
 
         // let file_count = add_div();
         // file_count.classList.add('item', 'file_count');
         // content.append(add_item('Foder Count:'), folder_count);
 
-        content.append(add_item('Type:'), add_item(item.content_type));
+        content.append(add_item('Type:'), add_item(file.content_type));
         content.append(add_item(`Contents:`), folder_count);
 
-        content.append(add_item('Location:'), add_item(path.dirname(item.href)));
-        content.append(add_item('Size:'), add_item(getFileSize(item.size)));
-        content.append(add_item(`Modified:`), add_item(getDateTime(item.mtime)));
+        content.append(add_item('Location:'), add_item(path.dirname(file.href)));
+        if (file.is_dir) {
+            content.append(add_item('Size:'), add_item(size));
+        } else {
+            content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+        }
+        content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+        content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+        content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
 
         card.append(content);
 
         properties_view.append(card);
 
-        ipcRenderer.send('get_folder_count', item.href);
+        if (file.is_dir) {
+
+            icon.append(add_img(folder_icon))
+            ipcRenderer.send('get_folder_count', file.href);
+            ipcRenderer.send('get_folder_size', file.href);
+        } else {
+            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                icon.append(add_img(res));
+            })
+        }
 
         // note:
         // ipcRenderer.send('get_file_count', item.href);
@@ -1250,29 +1346,29 @@ function toggleHidden() {
 
 }
 
-function initResize(event) {
-    isResizing = true;
-    var grid = document.getElementsByClassName("grid")[0];
-    startX = event.clientX;
-    startWidth = parseInt(document.defaultView.getComputedStyle(grid).getPropertyValue("width"), 10);
+// function initResize(event) {
+//     isResizing = true;
+//     var grid = document.getElementsByClassName("grid")[0];
+//     startX = event.clientX;
+//     startWidth = parseInt(document.defaultView.getComputedStyle(grid).getPropertyValue("width"), 10);
 
-    document.addEventListener("mousemove", doResize, false);
-    document.addEventListener("mouseup", stopResize, false);
-}
+//     document.addEventListener("mousemove", doResize, false);
+//     document.addEventListener("mouseup", stopResize, false);
+// }
 
-function doResize(event) {
-    if (!isResizing) return;
+// function doResize(event) {
+//     if (!isResizing) return;
 
-    var grid = document.getElementsByClassName("grid")[0];
-    var width = startWidth + (event.clientX - startX);
-    grid.style.width = width + "px";
-}
+//     var grid = document.getElementsByClassName("grid")[0];
+//     var width = startWidth + (event.clientX - startX);
+//     grid.style.width = width + "px";
+// }
 
-function stopResize() {
-    isResizing = false;
-    document.removeEventListener("mousemove", doResize, false);
-    document.removeEventListener("mouseup", stopResize, false);
-}
+// function stopResize() {
+//     isResizing = false;
+//     document.removeEventListener("mousemove", doResize, false);
+//     document.removeEventListener("mouseup", stopResize, false);
+// }
 
 // Clear Items
 function clear() {
@@ -1390,7 +1486,13 @@ let folder_icon = get_folder_icon();
  */
 function msg(message) {
 
+    // let main = document.querySelector('.main');
     let msg = document.getElementById('msg');
+    // if (!msg) {
+    //     msg = add_div();
+    //     msg.classList.add('msg', 'bottom');
+    //     main.append(msg);
+    // }
     msg.innerHTML = '';
     msg.classList.remove('hidden');
     if (message === '') {
@@ -1404,7 +1506,6 @@ function msg(message) {
     }
 
     msg.innerHTML = message;
-
     // setTimeout(() => {
     //     msg.innerHTML = ''
     //     msg.classList.add('hidden')
@@ -1462,7 +1563,6 @@ function edit() {
         input.focus();
 
         main.removeEventListener('keydown', quick_search);
-
 
         input.addEventListener('change', (e) => {
             e.preventDefault();
@@ -1562,7 +1662,9 @@ function getHome(callback) {
             })
             item.classList.add('active')
             if (href === 'Recent') {
-                get_recent_files(`${home_dir}/Documents`)
+                // get_recent_files(`${home_dir}/Documents`)
+                // ipcRenderer.send('get_recent_files', location.value);
+                msg('Not Implemented Yet')
             } else {
                 // location.value = my_computer_paths_arr[i];
                 getView(my_computer_paths_arr[i], () => {});
@@ -2653,7 +2755,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
 
                 // Edit
-                if (e.key === 'F2') {
+                if (e.key === shortcut.Rename) {
                     edit();
                 }
 
@@ -2837,7 +2939,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             localStorage.setItem('sidebar_width', sidebar_width);
         } else {
             sidebar_width = localStorage.getItem('sidebar_width');
-            sidebar.style = `width: ${sidebar_width}px;`
+            sidebar.style = `width: ${parseInt(sidebar_width)}px;`
         }
 
         if (sidebar) {
@@ -2855,8 +2957,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         /* Resize sidebar */
         function Resize(e) {
-            if (e.clientX < 400) {
+            if (e.clientX < 500) {
                 sidebar.style.width = (e.clientX - sidebar.offsetLeft) + 'px';
+
+                localStorage.setItem('sidebar_width', e.clientX - sidebar.offsetLeft);
+                console.log(sidebar.style.width)
                 // main.style.marginLeft = (e.clientX - (sidebar.offsetLeft - 40)) + 'px'
             }
         }
@@ -2866,7 +2971,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             console.log('running')
             window.removeEventListener('mousemove', Resize, false);
             window.removeEventListener('mouseup', stopResize, false);
-            localStorage.setItem('sidebar_width', sidebar.clientWidth);
+            // localStorage.setItem('sidebar_width', sidebar.clientWidth);
             console.log(sidebar.clientWidth)
         }
 

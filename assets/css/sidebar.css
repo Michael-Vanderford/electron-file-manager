@@ -4,17 +4,18 @@
     .sidebar {
         background-color: var(--dark);
         color: var(--light);
-        padding: 10px;
+        padding-left: 5px;
+        padding-right: 5px;
         height: 100%;
         overflow: none;
         width: 250px;
     }
 
     .properties_view {
-        overflow: hidden;
+        /* overflow: hidden; */
         /* word-wrap: break-word; */
         /* white-space: break-all; */
-        /* width: 90%; */
+        width: 100%;
     }
 
     .properties {
@@ -24,6 +25,11 @@
         margin-bottom: 10px;
         padding: 5px;
         box-sizing: border-box;
+    }
+
+    .properties .item {
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .scrollbar {

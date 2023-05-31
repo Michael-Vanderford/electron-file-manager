@@ -130,6 +130,41 @@ worker.on('message', (data) => {
 
 // Functions //////////////////////////////////////////////
 
+function getSettings() {
+    let settings_file = path.join(app.getPath('userData'), 'settings.json');
+    let settings = {};
+    try {
+        settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+    } catch (err) {
+        fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
+        settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+    }
+    return settings;
+}
+
+// Get Folder Size
+function getFolderSize(source, callback) {
+    // let dirents = gio.ls(source)
+    try {
+        get_files_arr(source, '', dirents => {
+
+            dirents.reduce((c, x) => x.type !== 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+
+            let size = 0;
+            for (let i = 0; i < dirents.length; i++) {
+                if (dirents[i].type !== 'directory')
+                size += dirents[i].size
+            }
+
+            // dirents.reduce((c, x) => x.type === 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            // let folder_count = dirents.length;
+            return callback(size);
+        })
+    } catch (err) {
+
+    }
+}
+
 // Get Folder Count
 function getFolderCount(source, callback) {
     // let dirents = gio.ls(source)
@@ -148,7 +183,7 @@ function getFolderCount(source, callback) {
 function getFileCount(source, callback) {
     try {
         get_files_arr(source, '', dirents => {
-            let file_count = dirents.reduce((c, x) => !x.is_dir ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+            let file_count = dirents.reduce((c, x) => x.is_dir === false ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
             return callback(file_count);
         })
     } catch (err) {
@@ -333,7 +368,12 @@ function get_files_arr(source, destination, callback) {
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({ dir: destination, base: file.name }), callback)
             } else {
-                file_arr.push({ type: 'file', source: file.href, destination: path.format({ dir: destination, base: file.name }) })
+                file_arr.push(
+                    { type: 'file',
+                    source: file.href,
+                    destination: path.format({ dir: destination, base: file.name }),
+                    size: file.size,
+                })
             }
         }
         if (--cp_recursive == 0) {
@@ -382,6 +422,30 @@ function copyOverwrite(copy_overwrite_arr) {
 }
 
 // IPC ////////////////////////////////////////////////////
+
+// Get Settings
+ipcMain.on('get_settings', (e) => {
+
+})
+
+// Om Get Recent Files
+ipcMain.on('get_recent_files', (e, dir) => {
+    let dirents = gio.ls(dir);
+    // const d = new Date();
+    // d.setDate(d.getDate() - 14);
+    // const file_arr = dirents.filter(item => {
+        // const itemDate = new Date(item.date);
+        // return item.mtime >= d;
+    // });
+    win.send('recent_files', dir, dirents)
+})
+
+// On Get Folder Size
+ipcMain.on('get_folder_size', (e, href) => {
+    getFolderSize(href, size => {
+        win.send('folder_size', href,size);
+    })
+})
 
 // On Get Folder Count
 ipcMain.on('get_folder_count', (e, href) => {
@@ -654,7 +718,8 @@ function createWindow() {
 };
 
 process.on('uncaughtException', (error) => {
-    win.send('msg', error.message);
+    console.log(error.message)
+    // win.send('msg', error.message);
 })
 
 // Define the app events
@@ -2062,5 +2127,126 @@ ipcMain.on('workspace_menu', (e, file) => {
     });
 
 })
+
+// Header Menu
+const template = [
+    {
+        label: 'File',
+        submenu : [
+            {
+                label: 'New Window',
+                click: () => {
+                    // win.send('context-menu-command', 'open_in_new_window')
+                    createWindow();
+                }
+            },
+            {type: 'separator'},
+            {
+                label: 'Create New Folder',
+                click: () => {
+                    win.send('new_folder')
+                }
+            },
+            {type: 'separator'},
+            {
+                label: 'Connect to Server',
+                click: () => {
+                    connectDialog();
+                }
+            },
+            {type: 'separator'},
+            {role: 'Close'}
+    ]},
+    {
+        label: 'Edit',
+        submenu : [
+            {
+                role: 'copy',
+                click: () => {
+                    win.sender.send('copy')
+                }
+            }
+        ]
+    },
+    {
+        label: 'View',
+        submenu: [
+            // {
+            //     label: 'Disk Usage Summary',
+            //     click: () => {
+            //         win.send('get_disk_summary_view')
+            //         // get_diskspace_summary();
+            //     }
+            // },
+            // {type: 'separator'},
+            {
+                label: 'Sort',
+                submenu: [
+                    {
+                        label: 'Date',
+                        // accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+D' : 'CTRL+SHIFT+D',
+                        click: () => {win.send('sort', 'date')}
+                    },
+                    {
+                        label: 'Name',
+                        click: () => {win.send('sort', 'size')}
+                    },
+                    {
+                        label: 'Size',
+                        click: () => {win.send('sort', 'name')}
+                    },
+                    {
+                        label: 'Type',
+                        click: () => {win.send('sort', 'type')}
+                    },
+                ]
+            },
+            {type: 'separator'},
+            {
+                label: 'Show Sidebar',
+                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.ShowSidebar : settings.keyboard_shortcuts.ShowSidebar,
+                click: () => {
+                    let win = window.getFocusedWindow();
+                    win.webContents.send('sidebar');
+                }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Toggle theme',
+                click: () => {
+                    if (nativeTheme.shouldUseDarkColors) {
+                        nativeTheme.themeSource = 'light'
+                    } else {
+                        nativeTheme.themeSource = 'dark'
+                    }
+                }
+            },
+            {role: 'toggleDevTools'},
+            {type: 'separator'},
+            {type: 'separator'},
+            {
+                label: 'Appearance',
+                role: 'viewMenu'
+            },
+            {type: 'separator'},
+            {role: 'reload'},
+
+        ]
+    },
+    {
+        label: 'Help',
+        submenu : [
+            {
+                label: 'About'
+            }
+        ]
+    }
+
+]
+
+const menu = Menu.buildFromTemplate(template);
+Menu.setApplicationMenu(menu);
 
 

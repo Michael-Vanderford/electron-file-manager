@@ -628,8 +628,10 @@ input[type=text]:focus {
 
 .grid2 {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    width: 100%;
+    /* grid-template-columns: repeat(2, 1fr); */
+    grid-template-columns: 75px auto;
+    /* grid-template-rows: auto; */
+    /* width: 100%; */
 }
 
 .grid2 .iten {
