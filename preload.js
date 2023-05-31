@@ -9728,6 +9728,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     for(let i in list){
         let new_pTag = document.createElement('p');
         let str = "";
+        let flag = false;
         for(let j=0;j<list[i].length; j++){
             switch(list[i][j]){
                 case '*':
@@ -9737,8 +9738,12 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                 case '_':
                 case '\\':
                 case ' ':str+=list[i][j];break;
+                default:flag = true;
             }        
-        }        
+        }   
+        if(flag==true)
+            str+=`<span>${list[i].slice(-7)}</span>`  
+
         new_pTag.innerHTML = str;
         new_pTag.id = `graph"${i}`;
         tagArea.appendChild(new_pTag);
