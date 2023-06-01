@@ -211,15 +211,27 @@ namespace gio {
 
         int i = 0;
         for (GList* iter = appList; iter != NULL; iter = iter->next) {
-            GAppInfo* app = (GAppInfo*)iter->data;
-            const char* appName = g_app_info_get_name(app);
 
-            Nan::Set(result, i, Nan::New(appName).ToLocalChecked());
+            GAppInfo* app = (GAppInfo*)iter->data;
+            const char* app_name = g_app_info_get_name(app);
+            const char* app_display_name = g_app_info_get_display_name(app);
+            const char* app_exec = g_app_info_get_executable(app);
+            const char* cmd = g_app_info_get_commandline(app);
+            // const char* app_desc = g_app_info_get_description(app);
+
+            v8::Local<v8::Object> file_obj = Nan::New<v8::Object>();
+            Nan::Set(file_obj, Nan::New("name").ToLocalChecked(), Nan::New(app_name).ToLocalChecked());
+            Nan::Set(file_obj, Nan::New("display").ToLocalChecked(), Nan::New(app_display_name).ToLocalChecked());
+            Nan::Set(file_obj, Nan::New("exec").ToLocalChecked(), Nan::New(app_exec).ToLocalChecked());
+            Nan::Set(file_obj, Nan::New("cmd").ToLocalChecked(), Nan::New(cmd).ToLocalChecked());
+            Nan::Set(file_obj, Nan::New("mimetype").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+            // Nan::Set(file_obj, Nan::New("description").ToLocalChecked(), Nan::New(app_desc).ToLocalChecked());
+            // Nan::Set(result, i, Nan::New(appName).ToLocalChecked());
+            Nan::Set(result, i, file_obj);
             i++;
         }
 
         g_list_free(appList);
-        // g_clear_object(&defaultApp);
         g_object_unref(src);
 
         info.GetReturnValue().Set(result);
@@ -282,6 +294,7 @@ namespace gio {
         gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
         const char* mimetype = g_file_info_get_content_type(file_info);
         gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+
 
         v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
         Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -476,22 +489,6 @@ namespace gio {
         info.GetReturnValue().Set(resultValue);
 
     }
-
-    // NAN_METHOD(monitor) {
-
-    //     GVolumeMonitor* volume_monitor;
-
-    //     // Initialize the GIO library
-    //     g_type_init();
-
-    //     // Create the volume monitor
-    //     volume_monitor = g_volume_monitor_get();
-
-    //     // Connect signals for device added and removed events
-    //     g_signal_connect(volume_monitor, "drive-added", G_CALLBACK(on_device_added), NULL);
-    //     // g_signal_connect(volume_monitor, "drive-removed", G_CALLBACK(on_device_removed), NULL);
-
-    // }
 
     NAN_METHOD(count) {
 
@@ -882,3 +879,20 @@ namespace gio {
 }
 
 // NODE_MODULE_CONTEXT_AWARE_BUILTIN(gio, init)
+
+
+// NAN_METHOD(monitor) {
+
+    //     GVolumeMonitor* volume_monitor;
+
+    //     // Initialize the GIO library
+    //     g_type_init();
+
+    //     // Create the volume monitor
+    //     volume_monitor = g_volume_monitor_get();
+
+    //     // Connect signals for device added and removed events
+    //     g_signal_connect(volume_monitor, "drive-added", G_CALLBACK(on_device_added), NULL);
+    //     // g_signal_connect(volume_monitor, "drive-removed", G_CALLBACK(on_device_removed), NULL);
+
+    // }

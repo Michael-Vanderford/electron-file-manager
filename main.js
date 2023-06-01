@@ -1414,96 +1414,105 @@ function set_default_launcher(desktop_file, mimetype) {
 
 }
 
-// Get Launchers
-function get_launchers(file) {
+// // Get Launchers
+// function get_launchers(file) {
 
-    let launchers = []
-    try {
-        let filetype = file.content_type;
-        let cmd = `grep "${filetype}" /usr/share/applications/mimeinfo.cache`
-        let desktop_launchers = execSync(cmd).toString().replace(filetype + '=', '').split(';')
-        if (desktop_launchers.length > 0) {
-            for (let i = 0; i < desktop_launchers.length; i++) {
-                let filepath = path.join('/usr/share/applications', desktop_launchers[i])
-                // console.log(filepath)
-                if (file.type !== 'directory') {
+//     let open_with = gio.open_with(file.href);
+//     console.log('open with', open_with)
 
-                    // GET DESKTOP LAUNCHER EXECUTE PATH
-                    cmd = "grep '^Exec=' " + filepath
-                    let exec_path = execSync(cmd).toString().split('\n')
+//     let launchers = []
+//     try {
+//         let filetype = file.content_type;
+//         let cmd = `grep "${filetype}" /usr/share/applications/mimeinfo.cache`
+//         let desktop_launchers = execSync(cmd).toString().replace(filetype + '=', '').split(';')
+//         if (desktop_launchers.length > 0) {
+//             for (let i = 0; i < desktop_launchers.length; i++) {
+//                 let filepath = path.join('/usr/share/applications', desktop_launchers[i])
+//                 // console.log(filepath)
+//                 if (file.type !== 'directory') {
 
-                    // GET LAUNCHER NAME
-                    cmd = "grep '^Name=' " + filepath
-                    let exec_name = execSync(cmd).toString().split('\n')
+//                     // GET DESKTOP LAUNCHER EXECUTE PATH
+//                     cmd = "grep '^Exec=' " + filepath
+//                     let exec_path = execSync(cmd).toString().split('\n')
 
-                    // GET MIME TYPE
-                    cmd = "xdg-mime query filetype '" + file.href + "'"
-                    let exec_mime = execSync(cmd).toString()
+//                     // GET LAUNCHER NAME
+//                     cmd = "grep '^Name=' " + filepath
+//                     let exec_name = execSync(cmd).toString().split('\n')
 
-                    set_default_launcher(desktop_launchers[i], exec_mime[i].replace('MimeType=', ''))
+//                     // GET MIME TYPE
+//                     cmd = "xdg-mime query filetype '" + file.href + "'"
+//                     let exec_mime = execSync(cmd).toString()
 
-                    let exe_path
-                    let launcher
+//                     set_default_launcher(desktop_launchers[i], exec_mime[i].replace('MimeType=', ''))
 
-                    let desktop_file = fs.readFileSync(filepath, 'utf8').split('\n')
-                    desktop_file.forEach((item, idx) => {
-                        item = item.replace(',', '')
-                        if (item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
-                            launcher = item.replace('Name=', '')
-                        }
-                        if (item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
-                            exe_path = item.replace('Exec=', '')
-                        }
-                    })
+//                     let exe_path
+//                     let launcher
 
-                    console.log(cmd)
+//                     let desktop_file = fs.readFileSync(filepath, 'utf8').split('\n')
+//                     desktop_file.forEach((item, idx) => {
+//                         item = item.replace(',', '')
+//                         if (item.indexOf('Name=') > -1 && item.indexOf('GenericName=') === -1) {
+//                             launcher = item.replace('Name=', '')
+//                         }
+//                         if (item.indexOf('Exec=') > -1 && item.indexOf('TryExec=') === -1) {
+//                             exe_path = item.replace('Exec=', '')
+//                         }
+//                     })
 
-                    let options = {
-                        name: exec_name[0].replace('Name=', ''),
-                        icon: '',
-                        exec: exec_path[0].replace('Exec=', ''),
-                        desktop: desktop_launchers[i],
-                        mimetype: exec_mime
-                    }
-                    launchers.push(options)
-                }
+//                     console.log(cmd)
 
-            }
-        }
+//                     let options = {
+//                         name: exec_name[0].replace('Name=', ''),
+//                         icon: '',
+//                         exec: exec_path[0].replace('Exec=', ''),
+//                         desktop: desktop_launchers[i],
+//                         mimetype: exec_mime
+//                     }
+//                     launchers.push(options)
+//                 }
 
-    } catch (err) {
-        // console.log(err)
-        // let options = {
-        //     name: 'Code', //exec_name[0].replace('Name=', ''),
-        //     icon: '',
-        //     exec: '/usr/bin/code "' + file.href + '"',
-        //     desktop: '', //desktop_launchers[i],
-        //     mimetype: 'application/text'
-        // }
-        // launchers.push(options)
-    }
+//             }
+//         }
 
-    return launchers
-}
+//     } catch (err) {
+//         // console.log(err)
+//         // let options = {
+//         //     name: 'Code', //exec_name[0].replace('Name=', ''),
+//         //     icon: '',
+//         //     exec: '/usr/bin/code "' + file.href + '"',
+//         //     desktop: '', //desktop_launchers[i],
+//         //     mimetype: 'application/text'
+//         // }
+//         // launchers.push(options)
+//     }
+
+//     return launchers
+// }
 
 // Lanucher Menu
 let launcher_menu
 function add_launcher_menu(menu, e, file) {
 
-    let available_launchers = gio.open_with(file.href);
-    console.log(available_launchers);
+    // Populate Open With Menu
+    let launchers = gio.open_with(file.href);
+    launchers.sort((a, b) => {
+        console.log('sorting')
+        return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+    })
 
-    launchers = get_launchers(file);
+    console.log(launchers);
+
+    // launchers = get_launchers(file);
     launcher_menu = menu.getMenuItemById('launchers')
     try {
         for (let i = 0; i < launchers.length; i++) {
             launcher_menu.submenu.append(new MenuItem({
                 label: launchers[i].name,
                 click: () => {
-                    // e.sender.send('context-menu-command', 'open_with', launchers[i].exec)
-
                     // Set Default Application
-                    execSync(`xdg-mime default ${launchers[i].desktop} ${launchers[i].mimetype}`);
+                    let cmd = `xdg-mime default ${path.basename(launchers[i].exec)}.desktop ${launchers[i].mimetype}`;
+                    console.log(cmd);
+                    execSync(cmd);
                     shell.openPath(file.href);
                     win.send('clear');
                 }
@@ -1855,22 +1864,23 @@ ipcMain.on('folder_menu', (e, href) => {
             type: 'separator'
         },
         {
+            label: 'Disk Usage Analyzer',
+            click: () => {
+                exec(`baobab ${href}`);
+            }
+
+        },
+        {
+            type: 'separator'
+        },
+        {
             label: 'Properties',
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
             }
         },
-        {
-            type: 'separator'
-        },
-        {
-            label: 'Disk Usage Analyzer',
-            click: () => {
-                exec(`baobab ${href}`);
-            }
 
-        }
     ]
 
     const menu1 = Menu.buildFromTemplate(template1);

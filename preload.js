@@ -872,7 +872,7 @@ function add_img(src) {
     return img
 }
 
-function watch_dir(dir) {
+function watchDir(dir) {
     let fsTimeout
     let watcher = fs.watch(dir, (e, filename) => {
         console.log(e)
@@ -2575,9 +2575,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         // Flags
         let cutflag = 0;
+        let show_sidebar = 0;
 
-        let minibar = document.getElementById('minibar')
-        let mb_items = minibar.querySelectorAll('.item')
+        let minibar = document.getElementById('minibar');
+        let mb_items = minibar.querySelectorAll('.item');
         mb_items.forEach(mb_item => {
 
             mb_item.addEventListener('click', (e) => {
@@ -2616,6 +2617,20 @@ window.addEventListener('DOMContentLoaded', (e) => {
         } else {
             location.value = os.homedir();
             localStorage.setItem('location', location.value);
+        }
+
+        // Handle Sidebar
+        if (localStorage.getItem('sidebar') !== null) {
+            show_sidebar = localStorage.getItem('sidebar');
+        } else {
+            show_sidebar = 1;
+            localStorage.setItem('sidebar', show_sidebar);
+        }
+
+        if (parseInt(show_sidebar)) {
+            sidebar.classList.remove('hidden');
+        } else {
+            sidebar.classList.add('hidden');
         }
 
         ///////////////////////////////////////////////////////////////
@@ -2743,10 +2758,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
                 // Escape
                 if (e.key == shortcut.Escape) {
-
                     // console.log('whathathathetaha')
                     clear();
-                    // clearContextMenu(e);
                 }
 
                 // Reload
@@ -2786,7 +2799,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
 
                 // Escape (Cancel)
-                if (e.key == 'Escape') {
+                if (e.key == shortcut.Escape) {
                     // Clear Arrays
                     selected_files_arr = [];
                     copy_arr = [];
@@ -2797,8 +2810,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 if (e.ctrlKey === true && e.key === 'b') {
                     if (sidebar.classList.contains('hidden')) {
                         sidebar.classList.remove('hidden');
+                        localStorage.setItem('sidebar', 1);
                     } else {
                         sidebar.classList.add('hidden');
+                        localStorage.setItem('sidebar', 0);
                     }
                 }
 
@@ -2809,7 +2824,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
                 // Selet All
                 if (e.ctrlKey === true && e.key == 'a') {
-                    e.preventDefault();
                     let cards = main.querySelectorAll('.card')
                     cards.forEach(item => {
                         item.classList.add('highlight')

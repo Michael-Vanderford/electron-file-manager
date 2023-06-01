@@ -57,12 +57,13 @@
         padding: 8px;
         width: 24px;
         float:left;
-        background-color: var(--moredark);
+        background-color: var(--dark);
         border-right: 1px solid var(--lessdark);
         height:110%
     }
 
     #minibar .bi {
+        font-size: 16px;
         padding: 5px;
     }
 
