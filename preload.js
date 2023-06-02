@@ -25,6 +25,49 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+ipcRenderer.on('search_results', (e, find_arr) => {
+    // console.log(find_arr);
+    let search_results = document.querySelector('.search_results');
+    search_results.innerHTML = '';
+    find_arr.forEach(file => {
+
+        console.log(file)
+
+        let item = add_div();
+        let icon = add_div();
+        let img = document.createElement('img');
+        let link = add_div();
+
+        img.classList.add('icon16');
+        item.classList.add('item');
+
+        link.append(path.basename(file.source));
+        link.dataset.href = file.source;
+        link.title = file.source;
+
+        if (file.type === 'directory') {
+
+            img.src = folder_icon;
+            item.addEventListener('click', (e) => {
+                getView(file.source, () => {});
+            })
+        } else {
+            ipcRenderer.invoke('get_icon', (file.source)).then(res => {
+                img.src = res;
+            })
+            item.addEventListener('click', (e) => {
+                ipcRenderer.invoke('open', file.source);
+            })
+        }
+
+        icon.append(img);
+        item.append(icon, link);
+
+        search_results.append(item);
+    })
+
+})
+
 // On Sort
 ipcRenderer.on('sort', (e, sort) => {
     switch (sort) {
@@ -481,7 +524,7 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     main.addEventListener('mouseleave', (e) => {
         console.log('running mouse leave')
-        document.removeEventListener('keyup', quick_search)
+        document.removeEventListener('keyup', quickSearch)
     })
 
     main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
@@ -865,6 +908,10 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
 // Utilities ///////////////////////////////////////////////////////////////
 
+function find() {
+
+}
+
 function add_img(src) {
     let img = document.createElement('img')
     img.width = 32
@@ -1105,147 +1152,6 @@ function add_item(text) {
     return item;
 }
 
-// Get Properties
-function get_properties () {
-
-    let filename = file_properties_obj['Name'];
-    let type = file_properties_obj['Type'];
-    let ext = path.extname(filename);
-    let execute_chk_div = add_checkbox('', 'Make Executable')
-    let sb_items = document.getElementById('sidebar_items');
-    let mb_info = document.getElementById('mb_info')
-    let remove_btn = add_icon('times');
-    let card = add_div();
-    let content = add_div();
-    let image = add_div();
-
-    image.classList.add('image')
-    mb_info.style = 'color: #ffffff !important;';
-    remove_btn.classList.add('small');
-    remove_btn.style = 'display:block; float:right; width: 23px; cursor: pointer';
-    remove_btn.addEventListener('click', (e) => {
-        card.remove();
-        let items = sb_items.querySelectorAll('.nav_item')
-        if (items.length == 0) {
-            get_sidebar_view();
-        }
-    })
-
-    let execute_chk = execute_chk_div.querySelector('.checkbox')
-    execute_chk.addEventListener('change', (e) => {
-
-        if (execute_chk.checked) {
-            chmod = fs.chmodSync(filename, '755');
-        } else {
-            chmod = fs.chmodSync(filename, '33188');
-        }
-
-    })
-
-    card.dataset.href = filename
-    card.classList.add('ui', 'card', 'fluid', 'nav_item', 'nav');
-    card.style = 'color: #ffffff !important;';
-    content.classList.add('content');
-
-    content.append(remove_btn, add_br());
-
-    let c = 0;
-    for (const prop in file_properties_obj) {
-
-        ++c;
-        let div = add_div();
-        div.style = 'display: flex; padding: 5px; word-break: break-all';
-
-        let col1 = add_div();
-        let col2 = add_div();
-
-        col1.style = 'width: 30%;'
-        col2.style = 'width: 60%;'
-
-        switch (prop) {
-            case 'Name':
-
-                let link = add_link(file_properties_obj[prop], file_properties_obj[prop]);
-                link.addEventListener('click', (e) => {
-                    if (fs.statSync(file_properties_obj[prop]).isDirectory()) {
-                        get_view(file_properties_obj[prop]);
-                    } else {
-                        open(file_properties_obj[prop])
-                    }
-                })
-
-                col2.append(link)
-
-                // Directory
-                if (type == 'directory') {
-
-                    let img = add_img(folder_icon);
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
-                    image.append(img);
-
-                    col1.append(image);
-                    div.append(col1, col2)
-
-                    // Files
-                } else {
-
-                    ipcRenderer.invoke('get_icon', card.dataset.href).then(res => {
-                        let img = document.createElement('img')
-                        img.src = res
-                        image.append(img);
-                    })
-
-                    // ipcRenderer.send('get_icon_path', filename);
-
-                    col1.append(image);
-                    div.append(col1, col2)
-
-                }
-
-                break;
-            case 'Contents':
-
-                col1.append(prop);
-                // col2.append('calculating..');
-                col2.dataset.contents = filename
-                div.append(col1, col2);
-
-                ipcRenderer.invoke('get_folder_count_recursive', filename,).then(res => {
-                    col2.append(res + ' Folders, ')
-                })
-
-                ipcRenderer.invoke('get_file_count_recursive', filename,).then(res => {
-                    col2.append(res + ' Files ')
-                })
-
-                break;
-            case 'Size':
-
-                col1.append(prop);
-                col2.append(get_file_size(localStorage.getItem(filename)));
-                div.append(col1, col2);
-
-                break;
-            default:
-
-                col1.append(prop);
-                col2.append(`${file_properties_obj[prop]}`);
-                div.append(col1, col2)
-
-                break;
-        }
-
-        if (ext == '.sh') {
-            content.append(div, execute_chk_div)
-        } else {
-            content.append(div)
-        }
-
-    }
-
-}
-
 // Get Properties View
 function getProperties(properties_arr, callback) {
 
@@ -1337,7 +1243,6 @@ function toggleHidden() {
     } else {
         hidden_folder_grid.classList.add('hidden')
         hidden_file_grid.classList.add('hidden')
-
         show_hidden.forEach(item => {
             item.classList.remove('active')
         })
@@ -1562,13 +1467,13 @@ function edit() {
         input.select()
         input.focus();
 
-        main.removeEventListener('keydown', quick_search);
+        main.removeEventListener('keydown', quickSearch);
 
         input.addEventListener('change', (e) => {
             e.preventDefault();
             e.stopPropagation();
 
-            quicksearch.removeEventListener('keydown', quick_search);
+            quicksearch.removeEventListener('keydown', quickSearch);
             console.log('running rename')
 
             let location = document.getElementById('location');
@@ -1597,24 +1502,70 @@ function edit() {
 }
 
 // Sidebar Functions /////////////////////////////////////////////////////////////
+
+function getSearch() {
+
+    let location = document.querySelector('.location')
+    let sidebar = document.querySelector('.sidebar');
+
+    let sb_search = document.querySelector('.sb_search');
+    if (sb_search) {
+        sb_search.classList.remove('hidden')
+    } else {
+        sb_search = add_div();
+        sb_search.classList.add('sb_search', 'sb_view');
+        let search_view = document.querySelector('.search_view');
+        if (!search_view) {
+            search_view = add_div();
+            search_view.classList.add('search_view');
+        }
+        let search_html = fs.readFileSync('views/search.html');
+        search_view.innerHTML = search_html;
+        sb_search.innerHTML = search_view.innerHTML
+        sidebar.append(sb_search);
+    }
+
+    let search = sb_search.querySelector('.search')
+    search.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            // let interval = setInterval(() => {
+                ipcRenderer.send('search', search.value, location.value);
+                console.log(search.value);
+            // }, 1000);
+        }
+    })
+
+}
+
 function sidebarHome() {
 
-    let sidebar = document.getElementById('sidebar')
-    sidebar.innerHTML = ''
+    let sb_home = document.querySelector('.sb_home')
+    if (!sb_home) {
+        sb_home = add_div();
+        sb_home.classList.add('sb_home', 'sb_view');
+    }
+
+    sb_home.innerHTML = ''
+
+    // let sidebar = document.getElementById('sidebar')
+    // sidebar.innerHTML = ''
 
     getHome(home => {
-        sidebar.append(home)
+        sb_home.append(home)
     })
 
     // Workspace
     getWorkspace(workspace => {
-        sidebar.append(workspace)
+        sb_home.append(workspace)
     })
 
     // Get Device
     getDevices(devices => {
-        sidebar.append(devices)
+        sb_home.append(devices)
     })
+
+    sidebar.append(sb_home)
+
 }
 
 function getSub(dir) {
@@ -2550,13 +2501,14 @@ function lazyload() {
     }
 }
 
-function quick_search (e) {
-    let quicksearch = document.getElementById('quicksearch');
+function quickSearch (e) {
+    console.log('running quick search');
+    let quicksearch = document.querySelector('.quicksearch');
     let txt_quicksearch = document.getElementById('txt_quicksearch');
-    if (e.key && (!e.ctrlKey || e.shiftKey || e.altKey) &&  /^[A-Za-z]$/.test(e.key)) {
+    // if (e.key && (!e.ctrlKey || e.shiftKey || e.altKey) &&  /^[A-Za-z]$/.test(e.key)) {
         quicksearch.classList.remove('hidden');
         txt_quicksearch.focus();
-    }
+    // }
 
 }
 
@@ -2583,16 +2535,31 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             mb_item.addEventListener('click', (e) => {
 
+                let views = document.querySelectorAll('.sb_view')
+                views.forEach(view => {
+                    view.classList.add('hidden')
+                })
+
+                let sb_view;
                 switch (mb_item.id) {
                     case 'mb_home': {
+                        sb_view = document.querySelector('.sb_home');
+                        sb_view.classList.remove('hidden');
                         sidebarHome();
                         break;
                     }
                     case 'mb_workspace': {
                         getWorkspace(workspace => {
-                            sidebar.innerHTML = ''
-                            sidebar.append(workspace)
+                            sidebar.innerHTML = '';
+                            sidebar.append(workspace);
                         })
+                        break;
+                    }
+                    case 'mb_find': {
+                        // sb_view = document.querySelector('.sb_search');
+                        // sb_view.classList.remove('hidden');
+                        getSearch();
+                        break;
                     }
                 }
 
@@ -2823,11 +2790,15 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
 
                 // Selet All
-                if (e.ctrlKey === true && e.key == 'a') {
+                if (e.ctrlKey === true && e.key === 'a') {
                     let cards = main.querySelectorAll('.card')
                     cards.forEach(item => {
                         item.classList.add('highlight')
                     })
+                }
+
+                if (e.ctrlKey === true && e.key === 'f') {
+                    quickSearch(e);
                 }
 
             })
