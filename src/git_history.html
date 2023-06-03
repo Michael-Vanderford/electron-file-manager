@@ -10,19 +10,24 @@
     <style>
         p {
           line-height : 0%;
-          letter-spacing : 4px;
+          letter-spacing : 1px;
           cursor : default;
         }
         span{
             cursor: pointer;
+            letter-spacing : 0px;
+        }
+        div{
+          padding:10px;
         }
       </style>
 </head>
 <body style = "overflow : auto !important">
-
-    <div id="git_history_storage" style="padding: 20px;">
-
+  <div>
+  <div id="git_history_storage"></div>
+    <div align="right">
+      <input id="btn_git_history_close" class="ui small button default" type="button" value="Close">
     </div>
-
+  </div>
 </body>
 </html>
