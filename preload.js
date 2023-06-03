@@ -25,6 +25,16 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+ipcRenderer.on('get_devices', (e) => {
+    console.log('getting devices');
+    let device_view = document.querySelector('.device_view');
+    getDevices(devices => {
+        device_view.innerHTML = '';
+        device_view.append(devices);
+    })
+})
+
+// On Search Results
 ipcRenderer.on('search_results', (e, find_arr) => {
     // console.log(find_arr);
     let search_results = document.querySelector('.search_results');
@@ -1526,8 +1536,10 @@ function getSearch() {
     }
 
     let search = sb_search.querySelector('.search')
+    let search_results = document.querySelector('.search_results');
     search.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
+            search_results.innerHTML = '';
             // let interval = setInterval(() => {
                 ipcRenderer.send('search', search.value, location.value);
                 console.log(search.value);
@@ -1692,7 +1704,8 @@ function getWorkspace(callback) {
 function getDevices(callback) {
 
     let location = document.getElementById('location');
-    let devices = document.createElement('devices');
+    let devices = add_div()
+    devices.classList.add('device_view')
     devices.innerHTML = ''
     devices.append(add_header('Devices'));
 
@@ -1783,6 +1796,8 @@ function paste(destination) {
             let source = selected_files_arr[i];
             let destination = path.format({dir: location, base: path.basename(selected_files_arr[i])});
 
+            console.log('dest', destination)
+
             gio_utils.get_file(source, file => {
 
                 console.log(source, destination)
@@ -1817,10 +1832,12 @@ function paste(destination) {
                     destination: destination //path.format({dir: location, base: path.basename(selected_files_arr[i])}),  //path.join(location, path.basename(selected_files_arr[i]))
                 }
 
+                console.log('copy_data', copy_data)
+
                 if (overwrite == 0) {
                     copy_arr.push(copy_data);
                 } else {
-                    console.log('confirm overwrite 12312313')
+                    console.log('confirm overwrite')
                     copy_overwrite_arr.push(copy_data)
                 }
 

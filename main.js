@@ -18,6 +18,13 @@ const worker = new Worker('./worker.js');
 const ls = new Worker('./ls.js');
 const home = app.getPath('home');
 
+// Monitor USB Devices
+gio.monitor(data => {
+    if (data) {
+        win.send('get_devices');
+    }
+});
+
 let win;
 let window_id = 0;
 let window_id0 = 0;
@@ -30,10 +37,7 @@ try {
 } catch (err) {
     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
-    // File does not exist or is invalid
 }
-
-const folderIconPath = systemPreferences
 
 worker.postMessage({ cmd: 'monitor' });
 

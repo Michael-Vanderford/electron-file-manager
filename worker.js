@@ -30,7 +30,7 @@ const gio           = require('./gio/build/Release/obj.target/gio')
 
 let file_arr = [];
 let cp_recursive = 0;
-function get_files_arr (source, destination) {
+function get_files_arr (source, destination, callback) {
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
     let dirents = gio.ls(source)
@@ -52,27 +52,27 @@ function get_files_arr (source, destination) {
     }
 }
 
-let preload_arr = [];
-function get_preload_arr (source, destination, callback) {
-    cp_recursive++
-    preload_arr.push({type: 'directory', source: source, destination: destination})
-    let dirents = gio.ls(source)
-    for (let i = 0; i < dirents.length; i++) {
-        let file = dirents[i]
-        // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-        if (file.is_dir) {
-            get_preload_arr(file.href, path.format({dir: destination, base: file.name}), callback)
-        } else {
-            preload_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
-        }
-    }
-    if (--cp_recursive == 0) {
-        // parentPort.postMessage({cmd: 'msg', msg: ``})
-        // let file_arr1 = file_arr;
-        // file_arr = []
-        // return callback(file_arr1);
-    }
-}
+// let preload_arr = [];
+// function get_preload_arr (source, destination) {
+//     cp_recursive++
+//     preload_arr.push({type: 'directory', source: source, destination: destination})
+//     let dirents = gio.ls(source)
+//     for (let i = 0; i < dirents.length; i++) {
+//         let file = dirents[i]
+//         // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
+//         if (file.is_dir) {
+//             get_preload_arr(file.href, path.format({dir: destination, base: file.name}), callback)
+//         } else {
+//             preload_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
+//         }
+//     }
+//     // if (--cp_recursive == 0) {
+//     //     // parentPort.postMessage({cmd: 'msg', msg: ``})
+//     //     // let file_arr1 = file_arr;
+//     //     // file_arr = []
+//     //     // return callback(file_arr1);
+//     // }
+// }
 
 // Handle Worker Messages
 parentPort.on('message', data => {
@@ -80,18 +80,18 @@ parentPort.on('message', data => {
     // todo: properly handle the rename error in preoad edit.
 
     // Preload Recursive File array for search
-    if (data.cmd === 'preload') {
-        console.log('running preload');
-        preload_arr = [];
-        get_preload_arr(data.source, '');
-    }
+    // if (data.cmd === 'preload') {
+    //     console.log('running preload');
+    //     preload_arr = [];
+    //     get_preload_arr(data.source, '');
+    // }
 
     if (data.cmd === 'search') {
-        console.log('preload_length', preload_arr.length);
-        // get_files_arr(data.location, '', dirents => {
-            let results_arr = preload_arr.filter(x => x.source.indexOf(data.search) > -1);
+        get_files_arr(data.location, '', dirents => {
+            console.log('preload_length', dirents.length);
+            let results_arr = dirents.filter(x => x.source.indexOf(data.search) > -1);
             parentPort.postMessage({cmd: 'search_done', results_arr: results_arr});
-        // })
+        })
     }
 
     // Note: dont use this for normal operation. maybe use on properties
@@ -283,6 +283,8 @@ parentPort.on('message', data => {
             } else {
                 is_writable = 0;
             }
+
+            console.log('is_writeable', is_writable)
 
             if (is_writable) {
 

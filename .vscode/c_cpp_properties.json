@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/usr/include/node",
-                "/usr/include/glib-2.0"
+                "/usr/include/glib-2.0",
+                "/usr/include/gio-unix-2.0"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

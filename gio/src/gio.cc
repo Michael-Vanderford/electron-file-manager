@@ -11,6 +11,7 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
+#include <libusb-1.0/libusb.h>
 #include <glib.h>
 #include <iostream>
 
@@ -67,6 +68,9 @@ namespace gio {
 
     // }
 
+    static libusb_context *usbContext = nullptr;
+
+    // Return Disk Space
     guint64 du(const char *dir) {
 
         GFile* src = g_file_new_for_path(dir);
@@ -110,20 +114,14 @@ namespace gio {
     }
 
     void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
-
         Nan::HandleScope scope;
-
         // Get the device name
         const char* deviceName = g_drive_get_name(drive);
-
         // Create a V8 string from the device name
         v8::Local<v8::String> v8DeviceName = Nan::New(deviceName).ToLocalChecked();
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-
-        Nan::TryCatch tryCatch; // Create a TryCatch block to catch and handle exceptions
-
+        Nan::TryCatch tryCatch;
         const unsigned argc = 1;
-
         v8::Local<v8::Value> argv[argc] = { v8DeviceName };
         callback->Call(argc, argv);
         if (tryCatch.HasCaught()) {
@@ -131,26 +129,18 @@ namespace gio {
         }
     }
 
-    // void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
-    //     Nan::HandleScope scope;
-    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-    //     // Get drive information
-    //     const char* driveName = g_drive_get_name(drive);
-    //     //   const char* driveId = g_drive_get_identifier(drive);
-    //     // Create an object to pass the drive information to the JavaScript callback
-    //     v8::Local<v8::Object> driveInfo = Nan::New<v8::Object>();
-    //     Nan::Set(driveInfo, Nan::New("name").ToLocalChecked(), Nan::New(driveName).ToLocalChecked());
-    //     // Nan::Set(driveInfo, Nan::New("id").ToLocalChecked(), Nan::New(driveId).ToLocalChecked());
-    //     // Call the JavaScript callback with the drive information
-    //     v8::Local<v8::Value> argv[] = { driveInfo };
-    //     Nan::AsyncResource resource("on_device_added");
-    //     callback->Call(1, argv);
-    // }
+    void on_device_removed(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
+        // Call your Nan module's function here
+        Nan::HandleScope scope;
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        const char* deviceName = g_drive_get_name(drive);
+        v8::Local<v8::Value> argv[1] = { Nan::New(deviceName).ToLocalChecked() };
+        callback->Call(1, argv);
+    }
 
     NAN_METHOD(monitor) {
 
         Nan::HandleScope scope;
-
         if (info.Length() < 1 || !info[0]->IsFunction()) {
             Nan::ThrowTypeError("Invalid arguments. Expected a function.");
             return;
@@ -162,21 +152,11 @@ namespace gio {
         // Start monitoring for device changes
         GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
         g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
+        g_signal_connect(volumeMonitor, "drive-disconnected", G_CALLBACK(on_device_removed), new Nan::Callback(info[0].As<v8::Function>()));
 
         // Return undefined (no immediate return value)
         info.GetReturnValue().SetUndefined();
     }
-
-    // void monitor(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-    //     Nan::HandleScope scope;
-    //     // Get the JavaScript callback function from the arguments
-    //     Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
-    //     // Start monitoring for device changes
-    //     GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
-    //     g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
-    //     // Return undefined (no immediate return value)
-    //     info.GetReturnValue().SetUndefined();
-    // }
 
     NAN_METHOD(open_with) {
 
@@ -868,7 +848,8 @@ namespace gio {
         Nan::Export(target, "mv", mv);
         Nan::Export(target, "rm", rm);
         Nan::Export(target, "is_writable", is_writable);
-        Nan::Set(target, Nan::New("monitor").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(monitor)).ToLocalChecked());
+        Nan::Export(target, "monitor", monitor);
+        // Nan::Set(target, Nan::New("monitor").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(monitor)).ToLocalChecked());
     }
 
     // NAN_MODULE_WORKER_ENABLED(count, count)
@@ -880,19 +861,40 @@ namespace gio {
 
 // NODE_MODULE_CONTEXT_AWARE_BUILTIN(gio, init)
 
-
 // NAN_METHOD(monitor) {
+//     GVolumeMonitor* volume_monitor;
+//     // Initialize the GIO library
+//     g_type_init();
+//     // Create the volume monitor
+//     volume_monitor = g_volume_monitor_get();
+//     // Connect signals for device added and removed events
+//     g_signal_connect(volume_monitor, "drive-added", G_CALLBACK(on_device_added), NULL);
+//     // g_signal_connect(volume_monitor, "drive-removed", G_CALLBACK(on_device_removed), NULL);
+// }
 
-    //     GVolumeMonitor* volume_monitor;
+// void monitor(const Nan::FunctionCallbackInfo<v8::Value>& info) {
+//     Nan::HandleScope scope;
+//     // Get the JavaScript callback function from the arguments
+//     Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
+//     // Start monitoring for device changes
+//     GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
+//     g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
+//     // Return undefined (no immediate return value)
+//     info.GetReturnValue().SetUndefined();
+// }
 
-    //     // Initialize the GIO library
-    //     g_type_init();
-
-    //     // Create the volume monitor
-    //     volume_monitor = g_volume_monitor_get();
-
-    //     // Connect signals for device added and removed events
-    //     g_signal_connect(volume_monitor, "drive-added", G_CALLBACK(on_device_added), NULL);
-    //     // g_signal_connect(volume_monitor, "drive-removed", G_CALLBACK(on_device_removed), NULL);
-
+// void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
+    //     Nan::HandleScope scope;
+    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+    //     // Get drive information
+    //     const char* driveName = g_drive_get_name(drive);
+    //     //   const char* driveId = g_drive_get_identifier(drive);
+    //     // Create an object to pass the drive information to the JavaScript callback
+    //     v8::Local<v8::Object> driveInfo = Nan::New<v8::Object>();
+    //     Nan::Set(driveInfo, Nan::New("name").ToLocalChecked(), Nan::New(driveName).ToLocalChecked());
+    //     // Nan::Set(driveInfo, Nan::New("id").ToLocalChecked(), Nan::New(driveId).ToLocalChecked());
+    //     // Call the JavaScript callback with the drive information
+    //     v8::Local<v8::Value> argv[] = { driveInfo };
+    //     Nan::AsyncResource resource("on_device_added");
+    //     callback->Call(1, argv);
     // }
