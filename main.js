@@ -3711,6 +3711,11 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
+ipcMain.on("git_history_close", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
 function gitInitialize(dirPath, e) {
     let cmd = `cd ${dirPath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
@@ -3789,6 +3794,7 @@ const gitCommitDialog = (filePath) => {
         x: x,
         y: y,
         frame: true,
+        autoHideMenuBar:false,
         webPreferences: {
             nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -3890,11 +3896,12 @@ ipcMain.on("show_git_history_status", (e,idx,len) => {
                 parent: window.getFocusedWindow(),
                 modal: true,
                 width: 550,
-                height: 200,
+                height: 230,
                 backgroundColor: "#2e2c29",
                 x: x,
                 y: y,
                 frame: true,
+                autoHideMenuBar: true,
                 webPreferences: {
                     nodeIntegration: true, // is default value after Electron v5
                     contextIsolation: true, // protect against prototype pollution
@@ -3902,6 +3909,7 @@ ipcMain.on("show_git_history_status", (e,idx,len) => {
                     nodeIntegrationInWorker: false,
                     preload: path.join(__dirname, "preload.js"),
                 },
+
             });
             // LOAD FILE
             confirm.loadFile("src/git_history_status.html");
@@ -3952,7 +3960,8 @@ const gitCommitHistory = (filePath,list) => {
         backgroundColor: "#2e2c29",
         x: x,
         y: y,
-        frame: true,
+        frame:true,
+        autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution

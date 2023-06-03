@@ -9720,6 +9720,12 @@ ipcRenderer.on("show_git_commit_history",(e,str)=>{
         new_pTag.innerHTML = arr[i];
         tagArea.appendChild(new_pTag);
     }
+    let btn_git_history_close = document.getElementById(
+        "btn_git_history_close"
+    );
+    btn_git_history_close.onclick = (e) => {
+        ipcRenderer.send("git_history_close");
+    };
 });
 
 ipcRenderer.on("draw_git_history", (e, filePath, list) => {
@@ -9733,6 +9739,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
             switch(list[i][j]){
                 case '*':
                     str+=`<span>*</span>`;id_arr.push(i);break;
+                case '_':str+='-';break;
                 case '|':
                 case '/':
                 case '_':
@@ -9755,6 +9762,12 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
             ipcRenderer.send("show_git_history_status",i,id_arr.length);
         }
     }
+    let btn_git_history_close = document.getElementById(
+        "btn_git_history_close"
+    );
+    btn_git_history_close.onclick = (e) => {
+        ipcRenderer.send("git_history_close");
+    };
 });
 
 ipcRenderer.on("",(e,id)=>{
