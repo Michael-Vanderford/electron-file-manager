@@ -3847,23 +3847,30 @@ const gitCloneDialog = (filePath) => {
     });
 };
 
-ipcMain.on("git_clone_confirmed", (e, filePath, github_repository_address) => {
+ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
+    repo_visibility, github_id, github_access_token) => {
+
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
-    filePath = filePath.replaceAll(" ", "\\ ");
-    let cmd = `cd ${filePath} && git clone \"${github_repository_address}\"`;
-    exec(cmd, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`Error: ${error.message}`);
-            resolve(-1);
-        }
-        if (stderr) {
-            console.log(`Stderr: ${stderr}`);
-            resolve(-1);
-        }
-        BrowserWindow.getFocusedWindow().send("refresh");
-    });
+    if (repo_visibility === "public_repository") {
+        filePath = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePath} && git clone \"${github_repo_address}\"`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                resolve(-1);
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                resolve(-1);
+            }
+            BrowserWindow.getFocusedWindow().send("refresh");
+        });
+    }
+    if (repo_visibility === "private_repository") {
+        
+    } 
 });
 
 ipcMain.on("git_clone_canceled", (e) => {
