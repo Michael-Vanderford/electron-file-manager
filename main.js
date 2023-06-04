@@ -3848,30 +3848,50 @@ const gitCloneDialog = (filePath) => {
 };
 
 ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
-    repo_visibility, github_id, github_access_token) => {
+        repo_visibility, github_id, github_access_token) => {
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
     if (repo_visibility === "public_repository") {
-        filePath = filePath.replaceAll(" ", "\\ ");
-        let cmd = `cd ${filePath} && git clone \"${github_repo_address}\"`;
-        exec(cmd, (error, stdout, stderr) => {
-            if (error) {
-                console.log(`Error: ${error.message}`);
-                resolve(-1);
-            }
-            if (stderr) {
-                console.log(`Stderr: ${stderr}`);
-                resolve(-1);
-            }
-            BrowserWindow.getFocusedWindow().send("refresh");
-        });
+        gitClonePublic(filePath, github_repo_address);
     }
     if (repo_visibility === "private_repository") {
-        
+        gitClonePrivate(filePath, github_id, github_access_token);
     } 
 });
+
+const gitClonePublic = (filePath, github_repo_address) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git clone \"${github_repo_address}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+}
+
+const gitClonePrivate = (filePath, github_id, github_access_token) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+}
 
 ipcMain.on("git_clone_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
