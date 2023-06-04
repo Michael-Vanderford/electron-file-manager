@@ -9657,6 +9657,11 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("git_init");
     });
 
+    let btnClone = document.getElementById("git_clone");
+    btnClone.addEventListener("click", (e) => {
+        ipcRenderer.send("git_clone");
+    });
+
     let btnCommit = document.getElementById("git_commit");
     btnCommit.addEventListener("click", (e) => {
         ipcRenderer.send("git_commit");
