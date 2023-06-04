@@ -3795,22 +3795,6 @@ ipcMain.on("git_init", (e) => {
 });
 
 ipcMain.on("git_clone", (e) => {
-    dirPath = current_directory.replaceAll(" ", "\\ ");
-    let checkGitRepo = `cd ${dirPath} && git status -s`;
-    exec(checkGitRepo, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`${error}`);
-            return;
-        }
-        if (stderr) {
-            console.error(`${stderr}`);
-            return;
-        }
-        gitCloneDialog(current_directory);
-    });
-});
-
-const gitCloneDialog = (filePath) => {
     let bounds = win.getBounds();
 
     let x = bounds.x + parseInt((bounds.width - 400) / 2);
@@ -3843,9 +3827,9 @@ const gitCloneDialog = (filePath) => {
         confirm.title = title;
         confirm.removeMenu();
 
-        confirm.send("confirm_git_clone", filePath);
+        confirm.send("confirm_git_clone", current_directory);
     });
-};
+});
 
 ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
         repo_visibility, github_id, github_access_token) => {
