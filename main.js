@@ -3821,7 +3821,7 @@ const gitCloneDialog = (filePath) => {
         parent: window.getFocusedWindow(),
         modal: true,
         width: 550,
-        height: 200,
+        height: 350,
         backgroundColor: "#2e2c29",
         x: x,
         y: y,
