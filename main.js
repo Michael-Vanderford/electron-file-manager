@@ -3794,6 +3794,24 @@ ipcMain.on("git_init", (e) => {
     });
 });
 
+ipcMain.on("git_clone", (e) => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        gitCloneDialog(current_directory);
+    });
+});
+
+
+
 ipcMain.on("git_commit", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
     let checkGitRepo = `cd ${dirPath} && git status -s`;
