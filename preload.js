@@ -9680,11 +9680,26 @@ ipcRenderer.on("confirm_git_clone", (e, filePath) => {
     let btn_git_clone_cancel = document.getElementById(
         "btn_git_clone_cancel"
     );
-    let github_repository_address = document.getElementById("github_repository_address");
+    let github_repo_address = document.getElementById(
+        "github_repo_address"
+    );
+    let github_id = document.getElementById(
+        "github_id"
+    );
+    let github_access_token = document.getElementById(
+        "github_access_token"
+    );
+    let repo_visibility;
 
     btn_git_clone_confirm.onclick = (e) => {
-        let github_repository_address_str = github_repository_address.value;
-        ipcRenderer.send("git_clone_confirmed", filePath, github_repository_address_str);
+        const visibilityList = document.getElementsByName("visibility");
+        visibilityList.forEach((node) => {
+            if(node.checked) {
+                repo_visibility = node.value;
+            }
+        })
+        ipcRenderer.send("git_clone_confirmed", filePath, github_repo_address.value,
+        repo_visibility, github_id.value, github_access_token.value);
     };
 
     btn_git_clone_cancel.onclick = (e) => {
