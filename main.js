@@ -3847,6 +3847,25 @@ const gitCloneDialog = (filePath) => {
     });
 };
 
+ipcMain.on("git_clone_confirmed", (e, filePath, github_repository_address) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git clone \"${github_repository_address}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            resolve(-1);
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
 ipcMain.on("git_clone_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
