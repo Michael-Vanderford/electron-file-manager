@@ -9750,7 +9750,6 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         }   
         if(flag==true)
             str+=`<span>${list[i].slice(-7)}</span>`  
-
         new_pTag.innerHTML = str;
         new_pTag.id = `graph"${i}`;
         tagArea.appendChild(new_pTag);
