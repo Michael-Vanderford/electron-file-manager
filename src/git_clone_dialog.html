@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="../assets/css/semantic.min.css" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+</head>
+<body>
+
+    <div id="confirm_git_clone" style="padding: 20px">
+        <div style="padding: 10px;">
+			<label style="font-size: 15px"> Github Repository Address </label>
+            <input id="github_repository_address" type="text">
+        </div>
+
+		<div class="ui h5 warning" style="padding: 30px 0px 0px 0px;">
+            <i class="icon warning circle"></i> Additional Information for Private Repository :
+        </div>
+
+		<div style="padding: 10px 20px;">
+			Github ID    
+            <input id="github_id" type="text">
+        </div>
+
+		<div style="padding: 10px 20px;">
+			Access Token
+            <input id="github_access_token" type="text">
+        </div>
+
+        <div style="padding: 20px 10px;">
+            <input id="btn_git_clone_cancel" tabindex="2" class="ui small button default" type="button" value="Cancel">
+            <input id="btn_git_clone_confirm" tabindex="1" autofocus class="ui small button default red" type="button" value="Clone">
+        </div>
+
+    </div>
+
+</body>
+</html>
