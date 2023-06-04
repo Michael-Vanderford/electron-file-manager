@@ -3821,7 +3821,7 @@ const gitCloneDialog = (filePath) => {
         parent: window.getFocusedWindow(),
         modal: true,
         width: 550,
-        height: 350,
+        height: 380,
         backgroundColor: "#2e2c29",
         x: x,
         y: y,
@@ -3846,6 +3846,11 @@ const gitCloneDialog = (filePath) => {
         confirm.send("confirm_git_clone", filePath);
     });
 };
+
+ipcMain.on("git_clone_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
 
 ipcMain.on("git_commit", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
