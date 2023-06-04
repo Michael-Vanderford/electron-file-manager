@@ -9673,6 +9673,25 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
+ipcRenderer.on("confirm_git_clone", (e, filePath) => {
+    let btn_git_clone_confirm = document.getElementById(
+        "btn_git_clone_confirm"
+    );
+    let btn_git_clone_cancel = document.getElementById(
+        "btn_git_clone_cancel"
+    );
+    let github_repository_address = document.getElementById("github_repository_address");
+
+    btn_git_clone_confirm.onclick = (e) => {
+        let github_repository_address_str = github_repository_address.value;
+        ipcRenderer.send("git_clone_confirmed", filePath, github_repository_address_str);
+    };
+
+    btn_git_clone_cancel.onclick = (e) => {
+        ipcRenderer.send("git_clone_canceled");
+    };
+});
+
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
     let btn_git_rename_confirm = document.getElementById(
         "btn_git_rename_confirm"
