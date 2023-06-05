@@ -9673,7 +9673,23 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 });
 
-ipcRenderer.on("confirm_git_clone", (e, filePath) => {
+ipcRenderer.on("select_repo_visibility", (e, filePath) => {
+    let btn_select = document.getElementById(
+        "btn_select"
+    );
+    let repo_visibility;
+
+    btn_select.onclick = (e) => {
+        const visibilityList = document.getElementsByName("visibility");
+        visibilityList.forEach((node) => {
+            if(node.checked) {
+                repo_visibility = node.value;
+            }
+        })
+    };
+});
+
+ipcRenderer.on("confirm_git_clone", (e, filePath, repo_visibility) => {
     let btn_git_clone_confirm = document.getElementById(
         "btn_git_clone_confirm"
     );
@@ -9689,19 +9705,15 @@ ipcRenderer.on("confirm_git_clone", (e, filePath) => {
     let github_access_token = document.getElementById(
         "github_access_token"
     );
-    let repo_visibility;
+
+    if (repo_visibility === "public_repository") {
+        document.getElementById("github_information").style.display = "none";
+    }
 
     btn_git_clone_confirm.onclick = (e) => {
-        const visibilityList = document.getElementsByName("visibility");
-        visibilityList.forEach((node) => {
-            if(node.checked) {
-                repo_visibility = node.value;
-            }
-        })
         ipcRenderer.send("git_clone_confirmed", filePath, github_repo_address.value,
-        repo_visibility, github_id.value, github_access_token.value);
+            repo_visibility, github_id.value, github_access_token.value);
     };
-
     btn_git_clone_cancel.onclick = (e) => {
         ipcRenderer.send("git_clone_canceled");
     };
