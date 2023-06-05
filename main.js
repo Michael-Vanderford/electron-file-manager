@@ -3905,8 +3905,8 @@ const gitClonePublic = (filePath, github_repo_address) => {
             "notification",
             `Successfully Cloned ${github_repo_address}`
         );
-        BrowserWindow.getFocusedWindow().send("refresh");
     });
+    BrowserWindow.getFocusedWindow().send("refresh");
 }
 
 const gitClonePrivate = (filePath, github_repo_address, github_id, github_access_token) => {
