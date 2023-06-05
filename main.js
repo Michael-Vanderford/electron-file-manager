@@ -3892,12 +3892,22 @@ const gitClonePublic = (filePath, github_repo_address) => {
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
         BrowserWindow.getFocusedWindow().send("refresh");
     });
 }
@@ -3908,11 +3918,17 @@ const gitClonePrivate = (filePath, github_id, github_access_token) => {
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             resolve(-1);
+            return;
         }
         BrowserWindow.getFocusedWindow().send("refresh");
     });
