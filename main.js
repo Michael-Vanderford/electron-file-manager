@@ -3882,7 +3882,7 @@ ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
         gitClonePublic(filePath, github_repo_address);
     }
     if (repo_visibility === "private_repository") {
-        gitClonePrivate(filePath, github_id, github_access_token);
+        gitClonePrivate(filePath, github_repo_address, github_id, github_access_token);
     } 
 });
 
@@ -3894,15 +3894,12 @@ const gitClonePublic = (filePath, github_repo_address) => {
             console.log(`Error: ${error.message}`);
             BrowserWindow.getFocusedWindow().send("notification", error.message);
             BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
             return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
             BrowserWindow.getFocusedWindow().send("notification", stderr);
             BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
-            return;
         }
         BrowserWindow.getFocusedWindow().send(
             "notification",
@@ -3912,22 +3909,39 @@ const gitClonePublic = (filePath, github_repo_address) => {
     });
 }
 
-const gitClonePrivate = (filePath, github_id, github_access_token) => {
+const gitClonePrivate = (filePath, github_repo_address, github_id, github_access_token) => {
     filePath = filePath.replaceAll(" ", "\\ ");
-    let cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+    let http = "https://";
+    let github_repo_address_substr = github_repo_address.substring(8);
+
+    let cmd = `cd ${filePath} && git clone \"${http}${github_id}:${github_access_token}@${github_repo_address_substr}\"`;
     exec(cmd, (error, stdout, stderr) => {
         if (error) {
             console.log(`Error: ${error.message}`);
             BrowserWindow.getFocusedWindow().send("notification", error.message);
             BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
             return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
             BrowserWindow.getFocusedWindow().send("notification", stderr);
             BrowserWindow.getFocusedWindow().send("refresh");
-            resolve(-1);
+        }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+
+    cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
             return;
         }
         BrowserWindow.getFocusedWindow().send("refresh");
