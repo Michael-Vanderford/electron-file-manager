@@ -9686,6 +9686,9 @@ ipcRenderer.on("select_repo_visibility", (e, filePath) => {
                 repo_visibility = node.value;
             }
         })
+        if (repo_visibility) {
+            ipcRenderer.send("repo_visibility_selected", filePath, repo_visibility);
+        }
     };
 });
 
