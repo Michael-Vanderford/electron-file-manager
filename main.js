@@ -3828,7 +3828,6 @@ ipcMain.on("git_clone", (e) => {
         confirm.removeMenu();
 
         confirm.send("select_repo_visibility", current_directory);
-        // confirm.send("confirm_git_clone", current_directory);
     });
 });
 
@@ -3911,6 +3910,49 @@ const gitClonePublic = (filePath, github_repo_address) => {
 
 const gitClonePrivate = (filePath, github_repo_address, github_id, github_access_token) => {
     filePath = filePath.replaceAll(" ", "\\ ");
+
+    let checkGithubInfo = `cd ${filePath} && ls -a | grep -w GithubInfo.txt | wc -l`;
+    exec(checkGithubInfo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+            exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    console.log(`Error: ${error.message}`);
+                    return;
+                }
+                if (stderr) {
+                    console.log(`Stderr: ${stderr}`);
+                    return;
+                }
+                BrowserWindow.getFocusedWindow().send("refresh");
+            });
+        }
+
+        let getGithubInfo = `cd ${filePath} && cat GithubInfo.txt`;
+        exec(getGithubInfo, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                return;
+            }
+            gitClonePrivateExec(filePath, github_repo_address, stdout.split("\n")[0], stdout.split("\n")[1]);
+        });
+    });
+}
+
+const gitClonePrivateExec = (filePath, github_repo_address, github_id, github_access_token) => {
     let http = "https://";
     let github_repo_address_substr = github_repo_address.substring(8);
 
@@ -3931,21 +3973,8 @@ const gitClonePrivate = (filePath, github_repo_address, github_id, github_access
             "notification",
             `Successfully Cloned ${github_repo_address}`
         );
-        BrowserWindow.getFocusedWindow().send("refresh");
     });
-
-    cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
-    exec(cmd, (error, stdout, stderr) => {
-        if (error) {
-            console.log(`Error: ${error.message}`);
-            return;
-        }
-        if (stderr) {
-            console.log(`Stderr: ${stderr}`);
-            return;
-        }
-        BrowserWindow.getFocusedWindow().send("refresh");
-    });
+    BrowserWindow.getFocusedWindow().send("refresh");
 }
 
 ipcMain.on("git_clone_canceled", (e) => {
