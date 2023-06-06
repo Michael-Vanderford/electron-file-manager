@@ -9657,6 +9657,11 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("git_init");
     });
 
+    let btnClone = document.getElementById("git_clone");
+    btnClone.addEventListener("click", (e) => {
+        ipcRenderer.send("git_clone");
+    });
+
     let btnCommit = document.getElementById("git_commit");
     btnCommit.addEventListener("click", (e) => {
         ipcRenderer.send("git_commit");
@@ -9666,6 +9671,55 @@ window.addEventListener("DOMContentLoaded", () => {
     btnMerge.addEventListener("click", (e) => {
         ipcRenderer.send("git_merge");
     });
+});
+
+ipcRenderer.on("select_repo_visibility", (e, filePath) => {
+    let btn_select = document.getElementById(
+        "btn_select"
+    );
+    let repo_visibility;
+
+    btn_select.onclick = (e) => {
+        const visibilityList = document.getElementsByName("visibility");
+        visibilityList.forEach((node) => {
+            if(node.checked) {
+                repo_visibility = node.value;
+            }
+        })
+        if (repo_visibility) {
+            ipcRenderer.send("repo_visibility_selected", filePath, repo_visibility);
+        }
+    };
+});
+
+ipcRenderer.on("confirm_git_clone", (e, filePath, repo_visibility) => {
+    let btn_git_clone_confirm = document.getElementById(
+        "btn_git_clone_confirm"
+    );
+    let btn_git_clone_cancel = document.getElementById(
+        "btn_git_clone_cancel"
+    );
+    let github_repo_address = document.getElementById(
+        "github_repo_address"
+    );
+    let github_id = document.getElementById(
+        "github_id"
+    );
+    let github_access_token = document.getElementById(
+        "github_access_token"
+    );
+
+    if (repo_visibility === "public_repository") {
+        document.getElementById("github_information").style.display = "none";
+    }
+
+    btn_git_clone_confirm.onclick = (e) => {
+        ipcRenderer.send("git_clone_confirmed", filePath, github_repo_address.value,
+            repo_visibility, github_id.value, github_access_token.value);
+    };
+    btn_git_clone_cancel.onclick = (e) => {
+        ipcRenderer.send("git_clone_canceled");
+    };
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {

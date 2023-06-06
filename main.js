@@ -3794,6 +3794,194 @@ ipcMain.on("git_init", (e) => {
     });
 });
 
+ipcMain.on("git_clone", (e) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 260,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_clone_visibility_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Select Visibility";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("select_repo_visibility", current_directory);
+    });
+});
+
+ipcMain.on("repo_visibility_selected", (e, filePath, repo_visibility) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 350,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_clone_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Git Clone";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_clone", filePath, repo_visibility);
+    });
+});
+
+ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
+        repo_visibility, github_id, github_access_token) => {
+
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    if (repo_visibility === "public_repository") {
+        gitClonePublic(filePath, github_repo_address);
+    }
+    if (repo_visibility === "private_repository") {
+        gitClonePrivate(filePath, github_repo_address, github_id, github_access_token);
+    } 
+});
+
+const gitClonePublic = (filePath, github_repo_address) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git clone \"${github_repo_address}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+        }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
+    });
+    BrowserWindow.getFocusedWindow().send("refresh");
+}
+
+const gitClonePrivate = (filePath, github_repo_address, github_id, github_access_token) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+
+    let checkGithubInfo = `cd ${filePath} && ls -a | grep -w GithubInfo.txt | wc -l`;
+    exec(checkGithubInfo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+            exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    console.log(`Error: ${error.message}`);
+                    return;
+                }
+                if (stderr) {
+                    console.log(`Stderr: ${stderr}`);
+                    return;
+                }
+                BrowserWindow.getFocusedWindow().send("refresh");
+            });
+        }
+
+        let getGithubInfo = `cd ${filePath} && cat GithubInfo.txt`;
+        exec(getGithubInfo, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                return;
+            }
+            gitClonePrivateExec(filePath, github_repo_address, stdout.split("\n")[0], stdout.split("\n")[1]);
+        });
+    });
+}
+
+const gitClonePrivateExec = (filePath, github_repo_address, github_id, github_access_token) => {
+    let http = "https://";
+    let github_repo_address_substr = github_repo_address.substring(8);
+
+    let cmd = `cd ${filePath} && git clone \"${http}${github_id}:${github_access_token}@${github_repo_address_substr}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+        }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
+    });
+    BrowserWindow.getFocusedWindow().send("refresh");
+}
+
+ipcMain.on("git_clone_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
 ipcMain.on("git_commit", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
     let checkGitRepo = `cd ${dirPath} && git status -s`;
