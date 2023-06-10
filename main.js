@@ -4122,7 +4122,7 @@ ipcMain.on("git_history", (e) => {
 });
 
 const draw_graph = (dirPath) => {
-    let git_log = `cd ${dirPath} && git log --pretty=format:"%h" --graph`;      //git repo 확인
+    let git_log = `cd ${dirPath} && git log --pretty=format:"??%h : %ae - %s" --graph`;      //git repo 확인
     exec(git_log, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
