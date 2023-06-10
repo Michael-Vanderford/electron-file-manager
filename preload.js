@@ -9786,7 +9786,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     let tagArea = document.getElementById('git_history_storage');
     const id_arr = new Array;
     const hash = [];
-    for(let i in list){
+    for(let i = 0; i < list.length; i++){
         let new_pTag = document.createElement('p');
         let str = "";
         let flag = false;
