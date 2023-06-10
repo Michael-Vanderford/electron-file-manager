@@ -3884,8 +3884,8 @@ const draw_graph=()=>{
     });
 }
 
-ipcMain.on("show_git_history_status", (e,idx,len) => {
-    get_git_commit(idx).then(
+ipcMain.on("show_git_history_status", (e,idx,len,diff) => {
+    get_git_commit(idx,diff).then(
         (result) => {
             commit = result;
             let bounds = win.getBounds();
@@ -3896,7 +3896,7 @@ ipcMain.on("show_git_history_status", (e,idx,len) => {
                 parent: window.getFocusedWindow(),
                 modal: true,
                 width: 550,
-                height: 230,
+                height: 500,
                 backgroundColor: "#2e2c29",
                 x: x,
                 y: y,
@@ -3928,7 +3928,7 @@ ipcMain.on("show_git_history_status", (e,idx,len) => {
         }
 )});
 
-const get_git_commit = (idx) => {
+const get_git_commit = (idx,diff) => {
     return new Promise((resolve, reject) => {
         let cmd = `git log`;
         exec(cmd, (error, stdout, stderr) => {
@@ -3938,9 +3938,11 @@ const get_git_commit = (idx) => {
             if (stderr) {
                 reject(stderr);
             }
-            
             var list = stdout.split("\n\n");
-            resolve(list[idx*2]+"\n"+list[idx*2+1]);
+            resolve(`${list[idx*2]}
+            ${list[idx*2+1]}
+            --------------------------------------------------------------------------------
+            ${diff}`);
         });
     });
 };
