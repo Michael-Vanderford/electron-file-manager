@@ -222,6 +222,7 @@ ipcMain.on("current_directory", (e, directory) => {
     if (directory !== current_directory) {
         current_directory = directory;
     }
+    getCurrentBranch();
 });
 
 ipcMain.on("add_system_notification", (e, title, body) => {
@@ -4519,3 +4520,21 @@ ipcMain.on("git_branch_checkout_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+
+const getCurrentBranch = () => {
+    dirPath = current_directory.replaceAll(" ", "\\ ");
+
+    let checkGitBranch = `cd ${dirPath} && git branch --show-current`;
+    exec(checkGitBranch, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+        e.sender.send("show_current_branch", stdout);
+    });
+}
