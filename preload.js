@@ -9784,7 +9784,7 @@ ipcRenderer.on("show_git_commit_history",(e,str)=>{
 
 ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     let tagArea = document.getElementById('git_history_storage');
-    const id_arr = new Array;
+    const id_arr = [];
     const hash = [];
     for(let i = 0; i < list.length; i++){
         let new_pTag = document.createElement('p');
@@ -9833,7 +9833,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         new_pTag.id = `graph"${i}`;
         tagArea.appendChild(new_pTag);
     }  
-    const doc_id = new Array;
+    const doc_id = [];
     for(let i = 0; i < id_arr.length; i++){
         doc_id[i]=document.getElementById(`graph"${id_arr[i]}`);
 
