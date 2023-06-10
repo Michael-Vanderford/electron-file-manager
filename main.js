@@ -4078,7 +4078,7 @@ ipcMain.on("git_commit_canceled", (e) => {
 
 ipcMain.on("git_history", (e) => {
     //CheckGitRepo
-    dirPath = current_directory.replaceAll(" ", "\\ ");
+    let dirPath = current_directory.replaceAll(" ", "\\ ");
     let checkGitRepo = `cd ${dirPath} && git status -s`;
     exec(checkGitRepo, (error, stdout, stderr) => {
         if (error) {
