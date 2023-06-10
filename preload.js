@@ -9785,7 +9785,7 @@ ipcRenderer.on("show_git_commit_history",(e,str)=>{
 ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     let tagArea = document.getElementById('git_history_storage');
     const id_arr = new Array;
-    const hash = new Array;
+    const hash = [];
     for(let i in list){
         let new_pTag = document.createElement('p');
         let str = "";
@@ -9804,8 +9804,11 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
             }        
         }   
         if(flag==true){
-            hash[i] = list[i].slice(-7);
-            str+=`<span>${hash[i]}</span>`;
+            let tmp = list[i].slice(-7);
+            if(tmp !== undefined) {
+                hash.push(tmp);
+                str += `<span>${tmp}</span>`;
+            }
         }
         new_pTag.innerHTML = str;
         new_pTag.id = `graph"${i}`;
@@ -9815,22 +9818,8 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
     for(let i in id_arr){
         doc_id[i]=document.getElementById(`graph"${id_arr[i]}`);
 
-        doc_id[i].onclick = (e) =>{
-            if(i==0){
-                ipcRenderer.send("show_git_history_status",i,id_arr.length,"", filePath);
-            }
-            else{
-                cmd = `git diff ${hash[i]} ${hash[i-1]}`;
-                exec(cmd, (error, stdout, stderr) => {
-                    if (error) {
-                        reject(error.message);
-                    }
-                    if (stderr) {
-                        reject(stderr);
-                    }
-                    ipcRenderer.send("show_git_history_status",i,id_arr.length,stdout, filePath);
-                });
-            }            
+        doc_id[i].onclick = () =>{
+            ipcRenderer.send("show_git_history_status",i,id_arr.length,"", filePath, hash[i]);
         }
     }
     let btn_git_history_close = document.getElementById(
