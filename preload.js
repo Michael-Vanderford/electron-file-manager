@@ -9790,7 +9790,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         let new_pTag = document.createElement('p');
         let str = "";
         let flag = false;
-        for(let j=0;j<list[i].length; j++){
+        for(let j = 0; j < list[i].length; j++){
             switch(list[i][j]){
                 case '*':
                     str+=`<span>*</span>`;id_arr.push(i);break;
