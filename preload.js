@@ -4674,6 +4674,7 @@ async function get_disk_summary_view() {
 // GET LIST VIEW
 async function get_list_view(dir) {
     ipcRenderer.send("current_directory", dir);
+    ipcRenderer.send("current_branch");
 
     let list_view = document.getElementById("list_view");
 
@@ -9910,4 +9911,12 @@ ipcRenderer.on("confirm_git_branch_checkout", (e, filePath, branchList) => {
     btn_git_branch_checkout_cancel.onclick = (e) => {
         ipcRenderer.send("git_branch_checkout_canceled");
     };
+});
+
+ipcRenderer.on("show_current_branch", (e, curBranch) => {
+    const git_branch_info = document.getElementById(
+        "git_branch_info"
+    );
+
+    git_branch_info.innerHTML = `Current Branch : ${curBranch}`;
 });
