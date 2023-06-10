@@ -4193,7 +4193,6 @@ const get_git_commit = (idx, hash, filePath) => {
     return new Promise((resolve, reject) => {
         let cmd = `cd ${filePath} && git show ${hash}`;
         exec(cmd, (error, stdout, stderr) => {
-            console.log(stdout);
             if (error) {
                 reject(error.message);
             }
