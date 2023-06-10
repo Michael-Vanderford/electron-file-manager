@@ -9793,14 +9793,21 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         for(let j = 0; j < list[i].length; j++){
             switch(list[i][j]){
                 case '*':
-                    str+=`<span>*</span>`;id_arr.push(i);break;
-                case '_':str+='-';break;
+                    str+=`<span>*</span>`;
+                    id_arr.push(i);
+                    break;
+                case '_':
+                    str+='-';
+                    break;
                 case '|':
                 case '/':
                 case '_':
                 case '\\':
-                case ' ':str+=list[i][j];break;
-                default:flag = true;
+                case ' ':
+                    str+=list[i][j];
+                    break;
+                default:
+                    flag = true;
             }        
         }   
         if(flag==true){
