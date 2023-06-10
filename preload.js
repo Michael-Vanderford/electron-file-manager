@@ -9245,7 +9245,7 @@ window.addEventListener("DOMContentLoaded", () => {
             view = "grid";
         }
 
-        /* Initialize side bara */
+        /* Initialize side bar */
         sidebar = localStorage.getItem("sidebar");
         if (sidebar == null || sidebar == "") {
             localStorage.setItem("sidebar", 1);
@@ -9671,6 +9671,12 @@ window.addEventListener("DOMContentLoaded", () => {
     btnMerge.addEventListener("click", (e) => {
         ipcRenderer.send("git_merge");
     });
+
+    let btnHistory = document.getElementById("git_history");
+    btnHistory.addEventListener("click", (e) => {
+        ipcRenderer.send("git_history");
+    });
+
 });
 
 ipcRenderer.on("select_repo_visibility", (e, filePath) => {
@@ -9758,6 +9764,112 @@ ipcRenderer.on("confirm_git_commit", (e, filePath) => {
     btn_git_commit_cancel.onclick = (e) => {
         ipcRenderer.send("git_commit_canceled");
     };
+});
+
+ipcRenderer.on("show_git_commit_history",(e,str)=>{
+    let tagArea = document.getElementById('show_git_commit');
+    let arr = str.split("\n");
+    for(let i in arr){
+        let new_pTag = document.createElement('p');
+        new_pTag.innerHTML = arr[i];
+        tagArea.appendChild(new_pTag);
+    }
+    let btn_git_history_close = document.getElementById(
+        "btn_git_history_close"
+    );
+    btn_git_history_close.onclick = (e) => {
+        ipcRenderer.send("git_history_close");
+    };
+});
+
+ipcRenderer.on("draw_git_history", (e, filePath, list) => {
+    let tagArea = document.getElementById('git_history_storage');
+    const id_arr = [];
+    const hash = [];
+    for(let i = 0; i < list.length; i++){
+        let new_pTag = document.createElement('p');
+        let str = "";
+        let flag = false;
+        let j = 0;
+        for(j = 0; j < list[i].length; j++){
+            if(j + 1 < list[i].length && list[i].substring(j, j + 2) === "??"){
+                flag = true;
+                break;
+            }
+
+            switch(list[i][j]){
+                case '*':
+                    str+=`<span>*</span>`;
+                    id_arr.push(i);
+                    break;
+                case '_':
+                    str+='-';
+                    break;
+                case '|':
+                case '/':
+                case '\\':
+                case ' ':
+                    str += list[i][j];
+                    break;
+            }        
+        }
+        for(j += 2; flag === true && j < list[i].length && j < 100; j++){
+            str += list[i][j];
+        }
+
+        if(flag === true && j < list[i].length){
+            str += "...";
+        }
+
+        if(flag === true){
+            let splitIdx = list[i].indexOf("??");
+            let tmp = list[i].substring(splitIdx + 2, splitIdx + 9);
+            if(tmp !== undefined) {
+                hash.push(tmp);
+            }
+        }
+
+        new_pTag.innerHTML = str;
+        new_pTag.id = `graph"${i}`;
+        tagArea.appendChild(new_pTag);
+    }  
+    const doc_id = [];
+    for(let i = 0; i < id_arr.length; i++){
+        doc_id[i]=document.getElementById(`graph"${id_arr[i]}`);
+
+        doc_id[i].onclick = () =>{
+            ipcRenderer.send("show_git_history_status",i,id_arr.length,"", filePath, hash[i]);
+        }
+    }
+    let btn_git_history_close = document.getElementById(
+        "btn_git_history_close"
+    );
+    btn_git_history_close.onclick = (e) => {
+        ipcRenderer.send("git_history_close");
+    };
+});
+
+ipcRenderer.on("",(e,id)=>{
+    const text = document.getElementById("git_history_status");
+    let checkGitRepo = "git log";
+    exec(checkGitRepo,(err, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        let list = stdout.split("commit");
+        }
+    );
 });
 
 ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
