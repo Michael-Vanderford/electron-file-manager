@@ -2,17 +2,55 @@
 /* @media (prefers-color-scheme: dark) { */
 
     .sidebar {
-        background-color: var(--dark);
+        position: relative;
+        box-sizing: border-box;
+        /* border:1px solid red; */
+        background-color: var(--sidebar);
         color: var(--light);
         padding-left: 5px;
         padding-right: 5px;
         height: 100%;
-        overflow: none;
         width: 250px;
+
+    }
+
+    .sidebar .header {
+        color: var(--lightblue);
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+    .sidebar .item {
+        white-space: nowrap;
+        color: var(--white);
+        padding: 5px;
+        cursor: pointer;
+    }
+
+    .sidebar .item:hover {
+        background: var(--lessdark);
+        border-radius: 5px;;
+        text-decoration: underline;
+    }
+
+    .sidebar a {
+        color: var(--white);
+        text-decoration: none;
+    }
+
+    .sidebar a:hover {
+        text-decoration: underline;
+    }
+
+    .sb_view {
+        /* background: #3794ff; */
+        margin-top: 5px;
+        height: 100%;
     }
 
     .properties_view {
-        /* overflow: hidden; */
+        overflow: auto;
+        height: 100%;
         /* word-wrap: break-word; */
         /* white-space: break-all; */
         width: 100%;
@@ -33,7 +71,7 @@
     }
 
     .scrollbar {
-        width: 0px;
+        width: 0.5px;
         background: var(--lessdark);
     }
 
@@ -57,71 +95,66 @@
         padding: 8px;
         width: 24px;
         float:left;
-        background-color: var(--dark);
+        background-color: var(--minibar);
+        color: var(--light);
         border-right: 1px solid var(--lessdark);
-        height:110%
+        height:100%
     }
 
     #minibar .bi {
-        font-size: 16px;
+        font-size: 18px;
         padding: 5px;
     }
 
-    #minibar .active {
-        font-weight: bold;
-        color: var(--wh);
+    #minibar .item.active {
+        background: none;
+        font-weight: bolder;
+        color: var(--white);
     }
 
     #minibar .item  {
+        color: var(--grey);
         cursor: pointer;
-        padding-bottom: 5px;
-    }
-
-    .sidebar_container {
-        width: 100%;
-        height: 100%;
-        border: 1px solid red;
-    }
-
-    #sidebar .header {
-        color: var(--lightblue);
-        font-weight: bold;
-        font-size: 12px;
-    }
-
-    #sidebar .item {
-        white-space: nowrap;
-        color: var(--white);
-        padding: 5px;
-        cursor: pointer;
-    }
-
-    #sidebar .item:hover {
-        background: var(--lessdark);
-        border-radius: 5px;;
-        text-decoration: underline;
-    }
-
-    #sidebar a {
-        color: var(--white);
-        text-decoration: none;
-    }
-
-    #sidebar a:hover {
-        text-decoration: underline;
+        padding-bottom: 15px;
     }
 
     .search_view {
-        /* padding: 5px; */
-        height: 95%;
+        height: 100%;
+    }
+
+    .search_view .input {
+        background: var(--input);
+        color: var(--light);
+        height: 16px;
+        margin-top: 5px;
+        border:1px solid var(--border);
+        /* border: 1px solid var(--light) */
     }
 
     .search_results {
-        background: var(--moredark);
         margin-top: 10px;
-        overflow-x: hidden;
-        overflow-y: auto;
+        overflow: auto;
         height: 100%;
+    }
+
+    /* Styles for the scrollbar track */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    ::-webkit-scrollbar-track {
+        border-left: 1px solid var(--lightblue);
+        background: rgba(25, 25, 25, 0.2);
+    }
+
+    /* Styles for the scrollbar thumb */
+    ::-webkit-scrollbar-thumb {
+        background: rgba(25, 25, 25, 0.2);
+        border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(20, 20, 20, 0.5);
     }
 
     .search_results .icon16 {
@@ -135,13 +168,10 @@
         text-overflow: ellipsis;
     }
 
-    .search_results::-webkit-scrollbar {
-        width: 0.5em;
+    .search.input {
+        width: 95%;
     }
 
-    .search .input {
-
-    }
 
 /* } */
 

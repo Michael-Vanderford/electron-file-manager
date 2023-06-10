@@ -25,6 +25,8 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+
+
 ipcRenderer.on('get_devices', (e) => {
     console.log('getting devices');
     let device_view = document.querySelector('.device_view');
@@ -51,29 +53,69 @@ ipcRenderer.on('search_results', (e, find_arr) => {
         img.classList.add('icon16');
         item.classList.add('item');
 
-        link.append(path.basename(file.source));
-        link.dataset.href = file.source;
-        link.title = file.source;
+        link.append(path.basename(file.href));
+        link.dataset.search_href = file.href;
 
-        if (file.type === 'directory') {
+        let title = ''
+
+        if (file.is_dir) {
 
             img.src = folder_icon;
             item.addEventListener('click', (e) => {
-                getView(file.source, () => {});
+                getView(file.href, () => {});
             })
+
+            item.addEventListener('contextmenu', (e) => {
+                ipcRenderer.send('folder_menu', file.href);
+            })
+
+            title =
+            'Name: ' + path.basename(file.href) +
+            '\n' +
+            'Size: ' + getFileSize(file.size) +
+            '\n' +
+            'Accessed: ' + getDateTime(file.atime) +
+            '\n' +
+            'Modified: ' + getDateTime(file.mtime) +
+            '\n' +
+            'Created: ' + getDateTime(file.ctime) +
+            '\n' +
+            'Type: ' + file.content_type
+
+
         } else {
-            ipcRenderer.invoke('get_icon', (file.source)).then(res => {
+            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                 img.src = res;
             })
             item.addEventListener('click', (e) => {
-                ipcRenderer.invoke('open', file.source);
+                ipcRenderer.invoke('open', file.href);
             })
+
+            item.addEventListener('contextmenu', (e) => {
+                ipcRenderer.send('file_menu', file);
+            })
+
+            title =
+            'Name: ' + path.basename(file.href) +
+            '\n' +
+            'Size: ' + getFileSize(file.size) +
+            '\n' +
+            'Accessed: ' + getDateTime(file.atime) +
+            '\n' +
+            'Modified: ' + getDateTime(file.mtime) +
+            '\n' +
+            'Created: ' + getDateTime(file.ctime) +
+            '\n' +
+            'Type: ' + file.content_type
+
         }
 
+        item.title = title;
         icon.append(img);
         item.append(icon, link);
 
         search_results.append(item);
+
     })
 
 })
@@ -99,7 +141,8 @@ ipcRenderer.on('sort', (e, sort) => {
         }
     }
     let location = document.querySelector('.location')
-    getView(location, () => {});
+    getView(location.value, () => {});
+
 })
 
 // On Recent Files
@@ -124,23 +167,33 @@ ipcRenderer.on('recent_files', (e, dir, recent_files_arr) => {
 
 })
 
-// On Get Folder Size
-ipcRenderer.on('get_folder_size', (e, href, size) => {
-    let cards = document.querySelectorAll('.properties');
-    cards.forEach(card => {
-        if (card.dataset.href === href) {
-            let folder_size = card.querySelector('.size')
-            folder_size.innerHTML = size;
-        }
-    })
+// Get Folder Size for properties
+ipcRenderer.on('folder_size', (e, source, folder_size) => {
+    // console.log(source, folder_size)
+    let card = document.querySelector(`[data-properties_href="${source}"]`)
+    let size = card.querySelector('.size')
+    size.innerHTML = ''
+    size.innerHTML = getFileSize(folder_size);
 })
 
-// On folder count
+// On Get Folder Size for properties
+// ipcRenderer.on('get_folder_size', (e, href, size) => {
+//     console.log('running get folder size for properties')
+//     let cards = document.querySelectorAll('.properties');
+//     cards.forEach(card => {
+//         if (card.dataset.properties_href === href) {
+//             let folder_size = card.querySelector('.size')
+//             folder_size.innerHTML = size;
+//         }
+//     })
+// })
+
+// On folder count for properties
 ipcRenderer.on('folder_count', (e, href, folder_count) => {
     let cards = document.querySelectorAll('.properties');
     console.log('cards', cards)
     cards.forEach(card => {
-        if (card.dataset.href === href) {
+        if (card.dataset.properties_href === href) {
             console.log('card', card);
             let count = card.querySelector('.folder_count');
             count.innerHTML = `${folder_count} Items`;
@@ -149,7 +202,7 @@ ipcRenderer.on('folder_count', (e, href, folder_count) => {
     console.log('folder count', href, folder_count);
 })
 
-// // On file count
+// On file count
 // ipcRenderer.on('file_count', (e, href, file_count) => {
 //     let cards = document.querySelectorAll('.properties');
 //     console.log('file cards', cards)
@@ -304,10 +357,11 @@ ipcRenderer.on('new_folder', (e, file) => {
 
 // Properties
 ipcRenderer.on('properties', (e, properties_arr) => {
+
     let sidebar = document.querySelector('.sidebar')
-    sidebar.append(add_header('Properties'));
+
     getProperties(properties_arr, properties_view => {
-        sidebar.innerHTML = ''
+        clearViews();
         sidebar.append(properties_view);
     })
 })
@@ -374,13 +428,13 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     if (view == 'list') {
 
         let list_view_columns = add_div();
-        list_view_columns.classList.add('list_view_columns')
-        list_view_columns.innerHTML = ''
+        list_view_columns.classList.add('list_view_columns');
+        list_view_columns.innerHTML = '';
 
         let columns = ['Name', 'Date', 'Size', 'Items'];
         columns.forEach(column => {
             let item = add_item(column);
-            item.classList.add(column.toLocaleLowerCase())
+            item.classList.add(column.toLocaleLowerCase());
             list_view_columns.append(item);
         })
         // main.append(list_view_columns);
@@ -482,39 +536,50 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     // Loop Files Array
     for (let i = 0; i < dirents.length; i++) {
-        if (i < 500) {
-            let file = dirents[i]
+
+        // if (i < 2500) {
+
+            let file = dirents[i];
             let card = getCardGio(file);
+
+            // let card = add_div();
+            // card.classList.add('card', 'lazy');
+            // card.dataset.href = file.href;
+
             if (file.is_dir) {
 
                 if (file.is_hidden) {
-                    console.log(file.name)
-                }
-
-                if (file.is_hidden) {
-                    hidden_folder_grid.append(card)
+                    hidden_folder_grid.append(card);
                 } else {
-                    folder_grid.append(card)
+                    folder_grid.append(card);
                 }
-
-                // Call Get Folder Size
-                getFolderSize(file.href)
 
                 // this is slowing the load time down dont use for now
-                getFolderCount(file.href);
+                if (file.href.indexOf('mtp:') > -1) {
+
+                } else {
+
+                    // Call Get Folder Size
+                    getFolderSize(file.href);
+
+                    getFolderCount(file.href);
+                }
 
             } else {
 
                 if (file.is_hidden) {
-                    hidden_file_grid.append(card)
+                    hidden_file_grid.append(card);
                 } else {
-                    file_grid.append(card)
+                    file_grid.append(card);
                 }
 
             }
-        } else {
-            msg('Maximum file limit of 500 has been exceeded')
-        }
+
+            // lazyloadCards();
+
+        // } else {
+            // msg('Maximum file limit of 2500 has been exceeded')
+        // }
     }
 
     main.addEventListener('dragover', (e) => {
@@ -523,6 +588,12 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     main.addEventListener('drop', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+
+        for (const f of e.dataTransfer.files) {
+            console.log('file path', f.path)
+        }
+
         ipcRenderer.send('main', 1);
         paste(location.value);
     })
@@ -540,12 +611,12 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
 
     // Set Icon Size
-    if (localStorage.getItem('icon_size') !== null) {
-        let icon_size = localStorage.getItem('icon_size')
-        console.log('icon_size', icon_size);
-        slider.value = icon_size;
-        resizeIcons(icon_size);
-    }
+    // if (localStorage.getItem('icon_size') !== null) {
+    //     let icon_size = localStorage.getItem('icon_size')
+    //     console.log('icon_size', icon_size);
+    //     slider.value = icon_size;
+    //     resizeIcons(icon_size);
+    // }
 
     // let cards = document.querySelectorAll('.card')
     // console.log(cards.length)
@@ -562,16 +633,12 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     // watch_dir(location.value);
 
+    // lazyloadCards();
+    lazyload();
+
 })
 
-// Get Folder Size
-ipcRenderer.on('folder_size', (e, source, folder_size) => {
-    // console.log(source, folder_size)
-    let card = document.querySelector(`[data-href="${source}"]`)
-    let size = card.querySelector('.size')
-    size.innerHTML = ''
-    size.innerHTML = getFileSize(folder_size);
-})
+
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
@@ -1162,80 +1229,6 @@ function add_item(text) {
     return item;
 }
 
-// Get Properties View
-function getProperties(properties_arr, callback) {
-
-    let properties_view = document.querySelector('.properties_view')
-    if (!properties_view) {
-        properties_view = add_div();
-        properties_view.classList.add('properties_view');
-    }
-
-    properties_view.innerHTML = ''
-
-    properties_arr.forEach(file => {
-
-        // let card = getCardGio(item);
-        let card = add_div();
-        let content = add_div();
-
-        console.log('item', file)
-        card.dataset.href = file.href
-
-        card.classList.add('properties');
-        content.classList.add('grid2');
-
-        let icon = add_div()
-        icon.classList.add('icon')
-        card.append(icon)
-
-        content.append(add_item('Name:'), add_item(file.name));
-
-        let folder_count = add_div();
-        folder_count.classList.add('item', 'folder_count');
-
-        let size = add_div();
-        size.classList.add('size')
-
-        // let file_count = add_div();
-        // file_count.classList.add('item', 'file_count');
-        // content.append(add_item('Foder Count:'), folder_count);
-
-        content.append(add_item('Type:'), add_item(file.content_type));
-        content.append(add_item(`Contents:`), folder_count);
-
-        content.append(add_item('Location:'), add_item(path.dirname(file.href)));
-        if (file.is_dir) {
-            content.append(add_item('Size:'), add_item(size));
-        } else {
-            content.append(add_item('Size:'), add_item(getFileSize(file.size)));
-        }
-        content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
-        content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
-        content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
-
-        card.append(content);
-
-        properties_view.append(card);
-
-        if (file.is_dir) {
-
-            icon.append(add_img(folder_icon))
-            ipcRenderer.send('get_folder_count', file.href);
-            ipcRenderer.send('get_folder_size', file.href);
-        } else {
-            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                icon.append(add_img(res));
-            })
-        }
-
-        // note:
-        // ipcRenderer.send('get_file_count', item.href);
-
-    })
-    return callback(properties_view);
-}
-
 function toggleHidden() {
 
     let hidden_folder_grid = document.getElementById('hidden_folder_grid')
@@ -1513,14 +1506,121 @@ function edit() {
 
 // Sidebar Functions /////////////////////////////////////////////////////////////
 
+// Get Properties View
+function getProperties(properties_arr) {
+
+    console.log('running get properties');
+    clearViews();
+
+    let mb = document.getElementById('mb_info');
+    mb.classList.add('active');
+
+    let sidebar = document.querySelector('.sidebar');
+
+    let properties_view = document.querySelector('.properties_view');
+    if (properties_view) {
+        properties_view.classList.remove('hidden');
+    } else {
+        properties_view = add_div();
+        properties_view.classList.add('sb_properties', 'sb_view', 'properties_view');
+        sidebar.append(properties_view);
+    }
+
+    // properties_view.innerHTML = ''
+
+    properties_arr.forEach(file => {
+
+        // let card = getCardGio(item);
+        let card = add_div();
+        let content = add_div();
+
+        console.log('item', file);
+        card.dataset.properties_href = file.href;
+
+        let closebtn = add_div();
+        let closeicon = document.createElement('i');
+        closeicon.classList.add('bi', 'bi-x');
+        closebtn.classList.add('float', 'right', 'pointer');
+        closebtn.append(closeicon);
+        card.append(closebtn);
+        closebtn.addEventListener('click', (e) => {
+            card.remove()
+        })
+
+        let tab_container = add_div()
+        let tab_header = add_div()
+
+
+        card.classList.add('properties');
+        content.classList.add('grid2');
+
+        let icon = add_div();
+        icon.classList.add('icon');
+        card.append(icon);
+
+        content.append(add_item('Name:'), add_item(file.name));
+
+        let folder_count = add_div();
+        folder_count.classList.add('item', 'folder_count');
+        folder_count.append('Calculating');
+
+        let size = add_div();
+        size.classList.add('size');
+        size.append('Calculating');
+
+        // let file_count = add_div();
+        // file_count.classList.add('item', 'file_count');
+        // content.append(add_item('Foder Count:'), folder_count);
+
+        content.append(add_item('Type:'), add_item(file.content_type));
+        content.append(add_item(`Contents:`), folder_count);
+
+        content.append(add_item('Location:'), add_item(path.dirname(file.href)));
+        if (file.is_dir) {
+            content.append(add_item('Size:'), add_item(size));
+        } else {
+            content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+        }
+        content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+        content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+        content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+
+        card.append(content);
+
+        properties_view.append(card);
+
+        if (file.is_dir) {
+
+            icon.append(add_img(folder_icon))
+            ipcRenderer.send('get_folder_count', file.href);
+            ipcRenderer.send('get_folder_size', file.href);
+        } else {
+            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                icon.append(add_img(res));
+            })
+        }
+
+        // note:
+        // ipcRenderer.send('get_file_count', item.href);
+
+    })
+    // return callback(properties_view);
+}
+
 function getSearch() {
 
-    let location = document.querySelector('.location')
+    console.log('running sesrch');
+    clearViews();
+
+    let mb = document.getElementById('mb_find');
+    mb.classList.add('active');
+
+    let location = document.querySelector('.location');
     let sidebar = document.querySelector('.sidebar');
 
     let sb_search = document.querySelector('.sb_search');
     if (sb_search) {
-        sb_search.classList.remove('hidden')
+        sb_search.classList.remove('hidden');
     } else {
         sb_search = add_div();
         sb_search.classList.add('sb_search', 'sb_view');
@@ -1531,7 +1631,7 @@ function getSearch() {
         }
         let search_html = fs.readFileSync('views/search.html');
         search_view.innerHTML = search_html;
-        sb_search.innerHTML = search_view.innerHTML
+        sb_search.innerHTML = search_view.innerHTML;
         sidebar.append(sb_search);
     }
 
@@ -1547,36 +1647,45 @@ function getSearch() {
         }
     })
 
+    search.focus();
+    search.select();
+
 }
 
 function sidebarHome() {
 
+    let mb = document.getElementById('mb_home');
+    mb.classList.add('active');
+
     let sb_home = document.querySelector('.sb_home')
-    if (!sb_home) {
+    if (sb_home) {
+        sb_home.classList.remove('hidden')
+    } else {
         sb_home = add_div();
         sb_home.classList.add('sb_home', 'sb_view');
+        getHome(home => {
+            sb_home.append(home)
+        })
+
+        // Workspace
+        getWorkspace(workspace => {
+            sb_home.append(workspace)
+        })
+
+        // Get Device
+        getDevices(devices => {
+            sb_home.append(devices)
+        })
+
+        sidebar.append(sb_home)
     }
 
-    sb_home.innerHTML = ''
+    // sb_home.innerHTML = ''
 
     // let sidebar = document.getElementById('sidebar')
     // sidebar.innerHTML = ''
 
-    getHome(home => {
-        sb_home.append(home)
-    })
 
-    // Workspace
-    getWorkspace(workspace => {
-        sb_home.append(workspace)
-    })
-
-    // Get Device
-    getDevices(devices => {
-        sb_home.append(devices)
-    })
-
-    sidebar.append(sb_home)
 
 }
 
@@ -1704,47 +1813,49 @@ function getWorkspace(callback) {
 function getDevices(callback) {
 
     let location = document.getElementById('location');
-    let devices = add_div()
-    devices.classList.add('device_view')
-    devices.innerHTML = ''
-    devices.append(add_header('Devices'));
 
-    ipcRenderer.invoke('get_devices').then(device_arr => {
-        device_arr.forEach(item => {
+    let devices = document.querySelector('device_view')
+    if (!devices) {
+        devices = add_div()
+        devices.classList.add('device_view')
+        devices.append(add_header('Devices'));
+        ipcRenderer.invoke('get_devices').then(device_arr => {
+            console.log('running get devices')
+            device_arr.forEach(item => {
 
-            let device = document.createElement('div');
+                let device = document.createElement('div');
+                let a = document.createElement('a');
+                a.preventDefault = true;
+                a.href = item.href;
+                a.innerHTML = item.name;
 
+                device.classList.add('item');
 
-            let a = document.createElement('a');
-            a.preventDefault = true;
-            a.href = item.href;
-            a.innerHTML = item.name;
+                if (item.type == 0) {
+                    device.append(add_icon('usb-symbol'), a);
+                } else {
+                    device.append(add_icon('hdd-network'), a);
+                }
 
-            device.classList.add('item');
+                device.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    location.value = item.href;
+                    getView(item.href, () => {});
+                })
 
-            if (item.type == 0) {
-                device.append(add_icon('usb-symbol'), a);
-            } else {
-                device.append(add_icon('hdd-network'), a);
-            }
+                device.addEventListener('contextmenu', (e) => {
+                    ipcRenderer.send('device_menu', item.href);
+                    device.classList.add('highlight_select');
+                })
 
-            device.addEventListener('click', (e) => {
-                e.preventDefault();
-                location.value = item.href;
-                getView(item.href, () => {});
+                devices.append(device);
             })
 
-            device.addEventListener('contextmenu', (e) => {
-                ipcRenderer.send('device_menu', item.href);
-                device.classList.add('highlight_select');
-            })
+            return callback(devices)
 
-            devices.append(device);
         })
+    }
 
-        return callback(devices)
-
-    })
 
 }
 
@@ -1775,6 +1886,9 @@ function getSelectedFiles() {
     } else {
         msg(`No Items Selected`);
     }
+
+    ipcRenderer.send('selected_files', selected_files_arr);
+
 }
 
 // Add Button
@@ -1787,91 +1901,9 @@ function add_button(text) {
 }
 
 function paste(destination) {
-
-    let overwrite = 0;
-    let location = destination; //document.getElementById('location');
-    if (selected_files_arr.length > 0) {
-        for(let i = 0; i < selected_files_arr.length; i++) {
-
-            let source = selected_files_arr[i];
-            let destination = path.format({dir: location, base: path.basename(selected_files_arr[i])});
-
-            console.log('dest', destination)
-
-            gio_utils.get_file(source, file => {
-
-                console.log(source, destination)
-
-                // Directory
-                if (file.type === 'directory') {
-                    if (source == destination) {
-                        // destination = `${destination} (1)`;
-                    } else {
-                        console.log('exists',gio_utils.exists(destination))
-                        if (gio_utils.exists(destination)) {
-                            msg('Error: Overwrite not yet implmeneted');
-                            overwrite = 1;
-                        }
-                    }
-
-                // Files
-                } else {
-                    if (source == destination) {
-                        destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
-                    } else {
-                        if (gio_utils.exists(destination)) {
-                            msg('Error: Overwritet not yet implmeneted');
-                            overwrite = 1;
-                        }
-                    }
-
-                }
-
-                let copy_data = {
-                    source: source, //selected_files_arr[i],
-                    destination: destination //path.format({dir: location, base: path.basename(selected_files_arr[i])}),  //path.join(location, path.basename(selected_files_arr[i]))
-                }
-
-                console.log('copy_data', copy_data)
-
-                if (overwrite == 0) {
-                    copy_arr.push(copy_data);
-                } else {
-                    console.log('confirm overwrite')
-                    copy_overwrite_arr.push(copy_data)
-                }
-
-                if (i == selected_files_arr.length - 1) {
-                    if (copy_arr.length > 0) {
-                        console.log('sending array', copy_arr);
-                        ipcRenderer.send('paste', copy_arr);
-                    }
-
-                    if (copy_overwrite_arr.length > 0) {
-                        console.log('confirm overwrite')
-                        ipcRenderer.send('confirm_overwrite', copy_overwrite_arr);
-                    }
-
-                    copy_arr = [];
-                    copy_overwrite_arr = [];
-                    selected_files_arr = [];
-
-                }
-
-
-                // Reset variables
-                overwrite = 0;
-
-            })
-
-        }
-
-    } else {
-        msg(`Nothing to Paste`);
-    }
-
+    console.log('running paste')
+    ipcRenderer.send('paste', destination);
     clearHighlight();
-
 }
 
 function move(destination) {
@@ -2059,10 +2091,23 @@ function getCardGio(file) {
 
     })
 
+    // card.addEventListener('dragstart', (e) => {
+    //     ipcRenderer.send('clip', file.href);
+    //     // const dataObject = new Clipboard.DataObject()
+    //     // dataObject.setData("text/uri-list", [file.href]);
+    //     // dataObject.doDragDrop()
+    //     // ipcRenderer.send('ondragstart', file.href);
+    // })
+
     card.addEventListener('dragstart', (e) => {
         // e.preventDefault();
-        clearTimeout(tooltip_timeout);
-        getSelectedFiles();
+        // clearTimeout(tooltip_timeout);
+        // getSelectedFiles();
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData('application/x-electron-file', file.href)
+        console.log(dataTransfer)
+        ipcRenderer.send('ondragstart', file.href)
         // selected_files_arr.forEach(href => {
             // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
             // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
@@ -2100,6 +2145,9 @@ function getCardGio(file) {
     card.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        ipcRenderer.send('paste');
+
         ipcRenderer.send('main', 0)
         if (!card.classList.contains('highlight')) {
             if (e.ctrlKey) {
@@ -2170,7 +2218,8 @@ function getCardGio(file) {
                 })
             }
             if (file.content_type === 'image/svg+xml') {
-                img.src = file.href;
+                img.classList.add('lazy')
+                img.dataset.src = file.href;
                 img.classList.add('svg')
             }
         } catch (err) {
@@ -2212,7 +2261,6 @@ function getCardGio(file) {
 
     card.append(icon, content, tooltip);
     ds.addSelectables(card)
-    lazyload();
 
     return card;
 }
@@ -2462,7 +2510,8 @@ function getCard(file) {
 
     ds.addSelectables(card)
 
-    lazyload();
+    // lazyloalCards();
+    // lazyload();
 
     return card;
 }
@@ -2479,8 +2528,8 @@ function getView(dir, callback) {
     // getSubFolders(dir, () => {});
 
     console.log('running getview', dir)
-    show_loader();
     ipcRenderer.send('get_files', dir);
+    clearHighlight();
     return callback;
 
 }
@@ -2495,13 +2544,47 @@ function clearContextMenu(e) {
     }
 }
 
+function lazyloadCards() {
+    // Lazy load images
+    let lazy = [].slice.call(document.querySelectorAll('.card'));
+    // console.log(lazy)
+    // Check if window
+    if ("IntersectionObserver" in window) {
+        // Get reference to lazy objects
+        let lazyObserver = new IntersectionObserver(function (entries, observer) {
+            console.log('entries', entries.length);
+            entries.forEach((e, idx) => {
+                if (e.isIntersecting) {
+
+                    let lazyCard = e.target;
+                    // let card = document.querySelector(`[data-href="${lazyCard.dataset.href}"]`)
+                    // console.log(file);
+                    // card.append(getCardGio(file));
+                    // lazyCard.append(card);
+                    // lazyCard.src = lazyCard.dataset.src;
+                    lazyCard.classList.remove("lazy");
+                    // console.log(lazyCard.dataset.href)
+                    ipcRenderer.send('get_card_gio', lazyCard.dataset.href);
+
+                    lazyObserver.unobserve(lazyCard);
+                }
+            })
+        })
+        // THIS RUNS ON INITIAL LOAD
+        for (let i = 0; i < lazy.length; i++) {
+            lazyObserver.observe(lazy[i])
+        }
+    }
+}
+
 function lazyload() {
-    // LAZY LOAD IMAGES
+    // Lazy load images
     let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
     // CHECK IF WINDOW
     if ("IntersectionObserver" in window) {
         // GET REFERENCE TO LAZY IMAGE
         let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
+            console.log('entries', entries.length)
             entries.forEach((e, idx) => {
                 if (e.isIntersecting) {
                     let lazyImage = e.target;
@@ -2512,9 +2595,9 @@ function lazyload() {
             })
         })
         // THIS RUNS ON INITIAL LOAD
-        lazyImages.forEach(function (lazyImage) {
-            lazyImageObserver.observe(lazyImage)
-        })
+        for (let i = 0; i < lazyImages.length; i++) {
+            lazyImageObserver.observe(lazyImages[i])
+        }
     }
 }
 
@@ -2527,6 +2610,20 @@ function quickSearch (e) {
         txt_quicksearch.focus();
     // }
 
+}
+
+function clearViews() {
+
+    let mb = document.getElementById('minibar')
+    let mb_items = mb.querySelectorAll('.item')
+    mb_items.forEach(mb_item => {
+        mb_item.classList.remove('active')
+    })
+
+    let views = document.querySelectorAll('.sb_view')
+        views.forEach(view => {
+        view.classList.add('hidden')
+    })
 }
 
 // Main - This runs after html page loads.
@@ -2552,10 +2649,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             mb_item.addEventListener('click', (e) => {
 
-                let views = document.querySelectorAll('.sb_view')
-                views.forEach(view => {
-                    view.classList.add('hidden')
-                })
+                clearViews();
 
                 let sb_view;
                 switch (mb_item.id) {
@@ -2563,6 +2657,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         sb_view = document.querySelector('.sb_home');
                         sb_view.classList.remove('hidden');
                         sidebarHome();
+                        mb_item.classList.add('active')
                         break;
                     }
                     case 'mb_workspace': {
@@ -2570,12 +2665,22 @@ window.addEventListener('DOMContentLoaded', (e) => {
                             sidebar.innerHTML = '';
                             sidebar.append(workspace);
                         })
+                        mb_item.classList.add('active')
                         break;
                     }
                     case 'mb_find': {
                         // sb_view = document.querySelector('.sb_search');
                         // sb_view.classList.remove('hidden');
                         getSearch();
+                        mb_item.classList.add('active')
+                        break;
+                    }
+                    case 'mb_info': {
+                        // sb_view = document.querySelector('.sb_search');
+                        // sb_view.classList.remove('hidden');
+                        let properties_view = document.querySelector('.properties_view');
+                        properties_view.classList.remove('hidden')
+                        mb_item.classList.add('active')
                         break;
                     }
                 }
@@ -2791,7 +2896,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
 
                 // Show / Hide Sidebar
-                if (e.ctrlKey === true && e.key === 'b') {
+                if (e.ctrlKey === true && e.key.toLowerCase() === 'b') {
                     if (sidebar.classList.contains('hidden')) {
                         sidebar.classList.remove('hidden');
                         localStorage.setItem('sidebar', 1);
@@ -2802,20 +2907,30 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
 
                 // New Window
-                if (e.ctrlKey === true && e.key === 'n') {
+                if (e.ctrlKey === true && e.key.toLowerCase() === 'n') {
                     ipcRenderer.send('new_window');
                 }
 
                 // Selet All
-                if (e.ctrlKey === true && e.key === 'a') {
+                if (e.ctrlKey === true && e.key.toLowerCase() === 'a') {
                     let cards = main.querySelectorAll('.card')
                     cards.forEach(item => {
                         item.classList.add('highlight')
                     })
                 }
 
-                if (e.ctrlKey === true && e.key === 'f') {
+                if (e.ctrlKey === true && e.key.toLocaleLowerCase() === 'i') {
+                    getSelectedFiles();
+                    ipcRenderer.send('get_properties', selected_files_arr);
+                    selected_files_arr = [];
+                }
+
+                if (e.ctrlKey === true && e.shiftKey === false && e.key.toLocaleLowerCase() === 'f') {
                     quickSearch(e);
+                }
+
+                if (e.ctrlKey === true && e.shiftKey === true && e.key.toLocaleLowerCase() === 'f') {
+                    getSearch();
                 }
 
             })

@@ -1,5 +1,5 @@
 html, body {
-    background: var(--lessdark);
+    background: var(--dialog);
     overflow: hidden;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11px;
@@ -18,7 +18,7 @@ html, body {
     border-style: inset;
     border: 1px solid #3e3e3e;
     border-radius: 5px;
-    background: var(--moredark);
+    background: var(--main);
     padding: 5px;
     margin-top: 15px;
     width: 100%;

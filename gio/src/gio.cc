@@ -7,13 +7,17 @@
 
 */
 
+#include <stdlib.h>
 #include <nan.h>
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
-#include <libusb-1.0/libusb.h>
 #include <glib.h>
 #include <iostream>
+#include <vector>
+#include <string>
+
+using namespace std;
 
 namespace gio {
 
@@ -24,51 +28,23 @@ namespace gio {
     using v8::String;
     using v8::Value;
 
-    // guint64 ds(const char* dir) {
+    // void copy_file_to_clipboard(const char* file_path) {
+    //     GFile* file = g_file_new_for_path(file_path);
 
-    //     GVolumeMonitor *monitor;
-    //     GVolume *root_volume;
-    //     GMount *root_mount;
-    //     GFile *root_file;
-    //     GFileInfo *file_info;
-    //     guint64 available_space;
+    //     // Copy the file to the clipboard
+    //     gboolean success = g_file_copy(file, "clipboard://");
 
-    //     // Initialize GIO
-    //     g_type_init();
+    //     if (success) {
+    //         // Get the default clipboard
+    //         GtkClipboard* clipboard = gtk_clipboard_get_default(gdk_display_get_default());
 
-    //     // Create a volume monitor
-    //     monitor = g_volume_monitor_get();
-
-    //     // Get the root volume
-    //     root_volume = g_volume_monitor_get_volumes(monitor);
-
-    //     // Get the root mount
-    //     root_mount = g_volume_get_mount(root_volume);
-
-    //     // Get the root file
-    //     root_file = g_mount_get_root(root_mount);
-
-    //     // Get the file information
-    //     file_info = g_file_query_info(root_file, "standard::allocatable", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-
-    //     // Get the available space
-    //     g_file_info_get_attribute_uint64(file_info, "standard::allocatable", &available_space);
-
-    //     // Print the available space in bytes
-    //     // printf("Available Disk Space: %lu bytes\n", available_space);
+    //         // Set the clipboard contents with the copied file
+    //         gtk_clipboard_set_with_data(clipboard, NULL, NULL, NULL);
+    //     }
 
     //     // Cleanup
-    //     g_object_unref(file_info);
-    //     g_object_unref(root_file);
-    //     g_object_unref(root_mount);
-    //     g_object_unref(root_volume);
-    //     g_object_unref(monitor);
-
-    //     return available_space;
-
+    //     g_object_unref(file);
     // }
-
-    static libusb_context *usbContext = nullptr;
 
     // Return Disk Space
     guint64 du(const char *dir) {
@@ -113,6 +89,160 @@ namespace gio {
 
     }
 
+    void directory_changed(GFileMonitor* monitor, GFile* file, GFile* other_file, GFileMonitorEvent event_type, gpointer user_data) {
+        Nan::HandleScope scope;
+
+        const char* eventName = nullptr;
+        if (event_type == G_FILE_MONITOR_EVENT_CREATED) {
+            eventName = "created";
+        } else if (event_type == G_FILE_MONITOR_EVENT_DELETED) {
+            eventName = "deleted";
+        } else if (event_type == G_FILE_MONITOR_EVENT_CHANGED) {
+            eventName = "changed";
+        } else {
+            eventName = "unknown"; // Unknown event type, ignore
+        }
+
+        const char* filename = g_file_get_path(file);
+
+        v8::Local<v8::Object> watcherObj = Nan::New<v8::Object>();
+        Nan::Set(watcherObj, Nan::New("event").ToLocalChecked(), Nan::New(eventName).ToLocalChecked());
+        Nan::Set(watcherObj, Nan::New("filename").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+
+
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        Nan::TryCatch tryCatch;
+        const unsigned argc = 1;
+        v8::Local<v8::Value> argv[argc] = { watcherObj };
+        callback->Call(argc, argv);
+        if (tryCatch.HasCaught()) {
+            Nan::FatalException(tryCatch);
+        }
+
+    }
+
+    std::vector<std::string> watcher_dir;
+    NAN_METHOD(watcher) {
+
+        Nan::HandleScope scope;
+
+        int watching = 1;
+
+        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
+            Nan::ThrowTypeError("Invalid arguments. Expected a directory path as a string and a watcher object.");
+            return;
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+
+        Nan::Utf8String utf8Str(sourceString);
+        const char* cstring = *utf8Str;
+
+        if (watcher_dir.size() > 0) {
+            for (int i = 0; i < watcher_dir.size(); i++) {
+                if (watcher_dir[i] == cstring) {
+                    // Already being watched
+                    return;
+                } else {
+                    watcher_dir.push_back(cstring);
+                    watching = 0;
+                }
+            }
+        } else {
+            watcher_dir.push_back(cstring);
+            watching = 0;
+        }
+
+        if (!watching) {
+
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
+            GFileMonitor* fileMonitor = g_file_monitor_directory(src, G_FILE_MONITOR_NONE, NULL, NULL);
+
+            if (fileMonitor == NULL) {
+                Nan::ThrowError("Failed to create file monitor for the directory.");
+                return;
+            }
+
+            // gboolean connectResult = g_signal_connect(fileMonitor, "changed", G_CALLBACK(directory_changed), static_cast<gpointer>(*watcherObj));
+            gboolean connectResult = g_signal_connect(fileMonitor, "changed", G_CALLBACK(directory_changed), new Nan::Callback(info[1].As<v8::Function>()));
+
+            if (connectResult == 0) {
+                Nan::ThrowError("Failed to connect to the 'changed' signal.");
+                g_object_unref(fileMonitor);
+                return;
+            }
+
+            info.GetReturnValue().SetUndefined();
+
+        }
+    }
+
+    // NAN_METHOD(watcher) {
+    //     Nan::HandleScope scope;
+
+    //     if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsObject()) {
+    //         Nan::ThrowTypeError("Invalid arguments. Expected a directory path as a string and a watcher object.");
+    //         return;
+    //     }
+
+    //     Local<Object> watcherObj = info[1].As<Object>();
+
+    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Isolate* isolate = info.GetIsolate();
+
+    //     // Get the current context from the execution context
+    //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+
+    //     GFile* src = g_file_new_for_path(*sourceFile);
+
+    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(*sourceFile);
+    //     }
+
+    //     GFileMonitor* fileMonitor = g_file_monitor_directory(src, G_FILE_MONITOR_NONE, NULL, NULL);
+    //     g_signal_connect(fileMonitor, "changed", G_CALLBACK(directory_changed), static_cast<gpointer>(*watcherObj));
+
+    //     info.GetReturnValue().SetUndefined();
+    // }
+
+    void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
+        Nan::HandleScope scope;
+        // Get the device name
+        const char* mountName = g_mount_get_name(mount);
+        // Create a V8 string from the device name
+        v8::Local<v8::String> v8MountName = Nan::New(mountName).ToLocalChecked();
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        Nan::TryCatch tryCatch;
+        const unsigned argc = 1;
+        v8::Local<v8::Value> argv[argc] = { v8MountName };
+        callback->Call(argc, argv);
+        if (tryCatch.HasCaught()) {
+            Nan::FatalException(tryCatch); // Handle the exception if occurred
+        }
+    }
+
+    void on_mount_removed(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
+        // Call your Nan module's function here
+        Nan::HandleScope scope;
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        const char* deviceName = g_mount_get_name(mount);
+        v8::Local<v8::Value> argv[1] = { Nan::New(deviceName).ToLocalChecked() };
+        callback->Call(1, argv);
+    }
+
     void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
         Nan::HandleScope scope;
         // Get the device name
@@ -153,6 +283,9 @@ namespace gio {
         GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
         g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
         g_signal_connect(volumeMonitor, "drive-disconnected", G_CALLBACK(on_device_removed), new Nan::Callback(info[0].As<v8::Function>()));
+
+        g_signal_connect(volumeMonitor, "mount-added", G_CALLBACK(on_mount_added), callback);
+        g_signal_connect(volumeMonitor, "mount-removed", G_CALLBACK(on_mount_removed), new Nan::Callback(info[0].As<v8::Function>()));
 
         // Return undefined (no immediate return value)
         info.GetReturnValue().SetUndefined();
@@ -269,55 +402,59 @@ namespace gio {
         GError* error = NULL;
         GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
         const char* filename = g_file_info_get_name(file_info);
-        const char* href = g_file_get_path(src);
-        gboolean is_hidden = g_file_info_get_is_hidden(file_info);
-        gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
-        const char* mimetype = g_file_info_get_content_type(file_info);
-        gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+        if (filename != nullptr) {
+
+            const char* href = g_file_get_path(src);
+            gboolean is_hidden = g_file_info_get_is_hidden(file_info);
+            gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
+            const char* mimetype = g_file_info_get_content_type(file_info);
+            gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
 
-        v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
-        Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
-        Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
-        Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
-        Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
-        Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
-        Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+            v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
+            Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+            Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
+            Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
+            Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
+            Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
+            Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
 
-        gint64 size = g_file_info_get_size(file_info);
-        Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
+            gint64 size = g_file_info_get_size(file_info);
+            Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
 
 
-        // GTimeVal mtime_val;
-        GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
-        if (mtime_dt != NULL) {
-            gint64 mtime = g_date_time_to_unix(mtime_dt);
-            Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
-            g_date_time_unref(mtime_dt);
+            // GTimeVal mtime_val;
+            GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
+            if (mtime_dt != NULL) {
+                gint64 mtime = g_date_time_to_unix(mtime_dt);
+                Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
+                g_date_time_unref(mtime_dt);
+            }
+
+            // Get the access time (atime)
+            GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
+            if (atime_dt != NULL) {
+                gint64 atime = g_date_time_to_unix(atime_dt);
+                Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
+                g_date_time_unref(atime_dt);
+            }
+
+            // // Get the change time (ctime)
+            GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
+            if (ctime_dt != NULL) {
+                gint64 ctime = g_date_time_to_unix(ctime_dt);
+                Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
+                g_date_time_unref(ctime_dt);
+            }
+
+            // Nan::Set(resultArray, 0, fileObj);
+
+            g_object_unref(file_info);
+
+            g_object_unref(src);
+            info.GetReturnValue().Set(fileObj);
+
         }
-
-        // Get the access time (atime)
-        GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
-        if (atime_dt != NULL) {
-            gint64 atime = g_date_time_to_unix(atime_dt);
-            Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
-            g_date_time_unref(atime_dt);
-        }
-
-        // // Get the change time (ctime)
-        GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
-        if (ctime_dt != NULL) {
-            gint64 ctime = g_date_time_to_unix(ctime_dt);
-            Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
-            g_date_time_unref(ctime_dt);
-        }
-
-        // Nan::Set(resultArray, 0, fileObj);
-
-        g_object_unref(file_info);
-
-        g_object_unref(src);
-        info.GetReturnValue().Set(fileObj);
 
     }
 
@@ -849,6 +986,8 @@ namespace gio {
         Nan::Export(target, "rm", rm);
         Nan::Export(target, "is_writable", is_writable);
         Nan::Export(target, "monitor", monitor);
+        Nan::Export(target, "watcher", watcher);
+        // Nan::Set(target, Nan::New("watcher").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(watcher)).ToLocalChecked());
         // Nan::Set(target, Nan::New("monitor").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(monitor)).ToLocalChecked());
     }
 
@@ -897,4 +1036,49 @@ namespace gio {
     //     v8::Local<v8::Value> argv[] = { driveInfo };
     //     Nan::AsyncResource resource("on_device_added");
     //     callback->Call(1, argv);
+    // }
+
+
+        // guint64 ds(const char* dir) {
+
+    //     GVolumeMonitor *monitor;
+    //     GVolume *root_volume;
+    //     GMount *root_mount;
+    //     GFile *root_file;
+    //     GFileInfo *file_info;
+    //     guint64 available_space;
+
+    //     // Initialize GIO
+    //     g_type_init();
+
+    //     // Create a volume monitor
+    //     monitor = g_volume_monitor_get();
+
+    //     // Get the root volume
+    //     root_volume = g_volume_monitor_get_volumes(monitor);
+
+    //     // Get the root mount
+    //     root_mount = g_volume_get_mount(root_volume);
+
+    //     // Get the root file
+    //     root_file = g_mount_get_root(root_mount);
+
+    //     // Get the file information
+    //     file_info = g_file_query_info(root_file, "standard::allocatable", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+
+    //     // Get the available space
+    //     g_file_info_get_attribute_uint64(file_info, "standard::allocatable", &available_space);
+
+    //     // Print the available space in bytes
+    //     // printf("Available Disk Space: %lu bytes\n", available_space);
+
+    //     // Cleanup
+    //     g_object_unref(file_info);
+    //     g_object_unref(root_file);
+    //     g_object_unref(root_mount);
+    //     g_object_unref(root_volume);
+    //     g_object_unref(monitor);
+
+    //     return available_space;
+
     // }

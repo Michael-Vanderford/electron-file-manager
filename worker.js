@@ -52,6 +52,38 @@ function get_files_arr (source, destination, callback) {
     }
 }
 
+let file_arr1 = [];
+let cp_recursive1 = 0;
+function get_search_arr (source, search, callback) {
+    cp_recursive1++
+    console.log('depth', cp_recursive1, 'path', source)
+    if (path.basename(source).toLocaleLowerCase().indexOf(search) > -1) {
+        file_arr1.push(gio.get_file(source));
+    }
+    if (file_arr1.length < 1000) {
+        let dirents = gio.ls(source)
+        for (let i = 0; i < dirents.length; i++) {
+            let file = dirents[i]
+            parentPort.postMessage({cmd: 'msg', msg: `Searching...`});
+            if (file.is_dir) {
+                get_search_arr(file.href, search, callback)
+            } else {
+                if (path.basename(file.href).toLocaleLowerCase().indexOf(search) > -1) {
+                    file_arr1.push(file)
+                }
+            }
+
+        }
+    }
+    if (--cp_recursive1 == 0) {
+        parentPort.postMessage({cmd: 'msg', msg: ``})
+
+        let file_arr2 = file_arr1;
+        file_arr1 = []
+        return callback(file_arr2);
+    }
+}
+
 // let preload_arr = [];
 // function get_preload_arr (source, destination) {
 //     cp_recursive++
@@ -77,8 +109,6 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
-    // todo: properly handle the rename error in preoad edit.
-
     // Preload Recursive File array for search
     // if (data.cmd === 'preload') {
     //     console.log('running preload');
@@ -86,11 +116,47 @@ parentPort.on('message', data => {
     //     get_preload_arr(data.source, '');
     // }
 
+    if (data.cmd === 'folder_size') {
+        try {
+            get_files_arr(data.source, '', dirents => {
+                dirents.reduce((c, x) => x.type !== 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+                let size = 0;
+                for (let i = 0; i < dirents.length; i++) {
+                    if (dirents[i].type !== 'directory')
+                    size += dirents[i].size
+                }
+                parentPort.postMessage({cmd: 'folder_size', source: data.source, size: size});
+            })
+        } catch (err) {
+        }
+    }
+
+    if (data.cmd === 'folder_count') {
+        try {
+            // Get Folder Count
+            get_files_arr(data.source, '', dirents => {
+                let folder_count = dirents.length;
+                parentPort.postMessage({cmd: 'folder_count',source: data.source, folder_count: folder_count});
+            })
+        } catch (err) {
+
+        }
+    }
+
     if (data.cmd === 'search') {
-        get_files_arr(data.location, '', dirents => {
-            console.log('preload_length', dirents.length);
-            let results_arr = dirents.filter(x => x.source.indexOf(data.search) > -1);
-            parentPort.postMessage({cmd: 'search_done', results_arr: results_arr});
+        get_search_arr(data.location, data.search, dirents => {
+            // let search_arr = []
+            // console.log('preload_length', dirents.length);
+            // for (let i = 0; i < dirents.length; i++) {
+            //     if (i < 1500) {
+            //         if (dirents[i].href.indexOf(data.search) > -1) {
+            //             search_arr.push(dirents[i]);
+            //         }
+
+            //     }
+            // }
+            // let results_arr = dirents.filter(x => x.href.indexOf(data.search) > -1);
+            parentPort.postMessage({cmd: 'search_done', results_arr: dirents});
         })
     }
 

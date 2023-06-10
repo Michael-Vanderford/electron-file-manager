@@ -11,124 +11,128 @@
 </head>
 <body>
 
-    <div class="menus">
-        <div id="header_menu">
-            <div class="item"><a href="#" class="home"><i class="bi bi-house"></i> Home</a></div>
-            <div class="item"><a href="#" class="documents"><i class="bi bi-folder"></i> Documents</a></div>
-            <div class="item"><a href="#" class="downloads"><i class="bi bi-download"></i> Downloads</a></div>
-            <div class="item"><a href="#" class="music"><i class="bi bi-image"></i> Music</a></div>
-            <div class="item"><a href="#" class="pictures"><i class="bi bi-image"></i> Pictures</a></div>
-            <div class="item"><a href="#" class="videos"><i class="bi bi-image"></i> Videos</a></div>
-            <div class="item grid_view" title="Grid View"><a href="#" class=""><i class="bi bi-grid"></i> </a></div>
-            <div class="item list_view" title="List View"><a href="#" class=""><i class="bi bi-list-task"></i> </a></div>
-            <div class="item show_hidden" title="Show Hidden Files"><a href="#" class="" title="Show hidden Files"><i class="bi bi-eye"></i> </a></div>
-            <div class="item right settings">
-                <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size"></ipnut>
-                <a class="item" id="btn_hamburger_menu">
-                    <i class="bi bi-list"></i>
-                </a>
-                <div class="flex hidden" id="hamburger_menu">
+    <div class="wrapper">
 
-                    <div class="col">
-                        <div class="header">View</div>
-                        <!-- LIST VIEW -->
-                        <a class="item list" id="btn_list_view" title="List view.">
-                            <i class="bi list small"></i> List
-                        </a>
-                        <!-- GRID VIEW -->
-                        <a class="item grid" id="btn_grid_view" title="Grid view">
-                            <i class="ui icon th small"></i> Grid
-                        </a>
-                        <!-- DISK SUMMARY VIEW -->
-                        <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
-                            <i class="ui icon disk small"></i> Disk Summary
-                        </a>
-                        <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
-                            <i class="ui icon eye small"></i> Show hidden
-                        </a>
-                    </div>
+    <div id="header_menu">
 
-                    <div class="col">
-                        <div class="header">Sort</div>
-                        <a class="item date" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
-                            <i class="small icon sort amount down"></i> Date
-                        </a>
-                        <a class="item name" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
-                            <i class="icon sort alphabet down small"></i> Name
-                        </a>
-                        <a class="item size" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
-                            <i class="icon sort amount down small"></i> Size
-                        </a>
-                        <a class="item type" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
-                            <i class="icon sort file alternative outline down small"></i> Type
-                        </a>
-                    </div>
+        <div class="item"><a href="#" class="home"><i class="bi bi-house"></i> Home</a></div>
+        <div class="item"><a href="#" class="documents"><i class="bi bi-folder"></i> Documents</a></div>
+        <div class="item"><a href="#" class="downloads"><i class="bi bi-download"></i> Downloads</a></div>
+        <div class="item"><a href="#" class="music"><i class="bi bi-image"></i> Music</a></div>
+        <div class="item"><a href="#" class="pictures"><i class="bi bi-image"></i> Pictures</a></div>
+        <div class="item"><a href="#" class="videos"><i class="bi bi-image"></i> Videos</a></div>
+        <div class="item grid_view" title="Grid View"><a href="#" class=""><i class="bi bi-grid"></i> </a></div>
+        <div class="item list_view" title="List View"><a href="#" class=""><i class="bi bi-list-task"></i> </a></div>
+        <div class="item show_hidden" title="Show Hidden Files"><a href="#" class="" title="Show hidden Files"><i class="bi bi-eye"></i></a></div>
 
-                    <div class="col">
-                        <div class="header">Utilities</div>
-                        <a class="item terminal" id="terminal" title="Open a terminal in the current folder">
-                            <i class="icon bi-terminal small"></i> Open terminal
-                        </a>
-                        <a class="item button gnome_disks" title="Gnome Disks">
-                            <i class="icon bi-hdd small"></i> Gnome disks
-                        </a>
-                        <a class="item button toggle_theme" title="Toggle Theme">
-                            <i class="icon small"></i> Toggle Theme
-                        </a>
-                    </div>
+        <div class="item right settings">
 
+            <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size"></ipnut>
+
+            <a class="item hidden" id="btn_hamburger_menu">
+                <i class="bi bi-list"></i>
+            </a>
+            <div class="flex hidden" id="hamburger_menu">
+
+                <div class="col">
+                    <div class="header">View</div>
+                    <!-- LIST VIEW -->
+                    <a class="item list" id="btn_list_view" title="List view.">
+                        <i class="bi list small"></i> List
+                    </a>
+                    <!-- GRID VIEW -->
+                    <a class="item grid" id="btn_grid_view" title="Grid view">
+                        <i class="ui icon th small"></i> Grid
+                    </a>
+                    <!-- DISK SUMMARY VIEW -->
+                    <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
+                        <i class="ui icon disk small"></i> Disk Summary
+                    </a>
+                    <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                        <i class="ui icon eye small"></i> Show hidden
+                    </a>
+                </div>
+
+                <div class="col">
+                    <div class="header">Sort</div>
+                    <a class="item date" id="sort_by_date" title="Sort by Date (Click twice to change sort order)">
+                        <i class="small icon sort amount down"></i> Date
+                    </a>
+                    <a class="item name" id="sort_by_name" title="Sort by Name (Click twice to change sort order)">
+                        <i class="icon sort alphabet down small"></i> Name
+                    </a>
+                    <a class="item size" id="sort_by_size" title="Sort by Size (Click twice to change sort order)">
+                        <i class="icon sort amount down small"></i> Size
+                    </a>
+                    <a class="item type" id="sort_by_type" title="Sort by Type (Click twice to change sort order)">
+                        <i class="icon sort file alternative outline down small"></i> Type
+                    </a>
+                </div>
+
+                <div class="col">
+                    <div class="header">Utilities</div>
+                    <a class="item terminal" id="terminal" title="Open a terminal in the current folder">
+                        <i class="icon bi-terminal small"></i> Open terminal
+                    </a>
+                    <a class="item button gnome_disks" title="Gnome Disks">
+                        <i class="icon bi-hdd small"></i> Gnome disks
+                    </a>
+                    <a class="item button toggle_theme" title="Toggle Theme">
+                        <i class="icon small"></i> Toggle Theme
+                    </a>
                 </div>
 
             </div>
+
         </div>
-        <div id="navigation_menu">
-            <div class="item" id="left"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
-            <div class="item"><a href="#"><i class="bi bi-chevron-right"></i></a></div>
-            <div class="input">
-                <input type="text" spellcheck="false" id="location" class="location" />
-            </div>
-            <div id="disk_space" class="disk_space"></div>
-        </div>
+
     </div>
 
-    <div id="loader" class="ui centered loader"></div>
+    <div id="navigation_menu">
+        <div class="item" id="left"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
+        <div class="item"><a href="#"><i class="bi bi-chevron-right"></i></a></div>
+        <div class="input">
+            <input type="text" spellcheck="false" id="location" class="location" />
+        </div>
+        <div id="disk_space" class="disk_space"></div>
+    </div>
+
+    <!-- </div> -->
+
+    <!-- <div id="loader" class="ui centered loader"></div> -->
 
 
     <div class="container">
 
-        <div id="minibar" class="">
+        <div id="minibar" class="minibar">
 
             <div class="item" id="mb_home" title="Home (Ctrl+B)">
                 <i class="bi bi-house"></i>
             </div>
-            <br>
-            <div class="item" id="mb_workspace" title="Workspace">
+
+            <div class="item hidden" id="mb_workspace" title="Workspace">
                 <i class="bi bi-clipboard large"></i>
             </div>
-            <br>
+
             <div class="item" id="mb_find" title="Find">
                 <i class="bi bi-search large"></i>
             </div>
-            <br>
-            <div class="item" id="mb_fs" title="File System">
+
+            <div class="item hidden" id="mb_fs" title="File System">
                 <i class="bi bi-hdd large"></i>
             </div>
-            <br>
-            <div class="item" id="mb_devices" title="Devices">
+
+            <div class="item hidden" id="mb_devices" title="Devices">
                 <i class="bi bi-usb-symbol large"></i>
             </div>
-            <br>
+
             <div class="item" id="mb_info" title="Info">
                 <i class="bi bi-info-circle large"></i>
             </div>
 
         </div>
 
-
         <div id="sidebar" class="sidebar"></div>
-
-        <!-- <div class="scrollbar"></div> -->
-
         <div id="draghandle" class="draghandle"></div>
 
         <div id="main" class="main">
@@ -152,8 +156,7 @@
 
     </div>
 
-
-
+    </div>
     <!-- <script src="index.js"></script> -->
 
 </body>
