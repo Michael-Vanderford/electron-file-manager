@@ -4117,12 +4117,12 @@ ipcMain.on("git_history", (e) => {
             BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
-        draw_graph();
+        draw_graph(dirPath);
     });
 });
 
-const draw_graph = () => {
-    let git_log = `git log --pretty=format:"%h" --graph`;      //git repo 확인
+const draw_graph = (dirPath) => {
+    let git_log = `cd ${dirPath} && git log --pretty=format:"%h" --graph`;      //git repo 확인
     exec(git_log, (error, stdout, stderr) => {
         if (error) {
             console.error(`${error}`);
@@ -4140,12 +4140,12 @@ const draw_graph = () => {
         }
 
         const list = stdout.split("\n");
-        gitCommitHistory(current_directory, list);
+        gitCommitHistory(dirPath, list);
     });
 }
 
-ipcMain.on("show_git_history_status", (e, idx, len, diff) => {
-    get_git_commit(idx, diff).then(
+ipcMain.on("show_git_history_status", (e, idx, len, diff, filePath) => {
+    get_git_commit(idx, diff, filePath).then(
         (result) => {
             commit = result;
             let bounds = win.getBounds();
@@ -4180,7 +4180,7 @@ ipcMain.on("show_git_history_status", (e, idx, len, diff) => {
                 confirm.title = title;
                 confirm.removeMenu();
 
-                confirm.send("show_git_commit_history", commit);
+                confirm.send("show_git_commit_history", commit, filePath);
             });
         },
         (error) => {
@@ -4189,9 +4189,9 @@ ipcMain.on("show_git_history_status", (e, idx, len, diff) => {
     )
 });
 
-const get_git_commit = (idx, diff) => {
+const get_git_commit = (idx, diff, filePath) => {
     return new Promise((resolve, reject) => {
-        let cmd = `git log`;
+        let cmd = `cd ${filePath} && git log`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 reject(error.message);
