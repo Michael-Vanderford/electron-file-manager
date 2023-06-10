@@ -222,7 +222,6 @@ ipcMain.on("current_directory", (e, directory) => {
     if (directory !== current_directory) {
         current_directory = directory;
     }
-    getCurrentBranch();
 });
 
 ipcMain.on("add_system_notification", (e, title, body) => {
@@ -4521,16 +4520,15 @@ ipcMain.on("git_branch_checkout_canceled", (e) => {
     confirm.hide();
 });
 
-
-const getCurrentBranch = () => {
-    dirPath = current_directory.replaceAll(" ", "\\ ");
-
+ipcMain.on("current_branch", (e) => {
+    let dirPath = current_directory.replaceAll(" ", "\\ ");
     let checkGitBranch = `cd ${dirPath} && git branch --show-current`;
     exec(checkGitBranch, (error, stdout, stderr) => {
         let resultMsg = stdout;
         if (error || stderr) {
             resultMsg = "Not a Git Repository";
         }
+        console.log(resultMsg);
         e.sender.send("show_current_branch", resultMsg);
     });
-}
+})
