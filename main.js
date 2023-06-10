@@ -4528,7 +4528,6 @@ ipcMain.on("current_branch", (e) => {
         if (error || stderr) {
             resultMsg = "Not a Git Repository";
         }
-        console.log(resultMsg);
         e.sender.send("show_current_branch", resultMsg);
     });
 })
