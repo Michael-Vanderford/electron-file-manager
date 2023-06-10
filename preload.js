@@ -9790,7 +9790,12 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         let new_pTag = document.createElement('p');
         let str = "";
         let flag = false;
-        for(let j = 0; j < list[i].length; j++){
+        let j = 0;
+        for(j = 0; j < list[i].length; j++){
+            if(j + 1 < list[i].length && list[i].substring(j, j + 2) === "??"){
+                break;
+            }
+
             switch(list[i][j]){
                 case '*':
                     str+=`<span>*</span>`;
@@ -9809,7 +9814,11 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                 default:
                     flag = true;
             }        
-        }   
+        }
+        for(j += 2; j < list[i].length; j++){
+            str += list[i][j];
+        }
+
         if(flag==true){
             let tmp = list[i].slice(-7);
             if(tmp !== undefined) {
@@ -9817,6 +9826,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                 str += `<span>${tmp}</span>`;
             }
         }
+
         new_pTag.innerHTML = str;
         new_pTag.id = `graph"${i}`;
         tagArea.appendChild(new_pTag);
