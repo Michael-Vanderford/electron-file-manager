@@ -9817,7 +9817,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
 
         doc_id[i].onclick = (e) =>{
             if(i==0){
-                ipcRenderer.send("show_git_history_status",i,id_arr.length,"");
+                ipcRenderer.send("show_git_history_status",i,id_arr.length,"", filePath);
             }
             else{
                 cmd = `git diff ${hash[i]} ${hash[i-1]}`;
@@ -9828,7 +9828,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                     if (stderr) {
                         reject(stderr);
                     }
-                    ipcRenderer.send("show_git_history_status",i,id_arr.length,stdout);
+                    ipcRenderer.send("show_git_history_status",i,id_arr.length,stdout, filePath);
                 });
             }            
         }
