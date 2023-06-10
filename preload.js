@@ -9807,24 +9807,21 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                     break;
                 case '|':
                 case '/':
-                case '_':
                 case '\\':
                 case ' ':
-                    str+=list[i][j];
+                    str += list[i][j];
                     break;
-                default:
-                    flag = true;
             }        
         }
-        for(j += 2; j < list[i].length && j < 100; j++){
+        for(j += 2; flag === true && j < list[i].length && j < 100; j++){
             str += list[i][j];
         }
 
-        if(j < list[i].length){
+        if(flag === true && j < list[i].length){
             str += "...";
         }
 
-        if(flag==true){
+        if(flag === true){
             let splitIdx = list[i].indexOf("??");
             let tmp = list[i].substring(splitIdx + 2, splitIdx + 9);
             if(tmp !== undefined) {
