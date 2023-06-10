@@ -4144,8 +4144,8 @@ const draw_graph = (dirPath) => {
     });
 }
 
-ipcMain.on("show_git_history_status", (e, idx, len, diff, filePath) => {
-    get_git_commit(idx, diff, filePath).then(
+ipcMain.on("show_git_history_status", (e, idx, len, diff, filePath, hash) => {
+    get_git_commit(idx, hash, filePath).then(
         (result) => {
             commit = result;
             let bounds = win.getBounds();
@@ -4189,21 +4189,18 @@ ipcMain.on("show_git_history_status", (e, idx, len, diff, filePath) => {
     )
 });
 
-const get_git_commit = (idx, diff, filePath) => {
+const get_git_commit = (idx, hash, filePath) => {
     return new Promise((resolve, reject) => {
-        let cmd = `cd ${filePath} && git log`;
+        let cmd = `cd ${filePath} && git show ${hash}`;
         exec(cmd, (error, stdout, stderr) => {
+            console.log(stdout);
             if (error) {
                 reject(error.message);
             }
             if (stderr) {
                 reject(stderr);
             }
-            var list = stdout.split("\n\n");
-            resolve(`${list[idx * 2]}
-            ${list[idx * 2 + 1]}
-            --------------------------------------------------------------------------------
-            ${diff}`);
+            resolve(stdout);
         });
     });
 };
