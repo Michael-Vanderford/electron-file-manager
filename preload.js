@@ -9793,6 +9793,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         let j = 0;
         for(j = 0; j < list[i].length; j++){
             if(j + 1 < list[i].length && list[i].substring(j, j + 2) === "??"){
+                flag = true;
                 break;
             }
 
@@ -9824,7 +9825,8 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         }
 
         if(flag==true){
-            let tmp = list[i].slice(-7);
+            let splitIdx = list[i].indexOf("??");
+            let tmp = list[i].substring(splitIdx + 2, splitIdx + 9);
             if(tmp !== undefined) {
                 hash.push(tmp);
             }
@@ -9835,7 +9837,7 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
         tagArea.appendChild(new_pTag);
     }  
     const doc_id = new Array;
-    for(let i in id_arr){
+    for(let i = 0; i < id_arr.length; i++){
         doc_id[i]=document.getElementById(`graph"${id_arr[i]}`);
 
         doc_id[i].onclick = () =>{
