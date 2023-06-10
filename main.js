@@ -12,8 +12,8 @@ const {
     MenuItem,
     ipcRenderer,
 } = require("electron");
-const { Worker, isMainThread, parentPort } = require("worker_threads");
-const { exec, execSync, spawn, execFileSync } = require("child_process");
+const {Worker, isMainThread, parentPort} = require("worker_threads");
+const {exec, execSync, spawn, execFileSync} = require("child_process");
 const util = require("util");
 const exec1 = util.promisify(require("child_process").exec);
 const path = require("path");
@@ -25,14 +25,14 @@ const shell = require("electron").shell;
 const move_windows = new Set();
 const window = require("electron").BrowserWindow;
 const windows = new Set();
-const { clipboard } = require("electron");
+const {clipboard} = require("electron");
 const os = require("os");
 const gio = require("./utils/gio");
-const { promisify } = require("util");
+const {promisify} = require("util");
 const execPromise = util.promisify(exec);
 const Gio = require("gio");
-const { session } = require("electron");
-const { resolve } = require("chart.js/helpers");
+const {session} = require("electron");
+const {resolve} = require("chart.js/helpers");
 
 let copy_files_arr = [];
 let canceled = 0;
@@ -140,11 +140,11 @@ let data = {
 fs.writeFileSync(settings_file, JSON.stringify(data, null, 4));
 
 let settings = JSON.parse(
-    fs.readFileSync("settings.json", { encoding: "utf8", flag: "r" })
+    fs.readFileSync("settings.json", {encoding: "utf8", flag: "r"})
 );
 ipcMain.on("reload_settings", (e) => {
     settings = JSON.parse(
-        fs.readFileSync("settings.json", { encoding: "utf8", flag: "r" })
+        fs.readFileSync("settings.json", {encoding: "utf8", flag: "r"})
     );
 });
 
@@ -179,10 +179,12 @@ ipcMain.on("cancel", (e) => {
 });
 
 ipcMain.on("delete_file", (e, file) => {
-    delete_file(file, () => {});
+    delete_file(file, () => {
+    });
 });
 
-ipcMain.on("open_file", (e) => {});
+ipcMain.on("open_file", (e) => {
+});
 
 ipcMain.on("is_main_view", (e, state = 0) => {
     isMainView = state;
@@ -283,13 +285,13 @@ function get_folder_size1(href) {
     du = exec(cmd);
     du.stdout.on("data", function (res) {
         let size = parseInt(res.replace(".", "") * 1024);
-        win.send("folder_size", { href: href, size: size });
+        win.send("folder_size", {href: href, size: size});
     });
     du.stderr;
 }
 
 function AddSysNotification(title, body) {
-    new Notification({ title: title, body: body }).show();
+    new Notification({title: title, body: body}).show();
 }
 
 function isGioFile(href) {
@@ -460,7 +462,8 @@ async function copyFileOrFolder2(source, destination, onProgress) {
     console.log("running ", source, destination);
 
     try {
-        const sourceStats = await getfile2(source, (res) => {});
+        const sourceStats = await getfile2(source, (res) => {
+        });
         let isDirectory = 0;
         if (sourceStats.type === "directory") {
             isDirectory = 1;
@@ -654,7 +657,7 @@ function copyfolder(source, destination, callback) {
 
             dirents.forEach((file, idx) => {
                 const fileCount = dirents.length;
-                let cursource = path.format({ dir: source, base: file.name });
+                let cursource = path.format({dir: source, base: file.name});
                 let curdestination = path.format({
                     dir: destination,
                     base: file.name,
@@ -674,7 +677,8 @@ function copyfolder(source, destination, callback) {
                         `Copying File ${path.basename(curdestination)}`
                     );
                     win.send("set_progress", dirents.length, count);
-                    copyfolder(cursource, curdestination, (callback) => {});
+                    copyfolder(cursource, curdestination, (callback) => {
+                    });
                 } else {
                     count++;
                     win.send(
@@ -682,7 +686,8 @@ function copyfolder(source, destination, callback) {
                         `Copying File ${path.basename(curdestination)}`
                     );
                     win.send("set_progress", dirents.length, count);
-                    copyfile(cursource, curdestination, (callback) => {});
+                    copyfile(cursource, curdestination, (callback) => {
+                    });
                 }
             });
 
@@ -707,7 +712,8 @@ function copyfolder(source, destination, callback) {
         fs.readdir(source, (err, files) => {
             if (!err) {
                 if (isGioFile(destination)) {
-                    gio.mkdir(destination, (res) => {});
+                    gio.mkdir(destination, (res) => {
+                    });
                 } else {
                     if (!fs.existsSync(destination)) {
                         fs.mkdirSync(destination);
@@ -732,7 +738,8 @@ function copyfolder(source, destination, callback) {
                                 copyfolder(
                                     cursource,
                                     curdestination,
-                                    (callback) => {}
+                                    (callback) => {
+                                    }
                                 );
                             } else {
                                 win.send(
@@ -744,7 +751,8 @@ function copyfolder(source, destination, callback) {
                                 copyfile(
                                     cursource,
                                     curdestination,
-                                    (callback) => {}
+                                    (callback) => {
+                                    }
                                 );
                             }
 
@@ -807,7 +815,8 @@ const copy_write = (source, destination, callback) => {
         // Return a function to cancel the copy process
         cancelCopy = () => {
             win.send("notification", "Copy Canceled");
-            delete_file(destination, () => {});
+            delete_file(destination, () => {
+            });
             reader.destroy();
             pipe.destroy();
             callback(new Error("Copy process was cancelled"));
@@ -869,7 +878,8 @@ function copy() {
                 } else {
                     if (isGioFile(destination)) {
                         // show_progress()
-                        copyfolder(source, destination, () => {});
+                        copyfolder(source, destination, () => {
+                        });
                     } else {
                         win.send(
                             "set_progress_msg",
@@ -1012,7 +1022,8 @@ async function get_file_count_recursive(href) {
         );
         file_count_recursive += files.length;
         return file_count_recursive;
-    } catch (err) {}
+    } catch (err) {
+    }
 }
 
 async function get_folder_count_recursive(href) {
@@ -1031,7 +1042,8 @@ async function get_folder_count_recursive(href) {
         });
 
         return folder_count_recursive;
-    } catch (err) {}
+    } catch (err) {
+    }
 }
 
 ipcMain.handle("get_folder_count_recursive", async (e, href) => {
@@ -1197,7 +1209,8 @@ function get_disk_space(href) {
  * Get disk space summary
  */
 function get_diskspace_summary() {
-    get_disk_space({ href: "/" }, (res) => {});
+    get_disk_space({href: "/"}, (res) => {
+    });
 }
 
 /**
@@ -1254,7 +1267,8 @@ async function rm_gio_files(href, callback) {
 
             for (let i = 0; i < del_folder_arr.length; i++) {
                 console.log("rm folder", del_folder_arr[i]);
-                gio.rm(del_folder_arr[i], () => {});
+                gio.rm(del_folder_arr[i], () => {
+                });
                 win.send(
                     "set_progress_msg",
                     `Deleted Folder ${path.basename(del_folder_arr[i])}`
@@ -1364,7 +1378,7 @@ async function delete_file(href, callback) {
                 if (!err) {
                     /* Folder */
                     if (stats.isDirectory()) {
-                        fs.rm(href, { recursive: true }, (err) => {
+                        fs.rm(href, {recursive: true}, (err) => {
                             if (err) {
                                 win.send("notification", err);
                                 callback(err);
@@ -1381,7 +1395,7 @@ async function delete_file(href, callback) {
 
                                 // Update disk size
                                 get_disk_space(
-                                    { href: current_directory },
+                                    {href: current_directory},
                                     (res) => {
                                         win.send("disk_space", res);
                                     }
@@ -1407,7 +1421,7 @@ async function delete_file(href, callback) {
 
                                 // Update disk size
                                 get_disk_space(
-                                    { href: current_directory },
+                                    {href: current_directory},
                                     (res) => {
                                         win.send("disk_space", res);
                                     }
@@ -1415,7 +1429,7 @@ async function delete_file(href, callback) {
 
                                 // Update disk size
                                 get_disk_space(
-                                    { href: current_directory },
+                                    {href: current_directory},
                                     (res) => {
                                         win.send("disk_space", res);
                                     }
@@ -1428,7 +1442,8 @@ async function delete_file(href, callback) {
                     }
                 } else {
                     if (href.indexOf("smb") > -1 || href.indexOf("sftp") > -1) {
-                        gio.rm(href, () => {});
+                        gio.rm(href, () => {
+                        });
                         win.send("remove_card", href);
                     }
                 }
@@ -1592,7 +1607,7 @@ app.whenReady().then(() => {
         if (details.responseHeaders["cache-control"] == null) {
             details.responseHeaders["cache-control"] = "max-age=3600";
         }
-        callback({ cancel: false, responseHeaders: details.responseHeaders });
+        callback({cancel: false, responseHeaders: details.responseHeaders});
     });
 });
 
@@ -1600,7 +1615,7 @@ nativeTheme.themeSource = "dark";
 
 ipcMain.handle("dir_size", async (e, href) => {
     let cmd = "du -s '" + href + "' | awk '{print $1}'";
-    const { err, stdout, stderr } = await exec(cmd);
+    const {err, stdout, stderr} = await exec(cmd);
     stdout.on("data", (res) => {
         return res.replace(".", "").trim();
     });
@@ -1619,7 +1634,8 @@ ipcMain.on("read_clipboard", (a) => {
     // win.webContents
 });
 
-ipcMain.on("clear_clipboard", (a, data) => {});
+ipcMain.on("clear_clipboard", (a, data) => {
+});
 
 // RELOAD WINDOW
 ipcMain.on("reload", function (e) {
@@ -1765,11 +1781,13 @@ ipcMain.on("overwrite_confirmed_all", (e, copy_files_arr) => {
 
         // COPY DIRECTORY
         if (fs.statSync(source).isDirectory()) {
-            copyfolder(source, destination_file, (res) => {});
+            copyfolder(source, destination_file, (res) => {
+            });
 
             // COPY FILES - done
         } else {
-            copyfile(source, destination_file, (res) => {});
+            copyfile(source, destination_file, (res) => {
+            });
         }
     });
 });
@@ -2488,7 +2506,8 @@ function create_properties_window(filename) {
     windows.add(win);
 }
 
-ipcMain.on("get_image_properties", (e) => {});
+ipcMain.on("get_image_properties", (e) => {
+});
 
 // GET FILE PROPERTIES
 ipcMain.on("get_file_properties", (e, file_properties_arr) => {
@@ -2534,7 +2553,8 @@ ipcMain.on("mount_gio", (e, data) => {
         e.sender.send("gio_mounted", res);
     });
 
-    mount_gio.on("exit", (code) => {});
+    mount_gio.on("exit", (code) => {
+    });
 });
 
 // MONITOR GIO DEVICES
@@ -2558,7 +2578,7 @@ ipcMain.on("get_gio_files", (e, data) => {
 
     // STDOUT
     files.stdout.on("data", (res) => {
-        e.sender.send("gio_files", { res, data });
+        e.sender.send("gio_files", {res, data});
     });
 
     // S
@@ -2575,7 +2595,8 @@ ipcMain.on("get_uncompressed_size", (e, filename) => {
 
     try {
         size = execSync(cmd);
-    } catch (err) {}
+    } catch (err) {
+    }
 
     e.sender.send("uncompressed_size", size);
 });
@@ -2601,7 +2622,7 @@ ipcMain.on("dua", (e, args) => {
 
 // GET FILE SIZE. todo: this is just formating and the name needs to change
 ipcMain.on("get_file_size", (e, args) => {
-    e.sender.send("file_size", { href: args.href, size: args.size });
+    e.sender.send("file_size", {href: args.href, size: args.size});
 });
 
 // GET FOLDER SIZE
@@ -2613,7 +2634,7 @@ ipcMain.on("get_folder_size", (e, args) => {
 ipcMain.handle("get_folder_size1", async (e, href) => {
     try {
         cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
-        const { err, stdout, stderr } = await exec1(cmd);
+        const {err, stdout, stderr} = await exec1(cmd);
         return stdout;
     } catch (err) {
         return 0;
@@ -2672,22 +2693,22 @@ const template = [
                     win.send("context-menu-command", "open_in_new_window");
                 },
             },
-            { type: "separator" },
+            {type: "separator"},
             {
                 label: "Create New Folder",
                 click: () => {
                     win.send("new_folder");
                 },
             },
-            { type: "separator" },
+            {type: "separator"},
             {
                 label: "Connect to Server",
                 click: () => {
                     createConnectDialog();
                 },
             },
-            { type: "separator" },
-            { role: "Close" },
+            {type: "separator"},
+            {role: "Close"},
         ],
     },
     {
@@ -2711,7 +2732,7 @@ const template = [
                     // get_diskspace_summary();
                 },
             },
-            { type: "separator" },
+            {type: "separator"},
             {
                 label: "Sort",
                 submenu: [
@@ -2754,15 +2775,15 @@ const template = [
                     }
                 },
             },
-            { role: "toggleDevTools" },
-            { type: "separator" },
-            { type: "separator" },
+            {role: "toggleDevTools"},
+            {type: "separator"},
+            {type: "separator"},
             {
                 label: "Appearance",
                 role: "viewMenu",
             },
-            { type: "separator" },
-            { role: "reload" },
+            {type: "separator"},
+            {role: "reload"},
         ],
     },
     {
@@ -2824,7 +2845,8 @@ function add_launcher_menu(menu, e, args) {
                 })
             );
         }
-    } catch (err) {}
+    } catch (err) {
+    }
 }
 
 // Run as Program
@@ -2952,7 +2974,7 @@ function add_scripts_menu(menu, e, args) {
             new MenuItem({
                 label: file.replace(path.extname(file), ""),
                 click: () => {
-                    e.sender.send("create_file_from_template", { file: file });
+                    e.sender.send("create_file_from_template", {file: file});
                 },
             })
         );
@@ -3596,7 +3618,8 @@ ipcMain.on("get_home_folder", function (e) {
 });
 
 // FIND ON PAGE
-ipcMain.on("find", function (e, args) {});
+ipcMain.on("find", function (e, args) {
+});
 
 // GET HOME FOLDER
 ipcMain.on("get_home_folder", function (e) {
@@ -3604,7 +3627,8 @@ ipcMain.on("get_home_folder", function (e) {
 });
 
 // FIND ON PAGE
-ipcMain.on("find", function (e, args) {});
+ipcMain.on("find", function (e, args) {
+});
 
 // CONFIRM DELETE FILES DIALOG
 ipcMain.on("confirm_file_delete", function (e, delete_arr) {
@@ -3751,6 +3775,11 @@ ipcMain.on("git_rename_canceled", (e) => {
     confirm.hide();
 });
 
+ipcMain.on("git_history_close", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
 function gitInitialize(dirPath, e) {
     let cmd = `cd ${dirPath} && git init`;
     exec(cmd, (error, stdout, stderr) => {
@@ -3863,7 +3892,7 @@ ipcMain.on("repo_visibility_selected", (e, filePath, repo_visibility) => {
 });
 
 ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
-        repo_visibility, github_id, github_access_token) => {
+                                   repo_visibility, github_id, github_access_token) => {
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
@@ -3873,7 +3902,7 @@ ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
     }
     if (repo_visibility === "private_repository") {
         gitClonePrivate(filePath, github_repo_address, github_id, github_access_token);
-    } 
+    }
 });
 
 const gitClonePublic = (filePath, github_repo_address) => {
@@ -4014,6 +4043,7 @@ const gitCommitDialog = (filePath) => {
         x: x,
         y: y,
         frame: true,
+        autoHideMenuBar: false,
         webPreferences: {
             nodeIntegration: true, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
@@ -4058,6 +4088,147 @@ ipcMain.on("git_commit_canceled", (e) => {
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 });
+
+ipcMain.on("git_history", (e) => {
+    //CheckGitRepo
+    let dirPath = current_directory.replaceAll(" ", "\\ ");
+    let checkGitRepo = `cd ${dirPath} && git status -s`;
+    exec(checkGitRepo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        draw_graph(dirPath);
+    });
+});
+
+const draw_graph = (dirPath) => {
+    let git_log = `cd ${dirPath} && git log --pretty=format:"??%h by %ae : %s" --graph`;      //git repo 확인
+    exec(git_log, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+
+        const list = stdout.split("\n");
+        gitCommitHistory(dirPath, list);
+    });
+}
+
+ipcMain.on("show_git_history_status", (e, idx, len, diff, filePath, hash) => {
+    get_git_commit(idx, hash, filePath).then(
+        (result) => {
+            commit = result;
+            let bounds = win.getBounds();
+            let x = bounds.x + parseInt((bounds.width - 500) / 2);
+            let y = bounds.y + parseInt((bounds.height - 250) / 2);
+            // DIALOG SETTINGS
+            let confirm = new BrowserWindow({
+                parent: window.getFocusedWindow(),
+                modal: true,
+                width: 550,
+                height: 500,
+                backgroundColor: "#2e2c29",
+                x: x,
+                y: y,
+                frame: true,
+                autoHideMenuBar: true,
+                webPreferences: {
+                    nodeIntegration: true, // is default value after Electron v5
+                    contextIsolation: true, // protect against prototype pollution
+                    enableRemoteModule: false, // turn off remote
+                    nodeIntegrationInWorker: false,
+                    preload: path.join(__dirname, "preload.js"),
+                },
+
+            });
+            // LOAD FILE
+            confirm.loadFile("src/git_history_status.html");
+
+            // SHOW DIALG
+            confirm.once("ready-to-show", () => {
+                let title = `Commit ${len - idx}`;
+                confirm.title = title;
+                confirm.removeMenu();
+
+                confirm.send("show_git_commit_history", commit, filePath);
+            });
+        },
+        (error) => {
+            console.log(error);
+        }
+    )
+});
+
+const get_git_commit = (idx, hash, filePath) => {
+    return new Promise((resolve, reject) => {
+        let cmd = `cd ${filePath} && git show ${hash}`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                reject(error.message);
+            }
+            if (stderr) {
+                reject(stderr);
+            }
+            resolve(stdout);
+        });
+    });
+};
+
+const gitCommitHistory = (filePath, list) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 800) / 2);
+    let y = bounds.y + parseInt((bounds.height - 600) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 800,
+        height: 600,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_history.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Commit History";
+        confirm.title = title;
+        confirm.removeMenu();
+        confirm.send("draw_git_history", filePath, list);
+    });
+};
 
 ipcMain.on("git_merge", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
