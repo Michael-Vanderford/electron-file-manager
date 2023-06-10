@@ -4527,14 +4527,10 @@ const getCurrentBranch = () => {
 
     let checkGitBranch = `cd ${dirPath} && git branch --show-current`;
     exec(checkGitBranch, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`${error}`);
-            return;
+        let resultMsg = stdout;
+        if (error || stderr) {
+            resultMsg = "Not a Git Repository";
         }
-        if (stderr) {
-            console.error(`${stderr}`);
-            return;
-        }
-        e.sender.send("show_current_branch", stdout);
+        e.sender.send("show_current_branch", resultMsg);
     });
 }
