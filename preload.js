@@ -9815,15 +9815,18 @@ ipcRenderer.on("draw_git_history", (e, filePath, list) => {
                     flag = true;
             }        
         }
-        for(j += 2; j < list[i].length; j++){
+        for(j += 2; j < list[i].length && j < 100; j++){
             str += list[i][j];
+        }
+
+        if(j < list[i].length){
+            str += "...";
         }
 
         if(flag==true){
             let tmp = list[i].slice(-7);
             if(tmp !== undefined) {
                 hash.push(tmp);
-                str += `<span>${tmp}</span>`;
             }
         }
 
