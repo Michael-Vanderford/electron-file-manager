@@ -9657,6 +9657,11 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("git_init");
     });
 
+    let btnClone = document.getElementById("git_clone");
+    btnClone.addEventListener("click", (e) => {
+        ipcRenderer.send("git_clone");
+    });
+
     let btnCommit = document.getElementById("git_commit");
     btnCommit.addEventListener("click", (e) => {
         ipcRenderer.send("git_commit");
@@ -9672,6 +9677,55 @@ window.addEventListener("DOMContentLoaded", () => {
         ipcRenderer.send("git_history");
     });
 
+});
+
+ipcRenderer.on("select_repo_visibility", (e, filePath) => {
+    let btn_select = document.getElementById(
+        "btn_select"
+    );
+    let repo_visibility;
+
+    btn_select.onclick = (e) => {
+        const visibilityList = document.getElementsByName("visibility");
+        visibilityList.forEach((node) => {
+            if(node.checked) {
+                repo_visibility = node.value;
+            }
+        })
+        if (repo_visibility) {
+            ipcRenderer.send("repo_visibility_selected", filePath, repo_visibility);
+        }
+    };
+});
+
+ipcRenderer.on("confirm_git_clone", (e, filePath, repo_visibility) => {
+    let btn_git_clone_confirm = document.getElementById(
+        "btn_git_clone_confirm"
+    );
+    let btn_git_clone_cancel = document.getElementById(
+        "btn_git_clone_cancel"
+    );
+    let github_repo_address = document.getElementById(
+        "github_repo_address"
+    );
+    let github_id = document.getElementById(
+        "github_id"
+    );
+    let github_access_token = document.getElementById(
+        "github_access_token"
+    );
+
+    if (repo_visibility === "public_repository") {
+        document.getElementById("github_information").style.display = "none";
+    }
+
+    btn_git_clone_confirm.onclick = (e) => {
+        ipcRenderer.send("git_clone_confirmed", filePath, github_repo_address.value,
+            repo_visibility, github_id.value, github_access_token.value);
+    };
+    btn_git_clone_cancel.onclick = (e) => {
+        ipcRenderer.send("git_clone_canceled");
+    };
 });
 
 ipcRenderer.on("confirm_git_rename", (e, filePath) => {
@@ -9837,20 +9891,127 @@ ipcRenderer.on("confirm_git_merge", (e, filePath, branches) => {
     };
 });
 
-ipcRenderer.on("git_merge_success", (e) => {
-    const btn_git_merge_success_cancel = document.getElementById(
-        "btn_git_merge_success_cancel"
+ipcRenderer.on("confirm_git_branch_create", (e, filePath) => {
+    let btn_git_branch_create_confirm = document.getElementById(
+        "btn_git_branch_create_confirm"
     );
-    btn_git_merge_success_cancel.onclick = (e) => {
-        ipcRenderer.send("git_rename_canceled");
+    let btn_git_branch_create_cancel = document.getElementById(
+        "btn_git_branch_create_cancel"
+    );
+    let git_branch_name_input = document.getElementById(
+        "git_branch_name_input"
+    );
+
+    btn_git_branch_create_confirm.onclick = (e) => {
+        let name_input_str = git_branch_name_input.value;
+        ipcRenderer.send(
+            "git_branch_create_confirmed",
+            filePath,
+            name_input_str
+        );
+    };
+
+    btn_git_branch_create_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_create_canceled");
     };
 });
 
-ipcRenderer.on("git_merge_fail", (e) => {
-    const btn_git_merge_fail_cancel = document.getElementById(
-        "btn_git_merge_fail_cancel"
+ipcRenderer.on("confirm_git_branch_delete", (e, filePath, branchList) => {
+    const btn_git_branch_delete_confirm = document.getElementById(
+        "btn_git_branch_delete_confirm"
     );
-    btn_git_merge_fail_cancel.onclick = (e) => {
-        ipcRenderer.send("git_rename_canceled");
+    const btn_git_branch_delete_cancel = document.getElementById(
+        "btn_git_branch_delete_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_delete_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_delete_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send("git_branch_delete_confirmed", filePath, targetBranch);
+    };
+
+    btn_git_branch_delete_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_delete_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_branch_rename", (e, filePath, branchList) => {
+    const btn_git_branch_rename_confirm = document.getElementById(
+        "btn_git_branch_rename_confirm"
+    );
+    const btn_git_branch_rename_cancel = document.getElementById(
+        "btn_git_branch_rename_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    let git_branch_name_input = document.getElementById(
+        "git_branch_name_input"
+    );
+
+    btn_git_branch_rename_confirm.onclick = (e) => {
+        let name_input_str = git_branch_name_input.value;
+        if (name_input_str === "") return;
+
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_rename_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send(
+            "git_branch_rename_confirmed",
+            filePath,
+            targetBranch,
+            name_input_str
+        );
+    };
+
+    btn_git_branch_rename_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_rename_canceled");
+    };
+});
+
+ipcRenderer.on("confirm_git_branch_checkout", (e, filePath, branchList) => {
+    const btn_git_branch_checkout_confirm = document.getElementById(
+        "btn_git_branch_checkout_confirm"
+    );
+    const btn_git_branch_checkout_cancel = document.getElementById(
+        "btn_git_branch_checkout_cancel"
+    );
+
+    const selectBox = document.getElementById("branch");
+    branchList.forEach((branch) => {
+        const option = document.createElement("option");
+        option.text = branch;
+        selectBox.add(option);
+    });
+
+    btn_git_branch_checkout_confirm.onclick = (e) => {
+        const selectedIndex = selectBox.selectedIndex;
+        if (selectedIndex === -1)
+            ipcRenderer.send("git_branch_checkout_canceled");
+        const targetBranch = selectBox.options[selectedIndex].text;
+        ipcRenderer.send(
+            "git_branch_checkout_confirmed",
+            filePath,
+            targetBranch
+        );
+    };
+
+    btn_git_branch_checkout_cancel.onclick = (e) => {
+        ipcRenderer.send("git_branch_checkout_canceled");
     };
 });

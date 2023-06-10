@@ -3206,16 +3206,64 @@ ipcMain.on("show-context-menu", (e, options) => {
                 e.sender.send("context-menu-command", "show_hidden");
             },
         },
+        {
+            type: "separator",
+        },
+        {
+            id: "vcs-branch",
+            label: "Git Branch:",
+            submenu: [],
+        },
     ];
 
     // CALL BUILD TEMPLATE. CREATE NEW FILES
     let menu = Menu.buildFromTemplate(template);
+    getGitBranchList(current_directory).then((branchList) => {
+        console.log(branchList);
 
-    // ADD TEMPLATES
-    add_templates_menu(menu, e, options);
+        let gitBranchMenuList = [
+            {
+                label: "Git Branch: Create New Branch",
+                click: () => {
+                    console.log("Git Branch Create");
+                    gitBranchCreateDialog(current_directory);
+                },
+            },
+            {
+                label: "Git Branch: Delete a Branch",
+                click: () => {
+                    console.log("Git Branch Delete");
+                    gitBranchDeleteDialog(current_directory, branchList);
+                },
+            },
+            {
+                label: "Git Branch: Rename a Branch",
+                click: () => {
+                    console.log("Git Branch Rename");
+                    gitBranchRenameDialog(current_directory, branchList);
+                },
+            },
+            {
+                label: "Git Branch: Checkout to other Branch",
+                click: () => {
+                    console.log("Git Branch Checkout");
+                    gitBranchCheckoutDialog(current_directory, branchList);
+                },
+            },
+        ];
+        if (branchList !== -1) {
+            gitBranchMenuList.forEach((gitBranchMenuItem) => {
+                menu.getMenuItemById("vcs-branch").submenu.append(
+                    new MenuItem(gitBranchMenuItem)
+                );
+            });
+        }
 
-    // SHOW MENU
-    menu.popup(BrowserWindow.fromWebContents(e.sender));
+        // ADD TEMPLATES
+        add_templates_menu(menu, e, options);
+        // SHOW MENU
+        menu.popup(BrowserWindow.fromWebContents(e.sender));
+    });
 });
 
 // FOLDERS MENU
@@ -3751,6 +3799,194 @@ ipcMain.on("git_init", (e) => {
     });
 });
 
+ipcMain.on("git_clone", (e) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 260,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_clone_visibility_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Select Visibility";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("select_repo_visibility", current_directory);
+    });
+});
+
+ipcMain.on("repo_visibility_selected", (e, filePath, repo_visibility) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 350,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_clone_dialog.html");
+
+    // SHOW DIALG
+    confirm.once("ready-to-show", () => {
+        let title = "Git Clone";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_clone", filePath, repo_visibility);
+    });
+});
+
+ipcMain.on("git_clone_confirmed", (e, filePath, github_repo_address,
+        repo_visibility, github_id, github_access_token) => {
+
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    if (repo_visibility === "public_repository") {
+        gitClonePublic(filePath, github_repo_address);
+    }
+    if (repo_visibility === "private_repository") {
+        gitClonePrivate(filePath, github_repo_address, github_id, github_access_token);
+    } 
+});
+
+const gitClonePublic = (filePath, github_repo_address) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git clone \"${github_repo_address}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+        }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
+    });
+    BrowserWindow.getFocusedWindow().send("refresh");
+}
+
+const gitClonePrivate = (filePath, github_repo_address, github_id, github_access_token) => {
+    filePath = filePath.replaceAll(" ", "\\ ");
+
+    let checkGithubInfo = `cd ${filePath} && ls -a | grep -w GithubInfo.txt | wc -l`;
+    exec(checkGithubInfo, (error, stdout, stderr) => {
+        if (error) {
+            console.error(`${error}`);
+            return;
+        }
+        if (stderr) {
+            console.error(`${stderr}`);
+            return;
+        }
+
+        if (stdout.trim() === "0") {
+            cmd = `cd ${filePath} && echo \"${github_id}\n${github_access_token}\" > GithubInfo.txt`;
+            exec(cmd, (error, stdout, stderr) => {
+                if (error) {
+                    console.log(`Error: ${error.message}`);
+                    return;
+                }
+                if (stderr) {
+                    console.log(`Stderr: ${stderr}`);
+                    return;
+                }
+                BrowserWindow.getFocusedWindow().send("refresh");
+            });
+        }
+
+        let getGithubInfo = `cd ${filePath} && cat GithubInfo.txt`;
+        exec(getGithubInfo, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                return;
+            }
+            gitClonePrivateExec(filePath, github_repo_address, stdout.split("\n")[0], stdout.split("\n")[1]);
+        });
+    });
+}
+
+const gitClonePrivateExec = (filePath, github_repo_address, github_id, github_access_token) => {
+    let http = "https://";
+    let github_repo_address_substr = github_repo_address.substring(8);
+
+    let cmd = `cd ${filePath} && git clone \"${http}${github_id}:${github_access_token}@${github_repo_address_substr}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send("notification", error.message);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+        }
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Cloned ${github_repo_address}`
+        );
+    });
+    BrowserWindow.getFocusedWindow().send("refresh");
+}
+
+ipcMain.on("git_clone_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
 ipcMain.on("git_commit", (e) => {
     dirPath = current_directory.replaceAll(" ", "\\ ");
     let checkGitRepo = `cd ${dirPath} && git status -s`;
@@ -4052,7 +4288,7 @@ const gitMergeDialog = (filePath) => {
 const getBranchData = (filePath) => {
     return new Promise((resolve, reject) => {
         filePath = filePath.replaceAll(" ", "\\ ");
-        let cmd = `cd ${filePath} && git branch -a`;
+        let cmd = `cd ${filePath} && git branch`;
         exec(cmd, (error, stdout, stderr) => {
             if (error) {
                 reject(error.message);
@@ -4074,65 +4310,362 @@ ipcMain.on("git_merge_confirmed", (e, filePath, targetBranch) => {
     filePath = filePath.replaceAll(" ", "\\ ");
     let cmd = `cd ${filePath} && git merge ${targetBranch} -m \"merge ${targetBranch}\"`;
     exec(cmd, (error, stdout, stderr) => {
-        let bounds = win.getBounds();
-
-        let x = bounds.x + parseInt((bounds.width - 400) / 2);
-        let y = bounds.y + parseInt((bounds.height - 250) / 2);
-
-        let confirm = new BrowserWindow({
-            parent: window.getFocusedWindow(),
-            modal: true,
-            width: 550,
-            height: 200,
-            backgroundColor: "#2e2c29",
-            x: x,
-            y: y,
-            frame: true,
-            webPreferences: {
-                nodeIntegration: true, // is default value after Electron v5
-                contextIsolation: true, // protect against prototype pollution
-                enableRemoteModule: false, // turn off remote
-                nodeIntegrationInWorker: false,
-                preload: path.join(__dirname, "preload.js"),
-            },
-        });
-
         if (error) {
             exec(`cd ${filePath} && git merge --abort`);
             console.log(`Error: ${error.message}`);
-            confirm.loadFile("src/git_merge_dialog_fail.html");
-            confirm.once("ready-to-show", () => {
-                let title = "Merge Requested";
-                confirm.title = title;
-                confirm.removeMenu();
-
-                confirm.send("git_merge_fail");
-                BrowserWindow.getFocusedWindow().send("refresh");
-            });
+            BrowserWindow.getFocusedWindow().send(
+                "notification",
+                error.message
+            );
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
             return;
         }
         if (stderr) {
             console.log(`Stderr: ${stderr}`);
-            confirm.loadFile("src/git_merge_dialog_fail.html");
-            confirm.once("ready-to-show", () => {
-                let title = "Merge Requested";
-                confirm.title = title;
-                confirm.removeMenu();
-
-                confirm.send("git_merge_fail");
-                BrowserWindow.getFocusedWindow().send("refresh");
-            });
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
             return;
         }
-        confirm.loadFile("src/git_merge_dialog_success.html");
-        // SHOW DIALG
-        confirm.once("ready-to-show", () => {
-            let title = "Merge Requested";
-            confirm.title = title;
-            confirm.removeMenu();
-
-            confirm.send("git_merge_success");
-        });
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Merge branch ${targetBranch} Success`
+        );
         BrowserWindow.getFocusedWindow().send("refresh");
     });
+});
+
+const getGitBranchList = (filePath) => {
+    console.log(filePath);
+    return new Promise((resolve) => {
+        let filePathDir = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePathDir} && git branch`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                resolve(-1);
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                resolve(-1);
+            }
+
+            branchList = stdout.split("\n");
+            for (let i = 0; i < branchList.length; i++) {
+                branchList[i] = branchList[i].trim();
+                if (branchList[i][0] === "*") {
+                    branchList.splice(branchList.indexOf(branchList[i]), 1);
+                    i--;
+                } else if (branchList[i] === "") {
+                    branchList.splice(branchList.indexOf(branchList[i]), 1);
+                    i--;
+                }
+            }
+            console.log(branchList);
+            resolve(branchList);
+        });
+    });
+};
+
+const gitBranchCreateDialog = (filePath) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_branch_create_dialog.html");
+
+    // SHOW DIALOG
+    confirm.once("ready-to-show", () => {
+        let title = "Create New Branch";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_branch_create", filePath);
+    });
+};
+
+ipcMain.on("git_branch_create_confirmed", (e, filePath, name_input_str) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch \"${name_input_str}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send(
+                "notification",
+                error.message
+            );
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Created ${name_input_str} Branch`
+        );
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_create_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+const gitBranchDeleteDialog = (filePath, branchList) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_branch_delete_dialog.html");
+
+    // SHOW DIALOG
+    confirm.once("ready-to-show", () => {
+        let title = "Delete a Branch";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_branch_delete", filePath, branchList);
+    });
+};
+
+ipcMain.on("git_branch_delete_confirmed", (e, filePath, branchName) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git branch -D \"${branchName}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send(
+                "notification",
+                error.message
+            );
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Deleted ${branchName} Branch`
+        );
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_delete_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+const gitBranchRenameDialog = (filePath, branchList) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 300,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_branch_rename_dialog.html");
+
+    // SHOW DIALOG
+    confirm.once("ready-to-show", () => {
+        let title = "Rename a Branch";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_branch_rename", filePath, branchList);
+    });
+};
+
+ipcMain.on(
+    "git_branch_rename_confirmed",
+    (e, filePath, branchName, newName) => {
+        let confirm = BrowserWindow.getFocusedWindow();
+        confirm.hide();
+
+        filePath = filePath.replaceAll(" ", "\\ ");
+        let cmd = `cd ${filePath} && git branch -m \"${branchName}\" \"${newName}\"`;
+        exec(cmd, (error, stdout, stderr) => {
+            if (error) {
+                console.log(`Error: ${error.message}`);
+                BrowserWindow.getFocusedWindow().send(
+                    "notification",
+                    error.message
+                );
+                BrowserWindow.getFocusedWindow().send("refresh");
+                resolve(-1);
+                return;
+            }
+            if (stderr) {
+                console.log(`Stderr: ${stderr}`);
+                BrowserWindow.getFocusedWindow().send("notification", stderr);
+                BrowserWindow.getFocusedWindow().send("refresh");
+                resolve(-1);
+                return;
+            }
+
+            BrowserWindow.getFocusedWindow().send(
+                "notification",
+                `Successfully Renamed ${branchName} Branch to ${newName}`
+            );
+            BrowserWindow.getFocusedWindow().send("refresh");
+        });
+    }
+);
+
+ipcMain.on("git_branch_rename_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+});
+
+const gitBranchCheckoutDialog = (filePath, branchList) => {
+    let bounds = win.getBounds();
+
+    let x = bounds.x + parseInt((bounds.width - 400) / 2);
+    let y = bounds.y + parseInt((bounds.height - 250) / 2);
+
+    // DIALOG SETTINGS
+    let confirm = new BrowserWindow({
+        parent: window.getFocusedWindow(),
+        modal: true,
+        width: 550,
+        height: 200,
+        backgroundColor: "#2e2c29",
+        x: x,
+        y: y,
+        frame: true,
+        webPreferences: {
+            nodeIntegration: true, // is default value after Electron v5
+            contextIsolation: true, // protect against prototype pollution
+            enableRemoteModule: false, // turn off remote
+            nodeIntegrationInWorker: false,
+            preload: path.join(__dirname, "preload.js"),
+        },
+    });
+    // LOAD FILE
+    confirm.loadFile("src/git_branch_checkout_dialog.html");
+
+    // SHOW DIALOG
+    confirm.once("ready-to-show", () => {
+        let title = "Checkout a Branch";
+        confirm.title = title;
+        confirm.removeMenu();
+
+        confirm.send("confirm_git_branch_checkout", filePath, branchList);
+    });
+};
+
+ipcMain.on("git_branch_checkout_confirmed", (e, filePath, branchName) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
+
+    filePath = filePath.replaceAll(" ", "\\ ");
+    let cmd = `cd ${filePath} && git checkout \"${branchName}\"`;
+    exec(cmd, (error, stdout, stderr) => {
+        if (error) {
+            console.log(`Error: ${error.message}`);
+            BrowserWindow.getFocusedWindow().send(
+                "notification",
+                error.message
+            );
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+        if (stderr) {
+            console.log(`Stderr: ${stderr}`);
+            BrowserWindow.getFocusedWindow().send("notification", stderr);
+            BrowserWindow.getFocusedWindow().send("refresh");
+            resolve(-1);
+            return;
+        }
+
+        BrowserWindow.getFocusedWindow().send(
+            "notification",
+            `Successfully Checkout to ${branchName} Branch`
+        );
+        BrowserWindow.getFocusedWindow().send("refresh");
+    });
+});
+
+ipcMain.on("git_branch_checkout_canceled", (e) => {
+    let confirm = BrowserWindow.getFocusedWindow();
+    confirm.hide();
 });
