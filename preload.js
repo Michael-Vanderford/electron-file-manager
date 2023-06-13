@@ -15,6 +15,7 @@ let copy_overwrite_arr  = [];
 
 let ds;
 let sort = 'date';
+let thumbnail_dir
 
 let view = 'grid';
 if (localStorage.getItem('view') == null) {
@@ -25,7 +26,9 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
-
+ipcRenderer.invoke('get_thumbnails_directory').then(res => {
+    thumbnail_dir = res
+})
 
 ipcRenderer.on('get_devices', (e) => {
     console.log('getting devices');
@@ -140,8 +143,9 @@ ipcRenderer.on('sort', (e, sort) => {
             break
         }
     }
-    let location = document.querySelector('.location')
-    getView(location.value, () => {});
+    sort_cards();
+    // let location = document.querySelector('.location')
+    // getView(location.value, () => {});
 
 })
 
@@ -380,6 +384,7 @@ ipcRenderer.on('get_files', (e, dirents) => {
 ipcRenderer.on('ls', (e, dirents, source) => {
 
     console.log('running ls');
+    msg('');
 
     let main = document.querySelector('.main');
 
@@ -416,7 +421,7 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     let grid_view = document.querySelector('.grid_view');
     let list_view = document.querySelector('.list_view');
 
-    msg('');
+
 
     folder_grid.classList.add('folder_grid');
     file_grid.classList.add('file_grid');
@@ -425,51 +430,64 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     location.value = source;
     document.title = path.basename(location.value);
 
+    let header = document.querySelector('.header_row')
+    if (!header) {
+
+        header = add_div();
+        header.classList.add('header_row', 'content', 'list');
+
+        let colNames = ['Name', 'Date', 'Size', 'Items'];
+        let colClasses = ['name', 'date', 'size', 'items'];
+
+        let headerRow = colNames.map((colName, index) => {
+            let col = add_div();
+            col.classList.add('item', colClasses[index]);
+            col.append(colName);
+
+            col.addEventListener('click', (e) => {
+                sort = colName.toLocaleLowerCase();
+                localStorage.setItem('sort', sort);
+                sort_cards();
+            })
+
+            return col;
+        });
+
+        header.append(...headerRow);
+        main.append(header);
+
+    }
+
     if (view == 'list') {
 
-        let list_view_columns = add_div();
-        list_view_columns.classList.add('list_view_columns');
-        list_view_columns.innerHTML = '';
+        main.classList.replace('grid_container', 'list_container');
+        header.classList.remove('hidden');
 
-        let columns = ['Name', 'Date', 'Size', 'Items'];
-        columns.forEach(column => {
-            let item = add_item(column);
-            item.classList.add(column.toLocaleLowerCase());
-            list_view_columns.append(item);
-        })
-        // main.append(list_view_columns);
+        const list_view_columns = add_div();
+        list_view_columns.className = 'list_view_columns';
+        list_view_columns.innerHTML = '';
 
         list_view.classList.add('active');
         grid_view.classList.remove('active');
 
-        folder_grid.classList.remove('grid');
-        file_grid.classList.remove('grid');
-
-        folder_grid.classList.add('grid1');
-        file_grid.classList.add('grid1');
-
-        hidden_folder_grid.classList.remove('grid');
-        hidden_file_grid.classList.remove('grid');
-
-        hidden_folder_grid.classList.add('grid1');
-        hidden_file_grid.classList.add('grid1');
+        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
+            element.classList.remove('grid');
+            element.classList.add('grid1');
+        });
 
     } else {
+
+        main.classList.replace('list_container', 'grid_container');
+        header.classList.add('hidden');
 
         list_view.classList.remove('active');
         grid_view.classList.add('active');
 
-        folder_grid.classList.remove('grid1');
-        file_grid.classList.remove('grid1');
+        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
+            element.classList.remove('grid1');
+            element.classList.add('grid');
+        });
 
-        folder_grid.classList.add('grid');
-        file_grid.classList.add('grid');
-
-        hidden_folder_grid.classList.remove('grid1');
-        hidden_file_grid.classList.remove('grid1');
-
-        hidden_folder_grid.classList.add('grid');
-        hidden_file_grid.classList.add('grid');
     }
 
     let sort_flag = 0;
@@ -486,47 +504,47 @@ ipcRenderer.on('ls', (e, dirents, source) => {
         sort = localStorage.getItem('sort');
     }
 
-    // Sort by date
-    if (sort === 'date') {
-        dirents.sort((a, b) => {
-            if (sort_flag == 0) {
-                return b.mtime - a.mtime
-            } else {
-                return a.mtime - b.mtime
-            }
-        })
-    }
+    // // Sort by date
+    // if (sort === 'date') {
+    //     dirents.sort((a, b) => {
+    //         if (sort_flag == 0) {
+    //             return b.mtime - a.mtime
+    //         } else {
+    //             return a.mtime - b.mtime
+    //         }
+    //     })
+    // }
 
-    // Sort by Name
-    if (sort === 'name') {
-        dirents.sort((a, b) => {
-            console.log('sorting')
-            return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
-        })
-    }
-    // Sort by Size
-    if (sort === 'size') {
-        dirents.sort((a, b) => {
-            let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
-            let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
-            if (sort_flag == 0) {
-                return s2 - s1;
-            } else {
-                s1 - s2;
-            }
-        })
-    }
-    // Sort by Type
-    if (sort === 'type') {
-        dirents.sort((a, b) => {
-            let ext1 = path.extname(path.basename(a.href));
-            let ext2 = path.extname(path.basename(b.href));
-            if (ext1 < ext2) return -1;
-            if (ext1 > ext2) return 1;
-            if (a.mtime < b.mtime) return -1;
-            if (a.mtime > b.mtime) return 1;
-        })
-    }
+    // // Sort by Name
+    // if (sort === 'name') {
+    //     dirents.sort((a, b) => {
+    //         console.log('sorting')
+    //         return a.href.toLocaleLowerCase().localeCompare(b.href.toLocaleLowerCase());
+    //     })
+    // }
+    // // Sort by Size
+    // if (sort === 'size') {
+    //     dirents.sort((a, b) => {
+    //         let s1 = a.size; //parseInt(localStorage.getItem(path.join(dir, a)));
+    //         let s2 = b.size; //parseInt(localStorage.getItem(path.join(dir, b)));
+    //         if (sort_flag == 0) {
+    //             return s2 - s1;
+    //         } else {
+    //             s1 - s2;
+    //         }
+    //     })
+    // }
+    // // Sort by Type
+    // if (sort === 'type') {
+    //     dirents.sort((a, b) => {
+    //         let ext1 = path.extname(path.basename(a.href));
+    //         let ext2 = path.extname(path.basename(b.href));
+    //         if (ext1 < ext2) return -1;
+    //         if (ext1 > ext2) return 1;
+    //         if (a.mtime < b.mtime) return -1;
+    //         if (a.mtime > b.mtime) return 1;
+    //     })
+    // }
 
     // const chunck = 500;
     // let currentidx = 0;
@@ -539,43 +557,37 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
         // if (i < 2500) {
 
-            let file = dirents[i];
-            let card = getCardGio(file);
+        let file = dirents[i];
+        let card = getCardGio(file);
 
-            // let card = add_div();
-            // card.classList.add('card', 'lazy');
-            // card.dataset.href = file.href;
+        if (file.is_dir) {
 
-            if (file.is_dir) {
+            if (file.is_hidden) {
+                hidden_folder_grid.append(card);
+            } else {
+                folder_grid.append(card);
+            }
 
-                if (file.is_hidden) {
-                    hidden_folder_grid.append(card);
-                } else {
-                    folder_grid.append(card);
-                }
-
-                // this is slowing the load time down dont use for now
-                if (file.href.indexOf('mtp:') > -1) {
-
-                } else {
-
-                    // Call Get Folder Size
-                    getFolderSize(file.href);
-
-                    getFolderCount(file.href);
-                }
+            // this is slowing the load time down dont use for now
+            if (file.href.indexOf('mtp:') > -1) {
 
             } else {
 
-                if (file.is_hidden) {
-                    hidden_file_grid.append(card);
-                } else {
-                    file_grid.append(card);
-                }
+                // Call Get Folder Size
+                getFolderSize(file.href);
 
+                getFolderCount(file.href);
             }
 
-            // lazyloadCards();
+        } else {
+
+            if (file.is_hidden) {
+                hidden_file_grid.append(card);
+            } else {
+                file_grid.append(card);
+            }
+
+        }
 
         // } else {
             // msg('Maximum file limit of 2500 has been exceeded')
@@ -636,9 +648,9 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     // lazyloadCards();
     lazyload();
 
+    sort_cards();
+
 })
-
-
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
@@ -984,6 +996,95 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 // Functions //////////////////////////////////////////////////////////////
 
 // Utilities ///////////////////////////////////////////////////////////////
+
+function sort_cards() {
+
+    let folder_grid = document.querySelector('.folder_grid');
+    let file_grid = document.querySelector('.file_grid');
+
+    let folders = Array.from(folder_grid.querySelectorAll('.card'));
+    let files = Array.from(file_grid.querySelectorAll('.card'));
+
+    let sort = '';
+    if (localStorage.getItem('sort') !== null) {
+        sort = localStorage.getItem('sort');
+    }
+
+    console.log('sorting by', sort);
+
+    let sort_flag = 0;
+
+    switch (sort) {
+        case 'name': {
+            folders.sort((a, b) => {
+                if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
+                    return -1;
+                }
+                if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
+                    return 1;
+                }
+                return 0;
+            })
+            files.sort((a, b) => {
+                if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
+                    return -1;
+                }
+                if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
+                    return 1;
+                }
+                return 0;
+            })
+            break;
+        }
+        case 'date': {
+            folders.sort((a, b) => {
+                if (sort_flag == 0) {
+                    return b.dataset.mtime - a.dataset.mtime
+                } else {
+                    return a.dataset.mtime - b.dataset.mtime
+                }
+
+            })
+            files.sort((a, b) => {
+                if (sort_flag == 0) {
+                    return b.dataset.mtime - a.dataset.mtime
+                } else {
+                    return a.dataset.mtime - b.dataset.mtime
+                }
+            })
+            break;
+        }
+        case 'size': {
+            folders.sort((a, b) => {
+                if (sort_flag == 0) {
+                    return b.dataset.size - a.dataset.size
+                } else {
+                    return a.dataset.size - b.dataset.size
+                }
+
+            })
+            files.sort((a, b) => {
+                if (sort_flag == 0) {
+                    return b.dataset.size - a.dataset.size
+                } else {
+                    return a.dataset.size - b.dataset.size
+                }
+            })
+            break;
+        }
+    }
+
+    folders.forEach(card => {
+        folder_grid.appendChild(card);
+    })
+
+    files.forEach(card => {
+        file_grid.appendChild(card);
+    })
+
+
+
+}
 
 function find() {
 
@@ -1394,13 +1495,7 @@ let folder_icon = get_folder_icon();
  */
 function msg(message) {
 
-    // let main = document.querySelector('.main');
     let msg = document.getElementById('msg');
-    // if (!msg) {
-    //     msg = add_div();
-    //     msg.classList.add('msg', 'bottom');
-    //     main.append(msg);
-    // }
     msg.innerHTML = '';
     msg.classList.remove('hidden');
     if (message === '') {
@@ -1417,7 +1512,7 @@ function msg(message) {
     // setTimeout(() => {
     //     msg.innerHTML = ''
     //     msg.classList.add('hidden')
-    // }, 3000);
+    // }, 5000);
 
 }
 
@@ -1755,14 +1850,11 @@ function getHome(callback) {
         })
 
     }
-
     return callback(home)
-
 }
 
 // Get Workspace
 function getWorkspace(callback) {
-
     ipcRenderer.invoke('get_workspace').then(res => {
 
         let workspace = document.getElementById('workspace');
@@ -1806,14 +1898,11 @@ function getWorkspace(callback) {
         })
         return callback(workspace);
     })
-
 }
 
 // Get Devices
 function getDevices(callback) {
-
     let location = document.getElementById('location');
-
     let devices = document.querySelector('device_view')
     if (!devices) {
         devices = add_div()
@@ -1821,12 +1910,16 @@ function getDevices(callback) {
         devices.append(add_header('Devices'));
         ipcRenderer.invoke('get_devices').then(device_arr => {
             console.log('running get devices')
+            device_arr.sort((a, b) => {
+                return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+            })
+
             device_arr.forEach(item => {
 
                 let device = document.createElement('div');
                 let a = document.createElement('a');
                 a.preventDefault = true;
-                a.href = item.href;
+                a.href = item.path; //item.href;
                 a.innerHTML = item.name;
 
                 device.classList.add('item');
@@ -1839,12 +1932,14 @@ function getDevices(callback) {
 
                 device.addEventListener('click', (e) => {
                     e.preventDefault();
-                    location.value = item.href;
-                    getView(item.href, () => {});
+                    location.value = item.path; //item.href;
+                    getView(item.path, () => {});
+                    // getView(item.href, () => {});
                 })
 
                 device.addEventListener('contextmenu', (e) => {
-                    ipcRenderer.send('device_menu', item.href);
+                    ipcRenderer.send('device_menu', item.path);
+                    // ipcRenderer.send('device_menu', item.href);
                     device.classList.add('highlight_select');
                 })
 
@@ -1855,8 +1950,6 @@ function getDevices(callback) {
 
         })
     }
-
-
 }
 
 // Main Functions ////////////////////////////////////////////////////////////////
@@ -1875,7 +1968,7 @@ function getFiles(source, callback) {
  */
 function getSelectedFiles() {
     selected_files_arr = [];
-    let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+    let selected_items = Array.from(document.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
     selected_items.forEach(item => {
         selected_files_arr.push(item.dataset.href);
     })
@@ -1887,7 +1980,7 @@ function getSelectedFiles() {
         msg(`No Items Selected`);
     }
 
-    ipcRenderer.send('selected_files', selected_files_arr);
+    ipcRenderer.send('get_selected_files', selected_files_arr);
 
 }
 
@@ -1908,23 +2001,23 @@ function paste(destination) {
 
 function move(destination) {
 
-    let location = destination; //document.getElementById('location');
-
-    if (selected_files_arr.length > 0) {
-        for(let i = 0; i < selected_files_arr.length; i++) {
-            let copy_data = {
-                source: selected_files_arr[i],
-                destination: path.format({dir: location, base: path.basename(selected_files_arr[i])})
-            }
-            copy_arr.push(copy_data);
-        }
-        console.log('sending array', copy_arr);
-        ipcRenderer.send('move', copy_arr);
+    // let location = destination; //document.getElementById('location');
+    // if (selected_files_arr.length > 0) {
+    //     for(let i = 0; i < selected_files_arr.length; i++) {
+    //         let copy_data = {
+    //             source: selected_files_arr[i],
+    //             destination: path.format({dir: location, base: path.basename(selected_files_arr[i])})
+    //         }
+    //         copy_arr.push(copy_data);
+    //     }
+        // console.log('sending array', copy_arr);
+        // ipcRenderer.send('move', copy_arr);
+        ipcRenderer.send('move', destination);
         selected_files_arr = [];
-        copy_arr = [];
-    } else {
-        msg(`Nothing to Paste`);
-    }
+        // copy_arr = [];
+    // } else {
+    //     msg(`Nothing to Paste`);
+    // }
 
 }
 
@@ -1955,10 +2048,12 @@ function getFolderSize(href) {
             if (href.indexOf('sftp:') > -1) {
                 size.innerHTML = ''
             } else {
+                card.dataset.size = res;
                 size.append(getFileSize(res));
             }
 
         }
+
     })
 }
 
@@ -2003,7 +2098,7 @@ function getCardGio(file) {
     content.classList.add('content');
     tooltip.classList.add('tooltip', 'hidden');
 
-    card.style.opacity = 1
+    card.style.opacity = 1;
 
     href.href = file.href;
     href.innerHTML = path.basename(file.href);
@@ -2015,8 +2110,13 @@ function getCardGio(file) {
 
     href.draggable = false;
     img.draggable = false;
+    icon.draggable = false;
     card.draggable = true;
+
     card.dataset.href = file.href;
+    card.dataset.name = path.basename(file.href);
+    card.dataset.mtime = file.mtime;
+    card.dataset.size = file.size;
 
     // tooltip.append(`Name: ${path.basename(file.href)}`);
     let tooltip_timeout;
@@ -2088,7 +2188,6 @@ function getCardGio(file) {
                 card.classList.add('highlight_select')
             }
         }
-
     })
 
     // card.addEventListener('dragstart', (e) => {
@@ -2102,12 +2201,12 @@ function getCardGio(file) {
     card.addEventListener('dragstart', (e) => {
         // e.preventDefault();
         // clearTimeout(tooltip_timeout);
-        // getSelectedFiles();
+        getSelectedFiles();
 
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('application/x-electron-file', file.href)
-        console.log(dataTransfer)
-        ipcRenderer.send('ondragstart', file.href)
+        // const dataTransfer = new DataTransfer();
+        // dataTransfer.setData('application/x-electron-file', file.href)
+        // console.log(dataTransfer)
+        // ipcRenderer.send('ondragstart', file.href)
         // selected_files_arr.forEach(href => {
             // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
             // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
@@ -2146,15 +2245,16 @@ function getCardGio(file) {
         e.preventDefault();
         e.stopPropagation();
 
-        ipcRenderer.send('paste');
-
         ipcRenderer.send('main', 0)
-        if (!card.classList.contains('highlight')) {
+        if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
             if (e.ctrlKey) {
                 paste(file.href);
             } else {
+                console.log('moving to', file.href);
                 move(file.href);
             }
+        } else {
+            console.log('did not find target')
         }
     })
 
@@ -2206,12 +2306,11 @@ function getCardGio(file) {
         try {
             // console.log(file.content-type)
             if (file.content_type.indexOf('image/') > -1) {
-
-                console.log('whererergeger')
-
                 img.classList.add('lazy', 'img');
                 img.dataset.src = file.href;
-                // img.src = file.href;
+                // if (!file.href.indexOf('mtp:') > - 1) {
+                    ipcRenderer.send('create_thumbnail', file.href);
+                // }
             } else {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                     img.src = res;
@@ -2265,256 +2364,257 @@ function getCardGio(file) {
     return card;
 }
 
-/**
- * Get Card for Grid View
- * @param {File} file
- * @returns File Card
- */
-function getCard(file) {
+// /**
+//  * Get Card for Grid View
+//  * @param {File} file
+//  * @returns File Card
+//  */
+// function getCard(file) {
 
-    console.log(file)
+//     console.log(file)
 
-    let location    = document.getElementById('location');
-    let is_dir      = 0;
+//     let location    = document.getElementById('location');
+//     let is_dir      = 0;
 
-    let card    = document.createElement('div');
-    let title   = document.createElement('div')
-    let content = document.createElement('div')
-    let icon    = document.createElement('div');
-    let img     = document.createElement('img');
-    let header  = document.createElement('div');
-    let href    = document.createElement('a');
-    let mtime   = document.createElement('div');
-    let atime   = document.createElement('div');
-    let ctime   = document.createElement('div');
-    let size    = document.createElement('div');
-    let count   = document.createElement('div');
-    let input   = document.createElement('input');
+//     let card    = document.createElement('div');
+//     let title   = document.createElement('div')
+//     let content = document.createElement('div')
+//     let icon    = document.createElement('div');
+//     let img     = document.createElement('img');
+//     let header  = document.createElement('div');
+//     let href    = document.createElement('a');
+//     let mtime   = document.createElement('div');
+//     let atime   = document.createElement('div');
+//     let ctime   = document.createElement('div');
+//     let size    = document.createElement('div');
+//     let count   = document.createElement('div');
+//     let input   = document.createElement('input');
 
-    card.classList.add('card');
-    title.classList.add('title', 'hidden')
-    header.classList.add('header', 'item');
-    input.classList.add('input', 'item', 'hidden');
-    img.classList.add('icon');
-    mtime.classList.add('date', 'item');
-    atime.classList.add('date', 'item', 'hidden');
-    ctime.classList.add('date', 'item', 'hidden');
-    size.classList.add('size', 'item');
-    count.classList.add('count', 'item');
-    content.classList.add('content');
+//     card.classList.add('card');
+//     title.classList.add('title', 'hidden')
+//     header.classList.add('header', 'item');
+//     input.classList.add('input', 'item', 'hidden');
+//     img.classList.add('icon');
+//     mtime.classList.add('date', 'item');
+//     atime.classList.add('date', 'item', 'hidden');
+//     ctime.classList.add('date', 'item', 'hidden');
+//     size.classList.add('size', 'item');
+//     count.classList.add('count', 'item');
+//     content.classList.add('content');
 
-    card.style.opacity = 1
+//     card.style.opacity = 1
 
-    if (view == 'list') {
-        card.classList.add('list');
-        content.classList.add('list');
-    }
+//     if (view == 'list') {
+//         card.classList.add('list');
+//         content.classList.add('list');
+//     }
 
-    if (view === 'grid') {
-        card.classList.remove('list');
-        content.classList.remove('list');
-    }
+//     if (view === 'grid') {
+//         card.classList.remove('list');
+//         content.classList.remove('list');
+//     }
 
-    href.href = file.href;
-    href.innerHTML = path.basename(file.href);
+//     href.href = file.href;
+//     href.innerHTML = path.basename(file.href);
 
-    input.spellcheck = false;
-    input.type = 'text';
-    input.dataset.href = file.href;
-    input.value = path.basename(file.href);
+//     input.spellcheck = false;
+//     input.type = 'text';
+//     input.dataset.href = file.href;
+//     input.value = path.basename(file.href);
 
-    href.draggable = false;
-    img.draggable = false;
-    card.draggable = true;
-    card.dataset.href = file.href;
+//     href.draggable = false;
+//     img.draggable = false;
+//     card.draggable = true;
+//     card.dataset.href = file.href;
 
-    // Mouse Over
-    card.addEventListener('mouseover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        card.classList.add('highlight');
-        if (is_dir) {
-            ipcRenderer.send('main', 0);
-        }
-        // size = get_file_size(localStorage.getItem(href));
-        // title.classList.remove('hidden');
-        // title.innerHTML = ''
-        card.title =
-            'Name: ' + path.basename(file.href) +
-            '\n' +
-            'Size: ' + getFileSize(file.size) +
-            '\n' +
-            'Accessed: ' + getDateTime(file["time::access"]) +
-            '\n' +
-            'Modified: ' + getDateTime(file["time::modified"]) +
-            '\n' +
-            'Created: ' + getDateTime(file["time::created"])
-    })
+//     // Mouse Over
+//     card.addEventListener('mouseover', (e) => {
+//         e.preventDefault();
+//         e.stopPropagation();
+//         card.classList.add('highlight');
+//         if (is_dir) {
+//             ipcRenderer.send('main', 0);
+//         }
+//         // size = get_file_size(localStorage.getItem(href));
+//         // title.classList.remove('hidden');
+//         // title.innerHTML = ''
+//         card.title =
+//             'Name: ' + path.basename(file.href) +
+//             '\n' +
+//             'Size: ' + getFileSize(file.size) +
+//             '\n' +
+//             'Accessed: ' + getDateTime(file["time::access"]) +
+//             '\n' +
+//             'Modified: ' + getDateTime(file["time::modified"]) +
+//             '\n' +
+//             'Created: ' + getDateTime(file["time::created"])
+//     })
 
-    // Mouse Leave
-    card.addEventListener('mouseleave', (e) => {
-        card.classList.remove('highlight');
-        title.classList.add('hidden');
+//     // Mouse Leave
+//     card.addEventListener('mouseleave', (e) => {
+//         card.classList.remove('highlight');
+//         title.classList.add('hidden');
 
-    })
+//     })
 
-    // Card ctrl onclick
-    card.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.ctrlKey) {
-            if (card.classList.contains('highlight_select')) {
-                card.classList.remove('highlight_select')
-            } else {
-                card.classList.add('highlight_select')
-            }
-        }
-    })
+//     // Card ctrl onclick
+//     card.addEventListener('click', (e) => {
+//         e.preventDefault();
+//         e.stopPropagation();
+//         if (e.ctrlKey) {
+//             if (card.classList.contains('highlight_select')) {
+//                 card.classList.remove('highlight_select')
+//             } else {
+//                 card.classList.add('highlight_select')
+//             }
+//         }
+//     })
 
-    card.addEventListener('dragstart', (e) => {
-        // e.preventDefault();
-        getSelectedFiles();
-        // selected_files_arr.forEach(href => {
-            // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
-            // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
-            // e.target.classList.add('dragged')
-        // })
-    })
+//     card.addEventListener('dragstart', (e) => {
+//         // e.preventDefault();
+//         getSelectedFiles();
+//         // selected_files_arr.forEach(href => {
+//             // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
+//             // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
+//             // e.target.classList.add('dragged')
+//         // })
+//     })
 
-    card.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        tooltip.classList.add('hidden')
-    })
+//     card.addEventListener('dragenter', (e) => {
+//         e.preventDefault();
+//         e.stopPropagation();
+//         tooltip.classList.add('hidden')
+//     })
 
-    card.addEventListener('dragover', (e) => {
-        e.preventDefault();
+//     card.addEventListener('dragover', (e) => {
+//         e.preventDefault();
 
-        if (is_dir && !card.classList.contains('highlight')) {
-            card.classList.add('highlight_target');
-            if (e.ctrlKey) {
-                e.dataTransfer.dropEffect = "copy";
-                msg(`Copy Item to "${path.basename(file.href)}"`);
-            } else {
-                e.dataTransfer.dropEffect = "move";
-                msg(`Move Item to "${path.basename(file.href)}"`);
-            }
+//         if (is_dir && !card.classList.contains('highlight')) {
+//             card.classList.add('highlight_target');
+//             if (e.ctrlKey) {
+//                 e.dataTransfer.dropEffect = "copy";
+//                 msg(`Copy Item to "${path.basename(file.href)}"`);
+//             } else {
+//                 e.dataTransfer.dropEffect = "move";
+//                 msg(`Move Item to "${path.basename(file.href)}"`);
+//             }
 
-        }
-    })
+//         }
+//     })
 
-    card.addEventListener('dragleave', (e) => {
-        card.classList.remove('highlight_target');
-        // ipcRenderer.send('main', 1);
-        msg('');
-    })
+//     card.addEventListener('dragleave', (e) => {
+//         card.classList.remove('highlight_target');
+//         // ipcRenderer.send('main', 1);
+//         msg('');
+//     })
 
-    card.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ipcRenderer.send('main', 0);
-        if (!card.classList.contains('highlight')) {
-            if (e.ctrlKey) {
-                paste(file.href);
-            } else {
-                move(file.href);
-            }
-        }
-    })
+//     card.addEventListener('drop', (e) => {
+//         e.preventDefault();
+//         e.stopPropagation();
+//         ipcRenderer.send('main', 0);
+//         if (!card.classList.contains('highlight')) {
+//             if (e.ctrlKey) {
+//                 paste(file.href);
+//             } else {
+//                 move(file.href);
+//             }
+//         }
+//     })
 
-    try {
-        ds.addSelectables(card)
-    } catch (err) {
-    }
+//     try {
+//         ds.addSelectables(card)
+//     } catch (err) {
+//     }
 
-    mtime.append(getDateTime(file["time::modified"]));
-    ctime.append(getDateTime(file["time::created"]));
-    atime.append(getDateTime(file["time::access"]));
+//     mtime.append(getDateTime(file["time::modified"]));
+//     ctime.append(getDateTime(file["time::created"]));
+//     atime.append(getDateTime(file["time::access"]));
 
-    icon.append(img);
-    header.append(href);
+//     icon.append(img);
+//     header.append(href);
 
-    content.append(header, input, mtime, ctime, atime, size, count);
-    card.append(icon, content);
+//     content.append(header, input, mtime, ctime, atime, size, count);
+//     card.append(icon, content);
 
-    if (file.type == 'directory') {
+//     if (file.type == 'directory') {
 
-        is_dir = 1;
-        img.src = folder_icon;
+//         is_dir = 1;
+//         img.src = folder_icon;
 
-        card.classList.add('folder_card')
+//         card.classList.add('folder_card')
 
-        // Href
-        href.addEventListener('click', (e) => {
-            e.preventDefault();
-            location.value = file.href;
-            location.dispatchEvent(new Event('change'));
-        })
+//         // Href
+//         href.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             location.value = file.href;
+//             location.dispatchEvent(new Event('change'));
+//         })
 
-        // Img
-        img.addEventListener('click', (e) => {
-            e.preventDefault();
-            location.value = file.href;
-            location.dispatchEvent(new Event('change'));
-        })
-        // Context Menu
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            card.classList.add('highlight_select')
-            ipcRenderer.send('folder_menu', file.href);
-        })
-
-
-    } else {
-        // Get Icon
-        try {
-            if (file["standard::content-type"].indexOf('image') > -1) {
-                img.classList.add('lazy');
-                img.dataset.src = file.href;
-                // img.src = file.href;
-            } else {
-                ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                    img.src = res;
-                })
-            }
-            if (file["standard::content-type"] === 'image/svg+xml') {
-                img.src = file.href;
-                img.classList.add('svg')
-            }
-        } catch (err) {
-            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                img.src = res;
-            })
-            console.log('fix images for sftp files')
-        }
-        // Open href in default application
-        href.addEventListener('click', (e) => {
-            e.preventDefault();
-            ipcRenderer.invoke('open', file.href);
-        })
-        img.addEventListener('click', (e) => {
-            e.preventDefault();
-            ipcRenderer.invoke('open', file.href);
-        })
-        size.append(getFileSize(file["size"]));
-        // Context Menu
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            card.classList.add('highlight_select')
-            ipcRenderer.send('file_menu', file);
-        })
-    }
+//         // Img
+//         img.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             location.value = file.href;
+//             location.dispatchEvent(new Event('change'));
+//         })
+//         // Context Menu
+//         card.addEventListener('contextmenu', (e) => {
+//             e.preventDefault();
+//             e.stopPropagation();
+//             card.classList.add('highlight_select')
+//             ipcRenderer.send('folder_menu', file.href);
+//         })
 
 
-    ds.addSelectables(card)
+//     } else {
+//         // Get Icon
+//         try {
+//             if (file["standard::content-type"].indexOf('image') > -1) {
+//                 img.classList.add('lazy');
+//                 img.dataset.src = file.href;
+//                 console.log('image', file.href)
+//                 // img.src = file.href;
+//             } else {
+//                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+//                     img.src = res;
+//                 })
+//             }
+//             if (file["standard::content-type"] === 'image/svg+xml') {
+//                 img.src = file.href;
+//                 img.classList.add('svg')
+//             }
+//         } catch (err) {
+//             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+//                 img.src = res;
+//             })
+//             console.log('fix images for sftp files')
+//         }
+//         // Open href in default application
+//         href.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             ipcRenderer.invoke('open', file.href);
+//         })
+//         img.addEventListener('click', (e) => {
+//             e.preventDefault();
+//             ipcRenderer.invoke('open', file.href);
+//         })
+//         size.append(getFileSize(file["size"]));
+//         // Context Menu
+//         card.addEventListener('contextmenu', (e) => {
+//             e.preventDefault();
+//             e.stopPropagation();
+//             card.classList.add('highlight_select')
+//             ipcRenderer.send('file_menu', file);
+//         })
+//     }
 
-    // lazyloalCards();
-    // lazyload();
 
-    return card;
-}
+//     ds.addSelectables(card)
+
+//     // lazyloalCards();
+//     // lazyload();
+
+//     return card;
+// }
 
 /**
  * Get Grid View
@@ -2587,10 +2687,18 @@ function lazyload() {
             console.log('entries', entries.length)
             entries.forEach((e, idx) => {
                 if (e.isIntersecting) {
-                    let lazyImage = e.target;
-                    lazyImage.src = lazyImage.dataset.src;
-                    lazyImage.classList.remove("lazy");
-                    lazyImageObserver.unobserve(lazyImage);
+
+                    let img = e.target;
+                    let thumbnail = path.join(thumbnail_dir, path.basename(img.dataset.src));
+                    let exists = fs.existsSync(thumbnail);
+                    if (exists) {
+                        img.src = thumbnail;
+                    } else {
+                        img.src = img.dataset.src;
+                    }
+
+                    img.classList.remove("lazy");
+                    lazyImageObserver.unobserve(img);
                 }
             })
         })

@@ -89,6 +89,83 @@ namespace gio {
 
     }
 
+    NAN_METHOD(get_mounts) {
+
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+        GError *error = NULL;
+        GList *mounts, *iter;
+        GList *volumes;
+
+
+        // Initialize GLib
+        g_type_init();
+
+        GVolumeMonitor* monitor = g_volume_monitor_get();
+
+        // Get the list of mounts
+        mounts = g_volume_monitor_get_mounts(monitor);
+        volumes = g_volume_monitor_get_volumes(monitor);
+
+        int c = 0;
+
+        // Iterate over the mounts
+        for (iter = mounts; iter != NULL; iter = iter->next) {
+
+            GMount *mount = G_MOUNT(iter->data);
+            const gchar *name = g_mount_get_name(mount);
+
+            GFile *mount_path = NULL;
+            mount_path = g_mount_get_default_location(mount);
+            gchar *path = g_file_get_path(mount_path);
+            if (path == NULL) {
+                path = g_strdup("");
+            }
+
+            v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
+            Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+            Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
+            Nan::Set(resultArray, c, deviceObj);
+            ++c;
+
+        }
+
+        // // Iterate over the mounts
+        // for (iter = volumes; iter != NULL; iter = iter->next) {
+
+        //     GVolume *volume = G_VOLUME(iter->data);
+
+        //     const gchar *name = g_volume_get_name(volume);
+        //     const gchar *uuid = g_volume_get_uuid(volume);
+        //     const gchar *type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+
+        //     GMount *mount = g_volume_get_mount(volume);
+        //     GFile *mount_path = NULL;
+
+        //     // if (mount != NULL) {
+        //     mount_path = g_mount_get_default_location(mount);
+        //     gchar *path = g_file_get_path(mount_path);
+        //     if (path == NULL) {
+        //         path = g_strdup("");
+        //     }
+        //     v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
+        //     Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+        //     Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
+        //     Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
+        //     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
+        //     Nan::Set(resultArray, c, deviceObj);
+        //     ++c;
+        // }
+
+        // Free resources
+        g_list_free_full(mounts, g_object_unref);
+        g_list_free_full(volumes, g_object_unref);
+        g_object_unref(monitor);
+
+        info.GetReturnValue().Set(resultArray);
+
+    }
+
     void directory_changed(GFileMonitor* monitor, GFile* file, GFile* other_file, GFileMonitorEvent event_type, gpointer user_data) {
         Nan::HandleScope scope;
 
@@ -97,8 +174,8 @@ namespace gio {
             eventName = "created";
         } else if (event_type == G_FILE_MONITOR_EVENT_DELETED) {
             eventName = "deleted";
-        } else if (event_type == G_FILE_MONITOR_EVENT_CHANGED) {
-            eventName = "changed";
+        } else if (event_type == G_FILE_MONITOR_EVENT_RENAMED) {
+            eventName = "renamed";
         } else {
             eventName = "unknown"; // Unknown event type, ignore
         }
@@ -126,7 +203,7 @@ namespace gio {
 
         Nan::HandleScope scope;
 
-        int watching = 1;
+        int watch = 0;
 
         if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
             Nan::ThrowTypeError("Invalid arguments. Expected a directory path as a string and a watcher object.");
@@ -145,15 +222,15 @@ namespace gio {
                     return;
                 } else {
                     watcher_dir.push_back(cstring);
-                    watching = 0;
+                    watch = 0;
                 }
             }
         } else {
             watcher_dir.push_back(cstring);
-            watching = 0;
+            watch = 1;
         }
 
-        if (!watching) {
+        if (watch) {
 
             v8::Isolate* isolate = info.GetIsolate();
             v8::Local<v8::Context> context = isolate->GetCurrentContext();
@@ -187,36 +264,6 @@ namespace gio {
 
         }
     }
-
-    // NAN_METHOD(watcher) {
-    //     Nan::HandleScope scope;
-
-    //     if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsObject()) {
-    //         Nan::ThrowTypeError("Invalid arguments. Expected a directory path as a string and a watcher object.");
-    //         return;
-    //     }
-
-    //     Local<Object> watcherObj = info[1].As<Object>();
-
-    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-    //     v8::Isolate* isolate = info.GetIsolate();
-
-    //     // Get the current context from the execution context
-    //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
-    //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-
-    //     GFile* src = g_file_new_for_path(*sourceFile);
-
-    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-    //     if (src_scheme != NULL) {
-    //         src = g_file_new_for_uri(*sourceFile);
-    //     }
-
-    //     GFileMonitor* fileMonitor = g_file_monitor_directory(src, G_FILE_MONITOR_NONE, NULL, NULL);
-    //     g_signal_connect(fileMonitor, "changed", G_CALLBACK(directory_changed), static_cast<gpointer>(*watcherObj));
-
-    //     info.GetReturnValue().SetUndefined();
-    // }
 
     void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
         Nan::HandleScope scope;
@@ -987,6 +1034,7 @@ namespace gio {
         Nan::Export(target, "is_writable", is_writable);
         Nan::Export(target, "monitor", monitor);
         Nan::Export(target, "watcher", watcher);
+        Nan::Export(target, "get_mounts", get_mounts);
         // Nan::Set(target, Nan::New("watcher").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(watcher)).ToLocalChecked());
         // Nan::Set(target, Nan::New("monitor").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(monitor)).ToLocalChecked());
     }

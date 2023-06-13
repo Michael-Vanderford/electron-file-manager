@@ -12,6 +12,9 @@
         "utility": "cpp",
         "istream": "cpp",
         "ostream": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "chrono": "cpp",
+        "compare": "cpp",
+        "typeinfo": "cpp"
     }
 }

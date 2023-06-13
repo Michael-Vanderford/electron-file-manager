@@ -84,7 +84,7 @@ html, body {
         /* border: 1px solid red; */
         background: var(--main);
         border-radius: 5px;
-        padding: 10px;
+        /* padding: 10px; */
         width: 100%;
         height: 90%;
         /* flex: 1; */
@@ -122,7 +122,7 @@ html, body {
         background-color: rgb(0 0 0 / 0.8);
         border-radius: 5px;
         padding: 5px;
-        width: 350px;
+        width: 450px;
         z-index: 100;
         white-space: nowrap;
     }
@@ -154,7 +154,7 @@ html, body {
 
     /* Dialogs */
     .connect {
-        background: var(--dark);
+        background: var(--main);
         color: var(--light);
         padding: 25px;
     }
@@ -167,7 +167,7 @@ html, body {
     .connect > .input {
         border: none;
         height: 23px;
-        background: var(--lessdark);
+        background: var(--input);
         color: var(--white);
         display: block;
         margin-bottom: 15px;
@@ -426,13 +426,25 @@ progress::-webkit-progress-bar {
 }
 
 .card .img {
+    box-sizing: border-box;
     border-radius: 5px;
+    /* background:rgba(0, 0, 0, 0.3); */
+    border: 2px solid var(--border);
 }
+
+.card .img:hover {
+    opacity: 0.95;
+    border: 0px solid #069;
+    /* transform: scale(2); */
+    position:relative;
+    z-index: 2 !important;
+  }
 
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
     width: 48px;
+    height: 48px;
 }
 
 .pointer {
@@ -483,7 +495,7 @@ progress::-webkit-progress-bar {
 
 .card:hover {
     /* background: #334c74; */
-    background: var(--highlight)
+    /* background: var(--highlight) */
 }
 
 .card a {
@@ -508,6 +520,11 @@ progress::-webkit-progress-bar {
     /* max-width: 100px; */
 }
 
+.list_container {
+    display: flex;
+    flex-direction: column;
+}
+
 .list {
     display: flex;
     padding: 2px;
@@ -516,100 +533,64 @@ progress::-webkit-progress-bar {
 
 .list .icon {
     width: 16px;
+    height: 16px;
 }
 
-.list > .item {
-    width: 33%;
+.list .item:nth-child(1) {
+    width: 50%;
 }
 
-.input {
-    position: relative;
-    border: none;
-    border-radius: 5px;
-    font-size: 11px;
+.list .item {
+    flex-grow: 1;
+    /* border: 1px solid #ccc; */
+    width: 15%;
+}
+
+.header_row {
+    display: flex;
+    position: sticky;
+    top: 0;
     width: 100%;
+    background: var(--main);
+    z-index: 100;
+    /* padding: 4px; */
+    border-bottom: 1px solid var(--border);
+    /* height: 20px; */
+    /* border: 1px solid red; */
+}
+
+.header_row .item:nth-child(1) {
+    width: 50%;
+}
+
+.header_row .item {
+    font-weight: bold;
+    flex-grow: 1;
     padding: 2px;
+    /* border-right: 1px solid #ccc; */
+    width: 15%;
 }
 
-input[type=text]:focus {
-    outline: none;
+.header_row .item:hover {
+    cursor: pointer;
+    /* border: 1px solid green; */
 }
 
-.title {
-    position:absolute;
-    display: block;
-    /* top: 0; */
-    /* left: 100%; */
-    transform: translate(-50%, -50%);
-    background-color: var(--black);
-    border: 1px solid #ccc;
-    padding: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+.header_row .name {
+    /* width: 6%; */
 }
 
-.highlight {
-    background: #334c74;
+.header_row .date {
+    margin-left: 10px;
+    text-align: left;
 }
 
-.highlight_select {
-    border-radius: 5px;
-    background: #334c74;
-}
-
-.highlight_target {
-    box-sizing: border-box;
-    border: 1px solid var(--orange);
-    border-radius: 5px;
-    background: #334c74;
-}
-
-.ds-selected {
-    background: #334c74;
-}
-
-.drag_select {
-    /* border: 1px solid var(--grey); */
-    background: rgb(0 0 0 / 0.4)
-}
-
-.hidden {
-    display: none !important;
-}
-
-.list_view_columns {
-    display: grid;
-    width: 99%;
-    margin-top: -5px;
-
-    /* grid-template-columns: 1fr 1fr 1fr 1fr 1fr; */
-    grid-template-columns: repeat(4, 1fr);
-    /* grid-template-rows: auto; */
-    border:1px solid var(--moredark);
-    /* width: 100%; */
-    background: var(--moredark)
-}
-
-.list_view_columns .item {
-    border: 1px solid var(--lessdark);
-    padding: 5px;
-    /* width: 100%; */
-}
-
-.list_view_columns .name {
-    grid-template-columns: fit-content(50%);
-    /* grid-column: 1 / span 2; */
-    /* background: red; */
-}
-
-.list_view_columns .date {
+.header_row .size {
     text-align: right;
 }
 
-.list_view_columns .size {
-    text-align: right;
-}
-
-.list_view_columns .items {
+.header_row .items {
+    margin-right: 15px;
     text-align: right;
 }
 
@@ -617,19 +598,13 @@ input[type=text]:focus {
     display: grid;
     grid-template-columns: repeat(1, 1fr);
     grid-template-rows: auto;
+    /* margin-top: 25px; */
     /* border:1px solid red; */
-}
-
-.grid1 .header {
-    grid-template-columns: fit-content(50%);
-    /* grid-column: 1 / span 2; */
-    /* width: 50% */
-    /* min-width: 400px; */
 }
 
 .grid1 .date {
     /* width: 16%; */
-    text-align: right;
+    text-align: left;
 }
 
 .grid1 .size {
@@ -680,6 +655,60 @@ input[type=text]:focus {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: auto;
+}
+
+.input {
+    position: relative;
+    border: none;
+    border-radius: 5px;
+    font-size: 11px;
+    width: 100%;
+    padding: 2px;
+}
+
+input[type=text]:focus {
+    outline: none;
+}
+
+.title {
+    position:absolute;
+    display: block;
+    /* top: 0; */
+    /* left: 100%; */
+    transform: translate(-50%, -50%);
+    background-color: var(--black);
+    border: 1px solid #ccc;
+    padding: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.highlight {
+    background: #334c74;
+}
+
+.highlight_select {
+    border-radius: 5px;
+    background: #334c74;
+}
+
+.highlight_target {
+    box-sizing: border-box;
+    /* border: 1px solid var(--orange); */
+    border-radius: 5px;
+    background: #334c74;
+}
+
+.ds-selected {
+    background: #334c74;
+}
+
+.drag_select {
+    /* border: 1px solid var(--grey); */
+    background: rgb(0 0 0 / 0.4)
+}
+
+.hidden {
+    display: none !important;
 }
 
 .bi {
@@ -794,7 +823,7 @@ input[type=text]:focus {
     --input: #484848;
     --main: #2c2c2c;
     --minibar: #222222;
-    --border: #696969;
+    --border: #484848;
     --msg: #222222;
     --dialog: #262626;
 

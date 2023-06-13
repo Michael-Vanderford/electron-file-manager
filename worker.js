@@ -1,4 +1,5 @@
 const { parentPort, workerData, isMainThread } = require('worker_threads');
+const { execSync, exec } = require('child_process')
 const path          = require('path');
 const gio_utils     = require('./utils/gio');
 const gio           = require('./gio/build/Release/obj.target/gio')
@@ -116,6 +117,15 @@ parentPort.on('message', data => {
     //     get_preload_arr(data.source, '');
     // }
 
+    if (data.cmd === 'create_thumbnail') {
+        // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
+        let cmd = `gdk-pixbuf-thumbnailer "${data.href}" "${path.join(data.thumb_dir, path.basename(data.href))}"`
+            exec(cmd, (err, stdout, stderr) => {
+            if (!err) {
+            }
+        })
+    }
+
     if (data.cmd === 'folder_size') {
         try {
             get_files_arr(data.source, '', dirents => {
@@ -189,23 +199,15 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'mv') {
-        try {
-
-            let selected_files_arr = data.selected_items;
-            for (let i = 0; i < selected_files_arr.length; i++) {
-                let f = selected_files_arr[i];
-                gio.mv(f.source, f.destination);
-                parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
-                if (i === selected_files_arr.length - 1) {{
-                    parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
-                }}
-
-            }
-
-        } catch (err) {
-
-            parentPort.postMessage({cmd: 'msg', msg: err});
-
+        let selected_files_arr = data.selected_items;
+        for (let i = 0; i < selected_files_arr.length; i++) {
+            let f = selected_files_arr[i];
+            console.log('file', f);
+            gio.mv(f.source, f.destination);
+            parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
+            if (i === selected_files_arr.length - 1) {{
+                parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
+            }}
         }
     }
 
@@ -327,7 +329,7 @@ parentPort.on('message', data => {
 
     // Past Files
     // todo: this needs file conflict handling added
-    if (data.cmd == 'paste') {
+    if (data.cmd === 'paste') {
 
         let idx = 0;
         let copy_arr = data.copy_arr

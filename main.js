@@ -92,8 +92,8 @@ worker.on('message', (data) => {
 
         // Handle Cut / Move
         if (is_main) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+        //     let file = gio.get_file(data.destination);
+        //     win.send('get_card_gio', file);
         } else {
             win.send('remove_card', data.source);
         }
@@ -102,13 +102,12 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'rename_done') {
-        gio_utils.get_file(data.destination, file => {
-            win.send('replace_card', data.source, file);
-        })
+        // gio_utils.get_file(data.destination, file => {
+        //     win.send('replace_card', data.source, file);
+        // })
     }
 
     // if (data.cmd === 'copy_done') {
-
     //     if (is_main) {
     //         let file = gio.get_file(data.destination);
     //         win.send('get_card_gio', file);
@@ -301,7 +300,7 @@ function get_apps() {
 
             if (line.startsWith('Exec=')) {
 
-                const cmd = line.substring(5).trim();
+                let cmd = line.substring(5).trim();
                 const exe = cmd.split(' ')[0];
 
                 exe_obj.cmd = cmd;
@@ -335,7 +334,7 @@ function get_apps() {
 
 function new_folder(destination) {
     gio.mkdir(destination);
-    win.send('new_folder', gio.get_file(destination));
+    // win.send('new_folder', gio.get_file(destination));
 }
 
 function watch_for_theme_change() {
@@ -358,9 +357,7 @@ function watch_for_theme_change() {
     } else {
         console.log('error getting gnome settings directory')
     }
-
 }
-
 
 function getFileSize(fileSizeInBytes) {
     var i = -1;
@@ -415,14 +412,29 @@ function get_files(source, callback) {
     }
     get_disk_space(source);
 
+    let fsTimeout
 
     gio.watcher(source, data => {
 
-        if (data.event == 'created') {
+        if (data.event === 'created') {
             console.log(data);
             let file = gio.get_file(data.filename);
             win.send('get_card_gio', file);
         }
+
+        if (data.event === 'renamed') {
+            console.log(data);
+        }
+
+        if (data.event === 'deleted') {
+            win.send('remove_card', data.filename);
+            console.log(data);
+        }
+
+        fsTimeout = setTimeout(function() {
+            fsTimeout = null
+            // fs.unwatchFile(dir, )
+        }, 5000)
 
     })
 
@@ -449,9 +461,32 @@ ipcMain.on('get_settings', (e) => {
 
 })
 
+ipcMain.on('create_thumbnail', (e, href) => {
+
+    let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    worker.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+
+    // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    // let cmd = `gdk-pixbuf-thumbnailer "${href}" "${path.join(thumb_dir, path.basename(href))}"`
+    //     exec(cmd, (err, stdout, stderr) => {
+    //     if (!err) {
+    //         win.send('msg', err);
+    //     }
+    // })
+})
+
+ipcMain.handle('get_thumbnails_directory', async (e) => {
+    let thumbnails_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    if (!fs.existsSync(thumbnails_dir)) {
+        fs.mkdirSync(thumbnails_dir)
+    }
+    return thumbnails_dir;
+})
+
 // Populate global selected files array
-ipcMain.on('selected_files', (e, selected_files) => {
+ipcMain.on('get_selected_files', (e, selected_files) => {
     selected_files_arr = selected_files;
+    console.log('selected files array', selected_files_arr);
 })
 
 ipcMain.on('search', (e, search, location) => {
@@ -574,11 +609,14 @@ ipcMain.on('ondragstart', (e, href) => {
 
 // Get Devices
 ipcMain.handle('get_devices', async (e) => {
+
     return new Promise((resolve, reject) => {
-        gio_utils.get_devices(device_arr => {
-            // console.log(device_arr);
-            resolve(device_arr);
-        });
+        // gio_utils.get_devices(device_arr => {
+        // console.log(device_arr);
+        let device_arr = gio.get_mounts();
+        // console.log(device_arr);
+        resolve(device_arr);
+        // });
     });
 })
 
@@ -729,14 +767,32 @@ ipcMain.on('paste', (e, destination) => {
 })
 
 // Move
-ipcMain.on('move', (e, selecte_files_arr) => {
-    worker.postMessage({ cmd: 'mv', selected_items: selecte_files_arr })
+ipcMain.on('move', (e, destination) => {
+    // console.log('destination', destination)
+    let copy_arr = [];
+    if (selected_files_arr.length > 0) {
+        for(let i = 0; i < selected_files_arr.length; i++) {
+            let copy_data = {
+                source: selected_files_arr[i],
+                destination: path.format({dir: destination, base: path.basename(selected_files_arr[i])})
+            }
+            copy_arr.push(copy_data);
+        }
+        // console.log('sending array', copy_arr);
+        // ipcRenderer.send('move', copy_arr);
+        worker.postMessage({ cmd: 'mv', selected_items: copy_arr })
+        selected_files_arr = [];
+        copy_arr = [];
+    } else {
+        win.send('msg', `Nothing to Paste`);
+    }
+    // worker.postMessage({ cmd: 'mv', selected_items: selected_files_arr })
 })
 
 // Get Folder Size
 ipcMain.handle('get_folder_size', async (e, href) => {
     try {
-        cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
+        let cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
         const { err, stdout, stderr } = await exec(cmd);
         let size = parseFloat(stdout.replace('.', ''));
         size = size * 1024
