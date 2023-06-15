@@ -59,7 +59,8 @@
     .properties {
         width: 100%;
         border-radius: 5px;
-        background: var(--lessdark);
+        /* background: var(--main); */
+        border-bottom: 1px solid var(--main);
         margin-bottom: 10px;
         padding: 5px;
         box-sizing: border-box;

@@ -117,15 +117,6 @@ parentPort.on('message', data => {
     //     get_preload_arr(data.source, '');
     // }
 
-    if (data.cmd === 'create_thumbnail') {
-        // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-        let cmd = `gdk-pixbuf-thumbnailer "${data.href}" "${path.join(data.thumb_dir, path.basename(data.href))}"`
-            exec(cmd, (err, stdout, stderr) => {
-            if (!err) {
-            }
-        })
-    }
-
     if (data.cmd === 'folder_size') {
         try {
             get_files_arr(data.source, '', dirents => {
@@ -193,10 +184,15 @@ parentPort.on('message', data => {
         parentPort.postMessage({cmd: 'exists', exists: exists});
     }
 
-    if (data.cmd === 'ls') {
-        let dirents = gio.ls(data.source);
-        parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source});
-    }
+    // Moved to ls.js
+    // if (data.cmd === 'ls') {
+    //     let dirents = gio.ls(data.source);
+    //     if (gio.exists(data.source)) {
+    //         parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source});
+    //     } else {
+    //         parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
+    //     }
+    // }
 
     if (data.cmd === 'mv') {
         let selected_files_arr = data.selected_items;

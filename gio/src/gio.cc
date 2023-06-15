@@ -643,7 +643,7 @@ namespace gio {
         bool result = exists != FALSE;
 
         // Create a new Boolean value
-        // v8::Local<v8::Boolean> resultValue = Nan::New<v8::Boolean>(result);
+        v8::Local<v8::Boolean> resultValue = Nan::New<v8::Boolean>(result);
 
         // Create a new Boolean value in the current context
         v8::Local<v8::Boolean> resultValue = v8::Boolean::New(isolate, result);
@@ -1086,8 +1086,7 @@ namespace gio {
     //     callback->Call(1, argv);
     // }
 
-
-        // guint64 ds(const char* dir) {
+    // guint64 ds(const char* dir) {
 
     //     GVolumeMonitor *monitor;
     //     GVolume *root_volume;

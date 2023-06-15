@@ -23,6 +23,7 @@ html, body {
     margin-top: 15px;
     width: 100%;
     height: 75%;
+    overflow: auto;
 }
 
 #confirm_delete .header {

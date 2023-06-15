@@ -15,7 +15,8 @@ const gio = require('./gio/build/Release/gio')
 // Bootstrap Init
 const store = new Store();
 const worker = new Worker('./worker.js');
-const ls = new Worker('./ls.js');
+const ls = new Worker('./workers/ls.js');
+const thumb = new Worker('./worker/thumbnailer.js');
 const home = app.getPath('home');
 
 // Monitor USB Devices
@@ -92,12 +93,13 @@ worker.on('message', (data) => {
 
         // Handle Cut / Move
         if (is_main) {
-        //     let file = gio.get_file(data.destination);
-        //     win.send('get_card_gio', file);
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             win.send('remove_card', data.source);
         }
 
+        win.send('lazyload');
         win.send('clear');
     }
 
@@ -107,18 +109,17 @@ worker.on('message', (data) => {
         // })
     }
 
-    // if (data.cmd === 'copy_done') {
-    //     if (is_main) {
-    //         let file = gio.get_file(data.destination);
-    //         win.send('get_card_gio', file);
-    //     } else {
-    //         let href = path.dirname(data.destination)
-    //         gio_utils.get_file(href, file => {
-    //             win.send('replace_card', href, file);
-    //         })
-    //     }
-    //     win.send('clear');
-    // }
+    if (data.cmd === 'copy_done') {
+        if (is_main) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        } else {
+            let href = path.dirname(data.destination)
+            let file = gio.get_file(href)
+            win.send('replace_card', href, file);
+        }
+        win.send('clear');
+    }
 
     if (data.cmd === 'delete_done') {
         win.send('remove_card', data.source);
@@ -401,42 +402,39 @@ function get_files_arr(source, destination, callback) {
 }
 
 // Get files array
+let watchdir = new Set();
 function get_files(source, callback) {
 
     // get files from gio module
-    let exists = gio.exists(source);
-    if (exists) {
+    // let exists = gio.exists(source);
+    // if (exists) {
         ls.postMessage({ cmd: 'ls', source: source });
-    } else {
-        win.send('msg', 'Error: Directory does not exist!');
-    }
+    // } else {
+        // win.send('msg', 'Error: Directory does not exist!');
+    // }
+
     get_disk_space(source);
 
-    let fsTimeout
-
-    gio.watcher(source, data => {
-
-        if (data.event === 'created') {
-            console.log(data);
-            let file = gio.get_file(data.filename);
-            win.send('get_card_gio', file);
-        }
-
-        if (data.event === 'renamed') {
-            console.log(data);
-        }
-
-        if (data.event === 'deleted') {
-            win.send('remove_card', data.filename);
-            console.log(data);
-        }
-
-        fsTimeout = setTimeout(function() {
-            fsTimeout = null
-            // fs.unwatchFile(dir, )
-        }, 5000)
-
-    })
+    // if (watchdir.has(source)) { return; };
+    // gio.watcher(source, data => {
+    //     if (data.event === 'created') {
+    //         console.log(data);
+    //         let file = gio.get_file(data.filename);
+    //         win.send('get_card_gio', file);
+    //     }
+    //     if (data.event === 'renamed') {
+    //         console.log(data);
+    //     }
+    //     if (data.event === 'deleted') {
+    //         win.send('remove_card', data.filename);
+    //         console.log(data);
+    //     }
+    //     // fsTimeout = setTimeout(function() {
+    //     //     fsTimeout = null
+    //     //     // fs.unwatchFile(dir, )
+    //     // }, 5000)
+    // })
+    // watchdir.add(source);
 
 }
 
@@ -464,7 +462,7 @@ ipcMain.on('get_settings', (e) => {
 ipcMain.on('create_thumbnail', (e, href) => {
 
     let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-    worker.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+    thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
 
     // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
     // let cmd = `gdk-pixbuf-thumbnailer "${href}" "${path.join(thumb_dir, path.basename(href))}"`
@@ -486,7 +484,7 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
 // Populate global selected files array
 ipcMain.on('get_selected_files', (e, selected_files) => {
     selected_files_arr = selected_files;
-    console.log('selected files array', selected_files_arr);
+    // console.log('selected files array', selected_files_arr);
 })
 
 ipcMain.on('search', (e, search, location) => {

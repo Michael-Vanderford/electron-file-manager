@@ -26,6 +26,10 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+ipcRenderer.on('lazyload', (e) => {
+    lazyload();
+})
+
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
     thumbnail_dir = res
 })
@@ -421,8 +425,6 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     let grid_view = document.querySelector('.grid_view');
     let list_view = document.querySelector('.list_view');
 
-
-
     folder_grid.classList.add('folder_grid');
     file_grid.classList.add('file_grid');
     hidden_file_grid.classList.add('hidden_file_grid');
@@ -514,7 +516,6 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     //         }
     //     })
     // }
-
     // // Sort by Name
     // if (sort === 'name') {
     //     dirents.sort((a, b) => {
@@ -545,10 +546,8 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     //         if (a.mtime > b.mtime) return 1;
     //     })
     // }
-
     // const chunck = 500;
     // let currentidx = 0;
-
     // const endidx = Math.min(currentidx + chunck, dirents.length);
     // console.log(endidx, 'test')
 
@@ -623,12 +622,12 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
 
     // Set Icon Size
-    // if (localStorage.getItem('icon_size') !== null) {
-    //     let icon_size = localStorage.getItem('icon_size')
-    //     console.log('icon_size', icon_size);
-    //     slider.value = icon_size;
-    //     resizeIcons(icon_size);
-    // }
+    if (localStorage.getItem('icon_size') !== null) {
+        let icon_size = localStorage.getItem('icon_size')
+        console.log('icon_size', icon_size);
+        slider.value = icon_size;
+        resizeIcons(icon_size);
+    }
 
     // let cards = document.querySelectorAll('.card')
     // console.log(cards.length)
@@ -805,7 +804,7 @@ ipcRenderer.on('clear', (e) => {
 // Confirm delete
 ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 
-    console.log('what', delete_arr);
+    // console.log('what', delete_arr);
 
     let confirm_delete = document.getElementById('confirm_delete')
     let delete_files = document.getElementById('delete_files')
@@ -854,6 +853,9 @@ ipcRenderer.on('get_card_gio', (e, file) => {
 
     getFolderCount();
     getFolderSize();
+
+    // lazyload();
+
 })
 
 // Get Card
@@ -887,12 +889,16 @@ ipcRenderer.on('replace_card', (e, href, file) => {
     console.log('running replace card')
 
     let card = document.querySelector(`[data-href="${href}"]`);
-    let newcard = getCard(file);
+    let newcard = getCardGio(file);
     card.replaceWith(newcard);
     console.log('card', card, 'new card', newcard)
 
-    // getFolderCount();
-    // getFolderSize();
+    getFolderCount();
+    getFolderSize();
+
+})
+
+ipcRenderer.on('update_card', (e, href, file) => {
 
 })
 
@@ -1657,7 +1663,6 @@ function getProperties(properties_arr) {
 
         let folder_count = add_div();
         folder_count.classList.add('item', 'folder_count');
-        folder_count.append('Calculating');
 
         let size = add_div();
         size.classList.add('size');
@@ -1672,8 +1677,10 @@ function getProperties(properties_arr) {
 
         content.append(add_item('Location:'), add_item(path.dirname(file.href)));
         if (file.is_dir) {
+            folder_count.append('Calculating');
             content.append(add_item('Size:'), add_item(size));
         } else {
+            folder_count.append('1');
             content.append(add_item('Size:'), add_item(getFileSize(file.size)));
         }
         content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
@@ -2272,7 +2279,7 @@ function getCardGio(file) {
     header.append(href);
 
     // Directory
-    if (file.is_dir) {
+    if (file.is_dir || file.type === 'directory') {
 
         is_dir = 1;
         img.src = folder_icon;
@@ -2306,20 +2313,27 @@ function getCardGio(file) {
         try {
             // console.log(file.content-type)
             if (file.content_type.indexOf('image/') > -1) {
-                img.classList.add('lazy', 'img');
-                img.dataset.src = file.href;
-                // if (!file.href.indexOf('mtp:') > - 1) {
+
+                if (file.content_type === 'image/x-xcf') {
+                    img.classList.remove('lazy')
+                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                        img.src = res;
+                    })
+                } else if (file.content_type === 'image/svg+xml') {
+                        img.classList.add('lazy')
+                        img.dataset.src = file.href;
+                        img.classList.add('svg')
+                } else {
+                    img.classList.add('lazy', 'img');
+                    img.dataset.src = file.href;
+                    // if (!file.href.indexOf('mtp:') > - 1) {
                     ipcRenderer.send('create_thumbnail', file.href);
-                // }
+                    // }
+                }
             } else {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                     img.src = res;
                 })
-            }
-            if (file.content_type === 'image/svg+xml') {
-                img.classList.add('lazy')
-                img.dataset.src = file.href;
-                img.classList.add('svg')
             }
         } catch (err) {
             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
@@ -2363,258 +2377,6 @@ function getCardGio(file) {
 
     return card;
 }
-
-// /**
-//  * Get Card for Grid View
-//  * @param {File} file
-//  * @returns File Card
-//  */
-// function getCard(file) {
-
-//     console.log(file)
-
-//     let location    = document.getElementById('location');
-//     let is_dir      = 0;
-
-//     let card    = document.createElement('div');
-//     let title   = document.createElement('div')
-//     let content = document.createElement('div')
-//     let icon    = document.createElement('div');
-//     let img     = document.createElement('img');
-//     let header  = document.createElement('div');
-//     let href    = document.createElement('a');
-//     let mtime   = document.createElement('div');
-//     let atime   = document.createElement('div');
-//     let ctime   = document.createElement('div');
-//     let size    = document.createElement('div');
-//     let count   = document.createElement('div');
-//     let input   = document.createElement('input');
-
-//     card.classList.add('card');
-//     title.classList.add('title', 'hidden')
-//     header.classList.add('header', 'item');
-//     input.classList.add('input', 'item', 'hidden');
-//     img.classList.add('icon');
-//     mtime.classList.add('date', 'item');
-//     atime.classList.add('date', 'item', 'hidden');
-//     ctime.classList.add('date', 'item', 'hidden');
-//     size.classList.add('size', 'item');
-//     count.classList.add('count', 'item');
-//     content.classList.add('content');
-
-//     card.style.opacity = 1
-
-//     if (view == 'list') {
-//         card.classList.add('list');
-//         content.classList.add('list');
-//     }
-
-//     if (view === 'grid') {
-//         card.classList.remove('list');
-//         content.classList.remove('list');
-//     }
-
-//     href.href = file.href;
-//     href.innerHTML = path.basename(file.href);
-
-//     input.spellcheck = false;
-//     input.type = 'text';
-//     input.dataset.href = file.href;
-//     input.value = path.basename(file.href);
-
-//     href.draggable = false;
-//     img.draggable = false;
-//     card.draggable = true;
-//     card.dataset.href = file.href;
-
-//     // Mouse Over
-//     card.addEventListener('mouseover', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//         card.classList.add('highlight');
-//         if (is_dir) {
-//             ipcRenderer.send('main', 0);
-//         }
-//         // size = get_file_size(localStorage.getItem(href));
-//         // title.classList.remove('hidden');
-//         // title.innerHTML = ''
-//         card.title =
-//             'Name: ' + path.basename(file.href) +
-//             '\n' +
-//             'Size: ' + getFileSize(file.size) +
-//             '\n' +
-//             'Accessed: ' + getDateTime(file["time::access"]) +
-//             '\n' +
-//             'Modified: ' + getDateTime(file["time::modified"]) +
-//             '\n' +
-//             'Created: ' + getDateTime(file["time::created"])
-//     })
-
-//     // Mouse Leave
-//     card.addEventListener('mouseleave', (e) => {
-//         card.classList.remove('highlight');
-//         title.classList.add('hidden');
-
-//     })
-
-//     // Card ctrl onclick
-//     card.addEventListener('click', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//         if (e.ctrlKey) {
-//             if (card.classList.contains('highlight_select')) {
-//                 card.classList.remove('highlight_select')
-//             } else {
-//                 card.classList.add('highlight_select')
-//             }
-//         }
-//     })
-
-//     card.addEventListener('dragstart', (e) => {
-//         // e.preventDefault();
-//         getSelectedFiles();
-//         // selected_files_arr.forEach(href => {
-//             // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
-//             // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
-//             // e.target.classList.add('dragged')
-//         // })
-//     })
-
-//     card.addEventListener('dragenter', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//         tooltip.classList.add('hidden')
-//     })
-
-//     card.addEventListener('dragover', (e) => {
-//         e.preventDefault();
-
-//         if (is_dir && !card.classList.contains('highlight')) {
-//             card.classList.add('highlight_target');
-//             if (e.ctrlKey) {
-//                 e.dataTransfer.dropEffect = "copy";
-//                 msg(`Copy Item to "${path.basename(file.href)}"`);
-//             } else {
-//                 e.dataTransfer.dropEffect = "move";
-//                 msg(`Move Item to "${path.basename(file.href)}"`);
-//             }
-
-//         }
-//     })
-
-//     card.addEventListener('dragleave', (e) => {
-//         card.classList.remove('highlight_target');
-//         // ipcRenderer.send('main', 1);
-//         msg('');
-//     })
-
-//     card.addEventListener('drop', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//         ipcRenderer.send('main', 0);
-//         if (!card.classList.contains('highlight')) {
-//             if (e.ctrlKey) {
-//                 paste(file.href);
-//             } else {
-//                 move(file.href);
-//             }
-//         }
-//     })
-
-//     try {
-//         ds.addSelectables(card)
-//     } catch (err) {
-//     }
-
-//     mtime.append(getDateTime(file["time::modified"]));
-//     ctime.append(getDateTime(file["time::created"]));
-//     atime.append(getDateTime(file["time::access"]));
-
-//     icon.append(img);
-//     header.append(href);
-
-//     content.append(header, input, mtime, ctime, atime, size, count);
-//     card.append(icon, content);
-
-//     if (file.type == 'directory') {
-
-//         is_dir = 1;
-//         img.src = folder_icon;
-
-//         card.classList.add('folder_card')
-
-//         // Href
-//         href.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             location.value = file.href;
-//             location.dispatchEvent(new Event('change'));
-//         })
-
-//         // Img
-//         img.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             location.value = file.href;
-//             location.dispatchEvent(new Event('change'));
-//         })
-//         // Context Menu
-//         card.addEventListener('contextmenu', (e) => {
-//             e.preventDefault();
-//             e.stopPropagation();
-//             card.classList.add('highlight_select')
-//             ipcRenderer.send('folder_menu', file.href);
-//         })
-
-
-//     } else {
-//         // Get Icon
-//         try {
-//             if (file["standard::content-type"].indexOf('image') > -1) {
-//                 img.classList.add('lazy');
-//                 img.dataset.src = file.href;
-//                 console.log('image', file.href)
-//                 // img.src = file.href;
-//             } else {
-//                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                     img.src = res;
-//                 })
-//             }
-//             if (file["standard::content-type"] === 'image/svg+xml') {
-//                 img.src = file.href;
-//                 img.classList.add('svg')
-//             }
-//         } catch (err) {
-//             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                 img.src = res;
-//             })
-//             console.log('fix images for sftp files')
-//         }
-//         // Open href in default application
-//         href.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             ipcRenderer.invoke('open', file.href);
-//         })
-//         img.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             ipcRenderer.invoke('open', file.href);
-//         })
-//         size.append(getFileSize(file["size"]));
-//         // Context Menu
-//         card.addEventListener('contextmenu', (e) => {
-//             e.preventDefault();
-//             e.stopPropagation();
-//             card.classList.add('highlight_select')
-//             ipcRenderer.send('file_menu', file);
-//         })
-//     }
-
-
-//     ds.addSelectables(card)
-
-//     // lazyloalCards();
-//     // lazyload();
-
-//     return card;
-// }
 
 /**
  * Get Grid View
@@ -3059,14 +2821,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 if ((init_size) < 64) {
                     init_size += 16
                     resizeIcons(init_size);
-                    localStorage.setItem('icon_size', init_size);
+                    // localStorage.setItem('icon_size', init_size);
                     console.log("scrolling up", init_size)
                 }
             } else if (e.ctrlKey && e.deltaY > 0) {
                 if ((init_size) > 16) {
                     init_size -= 16
                     resizeIcons(init_size);
-                    localStorage.setItem('icon_size', init_size);
+                    // localStorage.setItem('icon_size', init_size);
                     console.log("scrolling up", init_size)
                 }
             }
@@ -3075,7 +2837,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         slider.addEventListener('change', (e) => {
             init_size = slider.value;
             resizeIcons(init_size);
-            localStorage.setItem('icon_size', init_size);
+            // localStorage.setItem('icon_size', init_size);
         })
 
         txt_quicksearch.addEventListener('keydown', (e) => {
@@ -3109,6 +2871,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         //         getView(path.dirname(location.value))
         //     }
         // })
+
 
         if (location.value != "") {
             getView(location.value, () => {})
