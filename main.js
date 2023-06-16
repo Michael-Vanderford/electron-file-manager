@@ -16,7 +16,7 @@ const gio = require('./gio/build/Release/gio')
 const store = new Store();
 const worker = new Worker('./worker.js');
 const ls = new Worker('./workers/ls.js');
-const thumb = new Worker('./worker/thumbnailer.js');
+const thumb = new Worker('./workers/thumbnailer.js');
 const home = app.getPath('home');
 
 // Monitor USB Devices

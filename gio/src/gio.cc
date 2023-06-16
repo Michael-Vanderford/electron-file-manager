@@ -12,6 +12,7 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
+#include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 #include <iostream>
 #include <vector>
@@ -45,6 +46,49 @@ namespace gio {
     //     // Cleanup
     //     g_object_unref(file);
     // }
+
+    NAN_METHOD(thumbnail)  {
+
+         if (info.Length() < 2) {
+            return Nan::ThrowError("Wrong number of arguments");
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+        v8::Isolate* isolate = info.GetIsolate();
+        v8::String::Utf8Value sourceFile(isolate, sourceString);
+        v8::String::Utf8Value destFile(isolate, destString);
+
+        GFile* src = g_file_new_for_path(*sourceFile);
+        GFile* dest = g_file_new_for_path(*destFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        const char *dest_scheme = g_uri_parse_scheme(*destFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+        if (dest_scheme != NULL) {
+            dest = g_file_new_for_uri(*destFile);
+        }
+
+        GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
+        int thumbnailWidth = 100;  // Adjust the width as per your requirements
+        int thumbnailHeight = 100; // Adjust the height as per your requirements
+        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
+
+        GError* error = NULL;
+        GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
+
+        // const char *outputFile = dest; // Adjust the file extension as per your requirements
+        gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
+
+        g_object_unref(thumbnailPixbuf);
+        g_object_unref(inputPixbuf);
+        g_object_unref(src);
+        g_object_unref(dest);
+
+    }
 
     // Return Disk Space
     guint64 du(const char *dir) {
@@ -643,7 +687,7 @@ namespace gio {
         bool result = exists != FALSE;
 
         // Create a new Boolean value
-        v8::Local<v8::Boolean> resultValue = Nan::New<v8::Boolean>(result);
+        // v8::Local<v8::Boolean> resultValue = Nan::New<v8::Boolean>(result);
 
         // Create a new Boolean value in the current context
         v8::Local<v8::Boolean> resultValue = v8::Boolean::New(isolate, result);
@@ -1020,6 +1064,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);
         Nan::Export(target, "count", count);

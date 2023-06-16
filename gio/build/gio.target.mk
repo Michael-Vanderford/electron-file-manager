@@ -60,6 +60,7 @@ INCS_Debug := \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
+	-I/usr/include/gdk-pixbuf-2.0 \
 	-I$(srcdir)/node_modules/nan
 
 DEFS_Release := \
@@ -117,6 +118,7 @@ INCS_Release := \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
 	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
 	-I/usr/include/glib-2.0 \
+	-I/usr/include/gdk-pixbuf-2.0 \
 	-I$(srcdir)/node_modules/nan
 
 OBJS := \
@@ -159,7 +161,8 @@ LDFLAGS_Release := \
 LIBS := \
 	-lgio-2.0 \
 	-lgobject-2.0 \
-	-lglib-2.0
+	-lglib-2.0 \
+	-lgdk_pixbuf-2.0
 
 $(obj).target/gio.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/gio.node: LIBS := $(LIBS)

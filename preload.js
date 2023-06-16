@@ -2324,10 +2324,17 @@ function getCardGio(file) {
                         img.dataset.src = file.href;
                         img.classList.add('svg')
                 } else {
+
+                    // let thumbnail = path.join(app.getPath('userData'), 'thumbnails', path.basename(file.href));
+                    // console.log('thumbnail', thumbnail)
+                    // if (!fs.existsSync(thumbnail)) {
+                    //     ipcRenderer.send('create_thumbnail', file.href);
+                    // }
+
                     img.classList.add('lazy', 'img');
                     img.dataset.src = file.href;
                     // if (!file.href.indexOf('mtp:') > - 1) {
-                    ipcRenderer.send('create_thumbnail', file.href);
+                    // ipcRenderer.send('create_thumbnail', file.href);
                     // }
                 }
             } else {
@@ -2454,8 +2461,10 @@ function lazyload() {
                     let thumbnail = path.join(thumbnail_dir, path.basename(img.dataset.src));
                     let exists = fs.existsSync(thumbnail);
                     if (exists) {
+                        console.log(thumbnail)
                         img.src = thumbnail;
                     } else {
+                        ipcRenderer.send('create_thumbnail', img.dataset.src);
                         img.src = img.dataset.src;
                     }
 
