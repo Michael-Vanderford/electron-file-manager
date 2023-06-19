@@ -10,7 +10,7 @@
         padding-left: 5px;
         padding-right: 5px;
         height: 100%;
-        width: 250px;
+        width: 300px;
 
     }
 
@@ -28,9 +28,9 @@
     }
 
     .sidebar .item:hover {
-        background: var(--lessdark);
+        background: var(--grey);
         border-radius: 5px;;
-        text-decoration: underline;
+        text-decoration: none;
     }
 
     .sidebar a {
@@ -39,7 +39,7 @@
     }
 
     .sidebar a:hover {
-        text-decoration: underline;
+        text-decoration: none;
     }
 
     .sb_view {
@@ -59,7 +59,7 @@
     .properties {
         width: 100%;
         border-radius: 5px;
-        /* background: var(--main); */
+        background: var(--main);
         border-bottom: 1px solid var(--main);
         margin-bottom: 10px;
         padding: 5px;
@@ -81,8 +81,8 @@
         z-index: 100;
         width: 4px;
         height:100%;
-        right: 0;
-        bottom: 0;
+        /* right: 0;
+        bottom: 0; */
         cursor: col-resize;
         float: right;
     }
@@ -91,7 +91,7 @@
         background-color: #3794ff !important;
     }
 
-    #minibar {
+    .minibar {
         margin-left: -4px;
         padding: 8px;
         width: 24px;

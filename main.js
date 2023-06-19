@@ -17,12 +17,12 @@ const store = new Store();
 const worker = new Worker('./worker.js');
 const ls = new Worker('./workers/ls.js');
 const thumb = new Worker('./workers/thumbnailer.js');
+const find = new Worker('./workers/find.js');
 const home = app.getPath('home');
 
 // Monitor USB Devices
 gio.monitor(data => {
     if (data) {
-        console.log('device data', data);
         win.send('get_devices');
     }
 });
@@ -56,6 +56,12 @@ ipcMain.on('active_window', (e) => {
 
 // Worker Threads ///////////////////////////////////////////
 
+find.on('message', (data) => {
+    if (data.cmd === 'search_done') {
+        win.send('search_results', data.results_arr);
+    }
+})
+
 ls.on('message', (data) => {
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source);
@@ -65,20 +71,12 @@ ls.on('message', (data) => {
 let progress_counter = 0;
 worker.on('message', (data) => {
 
-    // if (data.cmd === 'ls_done') {
-    //     win.send('ls', data.dirents);
-    // }
-
     if (data.cmd === 'folder_size') {
         win.send('folder_size', data.source, data.size);
     }
 
     if (data.cmd === 'folder_count') {
         win.send('folder_count', data.source, data.folder_count)
-    }
-
-    if (data.cmd === 'search_done') {
-        win.send('search_results', data.results_arr);
     }
 
     if (data.cmd === 'confirm_overwrite') {
@@ -104,9 +102,9 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'rename_done') {
-        // gio_utils.get_file(data.destination, file => {
-        //     win.send('replace_card', data.source, file);
-        // })
+        gio_utils.get_file(data.destination, file => {
+            win.send('replace_card', data.source, file);
+        })
     }
 
     if (data.cmd === 'copy_done') {
@@ -269,7 +267,7 @@ function get_disk_space(href) {
 
             // SEND DISK SPACE
             win.send('disk_space', df)
-            // console.log(df);
+            // // console.log(df);
 
             cmd = 'cd "' + href.href + '"; du -s'
             du = exec(cmd)
@@ -290,38 +288,41 @@ function get_disk_space(href) {
 
 function get_apps() {
     let exe_arr = [];
-    let data = gio.ls('/usr/share/applications');
-    data.forEach(item => {
-        let content = fs.readFileSync(item.href, 'utf-8');
-        let data = content.split('\n');
+    gio.ls('/usr/share/applications', (err, data) => {
 
-        let exe_obj = {};
+        data.forEach(item => {
+            let content = fs.readFileSync(item.href, 'utf-8');
+            let data = content.split('\n');
 
-        for (const line of data) {
+            let exe_obj = {};
 
-            if (line.startsWith('Exec=')) {
+            for (const line of data) {
 
-                let cmd = line.substring(5).trim();
-                const exe = cmd.split(' ')[0];
+                if (line.startsWith('Exec=')) {
 
-                exe_obj.cmd = cmd;
-                exe_obj.exe = exe;
+                    let cmd = line.substring(5).trim();
+                    const exe = cmd.split(' ')[0];
+
+                    exe_obj.cmd = cmd;
+                    exe_obj.exe = exe;
+
+                }
+
+                if (line.startsWith('Name=')) {
+                    let name = line.substring(5).trim();
+                    exe_obj.name = name;
+                }
+
+                if (line.startsWith('Type=')) {
+                    let type = line.substring(5).trim();
+                    exe_obj.type = type;
+                }
 
             }
 
-            if (line.startsWith('Name=')) {
-                let name = line.substring(5).trim();
-                exe_obj.name = name;
-            }
+            exe_arr.push(exe_obj);
 
-            if (line.startsWith('Type=')) {
-                let type = line.substring(5).trim();
-                exe_obj.type = type;
-            }
-
-        }
-
-        exe_arr.push(exe_obj);
+        })
 
     })
     const arr = exe_arr.reduce((accumulator, current) => {
@@ -335,7 +336,7 @@ function get_apps() {
 
 function new_folder(destination) {
     gio.mkdir(destination);
-    // win.send('new_folder', gio.get_file(destination));
+    win.send('new_folder', gio.get_file(destination));
 }
 
 function watch_for_theme_change() {
@@ -347,7 +348,7 @@ function watch_for_theme_change() {
         fs.watchFile(watch_dir, (e) => {
             let file0 = gio.get_file(watch_dir)
             if (file0.mtime > file.mtime) {
-                console.log('theme changed')
+                // console.log('theme changed')
                 // win.send('theme_changed')
                 win.webContents.reloadIgnoringCache();
                 fsTimeout = setTimeout(function () {
@@ -356,7 +357,7 @@ function watch_for_theme_change() {
             }
         })
     } else {
-        console.log('error getting gnome settings directory')
+        // console.log('error getting gnome settings directory')
     }
 }
 
@@ -375,8 +376,8 @@ let cp_recursive = 0;
 function get_files_arr(source, destination, callback) {
     cp_recursive++
     file_arr.push({ type: 'directory', source: source, destination: destination })
-    // gio.ls(source, dirents => {
-        let dirents = gio.ls(source);
+    gio.ls(source, (err, dirents) => {
+        // let dirents = gio.ls(source);
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
             // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
@@ -398,7 +399,7 @@ function get_files_arr(source, destination, callback) {
             file_arr = []
             return callback(file_arr1);
         }
-    // })
+    })
 }
 
 // Get files array
@@ -418,16 +419,16 @@ function get_files(source, callback) {
     // if (watchdir.has(source)) { return; };
     // gio.watcher(source, data => {
     //     if (data.event === 'created') {
-    //         console.log(data);
+    //         // console.log(data);
     //         let file = gio.get_file(data.filename);
     //         win.send('get_card_gio', file);
     //     }
     //     if (data.event === 'renamed') {
-    //         console.log(data);
+    //         // console.log(data);
     //     }
     //     if (data.event === 'deleted') {
     //         win.send('remove_card', data.filename);
-    //         console.log(data);
+    //         // console.log(data);
     //     }
     //     // fsTimeout = setTimeout(function() {
     //     //     fsTimeout = null
@@ -461,8 +462,10 @@ ipcMain.on('get_settings', (e) => {
 
 ipcMain.on('create_thumbnail', (e, href) => {
 
-    let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-    thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+    if (!href.indexOf('sftp:') > -1) {
+        let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
+        thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+    }
 
     // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
     // let cmd = `gdk-pixbuf-thumbnailer "${href}" "${path.join(thumb_dir, path.basename(href))}"`
@@ -484,12 +487,12 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
 // Populate global selected files array
 ipcMain.on('get_selected_files', (e, selected_files) => {
     selected_files_arr = selected_files;
-    // console.log('selected files array', selected_files_arr);
+    // // console.log('selected files array', selected_files_arr);
 })
 
-ipcMain.on('search', (e, search, location) => {
+ipcMain.on('search', (e, search, location, depth) => {
 
-    worker.postMessage({cmd: 'search', search: search, location: location});
+    find.postMessage({cmd: 'search', search: search, location: location, depth: depth});
     // get_files_arr(location, '', dirents => {
     //     let filter_arr = dirents.filter(x => x.source.indexOf(search) > -1);
     //     win.send('search_results', filter_arr);
@@ -498,14 +501,15 @@ ipcMain.on('search', (e, search, location) => {
 
 // Om Get Recent Files
 ipcMain.on('get_recent_files', (e, dir) => {
-    let dirents = gio.ls(dir);
+    gio.ls(dir, (err, dirents) => {
+        win.send('recent_files', dir, dirents)
+    })
     // const d = new Date();
     // d.setDate(d.getDate() - 14);
     // const file_arr = dirents.filter(item => {
         // const itemDate = new Date(item.date);
         // return item.mtime >= d;
     // });
-    win.send('recent_files', dir, dirents)
 })
 
 // On Get Folder Size
@@ -526,7 +530,7 @@ ipcMain.on('get_folder_count', (e, href) => {
     //         win.send('folder_count', href, folder_count);
     //     })
     // } catch (err) {
-    //     console.log(err);
+    //     // console.log(err);
     // }
 })
 
@@ -537,28 +541,31 @@ ipcMain.on('get_file_count', (e, href) => {
             win.send('file_count', href, file_count);
         })
     } catch (err) {
-        console.log(err);
+        // console.log(err);
     }
 })
 
 // On Properties
-ipcMain.on('get_properties', (e, selecte_files_arr) => {
+ipcMain.on('get_properties', (e, selected_files_arr, location) => {
     let properties_arr = [];
-    selecte_files_arr.forEach(item => {
+    if (selected_files_arr.length > 0) {
+        selected_files_arr.forEach(item => {
+            let properties = gio.get_file(item);
+            // Get Folder Count
+            // Moved to ipcMain.on('get_folder_count', (e, href) => {
 
-        let properties = gio.get_file(item);
-        // Get Folder Count
-        // Moved to ipcMain.on('get_folder_count', (e, href) => {
+            // let folder_count = getFolderCount(item);
+            // properties.folder_count = folder_count;
 
-        // let folder_count = getFolderCount(item);
-        // properties.folder_count = folder_count;
-
-        // let file_count = getFIleCount(item);
-        // properties.file_count = file_count;
+            // let file_count = getFIleCount(item);
+            // properties.file_count = file_count;
+            properties_arr.push(properties);
+        })
+    } else {
+        let properties = gio.get_file(location);
         properties_arr.push(properties);
-
-    })
-    console.log('props', properties_arr);
+    }
+    // console.log('props', properties_arr);
     win.send('properties', properties_arr);
 })
 
@@ -568,7 +575,9 @@ ipcMain.on('get_card_gio', (e, destination) => {
 })
 
 ipcMain.handle('get_subfolders', (e, source) => {
-    return gio.ls(source)
+    gio.ls(source, (err, dirents) => {
+        return dirents;
+    })
 })
 
 ipcMain.handle('settings', (e) => {
@@ -586,19 +595,14 @@ ipcMain.on('new_window', (e) => {
 })
 
 ipcMain.on('clip', (e, href) => {
-    console.log('copying to clipboard', href);
+    // console.log('copying to clipboard', href);
     clipboard.write()
 })
 
-// ipcMain.on('paste', (e) => {
-//     console.log('running paste');
-//     clipboard.Paste();
-// })
-
 ipcMain.on('ondragstart', (e, href) => {
-    console.log(href);
+    // console.log(href);
     const icon = path.join(__dirname, 'assets/icons/dd.png');
-    console.log(href)
+    // console.log(href)
     e.sender.startDrag({
         file: href,
         icon: icon
@@ -610,9 +614,9 @@ ipcMain.handle('get_devices', async (e) => {
 
     return new Promise((resolve, reject) => {
         // gio_utils.get_devices(device_arr => {
-        // console.log(device_arr);
+        // // console.log(device_arr);
         let device_arr = gio.get_mounts();
-        // console.log(device_arr);
+        // // console.log(device_arr);
         resolve(device_arr);
         // });
     });
@@ -625,11 +629,13 @@ ipcMain.on('add_workspace', (e, selected_files_arr) => {
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'))
 
     selected_files_arr.forEach(item => {
-        let workspace_item = {
-            name: path.basename(item),
-            href: item
-        }
-        settings['workspace'].push(workspace_item)
+        // let workspace_item = {
+        //     name: path.basename(item),
+        //     href: item
+        // }
+        // settings['workspace'].push(workspace_item)
+        let file = gio.get_file(item);
+        settings['workspace'].push(file)
     })
     fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
     win.send('get_workspace');
@@ -655,12 +661,10 @@ ipcMain.handle('get_workspace', async (e) => {
     let settings_file = path.join(app.getPath('userData'), 'settings.json');
     let workspace_items = JSON.parse(fs.readFileSync(settings_file, 'utf-8')).workspace;
     return workspace_items;
-
 })
 
 // Set isMain Flag
 ipcMain.on('main', (e, flag) => {
-    // console.log('setting main to ', flag)
     is_main = flag;
 })
 
@@ -691,7 +695,8 @@ ipcMain.on('paste', (e, destination) => {
     // Refer to preload.js: getSelectedFiles() sends the call to populate the array and is used in multple opertations in preload.js
     // Refere to main.js: ipcMain.on('selected_files', (e, selected_files)
 
-    let copy_arr = []
+    let copy_arr = [];
+    let copy_overwrite_arr = []
     let overwrite = 0;
     let location = destination; //document.getElementById('location');
     if (selected_files_arr.length > 0) {
@@ -707,9 +712,8 @@ ipcMain.on('paste', (e, destination) => {
                 if (source == destination) {
                     // destination = `${destination} (1)`;
                 } else {
-                    console.log('exists',gio.exists(destination))
                     if (gio.exists(destination)) {
-                        msg('Error: Overwrite not yet implmeneted');
+                        win.send('msg', 'Overwrite not yet implemented');
                         overwrite = 1;
                     }
                 }
@@ -720,7 +724,7 @@ ipcMain.on('paste', (e, destination) => {
                     destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
                 } else {
                     if (gio.exists(destination)) {
-                        msg('Error: Overwritet not yet implmeneted');
+                        // win.send('msg', 'Overwrite not yet implemented');
                         overwrite = 1;
                     }
                 }
@@ -734,22 +738,23 @@ ipcMain.on('paste', (e, destination) => {
             if (overwrite == 0) {
                 copy_arr.push(copy_data);
             } else {
-                console.log('confirm overwrite')
-                // copy_overwrite_arr.push(copy_data)
+                // console.log('confirm overwrite')
+                copy_overwrite_arr.push(copy_data)
             }
 
             if (i == selected_files_arr.length - 1) {
                 if (copy_arr.length > 0) {
-                    console.log('sending array', copy_arr);
+                    // // console.log('sending array', copy_arr);
                     worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
                 }
-                // if (copy_overwrite_arr.length > 0) {
-                //     console.log('confirm overwrite')
-                //     ipcRenderer.send('confirm_overwrite', copy_overwrite_arr);
-                // }
+                if (copy_overwrite_arr.length > 0) {
+                    // console.log('confirm overwrite');
+                    overWriteNext(copy_overwrite_arr);
+                    // ipcRenderer.send('confirm_overwrite', copy_overwrite_arr);
+                }
 
                 copy_arr = [];
-                // copy_overwrite_arr = [];
+                copy_overwrite_arr = [];
                 selected_files_arr = [];
             }
 
@@ -766,7 +771,7 @@ ipcMain.on('paste', (e, destination) => {
 
 // Move
 ipcMain.on('move', (e, destination) => {
-    // console.log('destination', destination)
+    // // console.log('destination', destination)
     let copy_arr = [];
     if (selected_files_arr.length > 0) {
         for(let i = 0; i < selected_files_arr.length; i++) {
@@ -776,7 +781,7 @@ ipcMain.on('move', (e, destination) => {
             }
             copy_arr.push(copy_data);
         }
-        // console.log('sending array', copy_arr);
+        // // console.log('sending array', copy_arr);
         // ipcRenderer.send('move', copy_arr);
         worker.postMessage({ cmd: 'mv', selected_items: copy_arr })
         selected_files_arr = [];
@@ -898,7 +903,7 @@ function createWindow() {
 };
 
 process.on('uncaughtException', (error) => {
-    console.log(error.message)
+    // console.log(error.message)
     // win.send('msg', error.message);
 })
 
@@ -928,7 +933,7 @@ ipcMain.on('get_files', (e, source) => {
     // worker.postMessage({cmd: 'preload', source: source});
 
     // let du = gio.du(source);
-    // console.log('disk usage', getFileSize(Math.abs(du)));
+    // // console.log('disk usage', getFileSize(Math.abs(du)));
 
 })
 
@@ -1075,7 +1080,7 @@ function confirmOverwrite(source_file, destination_file, copy_overwrite_arr) {
 //     let source_date = source_file["time::modified"];
 //     let destination_date = destination_file["time::modified"];
 
-//     // console.log(source, destination)
+//     // // console.log(source, destination)
 
 //     let is_newer = 0;
 //     if (destination_date > source_date) {
@@ -1163,7 +1168,7 @@ function confirmOverwrite(source_file, destination_file, copy_overwrite_arr) {
 //                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
 //                 copy_arr[0].overwrite_flag = 1;
 
-//                 console.log(`Overwrite Confirmed ${source} with ${destination}`);
+//                 // console.log(`Overwrite Confirmed ${source} with ${destination}`);
 
 //                 if (!is_dir) {
 //                     worker.postMessage({cmd: 'paste', copy_arr: copy_arr});
@@ -1183,7 +1188,7 @@ function confirmOverwrite(source_file, destination_file, copy_overwrite_arr) {
 //                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
 //                 copy_arr[0].overwrite_flag = 1;
 
-//                 console.log(`Overwrite Skipped ${source} with ${destination}`);
+//                 // console.log(`Overwrite Skipped ${source} with ${destination}`);
 
 //                 copy_overwrite_arr.splice(0, 1);
 //                 overWriteNext(copy_overwrite_arr);
@@ -1211,7 +1216,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     let source_date = source_file.mtime;
     let destination_date = destination_file.mtime;
 
-    // console.log(source, destination)
+    // // console.log(source, destination)
 
     let is_newer = 0;
     if (destination_date > source_date) {
@@ -1298,7 +1303,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
 
                 // Merge / Replace
                 // let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
-                // console.log(`Overwrite Confirmed ${source} with ${destination}`);
+                // // console.log(`Overwrite Confirmed ${source} with ${destination}`);
 
                 // if (!is_dir) {
                 // worker.postMessage({cmd: 'paste', copy_arr: copy_arr, overwrite_flag: 1});
@@ -1308,15 +1313,15 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
                 copy_overwrite_arr.splice(0, 1);
 
                 // first file
-                if (!gio.exists(destination)) {
+                // if (!gio.exists(destination)) {
                     if (is_dir) {
-                        console.log(`getting directory ${destination}`)
+                        // console.log(`getting directory ${destination}`)
                         gio.mkdir(destination)
                     } else {
-                        console.log(`copying file ${source} ${destination}`)
-                        gio.cp(source, destination);
+                        // console.log(`copying file ${source} ${destination}`)
+                        gio.cp(source, destination, 1);
                     }
-                }
+                // }
 
                 if (overwrite_all) {
                     overWriteNext(copy_overwrite_arr, 1);
@@ -1331,7 +1336,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
                 copy_arr[0].overwrite_flag = 1;
 
-                console.log(`Overwrite Skipped ${source} with ${destination}`);
+                // console.log(`Overwrite Skipped ${source} with ${destination}`);
 
                 copy_overwrite_arr.splice(0, 1);
                 overWriteNext(copy_overwrite_arr);
@@ -1361,7 +1366,7 @@ function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
         if (overwrite_all) {
             return false;
         } else {
-            // confirm(source_file, destination_file, copy_overwrite_arr);
+            confirm(source_file, destination_file, copy_overwrite_arr);
             return false;
         }
 
@@ -1378,7 +1383,7 @@ function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
         //         } else {
         //             worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination});
         //         }
-        //         console.log(copy_overwrite_arr.length);
+        //         // console.log(copy_overwrite_arr.length);
         //         return true
         //     }
         // } else {
@@ -1399,7 +1404,7 @@ function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
         //             let source_file = gio.get_file(item.source);
         //             let destination_file = gio.get_file(item.destination);
 
-        //             console.log('source', item.source, 'destination', item.destination)
+        //             // console.log('source', item.source, 'destination', item.destination)
 
         //             if (source_file && destination_file) {
         //                 confirm(source_file, destination_file, copy_overwrite_arr);
@@ -1410,7 +1415,7 @@ function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
         //             // worker.postMessage({cmd: 'cp', source: item.source, destination: item.destination});
         //         }
         //         copy_overwrite_arr.splice(0, idx);
-        //         console.log(copy_overwrite_arr.length);
+        //         // console.log(copy_overwrite_arr.length);
         //         return true
         //     }
         // }
@@ -1421,7 +1426,7 @@ function overWriteNext(copy_overwrite_arr, overwrite_all = 0) {
     //     gio_utils.get_file(item.source, source_file => {
     //         if (!gio.exists(item.destination)) {
 
-    //             console.log('destination does not exist');
+    //             // console.log('destination does not exist');
     //             worker.postMessage({cmd: 'paste', copy_arr: copy_overwrite_arr, overwrite_flag: 0});
     //             return false
 
@@ -1494,7 +1499,7 @@ ipcMain.on('overwrite_confirmed', (e, source, destination, copy_overwrite_arr) =
     let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
     copy_arr[0].overwrite_flag = 1;
 
-    console.log(`Overwrite Confirmed ${source} with ${destination}`);
+    // console.log(`Overwrite Confirmed ${source} with ${destination}`);
     worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
 
     copy_overwrite_arr.splice(0, 1);
@@ -1629,7 +1634,7 @@ function add_launcher_menu(menu, e, file) {
         }))
 
     } catch (err) {
-        console.log(err)
+        // console.log(err)
     }
 }
 
@@ -1805,7 +1810,7 @@ ipcMain.on('folder_menu', (e, href) => {
             click: () => {
                 exec(`cd "${href}"; code .`, (err) => {
                     if (err) {
-                        console.log(err);
+                        // console.log(err);
                         return;
                     }
                 })
@@ -2212,7 +2217,7 @@ ipcMain.on('device_menu', (e, href) => {
 // Workspace Menu
 ipcMain.on('workspace_menu', (e, file) => {
 
-    // console.log(file)
+    // // console.log(file)
     let workspace_menu_template = [
         {
             label: 'Remove From Workspace',

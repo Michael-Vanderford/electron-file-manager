@@ -79,14 +79,14 @@ html, body {
 
     #main {
         position: relative;
-        overflow: auto;
+        overflow-y: auto;
         overflow-x: hidden;
         /* border: 1px solid red; */
         background: var(--main);
         border-radius: 5px;
         /* padding: 10px; */
         width: 100%;
-        height: 90%;
+        height: 92%;
         /* flex: 1; */
     }
 
@@ -382,9 +382,70 @@ html, body {
     border: none;
 }
 
+.main {
+    border-left: 1px solid var(--border);
+}
+
 .main:focus {
     outline: none;
     border: none;
+}
+
+.info_view {
+    padding: 20px;
+}
+
+.info_view .drive {
+    padding-top: 5px;
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 5px;
+    height: 100px;
+}
+
+.tabs {
+    background: var(--main);
+    height: 23px;
+    top: 0;
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    display: inline-block;
+    z-index: 1000;
+}
+
+.tab {
+    /* margin: 0; */
+    background: var(--main);
+    color: var(--orange);
+    border: 1px solid var(--border);
+    border-left: 1px solid transparent;
+    /* border-bottom: 1px solid transparent; */
+    padding: 4px;
+    padding-left: 15px;
+    padding-right: 15px;
+    display: inline-block;
+}
+
+.tab:hover {
+
+    cursor: pointer;
+}
+
+.tab.active-tab {
+    border-top: 2px solid var(--blue);
+    border-bottom: none;
+}
+
+.tab_content {
+    padding: 5px;
+    /* overflow: auto; */
+}
+
+#chart {
+    color: var(--light);
+    width: '100px';
+    height: '100px';
 }
 
 progress {
@@ -629,8 +690,8 @@ progress::-webkit-progress-bar {
 
 .grid2 {
     display: grid;
-    /* grid-template-columns: repeat(2, 1fr); */
-    grid-template-columns: 75px auto;
+    grid-template-columns: repeat(2, 1fr);
+    /* grid-template-columns: 75px auto; */
     /* grid-template-rows: auto; */
     /* width: 100%; */
 }
@@ -779,6 +840,23 @@ input[type=text]:focus {
     position: fixed;
     display: block;
     z-index: 100;
+}
+
+.loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.loader img {
+    width: 48px;
+    height: 48px;
+}
+
+.sticky {
+    position: sticky;
+    top: 0;
 }
 
 /* Mobile */

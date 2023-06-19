@@ -113,7 +113,7 @@ function get_icon_path(file) {
     //         if (file_ext.toLocaleLowerCase() == '.jpg' || file_ext.toLocaleLowerCase() == '.png' || file_ext.toLocaleLowerCase() == '.jpeg' || file_ext.toLocaleLowerCase() == '.gif' || file_ext.toLocaleLowerCase() == '.svg' || file_ext.toLocaleLowerCase() == '.ico' || file_ext.toLocaleLowerCase() == '.webp') {
     //             icon = file
     //             let img_data = get_img_data(file);
-    //             console.log(img_data)
+    //             // console.log(img_data)
     //         } else if (file_ext == '.xls' || file_ext == '.xlsx' || file_ext == '.xltx' || file_ext == '.csv') {
     //             icon = path.join(icon_dir, '/apps/scalable/ms-excel.svg')
     //         } else if (file_ext == '.docx' || file_ext == '.ott' || file_ext == '.odt') {
@@ -151,7 +151,7 @@ function get_icon_path(file) {
 ipcRenderer.on('confirming_overwrite', (e, source_file, destination_file, copy_overwrite_arr) => {
 
     let confirm_dialog = document.getElementById('confirm')
-    console.log(source_file, destination_file)
+    // console.log(source_file, destination_file)
 
     let source = source_file.href;
     let destination = destination_file.href;
@@ -317,7 +317,7 @@ ipcRenderer.on('overwrite', (e, data) => {
         fs.copyFile(source, destination, (err) => {
             let file_grid = document.getElementById('file_grid');
             if (err) {
-                console.log(err)
+                // console.log(err)
             } else {
 
                 // Remove previous card

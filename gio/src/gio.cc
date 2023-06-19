@@ -47,7 +47,46 @@ namespace gio {
     //     g_object_unref(file);
     // }
 
-    NAN_METHOD(thumbnail)  {
+    // NAN_METHOD(findFilesAsync) {
+    //     if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() || !info[2]->IsFunction()) {
+    //         return Nan::ThrowTypeError("Invalid arguments. Expected: findFilesAsync(directory, pattern, callback)");
+    //     }
+
+    //     v8::Local<v8::String> directoryArg = info[0].As<v8::String>();
+    //     v8::Local<v8::String> patternArg = info[1].As<v8::String>();
+    //     v8::Local<v8::Function> callback = info[2].As<v8::Function>();
+
+    //     Nan::Utf8String directory(directoryArg);
+    //     Nan::Utf8String pattern(patternArg);
+
+    //     GFile* folder = g_file_new_for_path(*directory);
+    //     // GFileEnumerator* enumerator = g_file_enumerate_children(folder, G_FILE_ATTRIBUTE_STANDARD_NAME "," G_FILE_ATTRIBUTE_STANDARD_IS_REGULAR, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     GFileEnumerator* enumerator = g_file_enumerate_children(folder, "standard::*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     GFileInfo* file_info;
+
+    //     while ((file_info = g_file_enumerator_next_file(enumerator, NULL, NULL)) != NULL) {
+    //         const char* filename = g_file_info_get_name(file_info);
+    //         // gboolean is_regular = g_file_info_get_is_regular(file_info);
+
+    //         // if (g_pattern_match_simple(*pattern, filename) && is_regular) {
+    //         if (g_pattern_match_simple(*pattern, filename)) {
+    //             gchar* file_path = g_file_get_path(g_file_enumerator_get_child(enumerator, filename));
+
+    //             v8::Local<v8::Value> argv[1] = { Nan::New(file_path).ToLocalChecked() };
+    //             Nan::Call(callback, Nan::GetCurrentContext()->Global(), 1, argv);
+
+    //             g_free(file_path);
+    //         }
+
+    //         g_object_unref(file_info);
+    //     }
+
+    //     g_file_enumerator_close(enumerator, NULL, NULL);
+    //     g_object_unref(enumerator);
+    //     g_object_unref(folder);
+    // }
+
+    NAN_METHOD(thumbnail) {
 
          if (info.Length() < 2) {
             return Nan::ThrowError("Wrong number of arguments");
@@ -79,9 +118,11 @@ namespace gio {
 
         GError* error = NULL;
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
+        if (fileType != NULL) {
+            // const char *outputFile = dest; // Adjust the file extension as per your requirements
+            gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
+        }
 
-        // const char *outputFile = dest; // Adjust the file extension as per your requirements
-        gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
 
         g_object_unref(thumbnailPixbuf);
         g_object_unref(inputPixbuf);
@@ -447,23 +488,57 @@ namespace gio {
     NAN_METHOD(du) {
 
         // Check if the argument is a string
+        // if (info.Length() < 1) {
+        //     return Nan::ThrowError("Wrong number of arguments");
+        // }
+
+        // // Convert the argument to a C++ string
+        // v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        // v8::Isolate* isolate = info.GetIsolate();
+
+        // // Get the current context from the execution context
+        // v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        // v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+
+        // // Calculate the folder size recursively
+        // guint64 folderSize = du(*sourceFile);
+
+        // // Return the result as a number
+        // info.GetReturnValue().Set(Nan::New<v8::Number>(static_cast<double>(folderSize)));
+
         if (info.Length() < 1) {
-            return Nan::ThrowError("Wrong number of arguments");
+            Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
+            return;
         }
 
-        // Convert the argument to a C++ string
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Isolate* isolate = info.GetIsolate();
 
         // Get the current context from the execution context
         v8::Local<v8::Context> context = isolate->GetCurrentContext();
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
 
-        // Calculate the folder size recursively
-        guint64 folderSize = du(*sourceFile);
+        GFile* src = g_file_new_for_path(*sourceFile);
 
-        // Return the result as a number
-        info.GetReturnValue().Set(Nan::New<v8::Number>(static_cast<double>(folderSize)));
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+
+        GFileInfo* fileInfo = g_file_query_info(src, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE "," G_FILE_ATTRIBUTE_FILESYSTEM_FREE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+
+        gint64 totalSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
+        gint64 freeSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+
+        g_object_unref(fileInfo);
+        g_object_unref(src);
+
+        v8::Local<v8::Object> result = Nan::New<v8::Object>();
+        Nan::Set(result, Nan::New("totalSpace").ToLocalChecked(), Nan::New<v8::Number>(totalSpace));
+        Nan::Set(result, Nan::New("freeSpace").ToLocalChecked(), Nan::New<v8::Number>(freeSpace));
+
+        info.GetReturnValue().Set(result);
 
     }
 
@@ -501,14 +576,18 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
-
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
-            Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+            // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+            if (mimetype != nullptr) {
+               Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+            } else {
+                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::Null());
+            }
 
             gint64 size = g_file_info_get_size(file_info);
             Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
@@ -553,9 +632,15 @@ namespace gio {
 
         Nan::HandleScope scope;
 
-        if (info.Length() < 1) {
-            return Nan::ThrowError("Wrong number of arguments");
+        // if (info.Length() < 2) {
+        //     return Nan::ThrowError("Wrong number of arguments");
+        // }
+
+        if (info.Length() < 2 || !info[1]->IsFunction()) {
+            return Nan::ThrowError("Wrong arguments. Expected callback function.");
         }
+
+        Nan::Callback callback(info[1].As<v8::Function>());
 
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Isolate* isolate = info.GetIsolate();
@@ -653,7 +738,10 @@ namespace gio {
         g_object_unref(enumerator);
         g_object_unref(src);
 
-        info.GetReturnValue().Set(resultArray);
+        // info.GetReturnValue().Set(resultArray);
+
+        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+        callback.Call(2, argv);
 
     }
 

@@ -7,6 +7,7 @@
     <!-- <link rel="stylesheet" href="./node_modules/semantic-ui-icon/icon.min.css"> -->
     <link rel="stylesheet" href="./assets/css/index.css" />
     <link rel="stylesheet" href="./assets/css/sidebar.css" />
+    <script type="" src="./node_modules/chart.js/dist/chart.min.js"></script>
     <title></title>
 </head>
 <body>
@@ -24,10 +25,11 @@
         <div class="item grid_view" title="Grid View"><a href="#" class=""><i class="bi bi-grid"></i> </a></div>
         <div class="item list_view" title="List View"><a href="#" class=""><i class="bi bi-list-task"></i> </a></div>
         <div class="item show_hidden" title="Show Hidden Files"><a href="#" class="" title="Show hidden Files"><i class="bi bi-eye"></i></a></div>
+        <div class="item disk_usage" title="Disk Usage"><a href="#" class="" title="Disk Usage"><i class="bi bi-hdd-stack"></i></a></div>
 
         <div class="item right settings">
 
-            <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size"></ipnut>
+            <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size" />
 
             <a class="item hidden" id="btn_hamburger_menu">
                 <i class="bi bi-list"></i>
@@ -47,6 +49,9 @@
                     <!-- DISK SUMMARY VIEW -->
                     <a class="item disk" id="btn_disk_view" title="Disk summary view. Get a summary of disk usage.">
                         <i class="ui icon disk small"></i> Disk Summary
+                    </a>
+                    <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
+                        <i class="ui icon eye small"></i> Show hidden
                     </a>
                     <a class="item button" id="btn_show_hidden_folders" title="Show hidden files and directories">
                         <i class="ui icon eye small"></i> Show hidden
@@ -99,9 +104,6 @@
 
     <!-- </div> -->
 
-    <!-- <div id="loader" class="ui centered loader"></div> -->
-
-
     <div class="container">
 
         <div id="minibar" class="minibar">
@@ -135,13 +137,18 @@
         <div id="sidebar" class="sidebar"></div>
         <div id="draghandle" class="draghandle"></div>
 
+        <!-- <div id="loader" class="ui centered loader">
+            <img src="./assets/icons/loader1.gif" >
+        </div> -->
+
         <div id="main" class="main">
 
-            <div id="folder_grid" class="folder_grid"></div>
+            <!-- <div class="tabs"></div> -->
+            <!-- <div id="folder_grid" class="folder_grid"></div>
             <div id="hidden_folder_grid" class="hidden"></div>
 
             <div id="file_grid"></div>
-            <div id="hidden_file_grid" class="hidden"></div>
+            <div id="hidden_file_grid" class="hidden"></div> -->
 
             <div id="progress" class="bottom left hidden">
                 <div id="progress_msg"></div>

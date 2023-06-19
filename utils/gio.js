@@ -74,7 +74,7 @@ function get_dir_recursive(dir, state) {
             return callback(dirents)
 
         } else {
-            console.log(err)
+            // console.log(err)
         }
 
     })
@@ -247,7 +247,7 @@ exports.exists = (href) => {
     } catch (err) {
         exists = 0;
     }
-    console.log('exists', exists)
+    // console.log('exists', exists)
     return exists;
 }
 
@@ -262,7 +262,7 @@ exports.getFileSync = (href) => {
     file_arr.forEach(item => {
         file_obj[item[0]] = item[1];
     })
-    console.log('whwhwhh', file_obj);
+    // console.log('whwhwhh', file_obj);
     return file_obj;
 }
 
@@ -342,7 +342,7 @@ exports.get_dir = (dir, callback) => {
                                 attribute[0] != 'unix::gid'
                             )
                             {
-                                // console.log(attribute[0])
+                                // // console.log(attribute[0])
                                 file_obj[attribute[0]] = attribute[1]
                             }
 
@@ -358,11 +358,11 @@ exports.get_dir = (dir, callback) => {
             })
 
             file_arr = dirents;
-            // console.log(file_arr)
+            // // console.log(file_arr)
             return callback(dirents)
 
         } else {
-            console.log(err)
+            // console.log(err)
         }
 
     })
@@ -492,7 +492,7 @@ exports.cp = (source, destination, callback) => {
 //     // spawn(`gio copy "${source}" "${destination}"`)
 //     // return callback(exec(`gio copy "${source}" "${destination}"`))
 //     // , (err, stdout, stderr) => {
-//         // console.log(err, stdout, stderr)
+//         // // console.log(err, stdout, stderr)
 //     // })
 //     // .then(res => {
 //     //     return callback(res);
@@ -512,7 +512,7 @@ exports.cp1 = (sourcePath, destinationPath, callback) => {
             const copiedBytes = parseInt(parts[1], 10);
             const totalBytes = parseInt(parts[3], 10);
             const progress = Math.floor((copiedBytes / totalBytes) * 100);
-            console.log(`Copy progress: ${progress}%`);
+            // console.log(`Copy progress: ${progress}%`);
         }
 
     });
@@ -525,7 +525,7 @@ exports.cp1 = (sourcePath, destinationPath, callback) => {
     // Listen for the exit event
     gioCopy.on('exit', (code, signal) => {
         if (code === 0) {
-            console.log('Files copied successfully');
+            // console.log('Files copied successfully');
             callback(null);
 
         } else {
@@ -620,7 +620,7 @@ exports.getDateTime = function (date) {
         var d = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date * 1000));
         return d;
     } catch (err) {
-        // console.log('gio getDateTime Format error')
+        // // console.log('gio getDateTime Format error')
     }
 }
 
@@ -639,7 +639,7 @@ exports.get_folder_count = (source, callback) => {
         if (--recursive == 0) {
             let folder_count = count;
             count = 0;
-            console.log(folder_count)
+            // console.log(folder_count)
             return callback(folder_count);
         }
     })

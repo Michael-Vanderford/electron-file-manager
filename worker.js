@@ -34,55 +34,26 @@ let cp_recursive = 0;
 function get_files_arr (source, destination, callback) {
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
-    let dirents = gio.ls(source)
-    for (let i = 0; i < dirents.length; i++) {
-        let file = dirents[i]
-        parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-        if (file.is_dir) {
-            get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
-        } else {
-            file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
-        }
-    }
-    if (--cp_recursive == 0) {
-        parentPort.postMessage({cmd: 'msg', msg: ``})
-
-        let file_arr1 = file_arr;
-        file_arr = []
-        return callback(file_arr1);
-    }
-}
-
-let file_arr1 = [];
-let cp_recursive1 = 0;
-function get_search_arr (source, search, callback) {
-    cp_recursive1++
-    console.log('depth', cp_recursive1, 'path', source)
-    if (path.basename(source).toLocaleLowerCase().indexOf(search) > -1) {
-        file_arr1.push(gio.get_file(source));
-    }
-    if (file_arr1.length < 1000) {
-        let dirents = gio.ls(source)
+    // let dirents = gio.ls(source)
+    gio.ls(source, (err, dirents) => {
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
-            parentPort.postMessage({cmd: 'msg', msg: `Searching...`});
+            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
             if (file.is_dir) {
-                get_search_arr(file.href, search, callback)
+                get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
-                if (path.basename(file.href).toLocaleLowerCase().indexOf(search) > -1) {
-                    file_arr1.push(file)
-                }
+                file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
             }
-
         }
-    }
-    if (--cp_recursive1 == 0) {
-        parentPort.postMessage({cmd: 'msg', msg: ``})
 
-        let file_arr2 = file_arr1;
-        file_arr1 = []
-        return callback(file_arr2);
-    }
+        if (--cp_recursive == 0) {
+            parentPort.postMessage({cmd: 'msg', msg: ``})
+
+            let file_arr1 = file_arr;
+            file_arr = []
+            return callback(file_arr1);
+        }
+    })
 }
 
 // let preload_arr = [];
@@ -109,13 +80,6 @@ function get_search_arr (source, search, callback) {
 
 // Handle Worker Messages
 parentPort.on('message', data => {
-
-    // Preload Recursive File array for search
-    // if (data.cmd === 'preload') {
-    //     console.log('running preload');
-    //     preload_arr = [];
-    //     get_preload_arr(data.source, '');
-    // }
 
     if (data.cmd === 'folder_size') {
         try {
@@ -144,23 +108,6 @@ parentPort.on('message', data => {
         }
     }
 
-    if (data.cmd === 'search') {
-        get_search_arr(data.location, data.search, dirents => {
-            // let search_arr = []
-            // console.log('preload_length', dirents.length);
-            // for (let i = 0; i < dirents.length; i++) {
-            //     if (i < 1500) {
-            //         if (dirents[i].href.indexOf(data.search) > -1) {
-            //             search_arr.push(dirents[i]);
-            //         }
-
-            //     }
-            // }
-            // let results_arr = dirents.filter(x => x.href.indexOf(data.search) > -1);
-            parentPort.postMessage({cmd: 'search_done', results_arr: dirents});
-        })
-    }
-
     // Note: dont use this for normal operation. maybe use on properties
     if (data.cmd === 'get_folder_size') {
         let folder_size = 0;
@@ -184,21 +131,10 @@ parentPort.on('message', data => {
         parentPort.postMessage({cmd: 'exists', exists: exists});
     }
 
-    // Moved to ls.js
-    // if (data.cmd === 'ls') {
-    //     let dirents = gio.ls(data.source);
-    //     if (gio.exists(data.source)) {
-    //         parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source});
-    //     } else {
-    //         parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
-    //     }
-    // }
-
     if (data.cmd === 'mv') {
         let selected_files_arr = data.selected_items;
         for (let i = 0; i < selected_files_arr.length; i++) {
             let f = selected_files_arr[i];
-            console.log('file', f);
             gio.mv(f.source, f.destination);
             parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
             if (i === selected_files_arr.length - 1) {{
@@ -236,7 +172,7 @@ parentPort.on('message', data => {
 
     // Delete Confirmed
     if (data.cmd === 'delete_confirmed') {
-        // console.log('worker', data.files_arr)
+        // // console.log('worker', data.files_arr)
         let idx = 0;
         let del_arr = data.files_arr
         function delete_next() {
@@ -295,7 +231,7 @@ parentPort.on('message', data => {
                         }
 
                         if (cpc === dirents.length) {
-                            console.log('done deleting files');
+                            // console.log('done deleting files');
                             data = {
                                 cmd: 'delete_done',
                                 source: del_item
@@ -348,7 +284,7 @@ parentPort.on('message', data => {
                 is_writable = 0;
             }
 
-            console.log('is_writeable', is_writable)
+            // // console.log('is_writeable', is_writable)
 
             if (is_writable) {
 
@@ -377,55 +313,62 @@ parentPort.on('message', data => {
                         }
 
                         get_files_arr(copy_item.source, destination, dirents => {
-                            let cpc = 0;
-                            for (let i = 0; i < dirents.length; i++) {
-                                let f = dirents[i]
-                                if (f.type == 'directory') {
 
-                                    cpc++
+                            let size = gio.du(path.dirname("/"))
+                            console.log(size);
 
-                                    if (!gio.exists(f.destination)) {
-                                        gio.mkdir(f.destination)
-                                        data = {
-                                            cmd: 'progress',
-                                            msg: `Copied Folder ${path.basename(f.source)}`,
-                                            max: dirents.length,
-                                            value: cpc
-                                        }
-                                        parentPort.postMessage(data);
-                                    }
-                                }
-                            }
+                            // let cpc = 0;
+                            // for (let i = 0; i < dirents.length; i++) {
+                            //     let f = dirents[i]
+                            //     if (f.type == 'directory') {
 
-                            for (let i = 0; i < dirents.length; i++) {
-                                let f = dirents[i]
-                                if (f.type == 'file') {
-                                    cpc++
-                                    if (gio.exists(f.destination)) {
-                                        gio.cp(f.source, f.destination, copy_item.overwrite_flag)
-                                    } else {
-                                        gio.cp(f.source, f.destination, 0)
-                                    }
-                                    data = {
-                                        cmd: 'progress',
-                                        msg: `Copied File ${path.basename(f.source)}`,
-                                        max: dirents.length,
-                                        value: cpc
+                            //         cpc++
 
-                                    }
-                                    parentPort.postMessage(data);
-                                }
-                            }
+                            //         if (!gio.exists(f.destination)) {
+                            //             gio.mkdir(f.destination)
+                            //             data = {
+                            //                 cmd: 'progress',
+                            //                 msg: `Copied Folder ${path.basename(f.source)}`,
+                            //                 max: dirents.length,
+                            //                 value: cpc
+                            //             }
+                            //             parentPort.postMessage(data);
+                            //         }
+                            //     }
+                            // }
 
-                            if (cpc === dirents.length) {
-                                console.log('done copying files');
-                                data = {
-                                    cmd: 'copy_done',
-                                    destination: destination
-                                }
-                                parentPort.postMessage(data);
-                                copy_next();
-                            }
+                            // for (let i = 0; i < dirents.length; i++) {
+                            //     let f = dirents[i]
+                            //     if (f.type == 'file') {
+                            //         cpc++
+                            //         if (gio.exists(f.destination)) {
+                            //             // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
+                            //         } else {
+                            //             gio.cp(f.source, f.destination, 0)
+                            //             // gio.cp_async(f.source, f.destination)
+                            //             // Delay for 1 second
+                            //             // new Promise((resolve) => setTimeout(resolve, 500));
+                            //         }
+                            //         data = {
+                            //             cmd: 'progress',
+                            //             msg: `Copied File ${path.basename(f.source)}`,
+                            //             max: dirents.length,
+                            //             value: cpc
+
+                            //         }
+                            //         parentPort.postMessage(data);
+                            //     }
+                            // }
+
+                            // if (cpc === dirents.length) {
+                            //     // console.log('done copying files');
+                            //     let data = {
+                            //         cmd: 'copy_done',
+                            //         destination: destination
+                            //     }
+                            //     parentPort.postMessage(data);
+                            //     copy_next();
+                            // }
 
                         })
 
@@ -433,7 +376,7 @@ parentPort.on('message', data => {
                     } else {
 
                         gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
-                        data = {
+                        let data = {
                             cmd: 'copy_done',
                             destination: copy_item.destination
                         }
@@ -456,7 +399,7 @@ parentPort.on('message', data => {
     if (data.cmd === 'monitor') {
 
         // gio.monitor(function(device) {
-        //     console.log('connected');
+        //     // console.log('connected');
         // })
 
     }
