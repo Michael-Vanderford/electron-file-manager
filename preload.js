@@ -411,7 +411,7 @@ ipcRenderer.on('ls_no_tab', (e, dirents, source) => {
 
     let hidden_folder_grid = document.querySelector('.hidden_folder_grid');
     if (!hidden_folder_grid) {
-        hidden_folder_grid = add_div()
+        hidden_folder_grid = add_div(['hidden'])
         hidden_folder_grid.classList.add('hidden_folder_grid')
         hidden_folder_grid.id = 'hidden_folder_grid'
     }
@@ -615,14 +615,14 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     let hidden_folder_grid = tab_content.querySelector('.hidden_folder_grid');
     if (!hidden_folder_grid) {
-        hidden_folder_grid = add_div()
+        hidden_folder_grid = add_div(['hidden'])
         hidden_folder_grid.classList.add('hidden_folder_grid')
         hidden_folder_grid.id = 'hidden_folder_grid'
     }
 
     let hidden_file_grid = tab_content.querySelector('.hidden_file_grid');
     if (!hidden_file_grid) {
-        hidden_file_grid = add_div()
+        hidden_file_grid = add_div(['hidden'])
         hidden_file_grid.classList.add('hidden_file_grid')
         hidden_file_grid.id = 'hidden_file_grid'
     }
@@ -1056,19 +1056,22 @@ ipcRenderer.on('update_card', (e, href, file) => {
 ipcRenderer.on('set_progress', (e, data) => {
 
     // // console.log(data)
-
+    let main = document.querySelector('.main')
     let progress = document.getElementById('progress');
     let progress_msg = document.getElementById('progress_msg');
     let progress_bar = document.getElementById('progress_bar');
 
     if (!progress) {
-        progress = add_div(['progress']);
+        progress = add_div(['progress', 'bottom']);
         progress_msg = add_div(['progress_msg']);
         progress_bar = document.createElement('progress');
 
         progress.id = 'progress';
         progress_msg.id = 'progress_msg';
         progress_bar.id = 'progress_bar';
+
+        progress.append(progress_msg, progress_bar)
+        main.append(progress)
     }
 
     if (progress.classList.contains('hidden')) {
@@ -1278,14 +1281,14 @@ async function get_disk_summary_view(callback) {
     disks_arr = disks.filter(a => { return a !== ''; })
 
     // Sort Disks
-    disks_arr.sort((a, b) => {
-        if (a < b) {
-            return -1;
-        }
-        if (a > b) {
-            return 1;
-        }
-    })
+    // disks_arr.sort((a, b) => {
+    //     if (a < b) {
+    //         return -1;
+    //     }
+    //     if (a > b) {
+    //         return 1;
+    //     }
+    // })
 
     disks_arr.forEach((disk, i) => {
 
@@ -1396,6 +1399,7 @@ async function get_disk_summary_view(callback) {
 
             // ADD CONTENT TO CARD
             card.append(content)
+            card.dataset.label = item
 
             // ADD CARD TO COLUMN
             col.append(card)
@@ -1880,10 +1884,8 @@ function add_tab(label) {
 
     let current_tab_content = document.querySelectorAll('.tab_content')
     let current_tabs = tabs.querySelectorAll('.tab');
-    // if (current_tabs.length == 0) {
-    //     tab.id = 0;
-    //     tab_content.id = 0;
-    // }
+
+    // col2.append(add_icon('x'))
 
     tab.addEventListener('click', (e) => {
         // console.log(tab.id);
@@ -2012,9 +2014,11 @@ let folder_icon = get_folder_icon();
  */
 function msg(message) {
 
+    let main = document.querySelector('.main');
     let msg = document.querySelector('.msg');
     if (!msg) {
-        msg = add_div(['msg']);
+        msg = add_div(['msg', 'bottom']);
+        main.append(msg);
     }
     msg.innerHTML = '';
     msg.classList.remove('hidden');
@@ -3002,13 +3006,43 @@ function lazyload() {
 
 function quickSearch (e) {
     // console.log('running quick search');
-    let quicksearch = document.querySelector('.quicksearch');
-    let txt_quicksearch = document.getElementById('txt_quicksearch');
-    // if (e.key && (!e.ctrlKey || e.shiftKey || e.altKey) &&  /^[A-Za-z]$/.test(e.key)) {
-        quicksearch.classList.remove('hidden');
-        txt_quicksearch.focus();
-    // }
+    let main = document.querySelector('.main');
+    let quicksearch = add_div(['quicksearch', 'bottom', 'right']); //document.querySelector('.quicksearch');
+    let txt_quicksearch = document.createElement('input'); //document.getElementById('txt_quicksearch');
 
+    txt_quicksearch.id = 'txt_quicksearch';
+    txt_quicksearch.classList.add('input');
+    txt_quicksearch.type = 'text';
+
+    quicksearch.append(txt_quicksearch);
+    quicksearch.classList.remove('hidden');
+    main.append(quicksearch);
+
+    txt_quicksearch.focus();
+
+    txt_quicksearch.addEventListener('keydown', (e) => {
+        if (/^[A-Za-z]$/.test(e.key)) {
+            // txt_quicksearch.value = e.key
+        }
+
+        if (e.key === 'Enter') {
+            console.log('running')
+            let cards = document.querySelectorAll('.card')
+            cards.forEach(card => {
+                // console.log(txt_quicksearch.value)
+                if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
+                    card.classList.add('highlight');
+                }
+            })
+            quicksearch.classList.add('hidden');
+            txt_quicksearch.value = '';
+        }
+
+        if (e.key === 'Escape') {
+            quicksearch.classList.add('hidden')
+        }
+
+    })
 }
 
 function clearViews() {
@@ -3031,11 +3065,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
     try {
 
         // Primary Controls
-        let location = document.getElementById('location');
-        let main = document.getElementById('main');
-        let sidebar = document.getElementById('sidebar');
-        let quicksearch = document.getElementById('quicksearch');
-        let txt_quicksearch = document.getElementById('txt_quicksearch');
+        let location = document.querySelector('.location');
+        let main = document.querySelector('.main');
+        let sidebar = document.querySelector('.sidebar');
+        // let quicksearch = document.querySelector('.quicksearch');
+        // let txt_quicksearch = document.getElementById('txt_quicksearch');
         let slider = document.getElementById('slider');
 
         // Flags
@@ -3377,36 +3411,28 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // localStorage.setItem('icon_size', init_size);
         })
 
-        txt_quicksearch.addEventListener('keydown', (e) => {
-            if (/^[A-Za-z]$/.test(e.key)) {
-                // txt_quicksearch.value = e.key
-            }
-
-            if (e.key === 'Enter') {
-                let cards = document.querySelectorAll('.card')
-                cards.forEach(card => {
-                    // console.log(txt_quicksearch.value)
-                    if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
-                        card.classList.add('highlight');
-                    }
-                })
-                quicksearch.classList.add('hidden');
-                txt_quicksearch.value = '';
-            }
-
-            if (e.key === 'Escape') {
-                quicksearch.classList.add('hidden')
-            }
-
-        })
-
-        // document.addEventListener('keydown', (e) => {
-        //     e.preventDefault();
-        //     e.stopPropagation()
-        //     // Nagigate back
-        //     if (e.key === 'Backspace') {
-        //         getView(path.dirname(location.value))
+        // txt_quicksearch.addEventListener('keydown', (e) => {
+        //     if (/^[A-Za-z]$/.test(e.key)) {
+        //         // txt_quicksearch.value = e.key
         //     }
+
+        //     if (e.key === 'Enter') {
+        //         console.log('running')
+        //         let cards = document.querySelectorAll('.card')
+        //         cards.forEach(card => {
+        //             // console.log(txt_quicksearch.value)
+        //             if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
+        //                 card.classList.add('highlight');
+        //             }
+        //         })
+        //         quicksearch.classList.add('hidden');
+        //         txt_quicksearch.value = '';
+        //     }
+
+        //     if (e.key === 'Escape') {
+        //         quicksearch.classList.add('hidden')
+        //     }
+
         // })
 
 
@@ -3482,6 +3508,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
             document.addEventListener("mousemove", resize);
             document.addEventListener("mouseup", stopResize);
 
+            main.classList.add('margin_left')
+
             // Function to handle the resizing logic
             function resize(e) {
                 // Calculate the distance moved by the mouse
@@ -3501,121 +3529,21 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             // Function to stop the resizing action
             function stopResize() {
-                // Remove the event listeners for mousemove and mouseup events
+
                 document.removeEventListener("mousemove", resize);
                 document.removeEventListener("mouseup", stopResize);
 
-                // Save the resized widths to localStorage
-                localStorage.setItem("sidebarWidth", sidebar.style.width);
-                localStorage.setItem("mainWidth", main.style.width);
+                console.log('testing', sidebar.style.width)
+                localStorage.setItem('sidebar_width', sidebar.style.width)
 
             }
         }
 
-        // Check if there are saved widths in localStorage
-        const savedSidebarWidth = localStorage.getItem("sidebarWidth");
-        const savedMainWidth = localStorage.getItem("mainWidth");
-
-        // Set the saved widths if they exist
-        if (savedSidebarWidth && savedMainWidth) {
-            sidebar.style.width = savedSidebarWidth;
-            // main.style.width = savedMainWidth;
+        if (localStorage.getItem("sidebar_width") !== null) {
+            console.log(localStorage.getItem("sidebar_width"));
+            sidebar.style.width = localStorage.getItem("sidebar_width")
         }
 
-        main.draggable = false;
-        folder_grid.draggable = false;
-        file_grid.draggable = false;
-
-        // // Resize Sidebar
-        // let sidebarWidth = '350';
-
-        // if (localStorage.getItem('sidebarWidth')) {
-        //     sidebarWidth = localStorage.getItem('sidebarWidth');
-        //     sidebar.style.width = `${sidebarWidth}px`;
-        // }
-
-        // if (sidebar) {
-        //     const resizer = document.getElementById('draghandle');
-        //     resizer.addEventListener('mousedown', initResize);
-        // }
-
-        // let initialMouseX;
-        // let initialSidebarWidth;
-
-        // /* Init resize sidebar */
-        // function initResize(event) {
-        //     event.preventDefault();
-        //     initialMouseX = event.clientX;
-        //     initialSidebarWidth = parseInt(sidebarWidth, 10);
-
-        //     window.addEventListener('mousemove', resizeSidebar);
-        //     window.addEventListener('mouseup', stopResize);
-        // }
-
-        // /* Resize sidebar */
-        // function resizeSidebar(e) {
-        //     if (e.clientX < 500) {
-        //         const mouseMovementX = e.clientX - initialMouseX;
-        //         sidebarWidth = `${initialSidebarWidth + mouseMovementX}px`;
-        //         sidebar.style.width = sidebarWidth;
-        //     }
-        // }
-
-        // /* Stop resizing */
-        // function stopResize() {
-        //     window.removeEventListener('mousemove', resizeSidebar);
-        //     window.removeEventListener('mouseup', stopResize);
-
-        //     localStorage.setItem('sidebarWidth', sidebarWidth);
-        // }
-
-        // // Resize Sidebar
-        // let sidebar_width = '350';
-        // if (localStorage.getItem('sidebar_width') === null) {
-        //     localStorage.setItem('sidebar_width', sidebar_width);
-        // } else {
-        //     sidebar_width = localStorage.getItem('sidebar_width');
-        //     sidebar.style = `width: ${parseInt(sidebar_width)}px;`
-        // }
-
-        // if (sidebar) {
-        //     let resizer = document.getElementById('draghandle')
-        //     resizer.addEventListener('mousedown', initResize, false)
-        // }
-
-        // /* Init resize sidebar */
-        // function initResize(e) {
-        //     e.preventDefault();
-        //     e.stopPropagation();
-        //     window.addEventListener('mousemove', Resize, false);
-        //     window.addEventListener('mouseup', stopResize, false);
-        // }
-
-        // /* Resize sidebar */
-        // function Resize(e) {
-        //     if (e.clientX < 500) {
-
-        //         let resizer = document.getElementById('draghandle')
-
-        //         const dragHandleRect = resizer.getBoundingClientRect();
-        //         const dragHandleOffset = dragHandleRect.left - e.clientX;
-        //         const newWidth = dragHandleRect.width + dragHandleOffset;
-        //         console.log(newWidth, e.clientX, sidebar.offsetLeft)
-
-        //         // sidebar.style.width = (e.clientX - sidebar.offsetLeft) + 'px';
-        //         sidebar.style.width = (e.clientX + sidebar.offsetLeft) + 'px';
-        //         localStorage.setItem('sidebar_width', e.clientX + sidebar.offsetLeft);
-        //     }
-        // }
-
-        // /* Stop resize of sidebar */
-        // function stopResize(e) {
-        //     // console.log('running')
-        //     window.removeEventListener('mousemove', Resize, false);
-        //     window.removeEventListener('mouseup', stopResize, false);
-        //     // localStorage.setItem('sidebar_width', sidebar.clientWidth);
-        //     // console.log(sidebar.clientWidth)
-        // }
 
     } catch (err) {
         // console.log(err)

@@ -317,58 +317,58 @@ parentPort.on('message', data => {
                             let size = gio.du(path.dirname("/"))
                             console.log(size);
 
-                            // let cpc = 0;
-                            // for (let i = 0; i < dirents.length; i++) {
-                            //     let f = dirents[i]
-                            //     if (f.type == 'directory') {
+                            let cpc = 0;
+                            for (let i = 0; i < dirents.length; i++) {
+                                let f = dirents[i]
+                                if (f.type == 'directory') {
 
-                            //         cpc++
+                                    cpc++
 
-                            //         if (!gio.exists(f.destination)) {
-                            //             gio.mkdir(f.destination)
-                            //             data = {
-                            //                 cmd: 'progress',
-                            //                 msg: `Copied Folder ${path.basename(f.source)}`,
-                            //                 max: dirents.length,
-                            //                 value: cpc
-                            //             }
-                            //             parentPort.postMessage(data);
-                            //         }
-                            //     }
-                            // }
+                                    if (!gio.exists(f.destination)) {
+                                        gio.mkdir(f.destination)
+                                        data = {
+                                            cmd: 'progress',
+                                            msg: `Copied Folder ${path.basename(f.source)}`,
+                                            max: dirents.length,
+                                            value: cpc
+                                        }
+                                        parentPort.postMessage(data);
+                                    }
+                                }
+                            }
 
-                            // for (let i = 0; i < dirents.length; i++) {
-                            //     let f = dirents[i]
-                            //     if (f.type == 'file') {
-                            //         cpc++
-                            //         if (gio.exists(f.destination)) {
-                            //             // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
-                            //         } else {
-                            //             gio.cp(f.source, f.destination, 0)
-                            //             // gio.cp_async(f.source, f.destination)
-                            //             // Delay for 1 second
-                            //             // new Promise((resolve) => setTimeout(resolve, 500));
-                            //         }
-                            //         data = {
-                            //             cmd: 'progress',
-                            //             msg: `Copied File ${path.basename(f.source)}`,
-                            //             max: dirents.length,
-                            //             value: cpc
+                            for (let i = 0; i < dirents.length; i++) {
+                                let f = dirents[i]
+                                if (f.type == 'file') {
+                                    cpc++
+                                    if (gio.exists(f.destination)) {
+                                        // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
+                                    } else {
+                                        gio.cp(f.source, f.destination, 0)
+                                        // gio.cp_async(f.source, f.destination)
+                                        // Delay for 1 second
+                                        // new Promise((resolve) => setTimeout(resolve, 500));
+                                    }
+                                    data = {
+                                        cmd: 'progress',
+                                        msg: `Copied File ${path.basename(f.source)}`,
+                                        max: dirents.length,
+                                        value: cpc
 
-                            //         }
-                            //         parentPort.postMessage(data);
-                            //     }
-                            // }
+                                    }
+                                    parentPort.postMessage(data);
+                                }
+                            }
 
-                            // if (cpc === dirents.length) {
-                            //     // console.log('done copying files');
-                            //     let data = {
-                            //         cmd: 'copy_done',
-                            //         destination: destination
-                            //     }
-                            //     parentPort.postMessage(data);
-                            //     copy_next();
-                            // }
+                            if (cpc === dirents.length) {
+                                // console.log('done copying files');
+                                let data = {
+                                    cmd: 'copy_done',
+                                    destination: destination
+                                }
+                                parentPort.postMessage(data);
+                                copy_next();
+                            }
 
                         })
 

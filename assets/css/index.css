@@ -109,7 +109,7 @@ html, body {
         background: var(--lessdark)
     }
 
-    #msg {
+    .msg {
         color: var(--orange);
         background-color: var(--msg);
         border-radius: 5px;
@@ -416,6 +416,7 @@ html, body {
 
 .tab {
     /* margin: 0; */
+    border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--orange);
     border: 1px solid var(--border);
@@ -608,9 +609,9 @@ progress::-webkit-progress-bar {
 }
 
 .header_row {
-    display: flex;
     position: sticky;
     top: 0;
+    display: flex;
     width: 100%;
     background: var(--main);
     z-index: 100;

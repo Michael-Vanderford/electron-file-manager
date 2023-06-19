@@ -407,14 +407,13 @@ let watchdir = new Set();
 function get_files(source, callback) {
 
     // get files from gio module
-    // let exists = gio.exists(source);
-    // if (exists) {
+    let exists = gio.exists(source);
+    if (exists) {
         ls.postMessage({ cmd: 'ls', source: source });
-    // } else {
-        // win.send('msg', 'Error: Directory does not exist!');
-    // }
-
-    get_disk_space(source);
+        get_disk_space(source);
+    } else {
+        win.send('msg', 'Error: Directory does not exist!');
+    }
 
     // if (watchdir.has(source)) { return; };
     // gio.watcher(source, data => {
