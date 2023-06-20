@@ -37,10 +37,14 @@ html, body {
     }
 
     #header_menu a {
-        color: #ffffff;
+        color: var(--light);
         cursor: pointer;
         text-decoration: none;
         outline: none;
+    }
+
+    .header_menu .active .bi {
+        color: var(--white);
     }
 
     #navigation_menu {
@@ -106,7 +110,11 @@ html, body {
     .active {
         border-radius: 5px;
         /* width: 100%; */
-        background: var(--lessdark)
+        /* background: var(--lessdark) */
+    }
+
+    .menubar .active .bi {
+        color: var(--orange);
     }
 
     .msg {
@@ -466,6 +474,15 @@ progress::-webkit-progress-bar {
     width: 100%;
 }
 .file_grid {
+    padding: 5px;
+    width: 100%;
+}
+
+.hidden_folder_grid {
+    padding: 5px;
+    width: 100%;
+}
+.hidden_file_grid {
     padding: 5px;
     width: 100%;
 }

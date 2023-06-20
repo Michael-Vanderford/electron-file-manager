@@ -1,5 +1,5 @@
 html, body {
-    background: var(--dialog);
+    background: var(--main);
     overflow: hidden;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 11px;
@@ -16,9 +16,9 @@ html, body {
 
 #delete_files {
     border-style: inset;
-    border: 1px solid #3e3e3e;
+    border: 1px solid var(--border);
     border-radius: 5px;
-    background: var(--main);
+    background: var(--dialog);
     padding: 5px;
     margin-top: 15px;
     width: 100%;

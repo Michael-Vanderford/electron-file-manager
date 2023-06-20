@@ -1,10 +1,10 @@
 {
     "window": {
         "length": 1400,
-        "width": 1290,
-        "x": 2278,
-        "y": 301,
-        "height": 600
+        "width": 1416,
+        "x": 2181,
+        "y": 275,
+        "height": 695
     },
     "display": {
         "Icon Caption": {
@@ -19,7 +19,8 @@
         "ShowSidebar": "Ctrl+B",
         "ShowDevices": "Ctrl+D",
         "ShowSettings": "",
-        "Find": "Ctrl+F",
+        "Find": "Ctrl+Shift+F",
+        "QuickSearch": "Ctrl+F",
         "Down": "Down",
         "Up": "Up",
         "Left": "Left",
@@ -36,24 +37,22 @@
         "NewFolder": "Ctrl+Shift+N",
         "AddWorkspace": "Ctrl+D",
         "OpenNewTab": "Ctrl+Enter",
-        "Escape": "Escape"
+        "Escape": "Escape",
+        "NewWindow": "Ctrl+N",
+        "Reload": "F5"
     },
     "workspace": [
         {
-            "name": "string.ods",
-            "href": "/home/michael/Documents/efm/string.ods"
-        },
-        {
-            "name": "Master Checklist.xlsx",
-            "href": "/home/michael/Documents/HESCO/Master Checklist.xlsx"
-        },
-        {
-            "name": "share",
-            "href": "/run/user/1000/gvfs/sftp:host=192.168.1.10,user=michael/home/michael/share"
-        },
-        {
-            "name": "settings.ini",
-            "href": "/home/michael/.config/gtk-4.0/settings.ini"
+            "name": "string.xlsx",
+            "href": "/home/michael/Documents/efm/string.xlsx",
+            "is_dir": false,
+            "is_hidden": false,
+            "is_writable": true,
+            "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 7452,
+            "mtime": 1685664336,
+            "atime": 1687007494,
+            "ctime": 1685664336
         }
     ]
 }

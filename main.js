@@ -404,7 +404,7 @@ function get_files_arr(source, destination, callback) {
 
 // Get files array
 let watchdir = new Set();
-function get_files(source, callback) {
+function get_files(source, mew_tab, callback) {
 
     // get files from gio module
     let exists = gio.exists(source);
@@ -923,10 +923,10 @@ app.on('activate', () => {
     }
 });
 
-ipcMain.on('get_files', (e, source) => {
+ipcMain.on('get_files', (e, source, new_tab = 0) => {
 
     get_files(source, dirents => {
-        win.send('get_files', dirents);
+        win.send('get_files', dirents, new_tab);
     })
 
     // worker.postMessage({cmd: 'preload', source: source});
@@ -1801,13 +1801,13 @@ ipcMain.on('main_menu', (e, destination) => {
 })
 
 // Folders Menu
-ipcMain.on('folder_menu', (e, href) => {
+ipcMain.on('folder_menu', (e, file) => {
 
-    const template1 = [
+    const template = [
         {
             label: 'Open with Code',
             click: () => {
-                exec(`cd "${href}"; code .`, (err) => {
+                exec(`cd "${file.href}"; code .`, (err) => {
                     if (err) {
                         // console.log(err);
                         return;
@@ -1823,6 +1823,12 @@ ipcMain.on('folder_menu', (e, href) => {
             label: 'New Window',
             click: () => {
                 e.sender.send('context-menu-command', 'open_in_new_window')
+            }
+        },
+        {
+            label: 'New Tab',
+            click: () => {
+                win.send('new_tab', file);
             }
         },
         {
@@ -1970,7 +1976,7 @@ ipcMain.on('folder_menu', (e, href) => {
         {
             label: 'Disk Usage Analyzer',
             click: () => {
-                exec(`baobab ${href}`);
+                exec(`baobab ${file.href}`);
             }
 
         },
@@ -1987,14 +1993,17 @@ ipcMain.on('folder_menu', (e, href) => {
 
     ]
 
-    const menu1 = Menu.buildFromTemplate(template1);
+    const menu = Menu.buildFromTemplate(template);
+
+    // ADD LAUNCHER MENU
+    add_launcher_menu(menu, e, file)
 
     // ADD TEMPLATES
     // add_templates_menu(menu1, e, args[0]);
 
     // ADD LAUNCHER MENU
     //   add_launcher_menu(menu1, e, args);
-    menu1.popup(BrowserWindow.fromWebContents(e.sender));
+    menu.popup(BrowserWindow.fromWebContents(e.sender));
 
 })
 
@@ -2003,15 +2012,6 @@ ipcMain.on('file_menu', (e, file) => {
 
     // const template = [
     files_menu_template = [
-        {
-            label: 'Open with Code',
-            click: () => {
-                e.sender.send('context-menu-command', 'vscode')
-            }
-        },
-        {
-            type: 'separator'
-        },
         {
             id: 'launchers',
             label: 'Open with',
