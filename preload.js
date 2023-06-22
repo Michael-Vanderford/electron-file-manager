@@ -28,10 +28,6 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
-ipcRenderer.on('new_tab', (e, file) => {
-    getView(file.href, 1)
-})
-
 ipcRenderer.on('lazyload', (e) => {
     lazyload();
 })
@@ -78,7 +74,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
             item.addEventListener('contextmenu', (e) => {
                 item.classList.add("highlight");
-                ipcRenderer.send('folder_menu', file.href);
+                ipcRenderer.send('folder_menu', file);
             })
 
             title =
@@ -131,6 +127,10 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     })
 
+})
+
+ipcRenderer.on('sort_cards', (e) => {
+    sort_cards();
 })
 
 // On Sort
@@ -565,13 +565,35 @@ ipcRenderer.on('ls_no_tab', (e, dirents, source) => {
 })
 
 // On ls
-ipcRenderer.on('ls', (e, dirents, source) => {
+ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     msg('');
     let main = document.querySelector('.main');
-    main.innerHTML = '';
 
-    let tab_content = add_tab(source);
+    // if (!tab) {
+    //     main.innerHTML = '';
+    // }
+    // let tab_content = add_tab(source);
+
+    let tabs = document.querySelectorAll('.tab');
+    let tabs_content = document.querySelectorAll('.tab_content');
+    let tab_content = document.querySelector('.tab_content')
+
+    if (tab) {
+        tab_content = add_tab(source);
+    }
+
+    if (tabs.length > 0) {
+        tabs.forEach((tab, i) => {
+            if (tab.classList.contains('active-tab')) {
+                let label = tab.querySelector('.label');
+                label.innerHTML = path.basename(source);
+                tab_content = tabs_content[i];
+            }
+        })
+    } else {
+        tab_content = add_tab(source);
+    }
 
     let location = document.querySelector('.location');
     let slider = document.querySelector('.slider');
@@ -602,13 +624,16 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     }
 
     if (localStorage.getItem('show_hidden') !== null) {
+        let show_hidden_icon = document.querySelector('.show_hidden')
         let show_hidden = parseInt(localStorage.getItem('show_hidden'));
         if (show_hidden) {
             hidden_folder_grid.classList.remove('hidden');
             hidden_file_grid.classList.remove('hidden');
+            show_hidden_icon.classList.add('active')
         } else {
             hidden_folder_grid.classList.add('hidden');
             hidden_file_grid.classList.add('hidden');
+            show_hidden_icon.classList.remove('active')
         }
     }
 
@@ -766,8 +791,11 @@ ipcRenderer.on('ls', (e, dirents, source) => {
 
     // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    console.log(tab_content.id)
     main.append(tab_content)
+
+
+    // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+    // main.append(tab_content)
 
     // Set Icon Size
     if (localStorage.getItem('icon_size') !== null) {
@@ -783,6 +811,8 @@ ipcRenderer.on('ls', (e, dirents, source) => {
     lazyload();
 
     sort_cards();
+
+    clearHighlight();
 
 })
 
@@ -975,9 +1005,12 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 ipcRenderer.on('get_card_gio', (e, file) => {
 
     // console.log('running get card gio');
+    let tabs = document.querySelectorAll('.tab')
+    let tab_contents = document.querySelectorAll('.tab_content')
+    
 
-    let folder_grid = document.getElementById('folder_grid');
-    let file_grid = document.getElementById('file_grid');
+    let folder_grid = document.querySelector('.folder_grid');
+    let file_grid = document.querySelector('.file_grid');
     let card = getCardGio(file);
 
     if (file.is_dir) {
@@ -1849,15 +1882,23 @@ function add_div(classlist = []) {
 // Add Tab
 let tab_arr = []
 let tab_id = 0
-function add_tab(label) {
+function add_tab(href) {
 
     ++tab_id;
 
-    let main = document.querySelector('.main')
-    let tab_content = add_div(['tab_content']) //document.querySelector('.tab_content');
+    let main = document.querySelector('.main');
+    let location = document.querySelector('.location');
+    let tab_content = add_div(['tab_content']); //document.querySelector('.tab_content');
     let tab = add_div(['tab']);
+    let tab_container = add_div(['tab_container','flex'])
+
     let col1 = add_div(['label']);
-    let col2 = add_div();
+    let col2 = add_div(['tab_close']);
+
+    let close_btn = document.createElement('i')
+    close_btn.classList.add('bi', 'bi-x')
+
+    tab_container.append(col1, col2)
 
     let tabs = document.querySelector('.tabs');
     if (!tabs) {
@@ -1865,17 +1906,15 @@ function add_tab(label) {
         main.append(tabs);
     }
 
-    // if (!tab_content) {
-    //     tab_content = add_div(['tab_content']);
-    // }
-
-    tab.id = tab_id;
-    tab_content.id = tab_id;
+    // tab.id = tab_id;
+    // tab_content.id = tab_id;
+    tab.dataset.href = href;
+    tab.title = href
 
     let current_tab_content = document.querySelectorAll('.tab_content')
     let current_tabs = tabs.querySelectorAll('.tab');
 
-    // col2.append(add_icon('x'))
+    col2.append(close_btn);
 
     tab.addEventListener('click', (e) => {
         // console.log(tab.id);
@@ -1887,13 +1926,13 @@ function add_tab(label) {
         })
         tab.classList.add('active-tab');
         tab_content.classList.remove('hidden');
-
+        location.value = tab.dataset.href
     })
 
     let label_exist = 0
     current_tabs.forEach((current_tab, i) => {
         let current_label = current_tab.querySelector('.label')
-        if (current_label.innerHTML === label) {
+        if (current_label.innerHTML === href) {
             label_exist = 1
         } else {
             current_tab.classList.remove('active-tab');
@@ -1904,12 +1943,50 @@ function add_tab(label) {
     tab_content.classList.remove('hidden');
 
     if (!label_exist) {
-        col1.append(path.basename(label));
+        col1.append(path.basename(href));
         // col2.append(btn_close);
-        tab.append(col1, col2);
-        tabs.append(tab);
+        // tab.append(col1, col2);
+        tab.append(tab_container);
+        tabs.append(tab)
+        // tabs.append();
         main.append(tab_content)
     }
+
+    col2.addEventListener('click', (e) => {
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        tab_content.remove()
+        tab.remove()
+
+        let current_tabs = document.querySelectorAll('.tab');
+        let current_tab_content = document.querySelectorAll('.tab_content')
+        current_tabs.forEach((current_tab, i) => {
+            console.log(current_tab)
+            current_tab.classList.add('active-tab');
+            current_tab_content[i].classList.remove('hidden');
+            location.value = tab.dataset.href
+            return
+        })
+
+    })
+
+    tabs.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        tabs.classList.add('highlight');
+    })
+
+    tabs.addEventListener('dragleave', (e) => {
+        tabs.classList.remove('highlight');
+    })
+
+    tabs.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(e.target)
+    })
 
     return tab_content;
 
@@ -2278,6 +2355,7 @@ function sidebarHome() {
     if (sb_home) {
         sb_home.classList.remove('hidden')
     } else {
+
         sb_home = add_div();
         sb_home.classList.add('sb_home', 'sb_view');
         getHome(home => {
@@ -2338,7 +2416,7 @@ function getHome(callback) {
         let href = my_computer_paths_arr[i]
         let item = add_div()
 
-        item.classList.add('flex', 'item')
+        item.classList.add('item')
 
         let link = add_link(my_computer_paths_arr[i], my_computer_arr[i])
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
@@ -2349,6 +2427,7 @@ function getHome(callback) {
             items.forEach(item => {
                 item.classList.remove('active')
             })
+
             item.classList.add('active')
             if (href === 'Recent') {
                 // get_recent_files(`${home_dir}/Documents`)
@@ -2811,7 +2890,14 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
-            location.dispatchEvent(new Event('change'));
+            // location.dispatchEvent(new Event('change'));
+
+            if (e.ctrlKey) {
+                ipcRenderer.send('get_files', file.href, 1);
+            } else {
+                location.dispatchEvent(new Event('change'));
+            }
+
         })
 
         // Img
@@ -2905,12 +2991,12 @@ function getCardGio(file) {
  * @param {*} dir
  * @param {*} callback
  */
-function getView(dir, new_tab = 0) {
+function getView(dir, tab = 0) {
 
     // Moved code
     // reference: ipcRenderer.on('ls', (e, dirents)
     // getSubFolders(dir, () => {});
-    ipcRenderer.send('get_files', dir, new_tab);
+    ipcRenderer.send('get_files', dir, tab);
     clearHighlight();
 
 }

@@ -64,7 +64,7 @@ find.on('message', (data) => {
 
 ls.on('message', (data) => {
     if (data.cmd === 'ls_done') {
-        win.send('ls', data.dirents, data.source);
+        win.send('ls', data.dirents, data.source, data.tab);
     }
 })
 
@@ -98,6 +98,7 @@ worker.on('message', (data) => {
         }
 
         win.send('lazyload');
+        win.send('sort_cards');
         win.send('clear');
     }
 
@@ -116,6 +117,8 @@ worker.on('message', (data) => {
             let file = gio.get_file(href)
             win.send('replace_card', href, file);
         }
+        win.send('lazyload');
+        // win.send('sort_cards');
         win.send('clear');
     }
 
@@ -210,12 +213,12 @@ function getFileCount(source, callback) {
 // Get Disk Space
 function get_disk_space(href) {
 
-    df = []
+    df = [];
     try {
 
-        let cmd = 'df "' + href + '"'
-        let data = execSync(cmd).toString()
-        let data_arr = data.split('\n')
+        let cmd = 'df "' + href + '"';
+        let data = execSync(cmd).toString();
+        let data_arr = data.split('\n');
 
         // CREATE OPTIONS OBJECT
         let options = {
@@ -229,7 +232,7 @@ function get_disk_space(href) {
 
         if (data_arr.length > 0) {
 
-            let res1 = data_arr[1].split(' ')
+            let res1 = data_arr[1].split(' ');
 
             let c = 0;
             res1.forEach((size, i) => {
@@ -263,14 +266,12 @@ function get_disk_space(href) {
             // options.foldercount = href.folder_count
             // options.filecount = href.file_count
 
-            df.push(options)
+            df.push(options);
 
             // SEND DISK SPACE
-            win.send('disk_space', df)
-            // // console.log(df);
-
-            cmd = 'cd "' + href.href + '"; du -s'
-            du = exec(cmd)
+            win.send('disk_space', df);
+            cmd = 'cd "' + href.href + '"; du -s';
+            du = exec(cmd);
 
             du.stdout.on('data', function (res) {
                 let size = parseInt(res.replace('.', '') * 1024)
@@ -404,12 +405,11 @@ function get_files_arr(source, destination, callback) {
 
 // Get files array
 let watchdir = new Set();
-function get_files(source, mew_tab, callback) {
-
+function get_files(source, tab) {
     // get files from gio module
     let exists = gio.exists(source);
     if (exists) {
-        ls.postMessage({ cmd: 'ls', source: source });
+        ls.postMessage({ cmd: 'ls', source: source, tab: tab });
         get_disk_space(source);
     } else {
         win.send('msg', 'Error: Directory does not exist!');
@@ -923,17 +923,12 @@ app.on('activate', () => {
     }
 });
 
-ipcMain.on('get_files', (e, source, new_tab = 0) => {
-
-    get_files(source, dirents => {
-        win.send('get_files', dirents, new_tab);
-    })
-
+ipcMain.on('get_files', (e, source, tab) => {
+    get_files(source, tab)
     // worker.postMessage({cmd: 'preload', source: source});
 
     // let du = gio.du(source);
     // // console.log('disk usage', getFileSize(Math.abs(du)));
-
 })
 
 // Dialogs ////////////////////////////////////////////////////////////
@@ -1682,7 +1677,6 @@ ipcMain.on('main_menu', (e, destination) => {
             label: 'New Window',
             click: () => {
                 createWindow(destination);
-                // e.sender.send('context-menu-command', 'open_in_new_window')
             }
         },
         {
@@ -1692,9 +1686,7 @@ ipcMain.on('main_menu', (e, destination) => {
             label: 'New Folder',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
             click: () => {
-                let folder = path.format({ dir: destination, base: 'New Folder' })
-                new_folder(path.format({ dir: destination, base: 'New Folder' }))
-                // win.send('context-menu-command', 'mkdir')
+                new_folder(path.format({ dir: destination, base: 'New Folder' }));
             }
         },
         {
@@ -1809,7 +1801,6 @@ ipcMain.on('folder_menu', (e, file) => {
             click: () => {
                 exec(`cd "${file.href}"; code .`, (err) => {
                     if (err) {
-                        // console.log(err);
                         return;
                     }
                 })
@@ -1828,7 +1819,7 @@ ipcMain.on('folder_menu', (e, file) => {
         {
             label: 'New Tab',
             click: () => {
-                win.send('new_tab', file);
+                ls.postMessage({ cmd: 'ls', source: file.href, tab: 1 });
             }
         },
         {
@@ -1915,13 +1906,6 @@ ipcMain.on('folder_menu', (e, file) => {
                 e.sender.send('context-menu-command', 'copy')
             }
         },
-        // {
-        //     label: 'Paste',
-        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
-        //     click: () => {
-        //         e.sender.send('context-menu-command', 'paste')
-        //     }
-        // },
         {
             label: '&Rename',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
