@@ -10,7 +10,8 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 const Store = require('electron-store');
 const gio_utils = require('./utils/gio');
-const gio = require('./gio/build/Release/gio')
+// const gio = require('./gio/build/Release/gio')
+const gio = require('node-gio');
 
 // Bootstrap Init
 const store = new Store();
@@ -1951,7 +1952,7 @@ ipcMain.on('folder_menu', (e, file) => {
         {
             label: 'Open in terminal',
             click: () => {
-                e.sender.send('context-menu-command', 'open_terminal')
+                e.sender.send('context-menu-command', 'terminal');
             }
         },
         {
@@ -2118,14 +2119,14 @@ ipcMain.on('file_menu', (e, file) => {
         {
             type: 'separator'
         },
-        {
-            label: 'Terminal',
-            click: () => {
-                e.sender.send(
-                    'context-menu-command', 'open_terminal'
-                )
-            }
-        },
+        // {
+        //     label: 'Terminal',
+        //     click: () => {
+        //         e.sender.send(
+        //             'context-menu-command', 'open_terminal'
+        //         )
+        //     }
+        // },
         {
             type: 'separator'
         },
@@ -2246,11 +2247,22 @@ const template = [
                 }
             },
             {type: 'separator'},
+            // {
+            //     label: 'Create New Folder',
+            //     click: () => {
+
+            //     }
+            // },
             {
-                label: 'Create New Folder',
-                click: () => {
-                    win.send('new_folder')
-                }
+                label: 'Preferences',
+                submenu: [
+                    {
+                        label: 'Settings',
+                        click: () => {
+                            win.send('settings_view');
+                        }
+                    }
+                ]
             },
             {type: 'separator'},
             {

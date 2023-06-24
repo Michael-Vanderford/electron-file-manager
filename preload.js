@@ -14,6 +14,7 @@ let selected_files_arr  = [];
 let copy_arr_overwrite  = [];
 let copy_arr            = [];
 let copy_overwrite_arr  = [];
+let auto_complete_arr   = [];
 
 let ds;
 let sort = 'date';
@@ -567,6 +568,9 @@ ipcRenderer.on('ls_no_tab', (e, dirents, source) => {
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
+    localStorage.setItem('location', source);
+    auto_complete_arr = [];
+
     msg('');
     let main = document.querySelector('.main');
 
@@ -747,6 +751,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
                 getFolderCount(file.href);
             }
+
+            auto_complete_arr.push(file.href);
 
         } else {
 
@@ -1006,21 +1012,38 @@ ipcRenderer.on('get_card_gio', (e, file) => {
 
     // console.log('running get card gio');
     let tabs = document.querySelectorAll('.tab')
-    let tab_contents = document.querySelectorAll('.tab_content')
-    
+    let tab_content = document.querySelectorAll('.tab_content')
 
-    let folder_grid = document.querySelector('.folder_grid');
-    let file_grid = document.querySelector('.file_grid');
-    let card = getCardGio(file);
+    tabs.forEach((tab, i) => {
 
-    if (file.is_dir) {
-        folder_grid.prepend(card);
-    } else {
-        file_grid.prepend(card);
-    }
+        if (tab.classList.contains('active-tab')) {
+            let content = tab_content[i]
 
-    getFolderCount();
-    getFolderSize();
+            let folder_grid = content.querySelector('.folder_grid');
+            let file_grid = content.querySelector('.file_grid');
+            let card = getCardGio(file);
+
+            if (file.is_dir) {
+                folder_grid.prepend(card);
+            } else {
+                file_grid.prepend(card);
+            }
+
+        }
+    })
+
+    // let folder_grid = document.querySelector('.folder_grid');
+    // let file_grid = document.querySelector('.file_grid');
+    // let card = getCardGio(file);
+
+    // if (file.is_dir) {
+    //     folder_grid.prepend(card);
+    // } else {
+    //     file_grid.prepend(card);
+    // }
+
+    // getFolderCount();
+    // getFolderSize();
 
     lazyload();
 
@@ -1841,8 +1864,11 @@ function toggleHidden() {
 
 // Clear Items
 function clear() {
+
+    let autocomplete_container = document.querySelector('.autocomplete_container');
     let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
-    // // console.log(cards)
+
+    autocomplete_container.classList.add('hidden')
     cards.forEach(item => {
         item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
     })
@@ -1972,21 +1998,21 @@ function add_tab(href) {
 
     })
 
-    tabs.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        tabs.classList.add('highlight');
-    })
+    // tabs.addEventListener('dragover', (e) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+    //     tabs.classList.add('highlight');
+    // })
 
-    tabs.addEventListener('dragleave', (e) => {
-        tabs.classList.remove('highlight');
-    })
+    // tabs.addEventListener('dragleave', (e) => {
+    //     tabs.classList.remove('highlight');
+    // })
 
-    tabs.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        console.log(e.target)
-    })
+    // tabs.addEventListener('drop', (e) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+    //     console.log(e.target)
+    // })
 
     return tab_content;
 
@@ -2301,9 +2327,22 @@ function getProperties(properties_arr) {
     // return callback(properties_view);
 }
 
+// Get Settings View
+function getSettings() {
+
+    let location = document.querySelector('.location');
+    let tab_content = add_tab('Settings')
+
+    let settings_html = fs.readFileSync('views/settings.html');
+    tab_content.innerHTML = settings_html;
+    let settings = document.querySelector('.settings_view')
+    settings.innerHTML = 'Coming Soon'
+
+}
+
+// Get Search View
 function getSearch() {
 
-    // console.log('running sesrch');
     clearViews();
 
     let mb = document.getElementById('mb_find');
@@ -2355,7 +2394,6 @@ function sidebarHome() {
     if (sb_home) {
         sb_home.classList.remove('hidden')
     } else {
-
         sb_home = add_div();
         sb_home.classList.add('sb_home', 'sb_view');
         getHome(home => {
@@ -2379,8 +2417,6 @@ function sidebarHome() {
 
     // let sidebar = document.getElementById('sidebar')
     // sidebar.innerHTML = ''
-
-
 
 }
 
@@ -2564,6 +2600,8 @@ function getDevices(callback) {
     }
 }
 
+
+
 // Main Functions ////////////////////////////////////////////////////////////////
 
 // Get Files
@@ -2582,7 +2620,7 @@ function getSelectedFiles() {
     selected_files_arr = [];
     let selected_items = Array.from(document.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
     selected_items.forEach(item => {
-        console.log(item)
+        // console.log(item)
         selected_files_arr.push(item.dataset.href);
         // selected_files_arr.push(item.dataset.search_href);
     })
@@ -2594,7 +2632,6 @@ function getSelectedFiles() {
         msg(`No Items Selected`);
     }
 
-    console.log('this does not work', selected_files_arr)
     ipcRenderer.send('get_selected_files', selected_files_arr);
 
 }
@@ -3141,7 +3178,9 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let main = document.querySelector('.main');
         let sidebar = document.querySelector('.sidebar');
         let slider = document.getElementById('slider');
-        let header_menu = document.querySelectorAll('.menu_bar')
+        let header_menu = document.querySelectorAll('.menu_bar');
+        let nav_menu = document.querySelector('.nav_menu');
+        let settings  = document.querySelector('.settings');
 
         // Flags
         let cut_flag = 0;
@@ -3207,12 +3246,54 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Local Storage //////////////////////////////////////////////
         // Handle Location
         if (localStorage.getItem('location') !== null) {
-            // todo: validate path before reusing
             location.value = localStorage.getItem('location');
         } else {
             location.value = os.homedir();
             localStorage.setItem('location', location.value);
         }
+
+        // Load view on reload
+        if (location.value != "") {
+            getView(location.value)
+        }
+
+        // Change Location on change
+        location.onchange = () => {
+            if (location.value != "") {
+                getView(location.value)
+                // localStorage.setItem('location', location.value)
+            }
+        }
+
+        // Auto Complete
+        let autocomplete_container = document.querySelector('.autocomplete_container');
+        if (!autocomplete_container) {
+            autocomplete_container = add_div(['autocomplete', 'hidden']);
+            const input_container = nav_menu.querySelector('.input');
+            input_container.append(autocomplete_container);
+        }
+        location.addEventListener('input', (e) => {
+            let input = location.value.trim().toLocaleLowerCase();
+            autocomplete_container.innerHTML = '';
+            const dir_list = auto_complete_arr.filter(option => {
+                return option.toLowerCase().startsWith(input);
+            });
+            dir_list.forEach((dir, i) => {
+                let suggestion = add_div(['suggestion']);
+                suggestion.textContent = dir;
+                autocomplete_container.appendChild(suggestion);
+                autocomplete_container.classList.remove('hidden');
+                suggestion.addEventListener('click', (e) => {
+                    getView(dir);
+                    autocomplete_container.classList.add('hidden');
+                })
+            })
+        })
+        location.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                autocomplete_container.classList.add('hidden');
+            }
+        })
 
         // Handle Sidebar
         if (localStorage.getItem('sidebar') !== null) {
@@ -3339,6 +3420,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
             location.value = path.dirname(location.value);
             getView(location.value);
             localStorage.setItem('location', location.value);
+        })
+
+        settings.addEventListener('click', (e) => {
+            getSettings();
         })
 
         /////////////////////////////////////////////////////////////////
@@ -3498,41 +3583,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // localStorage.setItem('icon_size', init_size);
         })
 
-        // txt_quicksearch.addEventListener('keydown', (e) => {
-        //     if (/^[A-Za-z]$/.test(e.key)) {
-        //         // txt_quicksearch.value = e.key
+        // if (location.value != "") {
+        //     getView(location.value)
+        // }
+
+        // location.onchange = () => {
+        //     if (location.value != "") {
+        //         getView(location.value)
+        //         // localStorage.setItem('location', location.value)
         //     }
-
-        //     if (e.key === 'Enter') {
-        //         console.log('running')
-        //         let cards = document.querySelectorAll('.card')
-        //         cards.forEach(card => {
-        //             // console.log(txt_quicksearch.value)
-        //             if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
-        //                 card.classList.add('highlight');
-        //             }
-        //         })
-        //         quicksearch.classList.add('hidden');
-        //         txt_quicksearch.value = '';
-        //     }
-
-        //     if (e.key === 'Escape') {
-        //         quicksearch.classList.add('hidden')
-        //     }
-
-        // })
-
-
-        if (location.value != "") {
-            getView(location.value)
-        }
-
-        location.onchange = () => {
-            if (location.value != "") {
-                getView(location.value)
-                localStorage.setItem('location', location.value)
-            }
-        }
+        // }
 
         sidebarHome();
 

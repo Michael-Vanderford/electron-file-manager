@@ -19,6 +19,7 @@
     "electron-store": "^8.1.0",
     "mousetrap": "^1.6.5",
     "node-addon-api": "^6.1.0",
+    "node-gio": "file:../node-gio",
     "semantic-ui-icon": "^2.5.0"
   }
 }

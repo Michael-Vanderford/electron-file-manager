@@ -370,6 +370,27 @@ html, body {
     /* border:1px solid red; */
 }
 
+.autocomplete {
+    position:fixed;
+    height: 150px;
+    min-width: 350px;
+    background: var(--dialog);
+    border:1px solid var(--border);
+    z-index: 10000;
+    overflow: auto;
+    border-radius: 5px;
+}
+
+.suggestion {
+    display: block;
+    padding: 5px;
+}
+
+.suggestion:hover {
+    background: var(--highlight);
+    cursor: pointer;
+}
+
 .wrapper {
     overflow: hidden;
     box-sizing: border-box;
@@ -425,7 +446,7 @@ html, body {
 .tab {
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
-    color: var(--orange);
+    color: var(--light);
     border: 1px solid var(--border);
     border-left: 1px solid transparent;
     display: inline-block;
@@ -446,6 +467,7 @@ html, body {
 }
 
 .tab.active-tab {
+    color: var(--white);
     border-top: 2px solid var(--blue);
     border-bottom: none;
 }

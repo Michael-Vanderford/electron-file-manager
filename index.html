@@ -27,9 +27,12 @@
         <div class="item show_hidden" title="Show Hidden Files"><a href="#" class="" title="Show hidden Files"><i class="bi bi-eye"></i></a></div>
         <div class="item disk_usage" title="Disk Usage"><a href="#" class="" title="Disk Usage"><i class="bi bi-hdd-stack"></i></a></div>
 
-        <div class="item right settings">
+        <div class="item right">
 
-            <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size" />
+            <div class="flex">
+                <input class="slider" type="range" id="slider" value="48" min="16" max="64" step="16" title="Adjust icon size" />
+                <div class="item settings"><a href="#" title="Settings"><i class="bi bi-gear"></i></a></div>
+            </div>
 
             <a class="item hidden" id="btn_hamburger_menu">
                 <i class="bi bi-list"></i>
@@ -93,7 +96,7 @@
 
     </div>
 
-    <div id="navigation_menu">
+    <div id="navigation_menu" class="nav_menu">
         <div class="item" id="left"><a href="#"><i class="bi bi-chevron-left"></i></a></div>
         <div class="item"><a href="#"><i class="bi bi-chevron-right"></i></a></div>
         <div class="input">
