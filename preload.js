@@ -847,7 +847,7 @@ ipcRenderer.on('get_view', (e, href) => {
 
 // Get Workspace
 ipcRenderer.on('get_workspace', (e) => {
-    getWorkspace();
+    getWorkspace(workspace => {});
 })
 
 // Remove Workspace
@@ -1865,16 +1865,12 @@ function toggleHidden() {
 // Clear Items
 function clear() {
 
-    let autocomplete_container = document.querySelector('.autocomplete_container');
-    let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
+    clearHighlight()
+    msg('');
 
-    autocomplete_container.classList.add('hidden')
-    cards.forEach(item => {
-        item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
-    })
     copy_arr = [];
     selected_files_arr = [];
-    msg('');
+
 }
 
 // Clear Highlighted Cards
@@ -2336,9 +2332,69 @@ function getSettings() {
     let settings_html = fs.readFileSync('views/settings.html');
     tab_content.innerHTML = settings_html;
     let settings = document.querySelector('.settings_view')
-    settings.innerHTML = 'Coming Soon'
+
+    ipcRenderer.invoke('settings')
+    .then(res => res)
+    .then(settings => settingsForm(settings))
+    .catch(error => console.error('Error:', error))
 
 }
+
+function settingsForm(settings) {
+
+    const form = document.querySelector('.settings_view');
+
+    let fieldset;
+    Object.keys(settings).forEach(key => {
+
+        const value = settings[key];
+
+        if (typeof value === 'object') {
+            // Create a fieldset for nested objects
+            fieldset = document.createElement('fieldset');
+            const legend = document.createElement('legend');
+            legend.textContent = key;
+            fieldset.appendChild(legend);
+            settingsForm(value, fieldset);
+            // form.appendChild(fieldset);
+
+        } else {
+            // Create input field for non-nested properties
+            const label = document.createElement('label');
+            label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
+
+            let input;
+            if (typeof value === 'boolean') {
+                // For boolean values, create a checkbox
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = key;
+                input.checked = value;
+            } else {
+                // For other types (string, number), create a text input
+                input = document.createElement('input');
+                input.type = 'text';
+                input.name = key;
+                input.value = value;
+            }
+
+            if (fieldset) {
+                fieldset.appendChild(label)
+                form.appendChild(fieldset)
+            }
+
+            // form.appendChild(label);
+            // form.appendChild(input);
+
+        }
+
+    });
+
+    // const submitButton = document.createElement('input');
+    // submitButton.type = 'submit';
+    // submitButton.value = 'Save';
+    // form.appendChild(submitButton);
+  }
 
 // Get Search View
 function getSearch() {
@@ -3454,6 +3510,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
                     // Clear Arrays and selected items
                     clear();
+                    clearHighlight();
                 })
 
                 // Reload
@@ -3540,10 +3597,18 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     })
                 })
 
+                // Go Back
                 mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
                     location.value = path.dirname(location.value);
                     getView(location.value);
                     localStorage.setItem('location', location.value);
+                })
+
+                // Add to Workspace
+                mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
+                    getSelectedFiles()
+                    ipcRenderer.send('add_workspace', selected_files_arr);
+                    clear()
                 })
 
             })

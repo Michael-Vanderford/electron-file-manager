@@ -1,0 +1,21 @@
+
+
+.settings_container {
+    padding: 20px;
+}
+
+.settings_view input {
+    display: block;
+    color: var(--light);
+    background: var(--main);
+    border: 1px solid var(--border);
+    margin-bottom: 20px;
+}
+
+.settings_view fieldset {
+    height: 150px;
+}
+
+label {
+    font-weight: bold;
+}
