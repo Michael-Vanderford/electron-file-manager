@@ -9,8 +9,8 @@ const fs = require('fs')
 const path = require('path');
 const { Worker } = require('worker_threads');
 const gio_utils = require('./utils/gio');
-// const gio = require('./gio/build/Release/gio')
-const gio = require('node-gio');
+const gio = require('./gio/build/Release/gio')
+// const gio = require('node-gio');
 
 // Bootstrap Init
 const worker = new Worker('./worker.js');
@@ -1687,6 +1687,80 @@ function extract_menu(menu, e) {
     menu.insert(15, menu_item)
 }
 
+// Convert audio Menu
+function add_convert_audio_menu(menu, href) {
+
+    menu.append(new MenuItem({
+        label: 'Audio / Video',
+        submenu: [
+            {
+                label: 'Convert to Mp3',
+                click: () => {
+                    let filename = href.substring(0, href.length - path.extname(href).length) + '.mp3'
+                    let cmd = 'ffmpeg -i ' + href + ' ' + filename;
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            win.send('notification', err);
+                        } else {
+                            let options = {
+                                id: 0,
+                                href: filename,
+                                linktext: path.basename(filename),
+                                is_folder: false,
+                                grid: ''
+                            }
+                            win.send('add_card', options)
+                        }
+                    })
+
+                    cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            win.send('notification', err)
+                        } else {
+                            win.send('progress', parseInt(stdout))
+                        }
+                    })
+
+                },
+            },
+            {
+                label: 'Convert to Ogg Vorbis',
+                click: () => {
+                    let filename = href.substring(0, href.length - path.extname(href).length) + '.ogg'
+                    let cmd = 'ffmpeg -i ' + href + ' -c:a libvorbis -q:a 4 ' + filename;
+
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            win.send('notification', err);
+                        } else {
+                            let options = {
+                                id: 0,
+                                href: filename,
+                                linktext: path.basename(filename),
+                                is_folder: false,
+                                grid: ''
+                            }
+                            win.send('add_card', options)
+                        }
+                    })
+
+                    cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
+                    exec(cmd, (err, stdout, stderr) => {
+                        if (err) {
+                            win.send('notification', err)
+                        } else {
+                            win.send('progress', parseInt(stdout))
+                        }
+                    })
+                }
+            },
+        ]
+
+    }))
+
+}
+
 // Main Menu
 ipcMain.on('main_menu', (e, destination) => {
 
@@ -2174,9 +2248,10 @@ ipcMain.on('file_menu', (e, file) => {
     // }
 
     let ext = path.extname(file.href);
-    // if (ext == '.mp4' || ext == '.mp3') {
-    //     add_convert_audio_menu(menu, args.href);
-    // }
+    if (ext == '.mp4' || ext == '.mp3') {
+        add_convert_audio_menu(menu, file.href);
+    }
+
     if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
         extract_menu(menu, e);
     }

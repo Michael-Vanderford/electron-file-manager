@@ -11,6 +11,7 @@ const gio_utils  = require('./utils/gio.js');
 
 // Global Arrays
 let selected_files_arr  = [];
+let nav_arr             = [];
 let copy_arr_overwrite  = [];
 let copy_arr            = [];
 let copy_overwrite_arr  = [];
@@ -361,208 +362,6 @@ ipcRenderer.on('get_files', (e, dirents) => {
     // console.log('dirents', dirents);
 })
 
-// Returns Files and Folders ot the main view
-ipcRenderer.on('ls_no_tab', (e, dirents, source) => {
-
-    msg('');
-    let main = document.querySelector('.main');
-    main.innerHTML = ''
-
-    let location = document.querySelector('.location');
-    let slider = document.querySelector('.slider')
-
-    let folder_grid = document.querySelector('.folder_grid');
-    if (!folder_grid) {
-        folder_grid = add_div()
-        folder_grid.classList.add('folder_grid')
-        folder_grid.id = 'folder_grid'
-    }
-    let file_grid = document.querySelector('.file_grid');
-    if (!file_grid) {
-        file_grid = add_div()
-        file_grid.classList.add('file_grid')
-        file_grid.id = 'file_grid'
-    }
-
-    let hidden_folder_grid = document.querySelector('.hidden_folder_grid');
-    if (!hidden_folder_grid) {
-        hidden_folder_grid = add_div(['hidden'])
-        hidden_folder_grid.classList.add('hidden_folder_grid')
-        hidden_folder_grid.id = 'hidden_folder_grid'
-    }
-
-    let hidden_file_grid = document.querySelector('.hidden_file_grid');
-    if (!hidden_file_grid) {
-        hidden_file_grid = add_div()
-        hidden_file_grid.classList.add('hidden_file_grid')
-        hidden_file_grid.id = 'hidden_file_grid'
-    }
-
-    let grid_view = document.querySelector('.grid_view');
-    let list_view = document.querySelector('.list_view');
-
-    folder_grid.classList.add('folder_grid');
-    file_grid.classList.add('file_grid');
-    hidden_file_grid.classList.add('hidden_file_grid');
-
-    location.value = source;
-    document.title = path.basename(location.value);
-
-    let header = document.querySelector('.header_row')
-    if (!header) {
-
-        header = add_div();
-        header.classList.add('header_row', 'content', 'list');
-
-        let colNames = ['Name', 'Date', 'Size', 'Items'];
-        let colClasses = ['name', 'date', 'size', 'items'];
-
-        let headerRow = colNames.map((colName, index) => {
-            let col = add_div();
-            col.classList.add('item', colClasses[index]);
-            col.append(colName);
-
-            col.addEventListener('click', (e) => {
-                sort = colName.toLocaleLowerCase();
-                localStorage.setItem('sort', sort);
-                sort_cards();
-            })
-
-            return col;
-        });
-
-        header.append(...headerRow);
-        main.append(header);
-
-    }
-
-    if (view == 'list') {
-
-        main.classList.replace('grid_container', 'list_container');
-        header.classList.remove('hidden');
-
-        const list_view_columns = add_div();
-        list_view_columns.className = 'list_view_columns';
-        list_view_columns.innerHTML = '';
-
-        list_view.classList.add('active');
-        grid_view.classList.remove('active');
-
-        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
-            element.classList.remove('grid');
-            element.classList.add('grid1');
-        });
-
-    } else {
-
-        main.classList.replace('list_container', 'grid_container');
-        header.classList.add('hidden');
-
-        list_view.classList.remove('active');
-        grid_view.classList.add('active');
-
-        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
-            element.classList.remove('grid1');
-            element.classList.add('grid');
-        });
-
-    }
-
-    folder_grid.innerHTML = ''
-    file_grid.innerHTML = ''
-
-    hidden_folder_grid.innerHTML = ''
-    hidden_file_grid.innerHTML = ''
-
-    if (localStorage.getItem('sort') === null) {
-        sort = 'date';
-    } else {
-        sort = localStorage.getItem('sort');
-    }
-
-    // Loop Files Array
-    for (let i = 0; i < dirents.length; i++) {
-
-        // if (i < 2500) {
-
-        let file = dirents[i];
-        let card = getCardGio(file);
-
-        if (file.is_dir) {
-
-            if (file.is_hidden) {
-                hidden_folder_grid.append(card);
-            } else {
-                folder_grid.append(card);
-            }
-
-            // this is slowing the load time down dont use for now
-            if (file.href.indexOf('mtp:') > -1) {
-
-            } else {
-
-                // Call Get Folder Size
-                getFolderSize(file.href);
-
-                getFolderCount(file.href);
-            }
-
-        } else {
-
-            if (file.is_hidden) {
-                hidden_file_grid.append(card);
-            } else {
-                file_grid.append(card);
-            }
-
-        }
-
-    }
-
-    main.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    })
-
-    main.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        for (const f of e.dataTransfer.files) {
-            // console.log('file path', f.path)
-        }
-
-        ipcRenderer.send('main', 1);
-        paste(location.value);
-    })
-
-    main.addEventListener('mouseenter', (e) => {
-        // console.log("running mouse enter");
-        // document.addEventListener('keyup', quick_search)
-    })
-
-    main.addEventListener('mouseleave', (e) => {
-        // console.log('running mouse leave')
-        document.removeEventListener('keyup', quickSearch)
-    })
-
-    main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-
-    // Set Icon Size
-    if (localStorage.getItem('icon_size') !== null) {
-        let icon_size = localStorage.getItem('icon_size')
-        // console.log('icon_size', icon_size);
-        slider.value = icon_size;
-        resizeIcons(icon_size);
-    }
-
-    // watch_dir(location.value);
-
-    // lazyloadCards();
-    lazyload();
-
-    sort_cards();
-
-})
 
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
@@ -821,7 +620,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
-    // console.log(source, item_count);
+    console.log(source, item_count);
     let active_tab_content = document.querySelector('.active-tab-content')
     let card = active_tab_content.querySelector(`[data-href="${source}"]`);
     if (card) {
@@ -2736,12 +2535,8 @@ function move(destination) {
 }
 
 // Get Folder Count
-function getFolderCount() {
-    let cards = document.querySelectorAll('.folder_card')
-    cards.forEach(card => {
-        // // console.log(card.dataset.href)
-        ipcRenderer.send('count', card.dataset.href);
-    })
+function getFolderCount(href) {
+    ipcRenderer.send('count', href);
 }
 
 // Load Folder Size Seperatley
