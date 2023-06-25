@@ -1,15 +1,18 @@
 {
+    "theme": "dark",
     "window": {
         "length": 1400,
-        "width": 1416,
-        "x": 2181,
-        "y": 275,
-        "height": 695
+        "width": 1459,
+        "x": 2194,
+        "y": 247,
+        "height": 696
     },
     "display": {
-        "Icon Caption": {
-            "None": "None",
-            "Size": "Size"
+        "Icon Captions": {
+            "Name": true,
+            "Size": true,
+            "Date Modified": true,
+            "Folder Count": true
         }
     },
     "keyboard_shortcuts": {
@@ -53,6 +56,30 @@
             "mtime": 1685664336,
             "atime": 1687007494,
             "ctime": 1685664336
+        },
+        {
+            "name": "tracking.xlsx",
+            "href": "/home/michael/Documents/stock/tracking.xlsx",
+            "is_dir": false,
+            "is_hidden": false,
+            "is_writable": true,
+            "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "size": 9008,
+            "mtime": 1686947454,
+            "atime": 1686991412,
+            "ctime": 1686947454
+        },
+        {
+            "name": "settings.svg",
+            "href": "/home/michael/Documents/efm/settings.svg",
+            "is_dir": false,
+            "is_hidden": false,
+            "is_writable": true,
+            "content_type": "image/svg+xml",
+            "size": 115550,
+            "mtime": 1686860573,
+            "atime": 1687579214,
+            "ctime": 1686860548
         }
     ]
 }

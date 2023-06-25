@@ -8,13 +8,11 @@ const windows = new Set();
 const fs = require('fs')
 const path = require('path');
 const { Worker } = require('worker_threads');
-const Store = require('electron-store');
 const gio_utils = require('./utils/gio');
 // const gio = require('./gio/build/Release/gio')
 const gio = require('node-gio');
 
 // Bootstrap Init
-const store = new Store();
 const worker = new Worker('./worker.js');
 const ls = new Worker('./workers/ls.js');
 const thumb = new Worker('./workers/thumbnailer.js');
@@ -38,10 +36,36 @@ let selected_files_arr = []
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
 let settings = {};
 try {
+    checkSettings();
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 } catch (err) {
     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+}
+
+function checkSettings() {
+
+    // Read the content of the first JSON file
+    const file1 = fs.readFileSync(settings_file, 'utf8');
+    const json1 = JSON.parse(file1);
+
+    // Read the content of the second JSON file
+    const file2 = fs.readFileSync('./assets/config/settings.json', 'utf8');
+    const json2 = JSON.parse(file2);
+
+    let f2 = gio.get_file('./assets/config/settings.json');
+    let f1 = gio.get_file(settings_file);
+
+    if (f2.mtime > f1.mtime) {
+
+        // Update json1 with changes from json2
+        Object.assign(json1, json2);
+
+        // Write the updated JSON to the first file
+        fs.writeFileSync(settings_file, JSON.stringify(json1, null, 4));
+
+    }
+
 }
 
 worker.postMessage({ cmd: 'monitor' });
@@ -181,7 +205,7 @@ function getFolderSize(source, callback) {
             return callback(size);
         })
     } catch (err) {
-
+        console.log(err);
     }
 }
 
@@ -407,14 +431,9 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 let watchdir = new Set();
 function get_files(source, tab) {
-    // get files from gio module
-    let exists = gio.exists(source);
-    if (exists) {
-        ls.postMessage({ cmd: 'ls', source: source, tab: tab });
-        get_disk_space(source);
-    } else {
-        win.send('msg', 'Error: Directory does not exist!');
-    }
+
+    ls.postMessage({ cmd: 'ls', source: source, tab: tab });
+    get_disk_space(source);
 
     // if (watchdir.has(source)) { return; };
     // gio.watcher(source, data => {

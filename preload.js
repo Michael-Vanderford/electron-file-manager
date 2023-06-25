@@ -195,7 +195,6 @@ ipcRenderer.on('folder_count', (e, href, folder_count) => {
     let cards = document.querySelectorAll('.properties');
     cards.forEach(card => {
         if (card.dataset.properties_href === href) {
-            // console.log('card', card);
             let count = card.querySelector('.folder_count');
             count.innerHTML = `${folder_count} Items`;
         }
@@ -574,54 +573,53 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     msg('');
     let main = document.querySelector('.main');
 
-    // if (!tab) {
-    //     main.innerHTML = '';
-    // }
-    // let tab_content = add_tab(source);
-
     let tabs = document.querySelectorAll('.tab');
     let tabs_content = document.querySelectorAll('.tab_content');
-    let tab_content = document.querySelector('.tab_content')
+    let tab_content = document.querySelector('.tab_content');
 
+    // Add new tab if tab = 1
     if (tab) {
         tab_content = add_tab(source);
     }
 
-    if (tabs.length > 0) {
-        tabs.forEach((tab, i) => {
-            if (tab.classList.contains('active-tab')) {
-                let label = tab.querySelector('.label');
-                label.innerHTML = path.basename(source);
-                tab_content = tabs_content[i];
-            }
-        })
-    } else {
-        tab_content = add_tab(source);
+    if (tabs.length === 0) {
+        add_tab(source);
     }
+
+    // console.log(tabs.length)
+
+    let active_tab = document.querySelector('.active-tab');
+    let active_label = active_tab.querySelector('.label')
+    let active_tab_content = document.querySelector('.active-tab-content');
+    active_tab_content.innerHTML = '';
+
+    active_tab.dataset.href = source;
+    active_tab.title = source;
+    active_label.innerHTML = path.basename(source);
 
     let location = document.querySelector('.location');
     let slider = document.querySelector('.slider');
 
-    let folder_grid = tab_content.querySelector('.folder_grid');
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
     if (!folder_grid) {
         folder_grid = add_div()
         folder_grid.classList.add('folder_grid')
         folder_grid.id = 'folder_grid'
     }
-    let file_grid = tab_content.querySelector('.file_grid');
+    let file_grid = active_tab_content.querySelector('.file_grid');
     if (!file_grid) {
         file_grid = add_div()
         file_grid.classList.add('file_grid')
         file_grid.id = 'file_grid'
     }
 
-    let hidden_folder_grid = tab_content.querySelector('.hidden_folder_grid');
+    let hidden_folder_grid = active_tab_content.querySelector('.hidden_folder_grid');
     if (!hidden_folder_grid) {
         hidden_folder_grid = add_div(['hidden_folder_grid']);
         hidden_folder_grid.id = 'hidden_folder_grid';
     }
 
-    let hidden_file_grid = tab_content.querySelector('.hidden_file_grid');
+    let hidden_file_grid = active_tab_content.querySelector('.hidden_file_grid');
     if (!hidden_file_grid) {
         hidden_file_grid = add_div(['hidden_file_grid']);
         hidden_file_grid.id = 'hidden_file_grid';
@@ -651,7 +649,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     location.value = source;
     document.title = path.basename(location.value);
 
-    let header = document.querySelector('.header_row')
+    let header = active_tab_content.querySelector('.header_row')
     if (!header) {
 
         header = add_div();
@@ -676,7 +674,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         header.append(...headerRow);
         // main.append(header);
-        tab_content.append(header)
+        active_tab_content.append(header)
         // main.append(tab_content)
 
     }
@@ -796,9 +794,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    main.append(tab_content)
-
+    active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+    main.append(active_tab_content)
 
     // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     // main.append(tab_content)
@@ -824,11 +821,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
-    // // console.log(source, item_count)
-    let card = document.querySelector(`[data-href="${source}"]`)
+    // console.log(source, item_count);
+    let active_tab_content = document.querySelector('.active-tab-content')
+    let card = active_tab_content.querySelector(`[data-href="${source}"]`);
     if (card) {
-        let count = card.querySelector('.count')
-        count.innerHTML = ''
+        let count = card.querySelector('.count');
+        count.innerHTML = '';
         count.innerHTML = `${item_count} Items`;
     }
 })
@@ -1052,8 +1050,6 @@ ipcRenderer.on('get_card_gio', (e, file) => {
 // Get Card
 ipcRenderer.on('get_card', (e, file) => {
 
-    // console.log('running get card')
-
     let card = getCard(file);
     if (file.type == 'directory') {
         let folder_grid = document.getElementById('folder_grid');
@@ -1077,12 +1073,10 @@ ipcRenderer.on('remove_card', (e, href) => {
 
 ipcRenderer.on('replace_card', (e, href, file) => {
 
-    // console.log('running replace card')
-
-    let card = document.querySelector(`[data-href="${href}"]`);
+    let active_tab_content = document.querySelector('.active-tab-content');
+    let card = active_tab_content.querySelector(`[data-href="${href}"]`);
     let newcard = getCardGio(file);
     card.replaceWith(newcard);
-    // console.log('card', card, 'new card', newcard)
 
     getFolderCount();
     getFolderSize();
@@ -1305,10 +1299,6 @@ async function get_disk_summary_view(callback) {
 
     // INFO VIEW
     let view = add_div(['info_view']) //document.getElementById('info_view')
-    // if (!view) {
-    //     view = add_div();
-    //     view.classList.add('info_view')
-    // }
     view.innerHTML = ''
     // view.style = 'background: white;'
 
@@ -1920,7 +1910,7 @@ function add_tab(href) {
     let close_btn = document.createElement('i')
     close_btn.classList.add('bi', 'bi-x')
 
-    tab_container.append(col1, col2)
+    tab_container.append(col1, col2);
 
     let tabs = document.querySelector('.tabs');
     if (!tabs) {
@@ -1928,87 +1918,90 @@ function add_tab(href) {
         main.append(tabs);
     }
 
-    // tab.id = tab_id;
-    // tab_content.id = tab_id;
     tab.dataset.href = href;
-    tab.title = href
+    tab.dataset.id = tab_id;
+    tab.title = href;
 
-    let current_tab_content = document.querySelectorAll('.tab_content')
+    let current_tab_content = document.querySelectorAll('.tab_content');
     let current_tabs = tabs.querySelectorAll('.tab');
 
     col2.append(close_btn);
 
+    // Handle tab switching
     tab.addEventListener('click', (e) => {
-        // console.log(tab.id);
         current_tabs = tabs.querySelectorAll('.tab');
         current_tab_content = document.querySelectorAll('.tab_content')
         current_tabs.forEach((current_tab, i) => {
             current_tab.classList.remove('active-tab');
+            current_tab_content[i].classList.remove('active-tab-content')
             current_tab_content[i].classList.add('hidden');
         })
+
         tab.classList.add('active-tab');
+        tab_content.classList.add('active-tab-content');
         tab_content.classList.remove('hidden');
         location.value = tab.dataset.href
     })
 
-    let label_exist = 0
     current_tabs.forEach((current_tab, i) => {
-        let current_label = current_tab.querySelector('.label')
-        if (current_label.innerHTML === href) {
+        let current_label = current_tab.querySelector('.label');
+        if (current_label.dataset.href === href) {
             label_exist = 1
         } else {
             current_tab.classList.remove('active-tab');
+            current_tab_content[i].classList.remove('active-tab-content')
             current_tab_content[i].classList.add('hidden');
         }
     })
     tab.classList.add('active-tab');
     tab_content.classList.remove('hidden');
+    tab_content.classList.add('active-tab-content');
 
-    if (!label_exist) {
-        col1.append(path.basename(href));
-        // col2.append(btn_close);
-        // tab.append(col1, col2);
-        tab.append(tab_container);
-        tabs.append(tab)
-        // tabs.append();
-        main.append(tab_content)
-    }
+    col1.append(path.basename(href));
+    tab.append(tab_container);
+    tabs.append(tab);
+    main.append(tab_content);
 
+    // Handle closing tabs
     col2.addEventListener('click', (e) => {
 
         e.preventDefault();
         e.stopPropagation();
 
-        tab_content.remove()
-        tab.remove()
+        let active_tab = document.querySelector('.active-tab');
+        if (active_tab == tab) {
 
-        let current_tabs = document.querySelectorAll('.tab');
-        let current_tab_content = document.querySelectorAll('.tab_content')
-        current_tabs.forEach((current_tab, i) => {
-            console.log(current_tab)
-            current_tab.classList.add('active-tab');
-            current_tab_content[i].classList.remove('hidden');
-            location.value = tab.dataset.href
-            return
-        })
+            let idx = Array.from(current_tabs).indexOf(tab);
+
+            tab.remove();
+            tab_content.remove();
+
+            current_tabs[idx -1].classList.add('active-tab');
+            current_tab_content[idx - 1].classList.add('active-tab-content');
+            current_tab_content[idx - 1].classList.remove('hidden');
+            location.value = current_tabs[idx - 1].dataset.href;
+
+        } else {
+            tab.remove();
+            tab_content.remove();
+        }
 
     })
 
-    // tabs.addEventListener('dragover', (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     tabs.classList.add('highlight');
-    // })
+    tabs.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    })
 
     // tabs.addEventListener('dragleave', (e) => {
     //     tabs.classList.remove('highlight');
     // })
 
-    // tabs.addEventListener('drop', (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     console.log(e.target)
-    // })
+    tabs.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log(e.target)
+    })
 
     return tab_content;
 
@@ -2167,7 +2160,8 @@ function edit() {
 
     getSelectedFiles();
     selected_files_arr.forEach(href => {
-        let card = document.querySelector(`[data-href="${href}"]`);
+        let active_tab_content = document.querySelector('.active-tab-content');
+        let card = active_tab_content.querySelector(`[data-href="${href}"]`);
         let header = card.querySelector('.header');
         let header_link = card.querySelector('a');
         let input = card.querySelector('input');
@@ -2238,11 +2232,9 @@ function getProperties(properties_arr) {
 
     properties_arr.forEach(file => {
 
-        // let card = getCardGio(item);
         let card = add_div();
         let content = add_div();
 
-        // console.log('item', file);
         card.dataset.properties_href = file.href;
 
         let closebtn = add_div();
@@ -2343,22 +2335,25 @@ function getSettings() {
 function settingsForm(settings) {
 
     const form = document.querySelector('.settings_view');
-
-    let fieldset;
     Object.keys(settings).forEach(key => {
 
         const value = settings[key];
 
         if (typeof value === 'object') {
-            // Create a fieldset for nested objects
-            fieldset = document.createElement('fieldset');
-            const legend = document.createElement('legend');
-            legend.textContent = key;
-            fieldset.appendChild(legend);
-            settingsForm(value, fieldset);
-            // form.appendChild(fieldset);
+
+            let header = document.createElement('h4');
+            let hr = document.createElement('hr')
+
+            header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
+            form.append(hr, header);
+
+            settingsForm(value);
 
         } else {
+
+            console.log(typeof value)
+            let settings_item = add_div(['settings_item']);
+
             // Create input field for non-nested properties
             const label = document.createElement('label');
             label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
@@ -2378,10 +2373,8 @@ function settingsForm(settings) {
                 input.value = value;
             }
 
-            if (fieldset) {
-                fieldset.appendChild(label)
-                form.appendChild(fieldset)
-            }
+            settings_item.append(label, input);
+            form.appendChild(settings_item);
 
             // form.appendChild(label);
             // form.appendChild(input);
@@ -2656,8 +2649,6 @@ function getDevices(callback) {
     }
 }
 
-
-
 // Main Functions ////////////////////////////////////////////////////////////////
 
 // Get Files
@@ -2748,7 +2739,8 @@ function getFolderSize(href) {
     // })
 
     ipcRenderer.invoke('get_folder_size', (href)).then(res => {
-        let card = document.querySelector(`[data-href="${href}"]`);
+        let active_tab_content = document.querySelector('.active-tab-content')
+        let card = active_tab_content.querySelector(`[data-href="${href}"]`);
         if (card) {
             let size = card.querySelector('.size');
             size.innerHTML = '';
@@ -2983,8 +2975,6 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
-            // location.dispatchEvent(new Event('change'));
-
             if (e.ctrlKey) {
                 ipcRenderer.send('get_files', file.href, 1);
             } else {
@@ -3533,7 +3523,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     cut_flag = 1;
                     getSelectedFiles();
                     selected_files_arr.forEach(item => {
-                        let card = document.querySelector(`[data-href="${item}"]`)
+                        let active_tab_content = document.querySelector('.active-tab-content');
+                        let card = active_tab_content.querySelector(`[data-href="${href}"]`);
                         card.style = 'opacity: 0.6 !important';
                     })
                 })
@@ -3601,7 +3592,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
                     location.value = path.dirname(location.value);
                     getView(location.value);
-                    localStorage.setItem('location', location.value);
+                    // localStorage.setItem('location', location.value);
                 })
 
                 // Add to Workspace

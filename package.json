@@ -10,13 +10,12 @@
   "author": "michael.vanderford@gmail.com",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^24.1.3"
+    "electron": "^24.6.0"
   },
   "dependencies": {
     "bootstrap-icons": "^1.10.5",
     "chart.js": "^3.9.1",
     "dragselect": "^2.7.4",
-    "electron-store": "^8.1.0",
     "mousetrap": "^1.6.5",
     "node-addon-api": "^6.1.0",
     "node-gio": "file:../node-gio",

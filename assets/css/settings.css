@@ -1,4 +1,7 @@
 
+hr {
+    border: 1px solid var(--border)
+}
 
 .settings_container {
     padding: 20px;
@@ -9,7 +12,11 @@
     color: var(--light);
     background: var(--main);
     border: 1px solid var(--border);
-    margin-bottom: 20px;
+    margin-bottom: 10px;
+}
+
+.settings_view .settings_item {
+    /* margin-left: 20px; */
 }
 
 .settings_view fieldset {
