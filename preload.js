@@ -1976,16 +1976,22 @@ function add_tab(href) {
             if (current_tabs.length > 0) {
 
                 let tabs = document.querySelectorAll('.tab')
-                let idx = Array.from(tabs).indexOf(tab)
-                console.log(idx)
+                let idx = Array.from(tabs).indexOf(tab) - 1
 
-                tab.remove();
-                tab_content.remove();
+                // console.log(idx)
 
-                current_tabs[idx - 1].classList.add('active-tab');
-                current_tab_content[idx - 1].classList.add('active-tab-content');
-                current_tab_content[idx - 1].classList.remove('hidden');
-                location.value = current_tabs[idx - 2].dataset.href;
+                if (idx >= 0) {
+
+                    tab.remove();
+                    tab_content.remove();
+
+                    current_tabs[idx].classList.add('active-tab');
+                    current_tab_content[idx].classList.add('active-tab-content');
+                    current_tab_content[idx].classList.remove('hidden');
+                    location.value = current_tabs[idx].dataset.href;
+
+                }
+
             }
 
         } else {
