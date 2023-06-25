@@ -1470,8 +1470,10 @@ async function get_disk_summary_view(callback) {
 
 function sort_cards() {
 
-    let folder_grid = document.querySelector('.folder_grid');
-    let file_grid = document.querySelector('.file_grid');
+    let active_tab_content = document.querySelector('.active-tab-content')
+
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
+    let file_grid = active_tab_content.querySelector('.file_grid');
 
     let folders = Array.from(folder_grid.querySelectorAll('.card'));
     let files = Array.from(file_grid.querySelectorAll('.card'));
@@ -1971,19 +1973,26 @@ function add_tab(href) {
         let active_tab = document.querySelector('.active-tab');
         if (active_tab == tab) {
 
-            let idx = Array.from(current_tabs).indexOf(tab);
+            if (current_tabs.length > 0) {
 
-            tab.remove();
-            tab_content.remove();
+                let tabs = document.querySelectorAll('.tab')
+                let idx = Array.from(tabs).indexOf(tab)
+                console.log(idx)
 
-            current_tabs[idx -1].classList.add('active-tab');
-            current_tab_content[idx - 1].classList.add('active-tab-content');
-            current_tab_content[idx - 1].classList.remove('hidden');
-            location.value = current_tabs[idx - 1].dataset.href;
+                tab.remove();
+                tab_content.remove();
+
+                current_tabs[idx - 1].classList.add('active-tab');
+                current_tab_content[idx - 1].classList.add('active-tab-content');
+                current_tab_content[idx - 1].classList.remove('hidden');
+                location.value = current_tabs[idx - 2].dataset.href;
+            }
 
         } else {
-            tab.remove();
-            tab_content.remove();
+            if (current_tabs.length > 0) {
+                tab.remove();
+                tab_content.remove();
+            }
         }
 
     })
