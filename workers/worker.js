@@ -1,40 +1,14 @@
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync, exec } = require('child_process')
 const path          = require('path');
-const gio_utils     = require('./utils/gio');
-const gio           = require('./gio/build/Release/obj.target/gio')
-
-// let file_arr = [];
-// let cp_recursive = 0;
-// function get_files_arr (source, destination, callback) {
-//     cp_recursive++
-//     file_arr.push({type: 'directory', source: source, destination: destination})
-//     gio_utils.get_dir(source, dirents => {
-//         for (let i = 0; i < dirents.length; i++) {
-//             let file = dirents[i]
-//             parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-//             if (file.type == 'directory') {
-//                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
-//             } else {
-//                 file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
-//             }
-//         }
-//         if (--cp_recursive == 0) {
-//             parentPort.postMessage({cmd: 'msg', msg: ``})
-
-//             let file_arr1 = file_arr;
-//             file_arr = []
-//             return callback(file_arr1);
-//         }
-//     })
-// }
+const gio_utils     = require('../utils/gio');
+const gio           = require('../gio/build/Release/obj.target/gio')
 
 let file_arr = [];
 let cp_recursive = 0;
 function get_files_arr (source, destination, callback) {
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
-    // let dirents = gio.ls(source)
     gio.ls(source, (err, dirents) => {
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
@@ -55,28 +29,6 @@ function get_files_arr (source, destination, callback) {
         }
     })
 }
-
-// let preload_arr = [];
-// function get_preload_arr (source, destination) {
-//     cp_recursive++
-//     preload_arr.push({type: 'directory', source: source, destination: destination})
-//     let dirents = gio.ls(source)
-//     for (let i = 0; i < dirents.length; i++) {
-//         let file = dirents[i]
-//         // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
-//         if (file.is_dir) {
-//             get_preload_arr(file.href, path.format({dir: destination, base: file.name}), callback)
-//         } else {
-//             preload_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
-//         }
-//     }
-//     // if (--cp_recursive == 0) {
-//     //     // parentPort.postMessage({cmd: 'msg', msg: ``})
-//     //     // let file_arr1 = file_arr;
-//     //     // file_arr = []
-//     //     // return callback(file_arr1);
-//     // }
-// }
 
 // Handle Worker Messages
 parentPort.on('message', data => {

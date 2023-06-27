@@ -2509,9 +2509,10 @@ function getFiles(source, callback) {
  */
 function getSelectedFiles() {
     selected_files_arr = [];
-    let selected_items = Array.from(document.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
+    let active_tab_content = document.querySelector('.active-tab-content');
+    let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
     selected_items.forEach(item => {
-        // console.log(item)
+        console.log(item)
         selected_files_arr.push(item.dataset.href);
         // selected_files_arr.push(item.dataset.search_href);
     })
@@ -2537,7 +2538,7 @@ function add_button(text) {
 }
 
 function paste(destination) {
-    // console.log('running paste')
+    console.log('running paste')
     ipcRenderer.send('paste', destination);
     clearHighlight();
 }
