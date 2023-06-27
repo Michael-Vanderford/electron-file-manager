@@ -952,14 +952,26 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break;
         }
         case 'terminal': {
-            let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-            if (cards.length > 0) {
-                cards.forEach(card => {
-                    exec(`gnome-terminal --working-directory="${card.dataset.href}"`, (error, data, getter) => { });
-                })
-            } else {
-                exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
-            }
+
+            ipcRenderer.invoke('settings')
+            .then(settings => {
+                let cmd = settings.Terminal;
+                let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+                console.log(cards.length)
+                if (cards.length > 0) {
+                    cards.forEach(card => {
+                        exec(cmd.replace(/%u/g, `'${card.dataset.href}'`), (error, data, getter) => { });
+                    })
+                } else {
+                    exec(cmd.replace(/%u/g, `'${location.value}'`), (error, data, getter) => { });
+                    // exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
+                }
+                clear();
+            })
+            .catch(err => {
+                msg(err);
+            })
+
             break;
         }
         case 'connect': {
@@ -993,7 +1005,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
     }
 
-    clearHighlight();
+    // clearHighlight();
 
 })
 
@@ -1666,8 +1678,13 @@ function clear() {
 
 // Clear Highlighted Cards
 function clearHighlight() {
+
+    // let items = document.querySelectorAll('.item');
+    // items.forEach(item => {
+    //     item.classList.remove('active')
+    // })
+
     let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
-    // console.log(cards)
     cards.forEach(item => {
         item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
     })
@@ -2137,7 +2154,7 @@ function getSettings() {
 
     let settings_html = fs.readFileSync('views/settings.html');
     tab_content.innerHTML = settings_html;
-    let settings = document.querySelector('.settings_view')
+    // let settings = document.querySelector('.settings_view')
 
     ipcRenderer.invoke('settings')
     .then(res => res)
@@ -2146,32 +2163,33 @@ function getSettings() {
 
 }
 
+let obj_key;
 function settingsForm(settings) {
 
     const form = document.querySelector('.settings_view');
+
+    // Object.keys(settings.Terminal).forEach(key => {
+    //     console.log(settings)
+    // })
+
     Object.keys(settings).forEach(key => {
 
         const value = settings[key];
-
         if (typeof value === 'object') {
-
             let header = document.createElement('h4');
             let hr = document.createElement('hr')
-
             header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
             form.append(hr, header);
-
+            obj_key =
             settingsForm(value);
-
         } else {
 
-            console.log(typeof value)
+            // console.log(typeof value)
             let settings_item = add_div(['settings_item']);
 
             // Create input field for non-nested properties
             const label = document.createElement('label');
             label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
-
             let input;
             if (typeof value === 'boolean') {
                 // For boolean values, create a checkbox
@@ -2181,10 +2199,22 @@ function settingsForm(settings) {
                 input.checked = value;
             } else {
                 // For other types (string, number), create a text input
-                input = document.createElement('input');
-                input.type = 'text';
-                input.name = key;
-                input.value = value;
+                if (key === 'Description') {
+                    input = add_div();
+                    input.innerHTML = value
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = key;
+                    input.value = value;
+
+                    if (key === 'Terminal' || key === 'Disk Utility' || key === 'Theme') {
+                        input.addEventListener('change', (e) => {
+                            // Need some Input validation
+                            ipcRenderer.send('update_settings', key, input.value)
+                        })
+                    }
+                }
             }
 
             settings_item.append(label, input);
@@ -2797,7 +2827,11 @@ function getCardGio(file) {
         img.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
-            location.dispatchEvent(new Event('change'));
+            if (e.ctrlKey) {
+                ipcRenderer.send('get_files', file.href, 1);
+            } else {
+                location.dispatchEvent(new Event('change'));
+            }
         })
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
@@ -3410,6 +3444,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     getSelectedFiles()
                     ipcRenderer.send('add_workspace', selected_files_arr);
                     clear()
+                })
+
+                mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
+                    getSettings();
                 })
 
             })

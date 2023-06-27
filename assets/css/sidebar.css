@@ -6,7 +6,7 @@
         box-sizing: border-box;
         /* border:1px solid red; */
         background-color: var(--sidebar);
-        color: var(--light);
+        color: var(--text);
         padding-left: 5px;
         padding-right: 5px;
         height: 100%;
@@ -22,7 +22,7 @@
 
     .sidebar .item {
         white-space: nowrap;
-        color: var(--white);
+        color: var(--text);
         padding: 5px;
         cursor: pointer;
     }
@@ -34,7 +34,7 @@
     }
 
     .sidebar a {
-        color: var(--white);
+        color: var(--text);
         text-decoration: none;
     }
 
@@ -101,7 +101,7 @@
         width: 24px;
         float:left;
         background-color: var(--minibar);
-        color: var(--light);
+        color: var(--text);
         border-right: 1px solid var(--lessdark);
         height:100%
     }
@@ -129,7 +129,7 @@
 
     .search_view .input {
         background: var(--input);
-        color: var(--light);
+        color: var(--text);
         height: 16px;
         margin-top: 5px;
         border:1px solid var(--border);

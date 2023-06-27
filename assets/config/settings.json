@@ -1,12 +1,7 @@
 {
     "theme": "dark",
-    "window": {
-        "length": 1400,
-        "width": 1459,
-        "x": 2194,
-        "y": 247,
-        "height": 696
-    },
+    "Terminal": "gnome-terminal --working-directory=%u",
+    "Disk Utility": "gnome-disks",
     "display": {
         "Icon Captions": {
             "Name": true,
@@ -21,7 +16,7 @@
         "ShowWorkspace": "Alt+W",
         "ShowSidebar": "Ctrl+B",
         "ShowDevices": "Ctrl+D",
-        "ShowSettings": "",
+        "ShowSettings": "Ctrl+Shift+S",
         "Find": "Ctrl+Shift+F",
         "QuickSearch": "Ctrl+F",
         "Down": "Down",
@@ -43,6 +38,13 @@
         "Escape": "Escape",
         "NewWindow": "Ctrl+N",
         "Reload": "F5"
+    },
+    "window": {
+        "length": 1400,
+        "width": 1459,
+        "x": 2194,
+        "y": 247,
+        "height": 696
     },
     "workspace": [
         {

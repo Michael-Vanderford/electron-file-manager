@@ -1,6 +1,7 @@
 // Import the required modules
 const { app, BrowserWindow, ipcMain, nativeImage, shell, screen, Menu, MenuItem, systemPreferences, dialog, clipboard} = require('electron');
 const util = require('util')
+const nativeTheme = require('electron').nativeTheme
 const exec = util.promisify(require('child_process').exec)
 const { execSync } = require('child_process')
 const window = require('electron').BrowserWindow;
@@ -13,7 +14,7 @@ const gio = require('./gio/build/Release/gio')
 // const gio = require('node-gio');
 
 // Bootstrap Init
-const worker = new Worker('./worker.js');
+const worker = new Worker('./workers/worker.js');
 const ls = new Worker('./workers/ls.js');
 const thumb = new Worker('./workers/thumbnailer.js');
 const find = new Worker('./workers/find.js');
@@ -62,7 +63,7 @@ function checkSettings() {
         Object.assign(json1, json2);
 
         // Write the updated JSON to the first file
-        fs.writeFileSync(settings_file, JSON.stringify(json1, null, 4));
+        fs.writeFileSync(settings_file, JSON.stringify(json2, null, 4));
 
     }
 
@@ -474,6 +475,12 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 
 // Get Settings
+
+ipcMain.on('update_settings', (e, key, value) => {
+    settings[key] = value;
+    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    console.log(update_setting)
+})
 
 ipcMain.on('get_settings', (e) => {
 
@@ -2363,6 +2370,15 @@ const template = [
                 label: 'Connect to Server',
                 click: () => {
                     connectDialog();
+                }
+            },
+            {
+                label: 'Disks',
+                click: () => {
+                    let cmd = settings['Disk Utility']
+                    exec(cmd, (err) => {
+                        console.log(err)
+                    });
                 }
             },
             {type: 'separator'},
