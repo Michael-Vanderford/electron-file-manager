@@ -1794,8 +1794,6 @@ function add_tab(href) {
                 let tabs = document.querySelectorAll('.tab')
                 let idx = Array.from(tabs).indexOf(tab) - 1
 
-                // console.log(idx)
-
                 if (idx >= 0) {
 
                     tab.remove();
@@ -1823,10 +1821,6 @@ function add_tab(href) {
         e.preventDefault();
         e.stopPropagation();
     })
-
-    // tabs.addEventListener('dragleave', (e) => {
-    //     tabs.classList.remove('highlight');
-    // })
 
     tabs.addEventListener('drop', (e) => {
         e.preventDefault();
@@ -1881,7 +1875,6 @@ function get_icon_theme() {
     try {
         if (process.platform === 'linux') {
             icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
-            // console.log('icon_theme',icon_theme)
             let search_path = [];
             search_path.push(path.join(os.homedir(), '.local/share/icons'), path.join(os.homedir(), '.icons'), '/usr/share/icons');
             search_path.every(icon_path => {
@@ -1946,10 +1939,6 @@ function msg(message) {
     }
 
     msg.innerHTML = message;
-    // setTimeout(() => {
-    //     msg.innerHTML = ''
-    //     msg.classList.add('hidden')
-    // }, 5000);
 
 }
 
@@ -2009,20 +1998,11 @@ function edit() {
             e.preventDefault();
             e.stopPropagation();
 
-            // quicksearch.removeEventListener('keydown', quickSearch);
-            // console.log('running rename')
-
             let location = document.getElementById('location');
             let source = href;
             let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
             ipcRenderer.send('rename', source, destination);
 
-            // card.dataset.href = destination;
-            // header_link.innerHTML = input.value;
-            // header_link.href = destination;
-
-            // header.classList.remove('hidden')
-            // input.classList.add('hidden')
         })
 
         document.addEventListener('keyup', (e) => {
@@ -2059,8 +2039,6 @@ function getProperties(properties_arr) {
         sidebar.append(properties_view);
     }
 
-    // properties_view.innerHTML = ''
-
     properties_arr.forEach(file => {
 
         let card = add_div();
@@ -2088,9 +2066,9 @@ function getProperties(properties_arr) {
         let tab_container = add_div()
         let tab_header = add_div()
 
-
+        content.classList.add('content')
         card.classList.add('properties');
-        content.classList.add('grid2');
+        // content.classList.add('grid2');
 
         let icon = add_div();
         icon.classList.add('icon');
@@ -2180,7 +2158,6 @@ function settingsForm(settings) {
             let hr = document.createElement('hr')
             header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
             form.append(hr, header);
-            obj_key =
             settingsForm(value);
         } else {
 
@@ -2206,9 +2183,10 @@ function settingsForm(settings) {
                     input = document.createElement('input');
                     input.type = 'text';
                     input.name = key;
+                    input.id = key;
                     input.value = value;
 
-                    if (key === 'Terminal' || key === 'Disk Utility' || key === 'Theme') {
+                    if (key.toLocaleLowerCase() === 'terminal' || key.toLocaleLowerCase() === 'disk utility' || key.toLocaleLowerCase() === 'theme') {
                         input.addEventListener('change', (e) => {
                             // Need some Input validation
                             ipcRenderer.send('update_settings', key, input.value)
@@ -2226,6 +2204,15 @@ function settingsForm(settings) {
         }
 
     });
+
+    for (let setting in settings.keyboard_shortcuts) {
+        let input = document.getElementById(`${setting}`)
+        
+        input.addEventListener('change', (e) => {
+            // Need some Input validation
+            ipcRenderer.send('update_settings', setting, input.value)
+        })
+    };
 
     // const submitButton = document.createElement('input');
     // submitButton.type = 'submit';
@@ -2545,6 +2532,9 @@ function paste(destination) {
 
 function move(destination) {
 
+    ipcRenderer.send('move', destination);
+    selected_files_arr = [];
+
     // let location = destination; //document.getElementById('location');
     // if (selected_files_arr.length > 0) {
     //     for(let i = 0; i < selected_files_arr.length; i++) {
@@ -2554,11 +2544,11 @@ function move(destination) {
     //         }
     //         copy_arr.push(copy_data);
     //     }
-        // // console.log('sending array', copy_arr);
-        // ipcRenderer.send('move', copy_arr);
-        ipcRenderer.send('move', destination);
-        selected_files_arr = [];
-        // copy_arr = [];
+    // // console.log('sending array', copy_arr);
+    // ipcRenderer.send('move', copy_arr);
+    // ipcRenderer.send('move', destination);
+    // selected_files_arr = [];
+    // copy_arr = [];
     // } else {
     //     msg(`Nothing to Paste`);
     // }

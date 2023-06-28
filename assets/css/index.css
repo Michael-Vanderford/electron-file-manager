@@ -8,7 +8,7 @@ html, body {
 }
 
 html, body {
-    background: var(--dark);
+    background: var(--main);
     color: var(--text);
 }
 
@@ -42,7 +42,7 @@ html, body {
 }
 
 .header_menu .active .bi {
-    color: var(--white);
+    color: var(--active);
 }
 
 #navigation_menu {
@@ -58,6 +58,7 @@ html, body {
     border: none;
     color: var(--text);
     background: var(--input);
+    border: 1px solid var(--border);
     font-size: 12px;
     height: 18px;
     width: 100%;
@@ -264,7 +265,7 @@ html, body {
 }
 
 .tabs {
-    background: var(--main);
+    background: var(--tabs);
     height: 23px;
     top: 0;
     display: flex;
@@ -785,10 +786,13 @@ input[type=text]:focus {
         --msg: #222222;
         --dialog: #262626;
         --text: #C0C0C0;
+        --active: #ffffff;
+        --tabs: #252525;
 
-        /* --dark: #252525; */
-        /* --moredark: #222222; */
-        /* --lessdark: #2f2f2f; */
+        --link: #4183c4;
+        --highlight: #364864;
+        --highlight-select: #364864;
+
         --black: #000000;
         --white: #FFFFFF;
         --warning: #960000;
@@ -797,9 +801,7 @@ input[type=text]:focus {
         --lightblue: #506585;
         --yellow: #FFFF00;
         --orange: #FFA500;
-        --link: #4183c4;
-        --highlight: #364864;
-        --highlight-select: #364864;
+
         /* --highlight-select: #334c74; */
         /* --highlight: rgba(0, 128, 255, 0.213); */
         /* --highlight: linear-gradient(to right, #505050, #252525); */
@@ -816,13 +818,19 @@ input[type=text]:focus {
     :root {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
-        --input: #cfcfcf;
-        --main: #cdcdcd;
-        --minibar: #cfcfcf;
-        --border: #f7f7f7;
+        --input: #ffffff;
+        --main: #f7f7f7;
+        --minibar: #ffffff;
+        --border: #cfcfcf;
         --msg: #222222;
         --dialog: #262626;
         --text: #252525;
+        --active: #252525;
+        --tabs: #ffffff;
+
+        --link: #4183c4;
+        --highlight: rgba(0, 0, 0, 0.1);
+        --highlight-select: rgba(0, 0, 0, 0.1);
 
         --black: #000000;
         --white: #FFFFFF;
@@ -832,9 +840,6 @@ input[type=text]:focus {
         --lightblue: #506585;
         --yellow: #FFFF00;
         --orange: #FFA500;
-        --link: #4183c4;
-        --highlight: #f7f7f7;
-        --highlight-select: #f7f7f7;
 
         --grey: #505050;
         --light: #2c2c2c;

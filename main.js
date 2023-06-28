@@ -11,9 +11,6 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 const gio_utils = require('./utils/gio');
 const gio = require('./gio/build/Release/gio')
-// const gio = require('node-gio');
-
-// Bootstrap Init
 const worker = new Worker('./workers/worker.js');
 const ls = new Worker('./workers/ls.js');
 const thumb = new Worker('./workers/thumbnailer.js');
@@ -368,15 +365,12 @@ function new_folder(destination) {
 
 function watch_for_theme_change() {
     let watch_dir = path.join(path.dirname(app.getPath('userData')), 'dconf')
-    // watch_dirs.forEach(watch_dir => {
     if (gio.exists(watch_dir)) {
         let file = gio.get_file(watch_dir)
         let fsTimeout
         fs.watchFile(watch_dir, (e) => {
             let file0 = gio.get_file(watch_dir)
             if (file0.mtime > file.mtime) {
-                // console.log('theme changed')
-                // win.send('theme_changed')
                 win.webContents.reloadIgnoringCache();
                 fsTimeout = setTimeout(function () {
                     fsTimeout = null
@@ -404,10 +398,8 @@ function get_files_arr(source, destination, callback) {
     cp_recursive++
     file_arr.push({ type: 'directory', source: source, destination: destination })
     gio.ls(source, (err, dirents) => {
-        // let dirents = gio.ls(source);
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
-            // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({ dir: destination, base: file.name }), callback)
             } else {
@@ -420,11 +412,11 @@ function get_files_arr(source, destination, callback) {
             }
         }
         if (--cp_recursive == 0) {
-            // parentPort.postMessage({cmd: 'msg', msg: ``})
 
             let file_arr1 = file_arr;
             file_arr = []
             return callback(file_arr1);
+
         }
     })
 }
@@ -432,31 +424,8 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 let watchdir = new Set();
 function get_files(source, tab) {
-
     ls.postMessage({ cmd: 'ls', source: source, tab: tab });
     get_disk_space(source);
-
-    // if (watchdir.has(source)) { return; };
-    // gio.watcher(source, data => {
-    //     if (data.event === 'created') {
-    //         // console.log(data);
-    //         let file = gio.get_file(data.filename);
-    //         win.send('get_card_gio', file);
-    //     }
-    //     if (data.event === 'renamed') {
-    //         // console.log(data);
-    //     }
-    //     if (data.event === 'deleted') {
-    //         win.send('remove_card', data.filename);
-    //         // console.log(data);
-    //     }
-    //     // fsTimeout = setTimeout(function() {
-    //     //     fsTimeout = null
-    //     //     // fs.unwatchFile(dir, )
-    //     // }, 5000)
-    // })
-    // watchdir.add(source);
-
 }
 
 function copyOverwrite(copy_overwrite_arr) {
@@ -487,19 +456,10 @@ ipcMain.on('get_settings', (e) => {
 })
 
 ipcMain.on('create_thumbnail', (e, href) => {
-
     if (!href.indexOf('sftp:') > -1) {
         let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
         thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
     }
-
-    // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-    // let cmd = `gdk-pixbuf-thumbnailer "${href}" "${path.join(thumb_dir, path.basename(href))}"`
-    //     exec(cmd, (err, stdout, stderr) => {
-    //     if (!err) {
-    //         win.send('msg', err);
-    //     }
-    // })
 })
 
 ipcMain.handle('get_thumbnails_directory', async (e) => {
@@ -517,12 +477,7 @@ ipcMain.on('get_selected_files', (e, selected_files) => {
 })
 
 ipcMain.on('search', (e, search, location, depth) => {
-
     find.postMessage({cmd: 'search', search: search, location: location, depth: depth});
-    // get_files_arr(location, '', dirents => {
-    //     let filter_arr = dirents.filter(x => x.source.indexOf(search) > -1);
-    //     win.send('search_results', filter_arr);
-    // })
 })
 
 // Om Get Recent Files
@@ -530,34 +485,16 @@ ipcMain.on('get_recent_files', (e, dir) => {
     gio.ls(dir, (err, dirents) => {
         win.send('recent_files', dir, dirents)
     })
-    // const d = new Date();
-    // d.setDate(d.getDate() - 14);
-    // const file_arr = dirents.filter(item => {
-        // const itemDate = new Date(item.date);
-        // return item.mtime >= d;
-    // });
 })
 
 // On Get Folder Size
 ipcMain.on('get_folder_size', (e, href) => {
-
     worker.postMessage({cmd: 'folder_size', source: href});
-    // getFolderSize(href, size => {
-    // win.send('folder_size', href,size);
-    // })
 })
 
 // On Get Folder Count
 ipcMain.on('get_folder_count', (e, href) => {
-
     worker.postMessage({cmd: 'folder_count', source: href});
-    // try {
-    //     getFolderCount(href, folder_count => {
-    //         win.send('folder_count', href, folder_count);
-    //     })
-    // } catch (err) {
-    //     // console.log(err);
-    // }
 })
 
 // On Get Folder Count
@@ -577,14 +514,6 @@ ipcMain.on('get_properties', (e, selected_files_arr, location) => {
     if (selected_files_arr.length > 0) {
         selected_files_arr.forEach(item => {
             let properties = gio.get_file(item);
-            // Get Folder Count
-            // Moved to ipcMain.on('get_folder_count', (e, href) => {
-
-            // let folder_count = getFolderCount(item);
-            // properties.folder_count = folder_count;
-
-            // let file_count = getFIleCount(item);
-            // properties.file_count = file_count;
             properties_arr.push(properties);
         })
     } else {
@@ -621,14 +550,11 @@ ipcMain.on('new_window', (e) => {
 })
 
 ipcMain.on('clip', (e, href) => {
-    // console.log('copying to clipboard', href);
     clipboard.write()
 })
 
 ipcMain.on('ondragstart', (e, href) => {
-    // console.log(href);
     const icon = path.join(__dirname, 'assets/icons/dd.png');
-    // console.log(href)
     e.sender.startDrag({
         file: href,
         icon: icon
@@ -639,12 +565,8 @@ ipcMain.on('ondragstart', (e, href) => {
 ipcMain.handle('get_devices', async (e) => {
 
     return new Promise((resolve, reject) => {
-        // gio_utils.get_devices(device_arr => {
-        // // console.log(device_arr);
         let device_arr = gio.get_mounts();
-        // // console.log(device_arr);
         resolve(device_arr);
-        // });
     });
 })
 
@@ -655,11 +577,6 @@ ipcMain.on('add_workspace', (e, selected_files_arr) => {
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'))
 
     selected_files_arr.forEach(item => {
-        // let workspace_item = {
-        //     name: path.basename(item),
-        //     href: item
-        // }
-        // settings['workspace'].push(workspace_item)
         let file = gio.get_file(item);
         settings['workspace'].push(file)
     })
@@ -764,19 +681,15 @@ ipcMain.on('paste', (e, destination) => {
             if (overwrite == 0) {
                 copy_arr.push(copy_data);
             } else {
-                // console.log('confirm overwrite')
                 copy_overwrite_arr.push(copy_data)
             }
 
             if (i == selected_files_arr.length - 1) {
                 if (copy_arr.length > 0) {
-                    // // console.log('sending array', copy_arr);
                     worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
                 }
                 if (copy_overwrite_arr.length > 0) {
-                    // console.log('confirm overwrite');
                     overWriteNext(copy_overwrite_arr);
-                    // ipcRenderer.send('confirm_overwrite', copy_overwrite_arr);
                 }
 
                 copy_arr = [];

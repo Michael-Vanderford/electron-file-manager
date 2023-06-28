@@ -28,7 +28,7 @@
     }
 
     .sidebar .item:hover {
-        background: var(--grey);
+        background: var(--highlight);
         border-radius: 5px;;
         text-decoration: none;
     }
@@ -68,11 +68,21 @@
         margin-bottom: 10px;
         padding: 5px;
         box-sizing: border-box;
+        /* grid-template-columns: repeat(2, 1fr); */
+    }
+
+    .properties .content {
+        display: grid;
+        grid-template-columns: 75px 1fr;
     }
 
     .properties .item {
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+
+    .properties .item:first-child {
+        /* width: 20px; */
     }
 
     .scrollbar {
@@ -102,7 +112,7 @@
         float:left;
         background-color: var(--minibar);
         color: var(--text);
-        border-right: 1px solid var(--lessdark);
+        border-right: 1px solid var(--border);
         height:100%
     }
 

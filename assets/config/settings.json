@@ -1,5 +1,5 @@
 {
-    "theme": "dark",
+    "Theme": "dark",
     "Terminal": "gnome-terminal --working-directory=%u",
     "Disk Utility": "gnome-disks",
     "display": {
