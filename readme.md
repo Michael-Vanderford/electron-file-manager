@@ -11,7 +11,7 @@ Install
 4. npm start
 
 
-![Screenshot 1](/screenshots/screenshot1.png?raw=true)
+![Screenshot 1](assets/screenshots/screenshot1.png?raw=true)
 
 <!-- ![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
 
