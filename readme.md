@@ -11,11 +11,11 @@ Install
 4. npm start
 
 
-![Screenshot 1](/screenshots/screenshot_1.png?raw=true)
+![Screenshot 1](/screenshots/screenshot1.png?raw=true)
 
-![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
+<!-- ![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
 
-![Screenshot 3](/screenshots/screenshot_3.png?raw=true)
+![Screenshot 3](/screenshots/screenshot_3.png?raw=true) -->
 
 
 <h4>Features</h4>
