@@ -782,12 +782,12 @@ input[type=text]:focus {
         --input: #484848;
         --main: #2c2c2c;
         --minibar: #222222;
-        --border: #484848;
+        --border: #333333;
         --msg: #222222;
         --dialog: #262626;
         --text: #C0C0C0;
         --active: #ffffff;
-        --tabs: #252525;
+        --tabs: #2c2c2c;
 
         --link: #4183c4;
         --highlight: #364864;

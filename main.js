@@ -2198,13 +2198,13 @@ ipcMain.on('device_menu', (e, href) => {
                 win.send('umount_device');
             }
         },
-        {
-            label: 'Properties',
-            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
-            click: () => {
-                e.sender.send('context-menu-command', 'properties')
-            }
-        },
+        // {
+        //     label: 'Properties',
+        //     accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+        //     click: () => {
+        //         e.sender.send('context-menu-command', 'properties')
+        //     }
+        // },
     ]
 
     let menu = Menu.buildFromTemplate(device_menu_template)

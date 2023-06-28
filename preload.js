@@ -620,7 +620,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 // Get Folder and File Count
 ipcRenderer.on('count', (e, source, item_count) => {
-    console.log(source, item_count);
+    // console.log(source, item_count);
     let active_tab_content = document.querySelector('.active-tab-content')
     let card = active_tab_content.querySelector(`[data-href="${source}"]`);
     if (card) {
@@ -826,21 +826,12 @@ ipcRenderer.on('get_card_gio', (e, file) => {
                 file_grid.prepend(card);
             }
 
+            getFolderCount(file.href);
+
+            getFolderSize(file.href);
+
         }
     })
-
-    // let folder_grid = document.querySelector('.folder_grid');
-    // let file_grid = document.querySelector('.file_grid');
-    // let card = getCardGio(file);
-
-    // if (file.is_dir) {
-    //     folder_grid.prepend(card);
-    // } else {
-    //     file_grid.prepend(card);
-    // }
-
-    // getFolderCount();
-    // getFolderSize();
 
     lazyload();
 
@@ -877,8 +868,8 @@ ipcRenderer.on('replace_card', (e, href, file) => {
     let newcard = getCardGio(file);
     card.replaceWith(newcard);
 
-    getFolderCount();
-    getFolderSize();
+    getFolderCount(href);
+    getFolderSize(href);
 
 })
 
@@ -2156,6 +2147,9 @@ function settingsForm(settings) {
         if (typeof value === 'object') {
             let header = document.createElement('h4');
             let hr = document.createElement('hr')
+
+            header.classList.add('header');
+
             header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
             form.append(hr, header);
             settingsForm(value);
@@ -2191,6 +2185,8 @@ function settingsForm(settings) {
                             // Need some Input validation
                             ipcRenderer.send('update_settings', key, input.value)
                         })
+                    } else {
+                        input.disabled = true;
                     }
                 }
             }
@@ -2207,7 +2203,7 @@ function settingsForm(settings) {
 
     for (let setting in settings.keyboard_shortcuts) {
         let input = document.getElementById(`${setting}`)
-        
+
         input.addEventListener('change', (e) => {
             // Need some Input validation
             ipcRenderer.send('update_settings', setting, input.value)
@@ -2535,28 +2531,11 @@ function move(destination) {
     ipcRenderer.send('move', destination);
     selected_files_arr = [];
 
-    // let location = destination; //document.getElementById('location');
-    // if (selected_files_arr.length > 0) {
-    //     for(let i = 0; i < selected_files_arr.length; i++) {
-    //         let copy_data = {
-    //             source: selected_files_arr[i],
-    //             destination: path.format({dir: location, base: path.basename(selected_files_arr[i])})
-    //         }
-    //         copy_arr.push(copy_data);
-    //     }
-    // // console.log('sending array', copy_arr);
-    // ipcRenderer.send('move', copy_arr);
-    // ipcRenderer.send('move', destination);
-    // selected_files_arr = [];
-    // copy_arr = [];
-    // } else {
-    //     msg(`Nothing to Paste`);
-    // }
-
 }
 
 // Get Folder Count
 function getFolderCount(href) {
+    // console.log('running get folder count', href)
     ipcRenderer.send('count', href);
 }
 
@@ -3437,6 +3416,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     clear()
                 })
 
+                mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
+                    ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
+                })
+
+                // Show settings
                 mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
                     getSettings();
                 })

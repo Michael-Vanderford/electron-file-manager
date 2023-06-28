@@ -1,5 +1,5 @@
 
-EFM - Alpha
+SFM - Beta
 
 File manager for Linux - Built with Electron
 
@@ -24,8 +24,9 @@ Install
     <li>QuickSearch search</li>
     <li>Collapsable minibar</li>
     <li>Icon scaling</li>
+    <li>Tabbed Views</li>
     <!-- <li>Audio playback</li> -->
-    <li>Audio or Video to Audio conversion - Requires ffmpeg</li>
+    <!-- <li>Audio or Video to Audio conversion - Requires ffmpeg</li> -->
     <li>Templates Folder for new file creation</li>
     <li>Native icon support</li>
     <li>Diskspace Summary view</li>
@@ -35,23 +36,19 @@ Install
 
 <ul>
     <li>Go Back: Backspace</li>
-    <li>ShowWorkspace: Alt+W,</li>
-    <li>ShowSidebar: Ctrl+B,</li>
-    <li>Find: Ctrl+Shift+F,</li>
-    <li>Down: down,</li>
-    <li>Up: Up,</li>
-    <li>Left: Left,</li>
-    <li>Right: Right,</li>
-    <li>Rename: F2,</li>
-    <li>Cut: Ctrl+X,</li>
-    <li>Copy: Ctrl+C,</li>
-    <li>Paste: Ctrl+V,</li>
-    <li>SelectAll: Ctrl+A,</li>
-    <li>Delete: Del,</li>
-    <li>Compress: Shift+C,</li>
-    <li>Extract: Shift+E,</li>
-    <li>Properties: Ctrl+I,</li>
-    <li>NewFolder: Ctrl+Shift+N,</li>
+    <li>ShowWorkspace: Alt+W</li>
+    <li>ShowSidebar: Ctrl+B</li>
+    <li>Find: Ctrl+Shift+F</li>
+    <li>Rename: F2</li>
+    <li>Cut: Ctrl+X</li>
+    <li>Copy: Ctrl+C</li>
+    <li>Paste: Ctrl+V</li>
+    <li>SelectAll: Ctrl+A</li>
+    <li>Delete: Del</li>
+    <li>Compress: Shift+C</li>
+    <li>Extract: Shift+E</li>
+    <li>Properties: Ctrl+I</li>
+    <li>NewFolder: Ctrl+Shift+N</li>
     <li>AddWorkspace: Ctrl+D</li>
 </ul>
 
