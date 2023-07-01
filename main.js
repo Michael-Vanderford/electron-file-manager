@@ -68,6 +68,8 @@ function checkSettings() {
 
 worker.postMessage({ cmd: 'monitor' });
 
+let recent_files_path = path.join(app.getPath('userData'), 'recent_files.json');
+
 // Set window id
 ipcMain.on('active_window', (e) => {
     window_id0 = window_id
@@ -172,6 +174,44 @@ worker.on('message', (data) => {
 })
 
 // Functions //////////////////////////////////////////////
+
+// Save Recent File
+function saveRecentFile (recent_file) {
+
+    // Check if the file exists
+    const fileExists = fs.existsSync(recent_files_path);
+    let jsonData = [];
+
+    if (fileExists) {
+        // Read the existing JSON file
+        const fileData = fs.readFileSync(recent_files_path, 'utf8');
+        jsonData = JSON.parse(fileData);
+    }
+
+    // Add the new object to the data
+    if (!jsonData) {
+        jsonData = [];
+    }
+    jsonData.push(recent_file);
+
+    // Convert the data back to JSON format
+    const updatedData = JSON.stringify(jsonData, null, 2); // null, 2 adds indentation for readability
+
+    // Write the updated data to the file
+    fs.writeFileSync(recent_files_path, updatedData, 'utf8');
+
+}
+
+// Get Recent Files
+function getRecentFiles (callback) {
+    fs.readFile(recent_files_path, 'utf-8', (err, data) => {
+        if (err) {
+            return;
+        }
+        let json_data = JSON.parse(data)
+        return callback(json_data)
+    })
+}
 
 function getSettings() {
     let settings_file = path.join(app.getPath('userData'), 'settings.json');
@@ -445,6 +485,16 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // Get Settings
 
+ipcMain.on('saveRecentFile', (e, file) => {
+    saveRecentFile(file);
+})
+
+ipcMain.on('getRecentFiles', (e, files) => {
+    getRecentFiles(dirents => {
+        win.send('recent_files', dirents)
+    })
+})
+
 ipcMain.on('update_settings', (e, key, value) => {
     settings[key] = value;
     fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
@@ -482,9 +532,12 @@ ipcMain.on('search', (e, search, location, depth) => {
 
 // Om Get Recent Files
 ipcMain.on('get_recent_files', (e, dir) => {
-    gio.ls(dir, (err, dirents) => {
-        win.send('recent_files', dir, dirents)
+    getRecentFiles(dirents => {
+        win.send('recent_files', dirents)
     })
+    // gio.ls(dir, (err, dirents) => {
+    //     win.send('recent_files', dir, dirents)
+    // })
 })
 
 // On Get Folder Size

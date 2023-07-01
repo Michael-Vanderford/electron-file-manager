@@ -162,25 +162,8 @@ ipcRenderer.on('sort', (e, sort) => {
 })
 
 // On Recent Files
-ipcRenderer.on('recent_files', (e, dir, recent_files_arr) => {
-
-    let main = document.querySelector('.main');
-    let recent_folders = add_div();
-    let recent_files = add_div();
-
-    recent_folders.classList.add('recent_folder');
-    recent_files.classList.add('recent_files');
-
-    recent_folders.append(add_header('Recent Folders'));
-    recent_files.append(add_header('Recent Files'));
-
-    main.innerHTML = '';
-
-    main.append(recent_folders);
-    main.append(recent_files);
-
-    // recent_files.forEach('')
-
+ipcRenderer.on('recent_files', (e, dirents) => {
+    getRecentView(dirents);
 })
 
 // Get Folder Size for properties
@@ -362,7 +345,6 @@ ipcRenderer.on('get_files', (e, dirents) => {
     // console.log('dirents', dirents);
 })
 
-
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
@@ -371,10 +353,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     msg('');
     let main = document.querySelector('.main');
-
     let tabs = document.querySelectorAll('.tab');
     let tabs_content = document.querySelectorAll('.tab_content');
     let tab_content = document.querySelector('.tab_content');
+
+    let file_menu =document.querySelector('.header_menu');
+    let menu_items = file_menu.querySelectorAll('.item');
 
     // Add new tab if tab = 1
     if (tab) {
@@ -1270,6 +1254,35 @@ async function get_disk_summary_view(callback) {
 
 }
 
+// Switch View
+function switch_view(view) {
+    let active_tab_content = document.querySelector('.active-tab-content')
+
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
+    let file_grid = active_tab_content.querySelector('.file_grid');
+
+    let folders = Array.from(folder_grid.querySelectorAll('.card'));
+    let files = Array.from(file_grid.querySelectorAll('.card'));
+
+    folder_grid.classList.remove('grid','grid1')
+    file_grid.classList.add('grid','grid1')
+
+    switch (view) {
+        case 'list': {
+            folder_grid.classList.add('grid1');
+            file_grid.classList.add('grid1');
+            break;
+        }
+        case 'grid': {
+            folder_grid.classList.add('grid');
+            file_grid.classList.add('grid');
+            break;
+        }
+    }
+
+}
+
+// Sort Cards
 function sort_cards() {
 
     let active_tab_content = document.querySelector('.active-tab-content')
@@ -2115,6 +2128,100 @@ function getProperties(properties_arr) {
     // return callback(properties_view);
 }
 
+// Get Recent View
+function getRecentView(dirents) {
+
+    console.log(dirents)
+
+    let location = document.querySelector('.location')
+    location.value = 'Recent'
+
+    let folder_grid = add_div(['folder_grid']);
+    let file_grid = add_div(['file_grid']);
+
+    if (view === 'list') {
+        folder_grid.classList.add('grid1')
+        file_grid.classList.add('grid1')
+        folder_grid.classList.remove('grid')
+        file_grid.classList.remove('grid')
+    } else {
+        folder_grid.classList.add('grid')
+        file_grid.classList.add('grid')
+        folder_grid.classList.remove('grid1')
+        file_grid.classList.remove('grid1')
+    }
+
+    let tab_content = add_tab('Recent')
+    dirents.sort((a, b) => {
+        return b.mtime - a.mtime
+    })
+
+    let add_folder_label = 1;
+    let add_file_label = 1;
+    let folder_counter = 0;
+    dirents.forEach(file => {
+        if (file.is_dir) {
+
+            if (folder_counter < 10) {
+
+                ++folder_counter;
+                if (add_folder_label === 1) {
+
+                    let hr = document.createElement('hr');
+                    tab_content.append('Recent Folders', hr)
+                    tab_content.append(folder_grid)
+                    add_folder_label = 0;
+                }
+
+                let card = getCardGio(file);
+                folder_grid.append(card)
+
+            }
+
+        } else {
+
+            if (add_file_label === 1) {
+                let hr = document.createElement('hr');
+                tab_content.append('Recent Files', hr)
+                tab_content.append(file_grid)
+                // file_grid.append('Recent Files', hr);
+
+                add_file_label = 0;
+            }
+
+            let card = getCardGio(file);
+            file_grid.append(card);
+
+        }
+    })
+
+    // tab_content.append(folder_grid, file_grid);
+
+    // const dates_arr = dirents.reduce((weeks, item) => {
+
+    //     // Get the ISO week number of the date property
+    //     const dateWeek = new Date(item.mtime * 1000).toISOString().slice(0, 10).split('-').slice(0, -1).join('-');;
+
+    //     console.log(dateWeek)
+
+    //     // Add the week to the array if it doesn't exist already
+    //     if (!weeks.includes(dateWeek)) {
+    //       weeks.push(dateWeek);
+    //     }
+
+    //     return weeks;
+
+    // }, []);
+
+    // console.log(dates_arr);
+
+    // dates_arr.forEach(date => {
+    //     let hr = document.createElement('hr');
+    //     tab_content.append(date, hr);
+    // })
+
+}
+
 // Get Settings View
 function getSettings() {
 
@@ -2342,9 +2449,8 @@ function getHome(callback) {
 
             item.classList.add('active')
             if (href === 'Recent') {
-                // get_recent_files(`${home_dir}/Documents`)
-                // ipcRenderer.send('get_recent_files', location.value);
-                msg('Not Implemented Yet')
+                ipcRenderer.send('get_recent_files', location.value);
+                // msg('Not Implemented Yet');
             } else {
                 // location.value = my_computer_paths_arr[i];
                 getView(my_computer_paths_arr[i]);
@@ -2791,6 +2897,8 @@ function getCardGio(file) {
                 location.dispatchEvent(new Event('change'));
             }
 
+            ipcRenderer.send('saveRecentFile', file);
+
         })
 
         // Img
@@ -2802,6 +2910,9 @@ function getCardGio(file) {
             } else {
                 location.dispatchEvent(new Event('change'));
             }
+
+            ipcRenderer.send('saveRecentFile', file);
+
         })
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
@@ -2849,10 +2960,16 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
+
+            ipcRenderer.send('saveRecentFile', file);
+
         })
         img.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
+
+            ipcRenderer.send('saveRecentFile', file);
+
         })
         size.append(getFileSize(file["size"]));
         // Context Menu
