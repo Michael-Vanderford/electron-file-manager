@@ -30,6 +30,260 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+// On ls
+ipcRenderer.on('ls', (e, dirents, source, tab) => {
+
+    localStorage.setItem('location', source);
+    auto_complete_arr = [];
+
+    msg('');
+    let main = document.querySelector('.main');
+    let tabs = document.querySelectorAll('.tab');
+    let tabs_content = document.querySelectorAll('.tab_content');
+    let tab_content = document.querySelector('.tab_content');
+
+    let file_menu =document.querySelector('.header_menu');
+    let menu_items = file_menu.querySelectorAll('.item');
+
+    // Add new tab if tab = 1
+    if (tab) {
+        tab_content = add_tab(source);
+    }
+
+    if (tabs.length === 0) {
+        add_tab(source);
+    }
+
+    // console.log(tabs.length)
+
+    let active_tab = document.querySelector('.active-tab');
+    let active_label = active_tab.querySelector('.label')
+    let active_tab_content = document.querySelector('.active-tab-content');
+    active_tab_content.innerHTML = '';
+
+    active_tab.dataset.href = source;
+    active_tab.title = source;
+    active_label.innerHTML = path.basename(source);
+
+    let location = document.querySelector('.location');
+    let slider = document.querySelector('.slider');
+
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
+    if (!folder_grid) {
+        folder_grid = add_div()
+        folder_grid.classList.add('folder_grid')
+        folder_grid.id = 'folder_grid'
+    }
+    let file_grid = active_tab_content.querySelector('.file_grid');
+    if (!file_grid) {
+        file_grid = add_div()
+        file_grid.classList.add('file_grid')
+        file_grid.id = 'file_grid'
+    }
+
+    let hidden_folder_grid = active_tab_content.querySelector('.hidden_folder_grid');
+    if (!hidden_folder_grid) {
+        hidden_folder_grid = add_div(['hidden_folder_grid']);
+        hidden_folder_grid.id = 'hidden_folder_grid';
+    }
+
+    let hidden_file_grid = active_tab_content.querySelector('.hidden_file_grid');
+    if (!hidden_file_grid) {
+        hidden_file_grid = add_div(['hidden_file_grid']);
+        hidden_file_grid.id = 'hidden_file_grid';
+    }
+
+    if (localStorage.getItem('show_hidden') !== null) {
+        let show_hidden_icon = document.querySelector('.show_hidden')
+        let show_hidden = parseInt(localStorage.getItem('show_hidden'));
+        if (show_hidden) {
+            hidden_folder_grid.classList.remove('hidden');
+            hidden_file_grid.classList.remove('hidden');
+            show_hidden_icon.classList.add('active')
+        } else {
+            hidden_folder_grid.classList.add('hidden');
+            hidden_file_grid.classList.add('hidden');
+            show_hidden_icon.classList.remove('active')
+        }
+    }
+
+    let grid_view = document.querySelector('.grid_view');
+    let list_view = document.querySelector('.list_view');
+
+    folder_grid.classList.add('folder_grid');
+    file_grid.classList.add('file_grid');
+    hidden_file_grid.classList.add('hidden_file_grid');
+
+    location.value = source;
+    document.title = path.basename(location.value);
+
+    let header = active_tab_content.querySelector('.header_row')
+    if (!header) {
+
+        header = add_div();
+        header.classList.add('header_row', 'content', 'list');
+
+        let colNames = ['Name', 'Date', 'Size', 'Items'];
+        let colClasses = ['name', 'date', 'size', 'items'];
+
+        let headerRow = colNames.map((colName, index) => {
+            let col = add_div();
+            col.classList.add('item', colClasses[index]);
+            col.append(colName);
+
+            col.addEventListener('click', (e) => {
+                sort = colName.toLocaleLowerCase();
+                localStorage.setItem('sort', sort);
+                sort_cards();
+            })
+
+            return col;
+        });
+
+        header.append(...headerRow);
+        // main.append(header);
+        active_tab_content.append(header)
+        // main.append(tab_content)
+
+    }
+
+    if (view == 'list') {
+
+        main.classList.replace('grid_container', 'list_container');
+        header.classList.remove('hidden');
+
+        const list_view_columns = add_div();
+        list_view_columns.className = 'list_view_columns';
+        list_view_columns.innerHTML = '';
+
+        list_view.classList.add('active');
+        grid_view.classList.remove('active');
+
+        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
+            element.classList.remove('grid');
+            element.classList.add('grid1');
+        });
+
+    } else {
+
+        main.classList.replace('list_container', 'grid_container');
+        header.classList.add('hidden');
+
+        list_view.classList.remove('active');
+        grid_view.classList.add('active');
+
+        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
+            element.classList.remove('grid1');
+            element.classList.add('grid');
+        });
+
+    }
+
+    folder_grid.innerHTML = ''
+    file_grid.innerHTML = ''
+
+    hidden_folder_grid.innerHTML = ''
+    hidden_file_grid.innerHTML = ''
+
+    if (localStorage.getItem('sort') === null) {
+        sort = 'date';
+    } else {
+        sort = localStorage.getItem('sort');
+    }
+
+    // Loop Files Array
+    for (let i = 0; i < dirents.length; i++) {
+
+        // if (i < 2500) {
+
+        let file = dirents[i];
+        let card = getCardGio(file);
+
+        if (file.is_dir) {
+
+            if (file.is_hidden) {
+                hidden_folder_grid.append(card);
+            } else {
+                folder_grid.append(card);
+            }
+
+            // this is slowing the load time down dont use for now
+            if (file.href.indexOf('mtp:') > -1) {
+
+            } else {
+
+                // Call Get Folder Size
+                getFolderSize(file.href);
+
+                getFolderCount(file.href);
+            }
+
+            auto_complete_arr.push(file.href);
+
+        } else {
+
+            if (file.is_hidden) {
+                hidden_file_grid.append(card);
+            } else {
+                file_grid.append(card);
+            }
+
+        }
+
+    }
+
+    main.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    })
+
+    main.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        for (const f of e.dataTransfer.files) {
+            // console.log('file path', f.path)
+        }
+
+        ipcRenderer.send('main', 1);
+        paste(location.value);
+    })
+
+    main.addEventListener('mouseenter', (e) => {
+        // console.log("running mouse enter");
+        // document.addEventListener('keyup', quick_search)
+    })
+
+    main.addEventListener('mouseleave', (e) => {
+        // console.log('running mouse leave')
+        document.removeEventListener('keyup', quickSearch)
+    })
+
+    // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+    active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+    main.append(active_tab_content)
+
+    // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+    // main.append(tab_content)
+
+    // Set Icon Size
+    if (localStorage.getItem('icon_size') !== null) {
+        let icon_size = localStorage.getItem('icon_size')
+        // console.log('icon_size', icon_size);
+        slider.value = icon_size;
+        resizeIcons(icon_size);
+    }
+
+    // watch_dir(location.value);
+
+    // lazyloadCards();
+    lazyload();
+
+    sort_cards();
+
+    clearHighlight();
+
+})
+
 ipcRenderer.on('lazyload', (e) => {
     lazyload();
 })
@@ -41,8 +295,8 @@ ipcRenderer.invoke('get_thumbnails_directory').then(res => {
 ipcRenderer.on('get_devices', (e) => {
     // console.log('getting devices');
     let device_view = document.querySelector('.device_view');
+    device_view.innerHTML = '';
     getDevices(devices => {
-        device_view.innerHTML = '';
         device_view.append(devices);
     })
 })
@@ -343,263 +597,6 @@ ipcRenderer.on('toggle_hidden', (e) => {
 // Files
 ipcRenderer.on('get_files', (e, dirents) => {
     // console.log('dirents', dirents);
-})
-
-// On ls
-ipcRenderer.on('ls', (e, dirents, source, tab) => {
-
-    localStorage.setItem('location', source);
-    auto_complete_arr = [];
-
-    msg('');
-    let main = document.querySelector('.main');
-    let tabs = document.querySelectorAll('.tab');
-    let tabs_content = document.querySelectorAll('.tab_content');
-    let tab_content = document.querySelector('.tab_content');
-
-    let file_menu =document.querySelector('.header_menu');
-    let menu_items = file_menu.querySelectorAll('.item');
-
-    // Add new tab if tab = 1
-    if (tab) {
-        tab_content = add_tab(source);
-    }
-
-    if (tabs.length === 0) {
-        add_tab(source);
-    }
-
-    // console.log(tabs.length)
-
-    let active_tab = document.querySelector('.active-tab');
-    let active_label = active_tab.querySelector('.label')
-    let active_tab_content = document.querySelector('.active-tab-content');
-    active_tab_content.innerHTML = '';
-
-    active_tab.dataset.href = source;
-    active_tab.title = source;
-    active_label.innerHTML = path.basename(source);
-
-    let location = document.querySelector('.location');
-    let slider = document.querySelector('.slider');
-
-    let folder_grid = active_tab_content.querySelector('.folder_grid');
-    if (!folder_grid) {
-        folder_grid = add_div()
-        folder_grid.classList.add('folder_grid')
-        folder_grid.id = 'folder_grid'
-    }
-    let file_grid = active_tab_content.querySelector('.file_grid');
-    if (!file_grid) {
-        file_grid = add_div()
-        file_grid.classList.add('file_grid')
-        file_grid.id = 'file_grid'
-    }
-
-    let hidden_folder_grid = active_tab_content.querySelector('.hidden_folder_grid');
-    if (!hidden_folder_grid) {
-        hidden_folder_grid = add_div(['hidden_folder_grid']);
-        hidden_folder_grid.id = 'hidden_folder_grid';
-    }
-
-    let hidden_file_grid = active_tab_content.querySelector('.hidden_file_grid');
-    if (!hidden_file_grid) {
-        hidden_file_grid = add_div(['hidden_file_grid']);
-        hidden_file_grid.id = 'hidden_file_grid';
-    }
-
-    if (localStorage.getItem('show_hidden') !== null) {
-        let show_hidden_icon = document.querySelector('.show_hidden')
-        let show_hidden = parseInt(localStorage.getItem('show_hidden'));
-        if (show_hidden) {
-            hidden_folder_grid.classList.remove('hidden');
-            hidden_file_grid.classList.remove('hidden');
-            show_hidden_icon.classList.add('active')
-        } else {
-            hidden_folder_grid.classList.add('hidden');
-            hidden_file_grid.classList.add('hidden');
-            show_hidden_icon.classList.remove('active')
-        }
-    }
-
-    let grid_view = document.querySelector('.grid_view');
-    let list_view = document.querySelector('.list_view');
-
-    folder_grid.classList.add('folder_grid');
-    file_grid.classList.add('file_grid');
-    hidden_file_grid.classList.add('hidden_file_grid');
-
-    location.value = source;
-    document.title = path.basename(location.value);
-
-    let header = active_tab_content.querySelector('.header_row')
-    if (!header) {
-
-        header = add_div();
-        header.classList.add('header_row', 'content', 'list');
-
-        let colNames = ['Name', 'Date', 'Size', 'Items'];
-        let colClasses = ['name', 'date', 'size', 'items'];
-
-        let headerRow = colNames.map((colName, index) => {
-            let col = add_div();
-            col.classList.add('item', colClasses[index]);
-            col.append(colName);
-
-            col.addEventListener('click', (e) => {
-                sort = colName.toLocaleLowerCase();
-                localStorage.setItem('sort', sort);
-                sort_cards();
-            })
-
-            return col;
-        });
-
-        header.append(...headerRow);
-        // main.append(header);
-        active_tab_content.append(header)
-        // main.append(tab_content)
-
-    }
-
-    if (view == 'list') {
-
-        main.classList.replace('grid_container', 'list_container');
-        header.classList.remove('hidden');
-
-        const list_view_columns = add_div();
-        list_view_columns.className = 'list_view_columns';
-        list_view_columns.innerHTML = '';
-
-        list_view.classList.add('active');
-        grid_view.classList.remove('active');
-
-        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
-            element.classList.remove('grid');
-            element.classList.add('grid1');
-        });
-
-    } else {
-
-        main.classList.replace('list_container', 'grid_container');
-        header.classList.add('hidden');
-
-        list_view.classList.remove('active');
-        grid_view.classList.add('active');
-
-        [folder_grid, file_grid, hidden_folder_grid, hidden_file_grid].forEach((element) => {
-            element.classList.remove('grid1');
-            element.classList.add('grid');
-        });
-
-    }
-
-    folder_grid.innerHTML = ''
-    file_grid.innerHTML = ''
-
-    hidden_folder_grid.innerHTML = ''
-    hidden_file_grid.innerHTML = ''
-
-    if (localStorage.getItem('sort') === null) {
-        sort = 'date';
-    } else {
-        sort = localStorage.getItem('sort');
-    }
-
-    // Loop Files Array
-    for (let i = 0; i < dirents.length; i++) {
-
-        // if (i < 2500) {
-
-        let file = dirents[i];
-        let card = getCardGio(file);
-
-        if (file.is_dir) {
-
-            if (file.is_hidden) {
-                hidden_folder_grid.append(card);
-            } else {
-                folder_grid.append(card);
-            }
-
-            // this is slowing the load time down dont use for now
-            if (file.href.indexOf('mtp:') > -1) {
-
-            } else {
-
-                // Call Get Folder Size
-                getFolderSize(file.href);
-
-                getFolderCount(file.href);
-            }
-
-            auto_complete_arr.push(file.href);
-
-        } else {
-
-            if (file.is_hidden) {
-                hidden_file_grid.append(card);
-            } else {
-                file_grid.append(card);
-            }
-
-        }
-
-        // } else {
-            // msg('Maximum file limit of 2500 has been exceeded')
-        // }
-    }
-
-    main.addEventListener('dragover', (e) => {
-        e.preventDefault();
-    })
-
-    main.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        for (const f of e.dataTransfer.files) {
-            // console.log('file path', f.path)
-        }
-
-        ipcRenderer.send('main', 1);
-        paste(location.value);
-    })
-
-    main.addEventListener('mouseenter', (e) => {
-        // console.log("running mouse enter");
-        // document.addEventListener('keyup', quick_search)
-    })
-
-    main.addEventListener('mouseleave', (e) => {
-        // console.log('running mouse leave')
-        document.removeEventListener('keyup', quickSearch)
-    })
-
-    // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    main.append(active_tab_content)
-
-    // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    // main.append(tab_content)
-
-    // Set Icon Size
-    if (localStorage.getItem('icon_size') !== null) {
-        let icon_size = localStorage.getItem('icon_size')
-        // console.log('icon_size', icon_size);
-        slider.value = icon_size;
-        resizeIcons(icon_size);
-    }
-
-    // watch_dir(location.value);
-
-    // lazyloadCards();
-    lazyload();
-
-    sort_cards();
-
-    clearHighlight();
-
 })
 
 // Get Folder and File Count
@@ -1256,29 +1253,83 @@ async function get_disk_summary_view(callback) {
 
 // Switch View
 function switch_view(view) {
-    let active_tab_content = document.querySelector('.active-tab-content')
 
-    let folder_grid = active_tab_content.querySelector('.folder_grid');
-    let file_grid = active_tab_content.querySelector('.file_grid');
+    let list_view = document.querySelector('.list_view');
+    let grid_view = document.querySelector('.grid_view');
+    let folder_grids = document.querySelectorAll('.folder_grid');
+    let file_grids = document.querySelectorAll('.file_grid');
 
-    let folders = Array.from(folder_grid.querySelectorAll('.card'));
-    let files = Array.from(file_grid.querySelectorAll('.card'));
+    // let folders = Array.from(folder_grid.querySelectorAll('.card'));
+    // let files = Array.from(file_grid.querySelectorAll('.card'));
 
-    folder_grid.classList.remove('grid','grid1')
-    file_grid.classList.add('grid','grid1')
+    list_view.classList.remove('active');
+    grid_view.classList.remove('active');
+
+    folder_grids.forEach(folder_grid => {
+        folder_grid.classList.remove('grid','grid1');
+    })
+    file_grids.forEach(file_grid => {
+        file_grid.classList.remove('grid','grid1');
+    })
 
     switch (view) {
         case 'list': {
-            folder_grid.classList.add('grid1');
-            file_grid.classList.add('grid1');
+
+            list_view.classList.add('active')
+
+            folder_grids.forEach(folder_grid => {
+                folder_grid.classList.add('grid1');
+            })
+            file_grids.forEach(file_grid => {
+                file_grid.classList.add('grid1');
+            })
+            let headers = document.querySelectorAll('.header_row')
+            headers.forEach(header => {
+                header.classList.remove('hidden')
+            })
+            let cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.classList.add('list');
+                let icon = card.querySelector('.icon')
+                let content = card.querySelector('.content');
+
+                icon.classList.add('icon16');
+                content.classList.add('list');
+
+            })
             break;
         }
         case 'grid': {
-            folder_grid.classList.add('grid');
-            file_grid.classList.add('grid');
+
+            grid_view.classList.add('active')
+
+            folder_grids.forEach(folder_grid => {
+                folder_grid.classList.add('grid');
+            })
+            file_grids.forEach(file_grid => {
+                file_grid.classList.add('grid');
+            })
+            let headers = document.querySelectorAll('.header_row')
+            headers.forEach(header => {
+                header.classList.add('hidden')
+            })
+            let cards = document.querySelectorAll('.card');
+            cards.forEach(card => {
+                card.classList.remove('list');
+
+                let icon = card.querySelector('.icon')
+                let content = card.querySelector('.content');
+
+                icon.classList.remove('icon16');
+                content.classList.remove('list');
+
+            })
+
             break;
         }
     }
+
+    lazyload();
 
 }
 
@@ -1904,7 +1955,7 @@ let theme_dir = get_icon_theme();
 // Get Folder Icon
 function get_folder_icon(callback) {
     let folder_icon_path = ''
-    let icon_dirs = [path.join(theme_dir, '32x32/places/folder.png'), path.join(theme_dir, 'places/scalable/folder.svg'), path.join(theme_dir, 'places/64/folder.svg')];
+    let icon_dirs = [path.join(theme_dir, 'places@2x/48/folder.svg'), path.join(theme_dir, '32x32/places/folder.png'), path.join(theme_dir, 'places/scalable/folder.svg'), path.join(theme_dir, 'places/64/folder.svg')];
     icon_dirs.every(icon_dir => {
         if (fs.existsSync(icon_dir)) {
             folder_icon_path = icon_dir
@@ -2195,30 +2246,7 @@ function getRecentView(dirents) {
         }
     })
 
-    // tab_content.append(folder_grid, file_grid);
-
-    // const dates_arr = dirents.reduce((weeks, item) => {
-
-    //     // Get the ISO week number of the date property
-    //     const dateWeek = new Date(item.mtime * 1000).toISOString().slice(0, 10).split('-').slice(0, -1).join('-');;
-
-    //     console.log(dateWeek)
-
-    //     // Add the week to the array if it doesn't exist already
-    //     if (!weeks.includes(dateWeek)) {
-    //       weeks.push(dateWeek);
-    //     }
-
-    //     return weeks;
-
-    // }, []);
-
-    // console.log(dates_arr);
-
-    // dates_arr.forEach(date => {
-    //     let hr = document.createElement('hr');
-    //     tab_content.append(date, hr);
-    // })
+    lazyload();
 
 }
 
@@ -2357,7 +2385,7 @@ function getSearch() {
         if (e.key === 'Enter') {
             search_results.innerHTML = '';
             // let interval = setInterval(() => {
-            ipcRenderer.send('search', search.value, location.value, 2);
+            ipcRenderer.send('search', search.value, location.value, 3);
                 // console.log(search.value);
             // }, 1000);
         }
@@ -3362,7 +3390,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 e.preventDefault();
                 view = 'list';
                 localStorage.setItem('view', view);
-                getView(location.value);
+                switch_view(view);
+                // getView(location.value);
             })
         })
 
@@ -3372,7 +3401,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 e.preventDefault();
                 view = 'grid';
                 localStorage.setItem('view', view);
-                getView(location.value);
+                switch_view(view);
+                // getView(location.value);
             })
         })
 
@@ -3533,6 +3563,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     clear()
                 })
 
+                // New Folder
                 mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
                     ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
                 })
@@ -3540,6 +3571,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 // Show settings
                 mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
                     getSettings();
+                })
+
+                // Extract Compressed Files
+                mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
+                    extract();
                 })
 
             })

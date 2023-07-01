@@ -208,8 +208,16 @@ function getRecentFiles (callback) {
         if (err) {
             return;
         }
-        let json_data = JSON.parse(data)
-        return callback(json_data)
+        let json_data = JSON.parse(data);
+        const recent_files = json_data.reduce((a, b) => {
+            let existing_obj = a.find(obj => obj.href === b.href);
+            if (!existing_obj) {
+                a.push(b);
+            }
+            return a
+        }, [])
+
+        return callback(recent_files);
     })
 }
 
@@ -489,12 +497,6 @@ ipcMain.on('saveRecentFile', (e, file) => {
     saveRecentFile(file);
 })
 
-ipcMain.on('getRecentFiles', (e, files) => {
-    getRecentFiles(dirents => {
-        win.send('recent_files', dirents)
-    })
-})
-
 ipcMain.on('update_settings', (e, key, value) => {
     settings[key] = value;
     fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
@@ -535,9 +537,7 @@ ipcMain.on('get_recent_files', (e, dir) => {
     getRecentFiles(dirents => {
         win.send('recent_files', dirents)
     })
-    // gio.ls(dir, (err, dirents) => {
-    //     win.send('recent_files', dir, dirents)
-    // })
+
 })
 
 // On Get Folder Size
