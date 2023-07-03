@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron . --filesystem=xdg-run/gvfsd"
   },
   "keywords": [],
   "author": "michael.vanderford@gmail.com",

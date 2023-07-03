@@ -111,6 +111,8 @@ html, body {
     color: var(--text);
 }
 
+
+
 .active {
     border-radius: 5px;
     /* width: 100%; */
@@ -173,35 +175,31 @@ html, body {
     padding: 25px;
 }
 
-.connect > .label {
+.connect .label {
     display:block;
     margin-bottom: 2px;
 }
 
-.connect > .input {
+.connect .input {
     border: none;
     height: 23px;
     background: var(--input);
-    color: var(--white);
+    color: var(--text);
     display: block;
     margin-bottom: 15px;
     width: 350px;
 }
 
-.connect > .msg {
-    color: #ff0000;
+.connect .button {
+    background: var(--button);
+    color: var(--text);
+}
+
+.connect .msg {
+    background: var(--main);
+    color: var(--warning);
     padding: 5px;
 }
-
-#confirm {
-    padding: 40px;
-}
-
-#confirm .header {
-    font-weight: bold;
-}
-
-
 
 .menus {
     position: relative;
@@ -796,6 +794,7 @@ input[type=text]:focus {
         --text: #C0C0C0;
         --active: #ffffff;
         --tabs: #2c2c2c;
+        --button: #484848;
 
         --link: #4183c4;
         --highlight: #364864;
@@ -826,15 +825,16 @@ input[type=text]:focus {
     :root {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
-        --input: #ffffff;
+        --input: #cfcfcf;
         --main: #f7f7f7;
         --minibar: #ffffff;
         --border: #cfcfcf;
         --msg: #222222;
-        --dialog: #f7f7f7;
+        --dialog: #cfcfcf;
         --text: #252525;
         --active: #252525;
         --tabs: #ffffff;
+        --button: #cfcfcf;
 
         --link: #4183c4;
         --highlight: rgba(0, 0, 0, 0.1);

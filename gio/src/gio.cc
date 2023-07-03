@@ -12,7 +12,7 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
-#include <libtracker-sparql/tracker-sparql.h>
+// #include <libtracker-sparql/tracker-sparql.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 #include <iostream>
@@ -73,76 +73,76 @@ namespace gio {
     //     g_object_unref(folder);
     // }
 
-    NAN_METHOD(search) {
+    // NAN_METHOD(search) {
 
-        Nan::HandleScope scope;
+    //     Nan::HandleScope scope;
 
-        if (info.Length() < 3 || !info[2]->IsFunction()) {
-            return Nan::ThrowError("Wrong arguments. Expected callback function.");
-        }
+    //     if (info.Length() < 3 || !info[2]->IsFunction()) {
+    //         return Nan::ThrowError("Wrong arguments. Expected callback function.");
+    //     }
 
-        Nan::Callback callback(info[2].As<v8::Function>());
+    //     Nan::Callback callback(info[2].As<v8::Function>());
 
-        v8::Local<v8::String> searchString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> searchPath = Nan::To<v8::String>(info[1]).ToLocalChecked();
+    //     v8::Local<v8::String> searchString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Local<v8::String> searchPath = Nan::To<v8::String>(info[1]).ToLocalChecked();
 
-        Nan::Utf8String searchStringUtf8(searchString);
-        const gchar* searchStringC = g_strdup(*searchStringUtf8);
+    //     Nan::Utf8String searchStringUtf8(searchString);
+    //     const gchar* searchStringC = g_strdup(*searchStringUtf8);
 
-         Nan::Utf8String searchPathUtf8(searchPath);
-        const gchar* searchPathC = g_strdup(*searchPathUtf8);
+    //      Nan::Utf8String searchPathUtf8(searchPath);
+    //     const gchar* searchPathC = g_strdup(*searchPathUtf8);
 
-        GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+    //     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
-        // Perform the search asynchronously
-        GError *error = NULL;
-        // TrackerSparqlConnection *connection = tracker_sparql_connection_new(TRACKER_SPARQL_CONNECTION_FLAGS_NONE, NULL, NULL, NULL, &error);
-        TrackerSparqlConnection *connection = tracker_sparql_connection_bus_new ("org.freedesktop.Tracker3.Miner.Files", NULL, NULL, &error);
-        if (error != NULL) {
-            g_error("Error connecting to Tracker: %s", error->message);
-            g_error_free(error);
-            return;
-        }
+    //     // Perform the search asynchronously
+    //     GError *error = NULL;
+    //     // TrackerSparqlConnection *connection = tracker_sparql_connection_new(TRACKER_SPARQL_CONNECTION_FLAGS_NONE, NULL, NULL, NULL, &error);
+    //     TrackerSparqlConnection *connection = tracker_sparql_connection_bus_new ("org.freedesktop.Tracker3.Miner.Files", NULL, NULL, &error);
+    //     if (error != NULL) {
+    //         g_error("Error connecting to Tracker: %s", error->message);
+    //         g_error_free(error);
+    //         return;
+    //     }
 
-        gchar *query_string = g_strdup_printf("SELECT ?path WHERE { ?path a nfo:FileDataObject . FILTER(regex(?path, '%s', 'i') && regex(?path, '^%s.*', 'i')) }", *searchStringC, *searchPathC);
-        TrackerSparqlCursor *cursor = tracker_sparql_connection_query(connection, query_string, NULL, &error);
+    //     gchar *query_string = g_strdup_printf("SELECT ?path WHERE { ?path a nfo:FileDataObject . FILTER(regex(?path, '%s', 'i') && regex(?path, '^%s.*', 'i')) }", *searchStringC, *searchPathC);
+    //     TrackerSparqlCursor *cursor = tracker_sparql_connection_query(connection, query_string, NULL, &error);
 
-        // g_free(query_string);
-        if (error != NULL) {
-            // g_error("Error executing query: %s", error->message);
-            g_error("Error executing query: %s", query_string);
-            g_error_free(error);
-            g_free(query_string);
-            return;
-        }
+    //     // g_free(query_string);
+    //     if (error != NULL) {
+    //         // g_error("Error executing query: %s", error->message);
+    //         g_error("Error executing query: %s", query_string);
+    //         g_error_free(error);
+    //         g_free(query_string);
+    //         return;
+    //     }
 
-        g_free(query_string);
+    //     g_free(query_string);
 
-        // Create a result array to store the search results
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-        guint index = 0;
+    //     // Create a result array to store the search results
+    //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+    //     guint index = 0;
 
-        // Start iterating over the search results
-        while (tracker_sparql_cursor_next(cursor, NULL, &error)) {
-            const gchar *path = tracker_sparql_cursor_get_string(cursor, 0, NULL);
-            v8::Local<v8::String> result = Nan::New<v8::String>(path).ToLocalChecked();
-            Nan::Set(resultArray, index++, result);
-        }
+    //     // Start iterating over the search results
+    //     while (tracker_sparql_cursor_next(cursor, NULL, &error)) {
+    //         const gchar *path = tracker_sparql_cursor_get_string(cursor, 0, NULL);
+    //         v8::Local<v8::String> result = Nan::New<v8::String>(path).ToLocalChecked();
+    //         Nan::Set(resultArray, index++, result);
+    //     }
 
-        // Clean up resources
-        g_object_unref(cursor);
-        g_object_unref(connection);
+    //     // Clean up resources
+    //     g_object_unref(cursor);
+    //     g_object_unref(connection);
 
-        // Call the callback function with the search results
-        const int argc = 1;
-        v8::Local<v8::Value> argv[argc] = { resultArray };
-        Nan::Call(callback, Nan::GetCurrentContext()->Global(), argc, argv);
+    //     // Call the callback function with the search results
+    //     const int argc = 1;
+    //     v8::Local<v8::Value> argv[argc] = { resultArray };
+    //     Nan::Call(callback, Nan::GetCurrentContext()->Global(), argc, argv);
 
-        // Clean up the GMainLoop
-        g_main_loop_quit(loop);
-        g_main_loop_unref(loop);
+    //     // Clean up the GMainLoop
+    //     g_main_loop_quit(loop);
+    //     g_main_loop_unref(loop);
 
-    }
+    // }
 
     NAN_METHOD(thumbnail) {
 
@@ -1202,7 +1202,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
-        Nan::Export(target, "search", search);
+        // Nan::Export(target, "search", search);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);

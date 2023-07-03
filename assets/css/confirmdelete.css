@@ -6,7 +6,7 @@ html, body {
 }
 
 #confirm_delete {
-    color: #cfcfcf;
+    color: var(--text);
     padding-top: 20px;
     padding-left: 40px;
     padding-right: 40px;
@@ -36,3 +36,14 @@ html, body {
     padding-bottom: 10px !important;
 }
 
+#confirm_delete .button {
+    color: var(--text);
+    background: var(--button)
+
+}
+
+#confirm_delete .button > .delete {
+    color: var(--text);
+    background: var(--warning);
+
+}

@@ -2638,7 +2638,7 @@ function getRecentView(dirents) {
 function getSettings() {
 
     let location = document.querySelector('.location');
-    let tab_content = add_tab('Settings')
+    let tab_content = add_tab('Settings');
 
     let settings_html = fs.readFileSync('views/settings.html');
     tab_content.innerHTML = settings_html;
@@ -2707,16 +2707,23 @@ function settingsForm(settings) {
                             console.log('running theme')
                             input = document.createElement('select');
                             let options = ['Light', 'Dark']
-                            options.forEach(option => {
+                            options.forEach((option, i) => {
                                 let option_select = document.createElement('option');
                                 option_select.text = option
                                 option_select.value = option
-                                option_select.selected = key
                                 input.append(option_select);
+
+                                if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
+                                    option_select.selected = true
+                                }
                             })
+
+                            // console.log('selecting ', value)
+
 
                             input.addEventListener('change', (e) => {
                                 ipcRenderer.send('change_theme', input.value);
+                                ipcRenderer.send('update_settings', key, input.value)
                             })
 
                             settings_item.append(label, input)

@@ -637,7 +637,8 @@ ipcMain.handle('get_devices', async (e) => {
 
     return new Promise((resolve, reject) => {
         let device_arr = gio.get_mounts();
-        resolve(device_arr);
+        let filter_arr = device_arr.filter(x => x.name != 'mtp')
+        resolve(filter_arr);
     });
 })
 

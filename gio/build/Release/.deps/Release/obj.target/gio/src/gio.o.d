@@ -1,4 +1,4 @@
-cmd_Release/obj.target/gio/src/gio.o := g++ -o Release/obj.target/gio/src/gio.o ../src/gio.cc '-DNODE_GYP_MODULE_NAME=gio' '-DUSING_UV_SHARED=1' '-DUSING_V8_SHARED=1' '-DV8_DEPRECATION_WARNINGS=1' '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_GLIBCXX_USE_CXX11_ABI=1' '-DELECTRON_ENSURE_CONFIG_GYPI' '-D_LARGEFILE_SOURCE' '-D_FILE_OFFSET_BITS=64' '-DUSING_ELECTRON_CONFIG_GYPI' '-DV8_COMPRESS_POINTERS' '-DV8_COMPRESS_POINTERS_IN_SHARED_CAGE' '-DV8_ENABLE_SANDBOX' '-DV8_31BIT_SMIS_ON_64BIT_ARCH' '-D__STDC_FORMAT_MACROS' '-DOPENSSL_NO_PINSHARED' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNAN_MODULE_WORKER_ENABLED' '-DBUILDING_NODE_EXTENSION' -I/home/michael/.cache/node-gyp/24.6.0/include/node -I/home/michael/.cache/node-gyp/24.6.0/src -I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/config -I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/openssl/include -I/home/michael/.cache/node-gyp/24.6.0/deps/uv/include -I/home/michael/.cache/node-gyp/24.6.0/deps/zlib -I/home/michael/.cache/node-gyp/24.6.0/deps/v8/include -I/usr/include/glib-2.0 -I/usr/include/gdk-pixbuf-2.0 -I/usr/include/tracker-3.0 -I../node_modules/nan  -fPIC -pthread -Wall -Wextra -Wno-unused-parameter -m64 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -lglib-2.0 -O3 -fno-omit-frame-pointer -fno-rtti -fno-exceptions -std=gnu++17 -MMD -MF ./Release/.deps/Release/obj.target/gio/src/gio.o.d.raw   -c
+cmd_Release/obj.target/gio/src/gio.o := g++ -o Release/obj.target/gio/src/gio.o ../src/gio.cc '-DNODE_GYP_MODULE_NAME=gio' '-DUSING_UV_SHARED=1' '-DUSING_V8_SHARED=1' '-DV8_DEPRECATION_WARNINGS=1' '-DV8_DEPRECATION_WARNINGS' '-DV8_IMMINENT_DEPRECATION_WARNINGS' '-D_GLIBCXX_USE_CXX11_ABI=1' '-DELECTRON_ENSURE_CONFIG_GYPI' '-D_LARGEFILE_SOURCE' '-D_FILE_OFFSET_BITS=64' '-DUSING_ELECTRON_CONFIG_GYPI' '-DV8_COMPRESS_POINTERS' '-DV8_COMPRESS_POINTERS_IN_SHARED_CAGE' '-DV8_ENABLE_SANDBOX' '-DV8_31BIT_SMIS_ON_64BIT_ARCH' '-D__STDC_FORMAT_MACROS' '-DOPENSSL_NO_PINSHARED' '-DOPENSSL_THREADS' '-DOPENSSL_NO_ASM' '-DNAN_MODULE_WORKER_ENABLED' '-DBUILDING_NODE_EXTENSION' -I/home/michael/.cache/node-gyp/24.6.0/include/node -I/home/michael/.cache/node-gyp/24.6.0/src -I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/config -I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/openssl/include -I/home/michael/.cache/node-gyp/24.6.0/deps/uv/include -I/home/michael/.cache/node-gyp/24.6.0/deps/zlib -I/home/michael/.cache/node-gyp/24.6.0/deps/v8/include -I/usr/include/glib-2.0 -I/usr/include/gdk-pixbuf-2.0 -I../node_modules/nan  -fPIC -pthread -Wall -Wextra -Wno-unused-parameter -m64 -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -lglib-2.0 -O3 -fno-omit-frame-pointer -fno-rtti -fno-exceptions -std=gnu++17 -MMD -MF ./Release/.deps/Release/obj.target/gio/src/gio.o.d.raw   -c
 Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
  /home/michael/.cache/node-gyp/24.6.0/include/node/node_version.h \
  /home/michael/.cache/node-gyp/24.6.0/include/node/uv.h \
@@ -326,29 +326,6 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
  /usr/include/glib-2.0/gio/gzlibcompressor.h \
  /usr/include/glib-2.0/gio/gzlibdecompressor.h \
  /usr/include/glib-2.0/gio/gio-autocleanups.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-sparql.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-version-generated.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-version.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-enums.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-error.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-connection.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-notifier.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-resource.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-namespace-manager.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-batch.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-connection.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-cursor.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-statement.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-namespace-manager.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-batch.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-cursor.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint-dbus.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint-http.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-ontologies.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-statement.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-sparql-enum-types.h \
- /usr/include/tracker-3.0/libtracker-sparql/tracker-utils.h \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf.h \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-macros.h \
  /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-features.h \
@@ -712,29 +689,6 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
 /usr/include/glib-2.0/gio/gzlibcompressor.h:
 /usr/include/glib-2.0/gio/gzlibdecompressor.h:
 /usr/include/glib-2.0/gio/gio-autocleanups.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-sparql.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-version-generated.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-version.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-enums.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-error.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-connection.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-notifier.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-resource.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-namespace-manager.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-batch.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-connection.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-cursor.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-statement.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-namespace-manager.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-batch.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-cursor.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint-dbus.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-endpoint-http.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-ontologies.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-statement.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-sparql-enum-types.h:
-/usr/include/tracker-3.0/libtracker-sparql/tracker-utils.h:
 /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf.h:
 /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-macros.h:
 /usr/include/gdk-pixbuf-2.0/gdk-pixbuf/gdk-pixbuf-features.h:
