@@ -12,6 +12,7 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
+#include <libtracker-sparql/tracker-sparql.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 #include <iostream>
@@ -31,60 +32,117 @@ namespace gio {
 
     // void copy_file_to_clipboard(const char* file_path) {
     //     GFile* file = g_file_new_for_path(file_path);
-
     //     // Copy the file to the clipboard
     //     gboolean success = g_file_copy(file, "clipboard://");
-
     //     if (success) {
     //         // Get the default clipboard
     //         GtkClipboard* clipboard = gtk_clipboard_get_default(gdk_display_get_default());
-
     //         // Set the clipboard contents with the copied file
     //         gtk_clipboard_set_with_data(clipboard, NULL, NULL, NULL);
     //     }
-
     //     // Cleanup
     //     g_object_unref(file);
     // }
-
     // NAN_METHOD(findFilesAsync) {
     //     if (info.Length() < 3 || !info[0]->IsString() || !info[1]->IsString() || !info[2]->IsFunction()) {
     //         return Nan::ThrowTypeError("Invalid arguments. Expected: findFilesAsync(directory, pattern, callback)");
     //     }
-
     //     v8::Local<v8::String> directoryArg = info[0].As<v8::String>();
     //     v8::Local<v8::String> patternArg = info[1].As<v8::String>();
     //     v8::Local<v8::Function> callback = info[2].As<v8::Function>();
-
     //     Nan::Utf8String directory(directoryArg);
     //     Nan::Utf8String pattern(patternArg);
-
     //     GFile* folder = g_file_new_for_path(*directory);
     //     // GFileEnumerator* enumerator = g_file_enumerate_children(folder, G_FILE_ATTRIBUTE_STANDARD_NAME "," G_FILE_ATTRIBUTE_STANDARD_IS_REGULAR, G_FILE_QUERY_INFO_NONE, NULL, NULL);
     //     GFileEnumerator* enumerator = g_file_enumerate_children(folder, "standard::*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
     //     GFileInfo* file_info;
-
     //     while ((file_info = g_file_enumerator_next_file(enumerator, NULL, NULL)) != NULL) {
     //         const char* filename = g_file_info_get_name(file_info);
     //         // gboolean is_regular = g_file_info_get_is_regular(file_info);
-
     //         // if (g_pattern_match_simple(*pattern, filename) && is_regular) {
     //         if (g_pattern_match_simple(*pattern, filename)) {
     //             gchar* file_path = g_file_get_path(g_file_enumerator_get_child(enumerator, filename));
-
     //             v8::Local<v8::Value> argv[1] = { Nan::New(file_path).ToLocalChecked() };
     //             Nan::Call(callback, Nan::GetCurrentContext()->Global(), 1, argv);
-
     //             g_free(file_path);
     //         }
-
     //         g_object_unref(file_info);
     //     }
-
     //     g_file_enumerator_close(enumerator, NULL, NULL);
     //     g_object_unref(enumerator);
     //     g_object_unref(folder);
     // }
+
+    NAN_METHOD(search) {
+
+        Nan::HandleScope scope;
+
+        if (info.Length() < 3 || !info[2]->IsFunction()) {
+            return Nan::ThrowError("Wrong arguments. Expected callback function.");
+        }
+
+        Nan::Callback callback(info[2].As<v8::Function>());
+
+        v8::Local<v8::String> searchString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Local<v8::String> searchPath = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+        Nan::Utf8String searchStringUtf8(searchString);
+        const gchar* searchStringC = g_strdup(*searchStringUtf8);
+
+         Nan::Utf8String searchPathUtf8(searchPath);
+        const gchar* searchPathC = g_strdup(*searchPathUtf8);
+
+        GMainLoop *loop = g_main_loop_new(NULL, FALSE);
+
+        // Perform the search asynchronously
+        GError *error = NULL;
+        // TrackerSparqlConnection *connection = tracker_sparql_connection_new(TRACKER_SPARQL_CONNECTION_FLAGS_NONE, NULL, NULL, NULL, &error);
+        TrackerSparqlConnection *connection = tracker_sparql_connection_bus_new ("org.freedesktop.Tracker3.Miner.Files", NULL, NULL, &error);
+        if (error != NULL) {
+            g_error("Error connecting to Tracker: %s", error->message);
+            g_error_free(error);
+            return;
+        }
+
+        gchar *query_string = g_strdup_printf("SELECT ?path WHERE { ?path a nfo:FileDataObject . FILTER(regex(?path, '%s', 'i') && regex(?path, '^%s.*', 'i')) }", *searchStringC, *searchPathC);
+        TrackerSparqlCursor *cursor = tracker_sparql_connection_query(connection, query_string, NULL, &error);
+
+        // g_free(query_string);
+        if (error != NULL) {
+            // g_error("Error executing query: %s", error->message);
+            g_error("Error executing query: %s", query_string);
+            g_error_free(error);
+            g_free(query_string);
+            return;
+        }
+
+        g_free(query_string);
+
+        // Create a result array to store the search results
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+        guint index = 0;
+
+        // Start iterating over the search results
+        while (tracker_sparql_cursor_next(cursor, NULL, &error)) {
+            const gchar *path = tracker_sparql_cursor_get_string(cursor, 0, NULL);
+            v8::Local<v8::String> result = Nan::New<v8::String>(path).ToLocalChecked();
+            Nan::Set(resultArray, index++, result);
+        }
+
+        // Clean up resources
+        g_object_unref(cursor);
+        g_object_unref(connection);
+
+        // Call the callback function with the search results
+        const int argc = 1;
+        v8::Local<v8::Value> argv[argc] = { resultArray };
+        Nan::Call(callback, Nan::GetCurrentContext()->Global(), argc, argv);
+
+        // Clean up the GMainLoop
+        g_main_loop_quit(loop);
+        g_main_loop_unref(loop);
+
+    }
 
     NAN_METHOD(thumbnail) {
 
@@ -574,14 +632,14 @@ namespace gio {
             gboolean is_hidden = g_file_info_get_is_hidden(file_info);
             gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
             const char* mimetype = g_file_info_get_content_type(file_info);
-            gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+            // gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
-            Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
+            // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
             // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
             if (mimetype != nullptr) {
                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
@@ -617,8 +675,6 @@ namespace gio {
                 g_date_time_unref(ctime_dt);
             }
 
-            // Nan::Set(resultArray, 0, fileObj);
-
             g_object_unref(file_info);
 
             g_object_unref(src);
@@ -631,10 +687,6 @@ namespace gio {
     NAN_METHOD(ls) {
 
         Nan::HandleScope scope;
-
-        // if (info.Length() < 2) {
-        //     return Nan::ThrowError("Wrong number of arguments");
-        // }
 
         if (info.Length() < 2 || !info[1]->IsFunction()) {
             return Nan::ThrowError("Wrong arguments. Expected callback function.");
@@ -737,8 +789,6 @@ namespace gio {
 
         g_object_unref(enumerator);
         g_object_unref(src);
-
-        // info.GetReturnValue().Set(resultArray);
 
         v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
         callback.Call(2, argv);
@@ -904,7 +954,7 @@ namespace gio {
         if (overwrite_flag == 1) {
             flags = G_FILE_COPY_OVERWRITE;
         } else {
-            flags = G_FILE_COPY_NONE;
+            flags = G_FILE_COPY_NOFOLLOW_SYMLINKS;
         }
 
         v8::Isolate* isolate = info.GetIsolate();
@@ -1152,6 +1202,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        Nan::Export(target, "search", search);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);

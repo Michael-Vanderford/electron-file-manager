@@ -16,6 +16,15 @@ hr {
     width: 350px;
 }
 
+.settings_view select {
+    display: block;
+    color: var(--text);
+    background: var(--main);
+    border: 1px solid var(--border);
+    margin-bottom: 10px;
+    width: 350px;
+}
+
 .settings_view .settings_item {
     /* margin-left: 20px; */
 }

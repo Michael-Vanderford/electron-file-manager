@@ -491,8 +491,12 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
-// Get Settings
+// Change theme
+ipcMain.on('change_theme', (e, theme) => {
+    nativeTheme.themeSource = theme.toLocaleLowerCase();
+})
 
+// Get Settings
 ipcMain.on('saveRecentFile', (e, file) => {
     saveRecentFile(file);
 })
@@ -500,7 +504,7 @@ ipcMain.on('saveRecentFile', (e, file) => {
 ipcMain.on('update_settings', (e, key, value) => {
     settings[key] = value;
     fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
-    console.log(update_setting)
+    win.send('msg', 'Settings updated')
 })
 
 ipcMain.on('get_settings', (e) => {
@@ -528,7 +532,22 @@ ipcMain.on('get_selected_files', (e, selected_files) => {
     // // console.log('selected files array', selected_files_arr);
 })
 
+function isValidUTF8(str) {
+    try {
+        new TextDecoder("utf-8").decode(new TextEncoder().encode(str));
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
 ipcMain.on('search', (e, search, location, depth) => {
+    // if (!isValidUTF8(search) || !isValidUTF8(location)) {
+    //     throw new Error("Invalid UTF-8 string");
+    // }
+    // gio.search(search, location, res => {
+    //     console.log(res);
+    // })
     find.postMessage({cmd: 'search', search: search, location: location, depth: depth});
 })
 
@@ -537,7 +556,6 @@ ipcMain.on('get_recent_files', (e, dir) => {
     getRecentFiles(dirents => {
         win.send('recent_files', dirents)
     })
-
 })
 
 // On Get Folder Size
@@ -2205,8 +2223,6 @@ ipcMain.on('file_menu', (e, file) => {
         },
     ]
 
-    // files_menu_template = template;
-
     let menu = Menu.buildFromTemplate(files_menu_template)
 
     // ADD TEMPLATES
@@ -2298,6 +2314,10 @@ ipcMain.on('workspace_menu', (e, file) => {
     menu.on('menu-will-close', () => {
         win.send('clear_items');
     });
+
+})
+
+ipcMain.on('recent_menu', (e, file) => {
 
 })
 

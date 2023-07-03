@@ -52,15 +52,16 @@ CFLAGS_CC_Debug := \
 	-std=gnu++17
 
 INCS_Debug := \
-	-I/home/michael/.cache/node-gyp/24.1.3/include/node \
-	-I/home/michael/.cache/node-gyp/24.1.3/src \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/include/node \
+	-I/home/michael/.cache/node-gyp/24.6.0/src \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/zlib \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I/usr/include/gdk-pixbuf-2.0 \
+	-I/usr/include/tracker-3.0 \
 	-I$(srcdir)/node_modules/nan
 
 DEFS_Release := \
@@ -110,15 +111,16 @@ CFLAGS_CC_Release := \
 	-std=gnu++17
 
 INCS_Release := \
-	-I/home/michael/.cache/node-gyp/24.1.3/include/node \
-	-I/home/michael/.cache/node-gyp/24.1.3/src \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/zlib \
-	-I/home/michael/.cache/node-gyp/24.1.3/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/include/node \
+	-I/home/michael/.cache/node-gyp/24.6.0/src \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/zlib \
+	-I/home/michael/.cache/node-gyp/24.6.0/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I/usr/include/gdk-pixbuf-2.0 \
+	-I/usr/include/tracker-3.0 \
 	-I$(srcdir)/node_modules/nan
 
 OBJS := \
@@ -162,7 +164,9 @@ LIBS := \
 	-lgio-2.0 \
 	-lgobject-2.0 \
 	-lglib-2.0 \
-	-lgdk_pixbuf-2.0
+	-lgdk_pixbuf-2.0 \
+	-L/usr/lib/x86_64-linux-gnu \
+	-ltracker-sparql-3.0
 
 $(obj).target/gio.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/gio.node: LIBS := $(LIBS)

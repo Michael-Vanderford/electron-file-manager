@@ -1,0 +1,86 @@
+<!-- SEARCH / FIND -->
+<div id="find_div" class="search_view">
+
+    <div class="header">Search</div>
+
+    <!-- FIND -->
+    <div style="">
+        <a href="#" id="btn_find_options" style="">
+            <!-- <i class="ui icon chevron down" style="color: #555;"></i> -->
+        </a>
+    </div>
+
+    <div class="">
+        <input type="text" id="find" tabindex="2" spellcheck="false" class="find_input" placeholder="Search">
+    </div>
+
+    <div class="grid2">
+        <div class="">
+            <div class="">
+                <input spellcheck="false" type="checkbox" id="find_folders" name="find_folders">
+                <label for="find_folders" class="label" style="font-weight: normal;">Folders</label>
+            </div>
+        </div>
+
+        <div class="">
+            <div class="">
+                <input type="checkbox" id="find_files" name="find_files">
+                <label for="find_files" class="label" style="font-weight: normal;">Files</label>
+            </div>
+        </div>
+    </div>
+
+    <br />
+
+    <div class="">
+        <div class="">
+            <label class="label">Start Date</label>
+            <input type="date" id="start_date" name="start_date" class="" placeholder="enter start date" title="enter start date">
+        </div>
+
+        <div class="">
+            <label class="label">End Date</label>
+            <input type="date" id="end_date" name="end_date" class="" placeholder="enter end date" title="Searh by end date">
+        </div>
+    </div>
+
+    <div class="">
+        <div class="">
+            <label for="find_size" style="color:#cfcfcf" class="label">Size</label>
+            <input type="text" id="find_size" class="find_input" placeholder="Size" title="Search by size. Example: > 100">
+        </div>
+        <div class="">
+            <label for="depth" style="color:#cfcfcf" class="label" title="Number of levels to search">Depth</label>
+            <input type="text" id="depth" class="find_input" placeholder="depth" title="Number of levels to search" value="1">
+        </div>
+    </div>
+
+    <div class="grid3">
+        <div class="">
+            <input type="radio" name="size_options" id="size_options" value="k">
+            <label for="size_options" class="label">KB</label>
+        </div>
+        <div class="">
+            <input type="radio" name="size_options" id="size_options" checked="" value="M">
+            <label for="size_options" class="label">MB</label>
+        </div>
+        <div class="">
+            <input type="radio" name="size_options" id="size_options" value="G">
+            <label for="size_options" class="label">GB</label>
+        </div>
+    </div>
+    <br>
+    <div id="search_info"></div>
+
+</div>
+
+<progress id="search_progress" class="hidden" step="1" value="85" max="87"></progress>
+<div class="grid content" id="search_content">
+    <div class="column sixteen wide" id="search_results_col">
+        <div class="" id="search_results_card" style="border:none">
+            <div class="content" id="search_results"></div>
+        </div>
+    </div>
+</div>
+
+

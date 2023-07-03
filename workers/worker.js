@@ -75,6 +75,9 @@ parentPort.on('message', data => {
 
     if (data.cmd === 'count') {
         let item_count = gio.count(data.source)
+        if (item_count === undefined) {
+            item_count = ''
+        }
         parentPort.postMessage({cmd: 'count', source: data.source, count: item_count});
     }
 

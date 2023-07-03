@@ -29,6 +29,11 @@ html, body {
     padding-right: 15px;
 }
 
+.header_menu .active {
+    font-weight: bold;
+    color: var(--active);
+}
+
 #header_menu .settings {
     position: relative;
     height: 12px;
@@ -117,18 +122,20 @@ html, body {
 }
 
 .msg {
-    color: var(--orange);
-    background-color: var(--msg);
+    color: var(--text);
+    background-color: var(--dialog);
+    border: 1px solid var(--border);
     border-radius: 5px;
     padding: 10px;
     z-index: 100;
 }
 
 #progress {
-    color: #cfcfcf;
-    background-color: rgb(0 0 0 / 0.8);
+    color: var(--text);
+    background-color: var(--dialog);
+    border: 1px solid var(--border);
     border-radius: 5px;
-    padding: 5px;
+    padding: 10px;
     width: 450px;
     z-index: 100;
     white-space: nowrap;
@@ -654,8 +661,8 @@ input[type=text]:focus {
 
 .bottom {
     position: fixed;
-    bottom: 5px;
-    margin-bottom: 5px;
+    bottom: 0px;
+    /* margin-bottom: 5px; */
 }
 
 .float.right {
@@ -711,12 +718,13 @@ input[type=text]:focus {
 
 /* Style for the tooltip */
 .tooltip {
-    border: 1px solid var(--grey);
+    border: 1px solid var(--border);
     border-radius: 5px;
     line-height: 18px;
     padding: 10px;
-    width: 200px;
-    background: rgba(0, 0, 0, .8);
+    /* width: 400px; */
+    /* background: rgba(0, 0, 0, .8); */
+    background: var(--dialog);
     position: fixed;
     display: block;
     z-index: 100;
@@ -823,7 +831,7 @@ input[type=text]:focus {
         --minibar: #ffffff;
         --border: #cfcfcf;
         --msg: #222222;
-        --dialog: #262626;
+        --dialog: #f7f7f7;
         --text: #252525;
         --active: #252525;
         --tabs: #ffffff;

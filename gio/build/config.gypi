@@ -396,8 +396,8 @@
     "v8_trace_maps": 0,
     "v8_use_siphash": 1,
     "want_separate_host_toolset": 1,
-    "nodedir": "/home/michael/.cache/node-gyp/24.1.3",
+    "nodedir": "/home/michael/.cache/node-gyp/24.6.0",
     "standalone_static_library": 1,
-    "target": "24.1.3"
+    "target": "24.6.0"
   }
 }
