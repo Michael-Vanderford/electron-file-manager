@@ -94,7 +94,7 @@ html, body {
     border-radius: 5px;
     /* padding: 10px; */
     width: 100%;
-    height: 100%;
+    height: 92%;
     /* flex: 1; */
 }
 
@@ -278,9 +278,11 @@ html, body {
     border-bottom: 1px solid var(--border);
     display: inline-block;
     z-index: 1000;
+    box-sizing: border-box;
 }
 
 .tab {
+    height:21px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--text);
@@ -313,14 +315,16 @@ html, body {
 .tab_container {
     padding:4px;
     width: 100%;
+    height: 20px;
 }
 
 .tab_content {
     box-sizing: border-box;
-    height: 100%;
-    overflow-x: hidden;
     overflow-y: auto;
-    padding: 10px;
+    overflow-x: hidden;
+    height: 100%;
+    padding-left: 5px;
+    padding-right: 5px;
     padding-bottom: 50px;
 }
 
@@ -344,12 +348,12 @@ progress::-webkit-progress-bar {
 
 .folder_grid {
     box-sizing: border-box;
-    padding: 5px;
+    /* padding: 5px; */
     width: 100%;
 }
 .file_grid {
     box-sizing: border-box;
-    padding: 5px;
+    /* padding: 5px; */
     width: 100%;
 }
 
@@ -498,6 +502,7 @@ progress::-webkit-progress-bar {
 }
 
 .header_row {
+    box-sizing: border-box;
     position: sticky;
     top: 0;
     display: flex;

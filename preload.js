@@ -1684,17 +1684,17 @@ function find_files(callback) {
                         let child = exec(cmd)
                         console.log(cmd)
 
-                        let tab_content = add_tab('Search Results');
-                        let folder_grid = tab_content.querySelector('.folder_grid');
-                        let file_grid = tab_content.querySelector('.file_grid');
+                        // let tab_content = add_tab('Search Results');
+                        // let folder_grid = tab_content.querySelector('.folder_grid');
+                        // let file_grid = tab_content.querySelector('.file_grid');
 
-                        if (!folder_grid) {
-                            folder_grid = add_div(['folder_grid']);
-                        }
-                        if (!file_grid) {
-                            file_grid = add_div(['file_grid']);
-                        }
-                        tab_content.append(folder_grid, file_grid);
+                        // if (!folder_grid) {
+                        let folder_grid = add_div(['folder_grid']);
+                        // }
+                        // if (!file_grid) {
+                        let file_grid = add_div(['file_grid']);
+                        // }
+                        // tab_content.append(folder_grid, file_grid);
 
                         child.stdout.on('data', (res) => {
 
@@ -1752,6 +1752,10 @@ function find_files(callback) {
                             if (!data) {
                                 search_info.innerHTML = '0 matches found'
                             } else {
+
+                                let tab_content = add_tab('Search Results');
+                                tab_content.append(folder_grid, file_grid);
+
                                 search_info.innerHTML = c + ' matches found'
                             }
                             search_progress.classList.add('hidden')
