@@ -491,6 +491,19 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
+
+ipcMain.on('search_results', (e , search_arr) => {
+    let arr = []
+    search_arr.forEach(item => {
+        try {
+            arr.push(gio.get_file(item));
+        } catch (err) {
+        }
+    })
+    win.send('search_results', (e, arr))
+})
+
+
 // Change theme
 ipcMain.on('change_theme', (e, theme) => {
     nativeTheme.themeSource = theme.toLocaleLowerCase();

@@ -62,7 +62,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let sidebar_items = sidebar.querySelectorAll('.item');
     sidebar_items.forEach(item => {
         let sidebar_item = item.querySelector('a');
-        console.log(sidebar_item.href)
+        // console.log(sidebar_item.href)
         if (sidebar_item.title === source) {
             item.classList.add('active')
         } else {
@@ -328,85 +328,43 @@ ipcRenderer.on('get_devices', (e) => {
 
 // On Search Results
 ipcRenderer.on('search_results', (e, find_arr) => {
-    // // console.log(find_arr);
-    let search_results = document.querySelector('.search_results');
-    search_results.innerHTML = '';
+
+    console.log('getting array');
+
+    let folder_grid = add_div(['folder_grid']);
+    let hidden_folder_grid = add_div(['hidden_folder_grid'])
+    let file_grid = add_div(['file_grid']);
+    let hidden_file_grid = add_div(['hidden_file_grid'])
+
+    let tab_content = add_tab('Search Results');
+    tab_content.append(folder_grid, file_grid);
+
     find_arr.forEach(file => {
 
-        let item = add_div();
-        let icon = add_div();
-        let img = document.createElement('img');
-        let link = add_div();
+        if (file !== undefined) {
+            let card = getCardGio(file)
+            if (file.is_dir === true) {
+                if (file.is_hidden) {
+                    hidden_folder_grid.append(card);
+                } else {
+                    folder_grid.append(card);
+                }
 
-        img.classList.add('icon16');
-        item.classList.add('item');
-
-        link.append(path.basename(file.href));
-        item.dataset.href = file.href;
-
-        let title = ''
-
-        if (file.is_dir) {
-
-            img.src = folder_icon;
-            item.addEventListener('click', (e) => {
-                getView(file.href);
-            })
-
-            item.addEventListener('contextmenu', (e) => {
-                item.classList.add("highlight");
-                ipcRenderer.send('folder_menu', file);
-            })
-
-            title =
-            'Name: ' + path.basename(file.href) +
-            '\n' +
-            'Size: ' + getFileSize(file.size) +
-            '\n' +
-            'Accessed: ' + getDateTime(file.atime) +
-            '\n' +
-            'Modified: ' + getDateTime(file.mtime) +
-            '\n' +
-            'Created: ' + getDateTime(file.ctime) +
-            '\n' +
-            'Type: ' + file.content_type
+            } else {
+                if (file.is_hidden) {
+                    hidden_file_grid.append(card);
+                } else {
+                    file_grid.append(card);
+                }
 
 
-        } else {
-            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                img.src = res;
-            })
-            item.addEventListener('click', (e) => {
-                ipcRenderer.invoke('open', file.href);
-            })
-
-            item.addEventListener('contextmenu', (e) => {
-                item.classList.add("highlight");
-                ipcRenderer.send('file_menu', file);
-            })
-
-            title =
-            'Name: ' + path.basename(file.href) +
-            '\n' +
-            'Size: ' + getFileSize(file.size) +
-            '\n' +
-            'Accessed: ' + getDateTime(file.atime) +
-            '\n' +
-            'Modified: ' + getDateTime(file.mtime) +
-            '\n' +
-            'Created: ' + getDateTime(file.ctime) +
-            '\n' +
-            'Type: ' + file.content_type
-
+            }
         }
 
-        item.title = title;
-        icon.append(img);
-        item.append(icon, link);
-
-        search_results.append(item);
-
     })
+
+    switch_view(localStorage.getItem('view'));
+    lazyload();
 
 })
 
@@ -467,9 +425,6 @@ ipcRenderer.on('folder_count', (e, href, folder_count) => {
 // On Disk Space
 ipcRenderer.on('disk_space', (e, data) => {
 
-    // console.log('running get disk space');
-
-    // let info_view = document.getElementById('info_view')
     let folder_count = 0; //get_folder_count();
     let file_count = 0; //get_file_count();
 
@@ -502,46 +457,14 @@ ipcRenderer.on('disk_space', (e, data) => {
 
         disk_space.append(ds, us, as)
 
-        // let ds = `Disk Space: ${data[0].disksize} | Used Space: ${data[0].usedspace} | Available: ${data[0].availablespace}`
-        // disk_space.innerHTML = ds;
-
-        // disk_space.innerHTML = ''
-        // let disksize = add_div()
-        // let usedspace = add_div()
-        // let availablespace = add_div()
-        // let foldersize = add_div()
-        // let foldercount = add_div()
-        // let filecount = add_div()
-
-        // foldersize.id = 'du_folder_size'
-
-        // data.forEach(item => {
-
-        //     disksize.innerHTML = '<div class="item">Disk size: <b>&nbsp' + item.disksize + '</b></div>'
-        //     usedspace.innerHTML = '<div class="item">Used space: <b>&nbsp' + item.usedspace + '</b></div>'
-        //     availablespace.innerHTML = '<div class="item">Available space: <b>&nbsp' + item.availablespace + '</b></div>'
-        //     foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbsp' + item.foldersize + '</b></div>'
-        //     foldersize.innerHTML = '<div class="item">Folder Size: <b>&nbspCalculating.... </b></div>'
-        //     foldercount.innerHTML = '<div class="item">Folder Count: <b>&nbsp' + folder_count + '</b></div>'
-        //     filecount.innerHTML = '<div class="item">File Count: <b>&nbsp' + file_count + '</b></div>'
-
-        //     disk_space.appendChild(disksize)
-        //     disk_space.appendChild(usedspace)
-        //     disk_space.appendChild(availablespace)
-        //     disk_space.appendChild(foldersize)
-        //     disk_space.appendChild(foldercount)
-        //     disk_space.appendChild(filecount)
-
-        // })
-
     } else {
-        // console.log('no data found')
+
     }
 
 })
 
 ipcRenderer.on('open_with', (e, file, exe_arr) => {
-    // console.log('file', file)
+
     let list = document.getElementById('list')
     exe_arr.forEach(exe_item => {
 
@@ -1689,13 +1612,13 @@ function find_files(callback) {
                         // let file_grid = tab_content.querySelector('.file_grid');
 
                         // if (!folder_grid) {
-                        let folder_grid = add_div(['folder_grid']);
+                        // let folder_grid = add_div(['folder_grid']);
                         // }
                         // if (!file_grid) {
-                        let file_grid = add_div(['file_grid']);
+                        // let file_grid = add_div(['file_grid']);
                         // }
                         // tab_content.append(folder_grid, file_grid);
-
+                        let search_arr = [];
                         child.stdout.on('data', (res) => {
 
                             data = 1;
@@ -1713,35 +1636,33 @@ function find_files(callback) {
                             } else {
 
                                 for (let i = 0; i < files.length; i++) {
+
+
                                     if (files[i] != '') {
                                         ++c
-                                        search_progress.value = i
+                                        search_arr.push(files[i])
 
-                                        fs.stat(files[i], (err, stats) => {
-                                            let file_obj = {
-                                                name: path.basename(files[i]),
-                                                href: files[i],
-                                                is_dir: stats.isDirectory(),
-                                                mtime: stats.mtime,
-                                                size: stats.size
-                                            }
-
-                                            let card = getCardGio(file_obj)
-
-                                            if (file_obj.is_dir == true) {
-                                                folder_grid.append(card);
-                                                getFolderSize(file_obj.href);
-                                                getFolderCount(file_obj.href);
-
-                                            } else {
-                                                file_grid.append(card)
-                                            }
-
-                                            switch_view(localStorage.getItem('view'));
-
-                                        })
-
+                                        //     search_progress.value = i
+                                        //     fs.stat(files[i], (err, stats) => {
+                                        //         let file_obj = {
+                                        //             name: path.basename(files[i]),
+                                        //             href: files[i],
+                                        //             is_dir: stats.isDirectory(),
+                                        //             mtime: stats.mtime,
+                                        //             size: stats.size
+                                        //         }
+                                        //         let card = getCardGio(file_obj)
+                                        //         if (file_obj.is_dir == true) {
+                                        //             folder_grid.append(card);
+                                        //             getFolderSize(file_obj.href);
+                                        //             getFolderCount(file_obj.href);
+                                        //         } else {
+                                        //             file_grid.append(card)
+                                        //         }
+                                        //         switch_view(localStorage.getItem('view'));
+                                        //     })
                                     }
+
                                 }
 
                             }
@@ -1753,8 +1674,11 @@ function find_files(callback) {
                                 search_info.innerHTML = '0 matches found'
                             } else {
 
-                                let tab_content = add_tab('Search Results');
-                                tab_content.append(folder_grid, file_grid);
+                                console.log('ipc send search results')
+                                ipcRenderer.send('search_results', search_arr);
+                                // console.log(search_arr)
+                                // let tab_content = add_tab('Search Results');
+                                // tab_content.append(folder_grid, file_grid);
 
                                 search_info.innerHTML = c + ' matches found'
                             }
@@ -1785,7 +1709,6 @@ function find_files(callback) {
                 chevron.classList.remove('right')
                 localStorage.setItem('find_options', 1);
 
-                // Add Hidden
             } else {
 
                 find_options.classList.add('hidden')
@@ -2884,9 +2807,37 @@ function getHome(callback) {
 
     let location = document.getElementById('location');
     let home_dir = os.homedir();
-    let my_computer_arr = ['Home', 'Documents', 'Music', 'Pictures', 'Videos', 'Downloads', 'Recent', 'File System']
-    let my_computer_paths_arr = [home_dir, `${path.join(home_dir, 'Documents')}`, `${path.join(home_dir, 'Music')}`, `${path.join(home_dir, 'Pictures')}`, `${path.join(home_dir, 'Videos')}`, `${path.join(home_dir, 'Downloads')}`, 'Recent', '/']
-    let my_computer_icons_arr = ['house', 'folder', 'file-music', 'image', 'film', 'download', 'clock-history', 'hdd']
+    let my_computer_arr = [
+        'Home',
+        'Documents',
+        'Downloads',
+        'Music',
+        'Pictures',
+        'Videos',
+        'Recent',
+        'File System'
+    ]
+
+    let my_computer_paths_arr = [
+        home_dir,
+        `${path.join(home_dir, 'Documents')}`,
+        `${path.join(home_dir, 'Downloads')}`,
+        `${path.join(home_dir, 'Music')}`,
+        `${path.join(home_dir, 'Pictures')}`,
+        `${path.join(home_dir, 'Videos')}`,
+        'Recent',
+        '/'
+    ]
+    let my_computer_icons_arr = [
+        'house',
+        'folder',
+        'download',
+        'file-music',
+        'image',
+        'film',
+        'clock-history',
+        'hdd'
+    ]
     // let home_chevron_icons_arr = ['chevron-right', 'chevron-right', 'chevron-right', 'chevron-right', 'chevron-right', 'chevron-right', 'chevron-right', 'chevron-right']
 
     localStorage.setItem('minibar', 'mb_home')

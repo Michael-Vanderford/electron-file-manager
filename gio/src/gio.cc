@@ -12,7 +12,6 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
-// #include <libtracker-sparql/tracker-sparql.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 #include <iostream>
@@ -211,13 +210,13 @@ namespace gio {
             char* childPath = g_build_filename(dir, childName, NULL);
 
             if (g_file_info_get_file_type(childInfo) == G_FILE_TYPE_DIRECTORY) {
-            folderSize += du(childPath);
+                folderSize += du(childPath);
             } else {
-            GFileInfo* fileInfo = g_file_query_info(g_file_new_for_path(childPath),
-                                                    G_FILE_ATTRIBUTE_STANDARD_SIZE,
-                                                    G_FILE_QUERY_INFO_NONE, NULL, NULL);
-            folderSize += g_file_info_get_size(fileInfo);
-            g_object_unref(fileInfo);
+                GFileInfo* fileInfo = g_file_query_info(g_file_new_for_path(childPath),
+                                                        G_FILE_ATTRIBUTE_STANDARD_SIZE,
+                                                        G_FILE_QUERY_INFO_NONE, NULL, NULL);
+                folderSize += g_file_info_get_size(fileInfo);
+                g_object_unref(fileInfo);
             }
 
             g_free(childPath);
@@ -275,16 +274,12 @@ namespace gio {
 
         // // Iterate over the mounts
         // for (iter = volumes; iter != NULL; iter = iter->next) {
-
         //     GVolume *volume = G_VOLUME(iter->data);
-
         //     const gchar *name = g_volume_get_name(volume);
         //     const gchar *uuid = g_volume_get_uuid(volume);
         //     const gchar *type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
-
         //     GMount *mount = g_volume_get_mount(volume);
         //     GFile *mount_path = NULL;
-
         //     // if (mount != NULL) {
         //     mount_path = g_mount_get_default_location(mount);
         //     gchar *path = g_file_get_path(mount_path);
@@ -625,6 +620,12 @@ namespace gio {
 
         GError* error = NULL;
         GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
+
+        if (error != NULL) {
+            g_object_unref(src);
+            return Nan::ThrowError(error->message);
+        }
+
         const char* filename = g_file_info_get_name(file_info);
         if (filename != nullptr) {
 
@@ -676,7 +677,6 @@ namespace gio {
             }
 
             g_object_unref(file_info);
-
             g_object_unref(src);
             info.GetReturnValue().Set(fileObj);
 
@@ -1202,7 +1202,6 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
-        // Nan::Export(target, "search", search);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);
