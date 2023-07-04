@@ -316,11 +316,12 @@ html, body {
 }
 
 .tab_content {
+    box-sizing: border-box;
     height: 100%;
-    padding-bottom: 75px;
     overflow-x: hidden;
     overflow-y: auto;
     padding: 10px;
+    padding-bottom: 50px;
 }
 
 #chart {
@@ -342,19 +343,23 @@ progress::-webkit-progress-bar {
 }
 
 .folder_grid {
+    box-sizing: border-box;
     padding: 5px;
     width: 100%;
 }
 .file_grid {
+    box-sizing: border-box;
     padding: 5px;
     width: 100%;
 }
 
 .hidden_folder_grid {
+    box-sizing: border-box;
     padding: 5px;
     width: 100%;
 }
 .hidden_file_grid {
+    box-sizing: border-box;
     padding: 5px;
     width: 100%;
 }
