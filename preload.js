@@ -284,6 +284,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         document.removeEventListener('keyup', quickSearch)
     })
 
+    main.addEventListener('contextmenu', (e) => {
+        ipcRenderer.send('main_menu', location.value);
+    })
+
     // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     main.append(active_tab_content)
@@ -3893,10 +3897,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
         /////////////////////////////////////////////////////////////////
 
         // Main Context Menu
-        main.addEventListener('contextmenu', (e) => {
-            // e.preventDefault();
-            ipcRenderer.send('main_menu', location.value);
-        })
+        // main.addEventListener('contextmenu', (e) => {
+        //     // e.preventDefault();
+        //     ipcRenderer.send('main_menu', location.value);
+        // })
 
         // Get on mouse over
         document.addEventListener('mouseover', (e) => {
