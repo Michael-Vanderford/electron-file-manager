@@ -36,7 +36,7 @@ Install
 
 <ul>
     <li>Go Back: Backspace</li>
-    <li>ShowWorkspace: Alt+W</li>
+    <!-- <li>ShowWorkspace: Alt+W</li> -->
     <li>ShowSidebar: Ctrl+B</li>
     <li>Find: Ctrl+Shift+F</li>
     <li>Rename: F2</li>

@@ -168,10 +168,28 @@ namespace gio {
             dest = g_file_new_for_uri(*destFile);
         }
 
+        // GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
+        // int thumbnailWidth = 100;  // Adjust the width as per your requirements
+        // int thumbnailHeight = 100; // Adjust the height as per your requirements
+        // GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
+
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
+
+        if (inputPixbuf == NULL) {
+            g_print("Error loading input image\n");
+            // Handle the error appropriately (e.g., return, cleanup, etc.)
+        }
+
         int thumbnailWidth = 100;  // Adjust the width as per your requirements
         int thumbnailHeight = 100; // Adjust the height as per your requirements
+
         GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
+
+        if (thumbnailPixbuf == NULL) {
+            g_print("Error creating thumbnail\n");
+            // Handle the error appropriately (e.g., return, cleanup, etc.)
+        }
+
 
         GError* error = NULL;
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);

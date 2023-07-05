@@ -13,9 +13,7 @@
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowHome": "Alt+H",
-        "ShowWorkspace": "Alt+W",
         "ShowSidebar": "Ctrl+B",
-        "ShowDevices": "Ctrl+D",
         "ShowSettings": "Ctrl+Shift+S",
         "Find": "Ctrl+Shift+F",
         "QuickSearch": "Ctrl+F",

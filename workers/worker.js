@@ -105,6 +105,7 @@ parentPort.on('message', data => {
             parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination});
             parentPort.postMessage({cmd: 'msg', msg: `Renamed "${path.basename(data.source)}" to "${path.basename(data.destination)}"`});
         } catch (err) {
+            console.log('error', err)
             parentPort.postMessage({cmd: 'msg', msg: err});
         }
     }

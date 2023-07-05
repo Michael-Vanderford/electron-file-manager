@@ -385,6 +385,10 @@ progress::-webkit-progress-bar {
     transition: opacity 0.5s;
 }
 
+.card:focus {
+    outline: none;
+}
+
 .card .img {
     box-sizing: border-box;
     border-radius: 5px;

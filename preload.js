@@ -684,6 +684,7 @@ ipcRenderer.on('connect', (e) => {
 
 // Msg
 ipcRenderer.on('msg', (e, message) => {
+    console.log(message)
     msg(message);
 })
 
@@ -868,7 +869,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
         case 'delete': {
             getSelectedFiles();
             ipcRenderer.send('delete', (selected_files_arr));
-            selected_files_arr = []
+            clear()
             break;
         }
         case 'terminal': {
@@ -2294,7 +2295,7 @@ function msg(message) {
         msg.classList.add('hidden');
     }
 
-    if (message.indexOf('Error') > -1) {
+    if (message.toString().toLocaleLowerCase().indexOf('error') > -1) {
         msg.classList.add('error')
     } else {
         msg.classList.remove('error')
@@ -3182,10 +3183,10 @@ function getCardGio(file) {
     // Mouse Over
     card.addEventListener('mouseover', (e) => {
 
-        // // console.log('running mouse over');
+        // console.log('running mouse over');
 
-        e.preventDefault();
-        e.stopPropagation();
+        // e.preventDefault();
+        // e.stopPropagation();
 
         card.classList.add('highlight');
         title =
@@ -3213,6 +3214,9 @@ function getCardGio(file) {
             tooltip.classList.remove('hidden')
             tooltip.innerText = title;
         }, 500);
+
+        card.tabIndex = 0;
+        card.focus();
 
     })
 
@@ -3701,12 +3705,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
         }
 
         // Auto Complete
-        let autocomplete_container = document.querySelector('.autocomplete_container');
-        if (!autocomplete_container) {
-            autocomplete_container = add_div(['autocomplete', 'hidden']);
-            const input_container = nav_menu.querySelector('.input');
-            input_container.append(autocomplete_container);
-        }
+        // let autocomplete_container = document.querySelector('.autocomplete_container');
+        // if (!autocomplete_container) {
+        //     autocomplete_container = add_div(['autocomplete', 'hidden']);
+        //     const input_container = nav_menu.querySelector('.input');
+        //     input_container.append(autocomplete_container);
+        // }
+
         location.addEventListener('input', (e) => {
             let input = location.value.trim().toLocaleLowerCase();
             autocomplete_container.innerHTML = '';
@@ -3895,11 +3900,20 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 shortcut =  res.keyboard_shortcuts;
             }).then(() => {
 
+                // Delete
+                mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
+                    e.preventDefault();
+                    getSelectedFiles();
+                    if (selected_files_arr.length > 0) {
+                        ipcRenderer.send('delete', (selected_files_arr));
+                    }
+                    clear();
+                })
+
                 // Escape (Cancel)
                 mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
                     // Clear Arrays and selected items
                     clear();
-                    clearHighlight();
                 })
 
                 // Reload
@@ -4017,11 +4031,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     extract();
                 })
 
+                // Compress Files
+                mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
+                    compress('zip');
+                })
+
             })
 
         })
-
-
 
 
         // Get local storage for icon size
