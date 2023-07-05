@@ -3621,6 +3621,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let header_menu = document.querySelectorAll('.menu_bar');
         let nav_menu = document.querySelector('.nav_menu');
         let settings  = document.querySelector('.settings');
+        // let active_tab_content = document.querySelector('.active-tab-content');
 
         // Flags
         let cut_flag = 0;
@@ -3893,7 +3894,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         // Main Context Menu
         main.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
+            // e.preventDefault();
             ipcRenderer.send('main_menu', location.value);
         })
 
