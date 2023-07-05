@@ -84,7 +84,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let active_tab = document.querySelector('.active-tab');
     let active_label = active_tab.querySelector('.label')
     let active_tab_content = document.querySelector('.active-tab-content');
-    active_tab_content.innerHTML = '';
+    // active_tab_content.innerHTML = '';
 
     active_tab.dataset.href = source;
     active_tab.title = source;
@@ -137,6 +137,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     folder_grid.classList.add('folder_grid');
     file_grid.classList.add('file_grid');
+    hidden_folder_grid.classList.add('hidden_folder_grid');
     hidden_file_grid.classList.add('hidden_file_grid');
 
     location.value = source;
@@ -3204,16 +3205,29 @@ function getCardGio(file) {
             '\n' +
             'Type: ' + file.content_type
 
-        // card.title = title;
+        card.title = title;
         // main.tabIndex = 0;
-        tooltip_timeout = setTimeout(() => {
-            var x = e.clientX;
-            var y = e.clientY;
-            tooltip.style.left = x + "px";
-            tooltip.style.top = y + "px";
-            tooltip.classList.remove('hidden')
-            tooltip.innerText = title;
-        }, 500);
+        // tooltip_timeout = setTimeout(() => {
+
+        //     // Calculate the position
+        //     const rect = card.getBoundingClientRect();
+        //     const top = rect.top + rect.height;
+        //     const left = rect.left;
+
+        //     // Set the position of the popup
+        //     tooltip.style.top = top + 'px';
+        //     tooltip.style.left = left + 'px';
+
+        //     tooltip.classList.remove('hidden')
+        //     tooltip.innerText = title;
+
+        //     // var x = e.clientX;
+        //     // var y = e.clientY;
+        //     // tooltip.style.left = x + "px";
+        //     // tooltip.style.top = y + "px";
+        //     // tooltip.classList.remove('hidden')
+        //     // tooltip.innerText = title;
+        // }, 1000);
 
         card.tabIndex = 0;
         card.focus();

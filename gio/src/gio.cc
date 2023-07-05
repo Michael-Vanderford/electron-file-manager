@@ -176,7 +176,7 @@ namespace gio {
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
 
         if (inputPixbuf == NULL) {
-            g_print("Error loading input image\n");
+            // g_print("Error loading input image\n");
             // Handle the error appropriately (e.g., return, cleanup, etc.)
         }
 
@@ -186,7 +186,7 @@ namespace gio {
         GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
 
         if (thumbnailPixbuf == NULL) {
-            g_print("Error creating thumbnail\n");
+            // g_print("Error creating thumbnail\n");
             // Handle the error appropriately (e.g., return, cleanup, etc.)
         }
 

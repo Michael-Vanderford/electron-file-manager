@@ -373,6 +373,7 @@ progress::-webkit-progress-bar {
 }
 
 .card {
+    box-sizing: border-box;
     display: flex;
     margin: 2px;
     padding: 2px;
@@ -386,6 +387,7 @@ progress::-webkit-progress-bar {
 }
 
 .card:focus {
+    box-sizing: border-box;
     outline: none;
 }
 
@@ -743,7 +745,7 @@ input[type=text]:focus {
     background: var(--dialog);
     position: fixed;
     display: block;
-    z-index: 100;
+    z-index: 1000;
 }
 
 .loader {
@@ -820,7 +822,7 @@ input[type=text]:focus {
 
         --black: #000000;
         --white: #FFFFFF;
-        --warning: #960000;
+        --warning: #FFA500;
         --green: #008000;
         --blue: #233654;
         --lightblue: #506585;
