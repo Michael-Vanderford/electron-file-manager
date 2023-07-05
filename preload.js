@@ -288,6 +288,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     main.append(active_tab_content)
 
+    active_tab_content.addEventListener('contextmenu', (e) => {
+        // e.preventDefault();
+        console.log('running main menu');
+        ipcRenderer.send('main_menu', location.value);
+    })
+
     // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     // main.append(tab_content)
 
