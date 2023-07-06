@@ -1778,109 +1778,110 @@ ipcMain.on('main_menu', (e, destination) => {
                 createWindow(destination);
             }
         },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'New Folder',
-        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
-        //     click: () => {
-        //         new_folder(path.format({ dir: destination, base: 'New Folder' }));
-        //     }
-        // },
-        // {
-        //     id: 'templates',
-        //     label: 'New Document',
-        //     submenu: [
-        //         {
-        //             label: 'Open Templates Folder',
-        //             click: () => {
-        //                 e.sender.send('context-menu-command', 'open_templates_folder'),
-        //                 {
-        //                     type: 'separator'
-        //                 }
-        //             }
-        //         }],
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'Sort',
-        //     submenu: [
-        //         {
-        //             label: 'Date',
-        //             icon: './assets/icons/menus/terminal.png',
-        //             click: () => { win.send('sort', 'date') }
-        //         },
-        //         {
-        //             label: 'Name',
-        //             click: () => { win.send('sort', 'name') }
-        //         },
-        //         {
-        //             label: 'Size',
-        //             click: () => { win.send('sort', 'size') }
-        //         },
-        //         {
-        //             label: 'Type',
-        //             click: () => { win.send('sort', 'type') }
-        //         }
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Folder',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            click: () => {
+                new_folder(path.format({ dir: destination, base: 'New Folder' }));
+            }
+        },
+        {
+            id: 'templates',
+            label: 'New Document',
+            submenu: [
+                {
+                    label: 'Open Templates Folder',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'open_templates_folder'),
+                        {
+                            type: 'separator'
+                        }
+                    }
+                }],
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Sort',
+            submenu: [
+                {
+                    label: 'Date',
+                    icon: './assets/icons/menus/terminal.png',
+                    click: () => { win.send('sort', 'date') }
+                },
+                {
+                    label: 'Name',
+                    click: () => { win.send('sort', 'name') }
+                },
+                {
+                    label: 'Size',
+                    click: () => { win.send('sort', 'size') }
+                },
+                {
+                    label: 'Type',
+                    click: () => { win.send('sort', 'type') }
+                }
 
-        //     ]
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'Paste',
-        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
-        //     click: () => {
-        //         e.sender.send('context-menu-command', 'paste')
-        //     }
-        // },
-        // {
-        //     label: 'Select all',
-        //     click: () => {
-        //         e.sender.send('select_all');
-        //     }
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'Terminal',
-        //     click: () => {
-        //         e.sender.send('context-menu-command', 'terminal')
-        //     }
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'Show Hidden',
-        //     type: 'checkbox',
-        //     checked: false,
-        //     click: (e) => {
-        //         // e.sender.send('context-menu-command', 'show_hidden')
-        //         win.send('toggle_hidden');
-        //     }
-        // },
-        // {
-        //     type: 'separator'
-        // },
-        // {
-        //     label: 'Disk Usage Analyzer',
-        //     click: () => {
-        //         exec(`baobab ${destination}`);
-        //     }
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Paste',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+            click: () => {
+                e.sender.send('context-menu-command', 'paste')
+            }
+        },
+        {
+            label: 'Select all',
+            click: () => {
+                e.sender.send('select_all');
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Terminal',
+            click: () => {
+                e.sender.send('context-menu-command', 'terminal')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Show Hidden',
+            type: 'checkbox',
+            checked: false,
+            click: (e) => {
+                // e.sender.send('context-menu-command', 'show_hidden')
+                win.send('toggle_hidden');
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Disk Usage Analyzer',
+            click: () => {
+                exec(`baobab ${destination}`);
+            }
 
-        // }
+        }
     ]
 
     // Create menu
+    console.log(template)
     let menu = Menu.buildFromTemplate(template)
 
     // Add templates
