@@ -1769,6 +1769,8 @@ function add_convert_audio_menu(menu, href) {
 // Main Menu
 ipcMain.on('main_menu', (e, destination) => {
 
+    console.log('dest', destination)
+
     is_main = 1;
 
     const template = [
@@ -1883,7 +1885,7 @@ ipcMain.on('main_menu', (e, destination) => {
     // Create menu
     let menu = Menu.buildFromTemplate(template)
 
-    console.log('dest', destination)
+
 
     // Add templates
     add_templates_menu(menu, e, destination)
