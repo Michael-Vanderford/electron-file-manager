@@ -1882,13 +1882,13 @@ ipcMain.on('main_menu', (e, destination) => {
 
     // Create menu
     console.log(template)
-    let menu = Menu.buildFromTemplate(template)
+    let menu1 = Menu.buildFromTemplate(template)
 
     // Add templates
     // add_templates_menu(menu, e, destination)
 
     // Show menu
-    menu.popup(BrowserWindow.fromWebContents(e.sender))
+    menu1.popup(BrowserWindow.fromWebContents(e.sender))
 
 })
 
