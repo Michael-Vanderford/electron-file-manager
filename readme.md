@@ -5,7 +5,7 @@ File manager for Linux - Built with Electron
 
 Install
 
-1. git clone https://github.com/vandemt/electron-file-manager.git
+1. git clone https://github.com/Michael-Vanderford/string-file-manager.git
 2. cd electron-file-manager
 3. npm i --save
 4. npm start
