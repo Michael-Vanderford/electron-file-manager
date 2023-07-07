@@ -1812,7 +1812,6 @@ ipcMain.on('main_menu', (e, destination) => {
             submenu: [
                 {
                     label: 'Date',
-                    icon: './assets/icons/menus/terminal.png',
                     click: () => { win.send('sort', 'date') }
                 },
                 {
