@@ -217,6 +217,8 @@ function getRecentFiles (callback) {
             return a
         }, [])
 
+        
+
         return callback(recent_files);
     })
 }
@@ -1766,10 +1768,77 @@ function add_convert_audio_menu(menu, href) {
 
 }
 
+let sort = 'date_desc';
+ipcMain.on('sort', (e, sort_by) => {
+    sort = sort_by
+})
+function sort_menu () {
+
+    let submenu = [
+        {
+            label: 'Last Modified',
+            type: 'radio',
+            id: 'date_desc',
+            click: () => {
+                sort = 'date_desc';
+                win.send('sort_cards', 'date_desc')
+            }
+        },
+        {
+            label: 'First Modified',
+            type: 'radio',
+            id: 'date_asc',
+            click: () => {
+                sort = 'date_asc';
+                win.send('sort_cards', 'date_asc')
+            }
+        },
+        {
+            label: 'A-Z',
+            type: 'radio',
+            id: 'name_asc',
+            click: () => {
+                sort = 'name_asc';
+                win.send('sort_cards', 'name_asc')
+            }
+        },
+        {
+            label: 'Z-A',
+            type: 'radio',
+            id: 'name_desc',
+            click: () => {
+                sort = 'name_desc';
+                win.send('sort_cards', 'name_desc')
+            }
+        },
+        {
+            label: 'Size',
+            type: 'radio',
+            id: 'size',
+            click: () => {
+                sort = 'size';
+                win.send('sort_cards', 'size')
+            }
+        },
+        {
+            label: 'Type',
+            type: 'radio',
+            id: 'type',
+            click: () => {
+                sort = 'type';
+                win.send('sort_cards', 'type')
+            }
+        }
+    ]
+
+    return submenu;
+
+}
+
 // Main Menu
 ipcMain.on('main_menu', (e, destination) => {
 
-    console.log('dest', destination)
+    // console.log('dest', destination)
 
     is_main = 1;
 
@@ -1809,25 +1878,8 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Sort',
-            submenu: [
-                {
-                    label: 'Date',
-                    click: () => { win.send('sort', 'date') }
-                },
-                {
-                    label: 'Name',
-                    click: () => { win.send('sort', 'name') }
-                },
-                {
-                    label: 'Size',
-                    click: () => { win.send('sort', 'size') }
-                },
-                {
-                    label: 'Type',
-                    click: () => { win.send('sort', 'type') }
-                }
-
-            ]
+            id: 'sort_menu',
+            submenu: sort_menu()
         },
         {
             type: 'separator'
@@ -1885,6 +1937,13 @@ ipcMain.on('main_menu', (e, destination) => {
     let menu = Menu.buildFromTemplate(template)
 
 
+    let sort_menu_item = menu.getMenuItemById('sort_menu');
+    let sort_submenu_items = sort_menu_item.submenu.items
+    for (const item of sort_submenu_items) {
+        if (item.id == sort) {
+            item.checked = true;
+        }
+    }
 
     // Add templates
     add_templates_menu(menu, e, destination)
@@ -1936,25 +1995,9 @@ ipcMain.on('folder_menu', (e, file) => {
             type: 'separator'
         },
         {
+            id: 'sort_menu',
             label: 'Sort',
-            submenu: [
-                {
-                    label: 'Date',
-                    click: () => { win.send('sort', 'date') }
-                },
-                {
-                    label: 'Name',
-                    click: () => { win.send('sort', 'name') }
-                },
-                {
-                    label: 'Size',
-                    click: () => { win.send('sort', 'size') }
-                },
-                {
-                    label: 'Type',
-                    click: () => { win.send('sort', 'type') }
-                }
-            ]
+            submenu: sort_menu()
         },
         {
             type: 'separator'
@@ -2081,6 +2124,15 @@ ipcMain.on('folder_menu', (e, file) => {
 
     const menu = Menu.buildFromTemplate(template);
 
+    // Handle Sort Menu
+    let sort_menu_item = menu.getMenuItemById('sort_menu');
+    let sort_submenu_items = sort_menu_item.submenu.items
+    for (const item of sort_submenu_items) {
+        if (item.id == sort) {
+            item.checked = true;
+        }
+    }
+
     // ADD LAUNCHER MENU
     add_launcher_menu(menu, e, file)
 
@@ -2117,26 +2169,9 @@ ipcMain.on('file_menu', (e, file) => {
             type: 'separator'
         },
         {
+            id: 'sort_menu',
             label: 'Sort',
-            submenu: [
-                {
-                    label: 'Date',
-                    click: () => { win.send('sort', 'date') }
-                },
-                {
-                    label: 'Name',
-                    click: () => { win.send('sort', 'name') }
-                },
-                {
-                    label: 'Size',
-                    click: () => { win.send('sort', 'size') }
-                },
-                {
-                    label: 'Type',
-                    click: () => { win.send('sort', 'type') }
-                }
-
-            ]
+            submenu: sort_menu()
         },
         {
             type: 'separator'
@@ -2242,6 +2277,15 @@ ipcMain.on('file_menu', (e, file) => {
 
     let menu = Menu.buildFromTemplate(files_menu_template)
 
+    // Handle Sort Menu
+    let sort_menu_item = menu.getMenuItemById('sort_menu');
+    let sort_submenu_items = sort_menu_item.submenu.items
+    for (const item of sort_submenu_items) {
+        if (item.id == sort) {
+            item.checked = true;
+        }
+    }
+
     // ADD TEMPLATES
     // add_templates_menu(menu, e, args)
 
@@ -2253,6 +2297,7 @@ ipcMain.on('file_menu', (e, file) => {
     // add_execute_menu(menu, e, args)
     // }
 
+    // Handle Audio conversion
     let ext = path.extname(file.href);
     if (ext == '.mp4' || ext == '.mp3') {
         add_convert_audio_menu(menu, file.href);

@@ -18,7 +18,7 @@ let copy_overwrite_arr  = [];
 let auto_complete_arr   = [];
 
 let ds;
-let sort = 'date';
+let sort = 'date_desc';
 let thumbnail_dir
 
 let view = 'grid';
@@ -63,10 +63,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     sidebar_items.forEach(item => {
         let sidebar_item = item.querySelector('a');
         // console.log(sidebar_item.href)
-        if (sidebar_item.title === source) {
-            item.classList.add('active')
-        } else {
-            item.classList.remove('active')
+        if (sidebar_item) {
+            if (sidebar_item.title === source) {
+                item.classList.add('active')
+            } else {
+                item.classList.remove('active')
+            }
         }
     })
 
@@ -78,8 +80,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     if (tabs.length === 0) {
         add_tab(source);
     }
-
-    // console.log(tabs.length)
 
     let active_tab = document.querySelector('.active-tab');
     let active_label = active_tab.querySelector('.label')
@@ -220,8 +220,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Loop Files Array
     for (let i = 0; i < dirents.length; i++) {
 
-        // if (i < 2500) {
-
         let file = dirents[i];
         let card = getCardGio(file);
 
@@ -256,6 +254,16 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         }
 
+        mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+            console.log('down')
+        })
+
+        mt.bind(shortcut.Up.toLocaleLowerCase(), (e) => {
+            active_tab_content.tabIndex = 0
+            active_tab_content.scrollTop -= 10;
+            console.log('up')
+        })
+
     }
 
     main.addEventListener('dragover', (e) => {
@@ -287,12 +295,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     main.append(active_tab_content)
-
-    main.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        console.log('running main menu');
-        ipcRenderer.send('main_menu', source);
-    })
 
     // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     // main.append(tab_content)
@@ -338,10 +340,13 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     console.log('getting array');
 
+    let location = document.querySelector('.location');
+    location.value = 'Search Results';
+
     let folder_grid = add_div(['folder_grid']);
-    let hidden_folder_grid = add_div(['hidden_folder_grid'])
+    let hidden_folder_grid = add_div(['hidden_folder_grid']);
     let file_grid = add_div(['file_grid']);
-    let hidden_file_grid = add_div(['hidden_file_grid'])
+    let hidden_file_grid = add_div(['hidden_file_grid']);
 
     let tab_content = add_tab('Search Results');
     tab_content.append(folder_grid, file_grid);
@@ -363,8 +368,6 @@ ipcRenderer.on('search_results', (e, find_arr) => {
                 } else {
                     file_grid.append(card);
                 }
-
-
             }
         }
 
@@ -375,35 +378,41 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
 })
 
-ipcRenderer.on('sort_cards', (e) => {
+ipcRenderer.on('sort_cards', (e, sort_by) => {
+    localStorage.setItem('sort', sort_by);
     sort_cards();
 })
 
-// On Sort
-ipcRenderer.on('sort', (e, sort) => {
-    switch (sort) {
-        case 'date': {
-            localStorage.setItem('sort', 'date')
-            break
-        }
-        case 'name': {
-            localStorage.setItem('sort', 'name')
-            break
-        }
-        case 'size': {
-            localStorage.setItem('sort', 'size')
-            break
-        }
-        case 'type': {
-            localStorage.setItem('sort', 'type')
-            break
-        }
-    }
-    sort_cards();
-    // let location = document.querySelector('.location')
-    // getView(location.value, () => {});
-
-})
+// // On Sort
+// ipcRenderer.on('sort', (e, sort) => {
+//     let direction = 0;
+//     if (sort === 'Desc') {
+//         direction = 0;
+//     } else if (sort === 'Asc') {
+//         direction = 1;
+//     }
+//     switch (sort) {
+//         case 'date': {
+//             localStorage.setItem('sort', 'date')
+//             break
+//         }
+//         case 'name': {
+//             localStorage.setItem('sort', 'name')
+//             break
+//         }
+//         case 'size': {
+//             localStorage.setItem('sort', 'size')
+//             break
+//         }
+//         case 'type': {
+//             localStorage.setItem('sort', 'type')
+//             break
+//         }
+//     }
+//     sort_cards(direction);
+//     // let location = document.querySelector('.location')
+//     // getView(location.value, () => {});
+// })
 
 // On Recent Files
 ipcRenderer.on('recent_files', (e, dirents) => {
@@ -1292,90 +1301,176 @@ function switch_view(view) {
 // Sort Cards
 function sort_cards() {
 
-    let active_tab_content = document.querySelector('.active-tab-content')
-
-    let folder_grid = active_tab_content.querySelector('.folder_grid');
-    let file_grid = active_tab_content.querySelector('.file_grid');
-
-    let folders = Array.from(folder_grid.querySelectorAll('.card'));
-    let files = Array.from(file_grid.querySelectorAll('.card'));
-
     let sort = '';
     if (localStorage.getItem('sort') !== null) {
         sort = localStorage.getItem('sort');
     }
+    ipcRenderer.send('sort', sort);
 
-    // console.log('sorting by', sort);
+    let active_tab_content = document.querySelector('.active-tab-content')
+    let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
 
-    let sort_flag = 0;
+    grids.forEach(grid => {
+        let grid_items = document.querySelectorAll(`.${grid}`);
+        grid_items.forEach(grid_item => {
 
-    switch (sort) {
-        case 'name': {
-            folders.sort((a, b) => {
-                if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
-                    return -1;
+            let grid_cards = Array.from(grid_item.querySelectorAll('.card'))
+            switch (sort) {
+                case 'name_asc': {
+                    grid_cards.sort((a, b) => {
+                        if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
                 }
-                if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
-                    return 1;
+                case 'name_desc': {
+                    grid_cards.sort((a, b) => {
+                        if (b.dataset.name.toLocaleLowerCase() < a.dataset.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (b.dataset.name.toLocaleLowerCase() > a.dataset.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
                 }
-                return 0;
-            })
-            files.sort((a, b) => {
-                if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
-                    return -1;
+                case 'date_desc': {
+                    grid_cards.sort((a, b) => {
+                        return b.dataset.mtime - a.dataset.mtime
+                    })
+                    break;
                 }
-                if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
-                    return 1;
-                }
-                return 0;
-            })
-            break;
-        }
-        case 'date': {
-            folders.sort((a, b) => {
-                if (sort_flag == 0) {
-                    return b.dataset.mtime - a.dataset.mtime
-                } else {
-                    return a.dataset.mtime - b.dataset.mtime
-                }
+                case 'date_asc': {
+                    grid_cards.sort((a, b) => {
+                        return a.dataset.mtime - b.dataset.mtime
+                    })
 
-            })
-            files.sort((a, b) => {
-                if (sort_flag == 0) {
-                    return b.dataset.mtime - a.dataset.mtime
-                } else {
-                    return a.dataset.mtime - b.dataset.mtime
+                    break;
                 }
-            })
-            break;
-        }
-        case 'size': {
-            folders.sort((a, b) => {
-                if (sort_flag == 0) {
-                    return b.dataset.size - a.dataset.size
-                } else {
-                    return a.dataset.size - b.dataset.size
+                case 'size': {
+                    grid_cards.sort((a, b) => {
+                        return b.dataset.size - a.dataset.size
+                    })
+                    break;
                 }
+            }
+            grid_cards.forEach(card => {
+                grid_item.appendChild(card);
+            })
+        })
 
-            })
-            files.sort((a, b) => {
-                if (sort_flag == 0) {
-                    return b.dataset.size - a.dataset.size
-                } else {
-                    return a.dataset.size - b.dataset.size
-                }
-            })
-            break;
-        }
-    }
-
-    folders.forEach(card => {
-        folder_grid.appendChild(card);
     })
 
-    files.forEach(card => {
-        file_grid.appendChild(card);
-    })
+    // let folder_grid = active_tab_content.querySelector('.folder_grid');
+    // let file_grid = active_tab_content.querySelector('.file_grid');
+
+    // let folders = Array.from(folder_grid.querySelectorAll('.card'));
+    // let files = Array.from(file_grid.querySelectorAll('.card'));
+
+    // let sort = '';
+    // if (localStorage.getItem('sort') !== null) {
+    //     sort = localStorage.getItem('sort');
+    // }
+
+    // ipcRenderer.send('sort', sort);
+    console.log(sort)
+
+    // let sort_flag = 0;
+
+    // switch (sort) {
+    //     case 'name_asc': {
+    //         active_tab_content.sort((a, b) => {
+    //             if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
+    //                 return -1;
+    //             }
+    //             if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
+    //                 return 1;
+    //             }
+    //             return 0;
+    //         })
+    //         // files.sort((a, b) => {
+    //         //     if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
+    //         //         return -1;
+    //         //     }
+    //         //     if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
+    //         //         return 1;
+    //         //     }
+    //         //     return 0;
+    //         // })
+    //         break;
+    //     }
+    //     case 'name_desc': {
+    //         folders.sort((a, b) => {
+    //             if (b.dataset.name.toLocaleLowerCase() < a.dataset.name.toLocaleLowerCase()) {
+    //                 return -1;
+    //             }
+    //             if (b.dataset.name.toLocaleLowerCase() > a.dataset.name.toLocaleLowerCase()) {
+    //                 return 1;
+    //             }
+    //             return 0;
+    //         })
+    //         files.sort((a, b) => {
+    //             if (b.dataset.name.toLocaleLowerCase() < a.dataset.name.toLocaleLowerCase()) {
+    //                 return -1;
+    //             }
+    //             if (b.dataset.name.toLocaleLowerCase() > a.dataset.name.toLocaleLowerCase()) {
+    //                 return 1;
+    //             }
+    //             return 0;
+    //         })
+    //         break;
+    //     }
+    //     case 'date_desc': {
+    //         folders.sort((a, b) => {
+    //             return b.dataset.mtime - a.dataset.mtime
+    //         })
+    //         files.sort((a, b) => {
+    //             return b.dataset.mtime - a.dataset.mtime
+    //         })
+    //         break;
+    //     }
+    //     case 'date_asc': {
+    //         folders.sort((a, b) => {
+    //             return a.dataset.mtime - b.dataset.mtime
+    //         })
+    //         files.sort((a, b) => {
+    //             return a.dataset.mtime - b.dataset.mtime
+    //         })
+    //         break;
+    //     }
+    //     case 'size': {
+    //         folders.sort((a, b) => {
+    //             if (sort_flag == 0) {
+    //                 return b.dataset.size - a.dataset.size
+    //             } else {
+    //                 return a.dataset.size - b.dataset.size
+    //             }
+
+    //         })
+    //         files.sort((a, b) => {
+    //             if (sort_flag == 0) {
+    //                 return b.dataset.size - a.dataset.size
+    //             } else {
+    //                 return a.dataset.size - b.dataset.size
+    //             }
+    //         })
+    //         break;
+    //     }
+    // }
+
+    // folders.forEach(card => {
+    //     folder_grid.appendChild(card);
+    // })
+
+    // files.forEach(card => {
+    //     file_grid.appendChild(card);
+    // })
 
 }
 
@@ -2776,17 +2871,20 @@ function sidebarHome() {
     } else {
         sb_home = add_div();
         sb_home.classList.add('sb_home', 'sb_view');
+
         getHome(home => {
             sb_home.append(home)
         })
 
         // Workspace
         getWorkspace(workspace => {
+            sb_home.append(document.createElement('br'));
             sb_home.append(workspace)
         })
 
         // Get Device
         getDevices(devices => {
+            sb_home.append(document.createElement('br'));
             sb_home.append(devices)
         })
 
@@ -2939,13 +3037,28 @@ function getWorkspace(callback) {
 
             let file = item
 
-            let workspace_item = add_div();
-            workspace_item.classList.add('item');
+            let workspace_div = add_div(['flex', 'item'])
+            let workspace_item = add_div(['workspace_item']);
+            let img = document.createElement('img')
+
+            // workspace_item.classList.add('item');
+            img.classList.add('icon', 'icon16')
 
             let a = document.createElement('a');
             a.href = item.href;
             a.innerHTML = item.name;
             a.preventDefault = true;
+
+            if (item.type === 'directory') {
+
+            } else {
+                ipcRenderer.invoke('get_icon', (item.href)).then(res => {
+                    img.src = res;
+                    workspace_item.append(a);
+                    workspace_div.append(img, workspace_item);
+                    // workspace_item.append(img, a);
+                })
+            }
 
             workspace_item.addEventListener('mouseover', (e) => {
                 workspace_item.title = item.href
@@ -2968,8 +3081,8 @@ function getWorkspace(callback) {
 
             })
 
-            workspace_item.append(add_icon('bookmark'), a);
-            workspace.append(workspace_item);
+            // workspace_item.append(img, a);
+            workspace.append(workspace_div);
 
         })
         return callback(workspace);
@@ -2985,7 +3098,7 @@ function getDevices(callback) {
         devices.classList.add('device_view')
         devices.append(add_header('Devices'));
         ipcRenderer.invoke('get_devices').then(device_arr => {
-            // console.log('running get devices')
+            console.log('running get devices', device_arr)
             device_arr.sort((a, b) => {
                 return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
             })
@@ -3130,10 +3243,8 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    // // console.log(file)
-
-    let location    = document.getElementById('location');
-    let is_dir      = 0;
+    let location = document.getElementById('location');
+    let is_dir   = 0;
 
     let card    = add_div();
     let content = add_div();
@@ -3234,9 +3345,6 @@ function getCardGio(file) {
             // tooltip.classList.remove('hidden')
             // tooltip.innerText = title;
         }, 1000);
-
-        card.tabIndex = 0;
-        card.focus();
 
     })
 
@@ -3900,11 +4008,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
         /////////////////////////////////////////////////////////////////
 
         // Main Context Menu
-        // main.addEventListener('contextmenu', (e) => {
-        //     // e.preventDefault();
-        //     console.log('running main menu');
-        //     ipcRenderer.send('main_menu', location.value);
-        // })
+        main.addEventListener('contextmenu', (e) => {
+            // e.preventDefault();
+            console.log('running main menu');
+            ipcRenderer.send('main_menu', location.value);
+        })
 
         // Get on mouse over
         document.addEventListener('mouseover', (e) => {
@@ -3917,7 +4025,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             special_view = 1;
         }
 
-        document.addEventListener('keydown', (e) => {
+        // document.addEventListener('keydown', (e) => {
 
             ipcRenderer.invoke('settings').then(res => {
                 shortcut =  res.keyboard_shortcuts;
@@ -3960,7 +4068,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     getSelectedFiles();
                     selected_files_arr.forEach(item => {
                         let active_tab_content = document.querySelector('.active-tab-content');
-                        let card = active_tab_content.querySelector(`[data-href="${href}"]`);
+                        let card = active_tab_content.querySelector(`[data-href="${item}"]`);
                         card.style = 'opacity: 0.6 !important';
                     })
                 })
@@ -4059,9 +4167,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     compress('zip');
                 })
 
+                //
+                // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+                //     console.log('down')
+                // })
+
             })
 
-        })
+        // })
 
 
         // Get local storage for icon size

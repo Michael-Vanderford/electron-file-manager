@@ -328,6 +328,12 @@ html, body {
     padding-bottom: 50px;
 }
 
+.active_tab_content {
+    box-sizing: border-box;
+    border: none;
+    outline: none;
+}
+
 #chart {
     color: var(--text);
     width: '100px';
@@ -404,7 +410,7 @@ progress::-webkit-progress-bar {
     /* transform: scale(2); */
     position:relative;
     z-index: 2 !important;
-  }
+}
 
 .icon {
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
