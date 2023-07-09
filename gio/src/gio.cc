@@ -73,26 +73,18 @@ namespace gio {
     // }
 
     // NAN_METHOD(search) {
-
     //     Nan::HandleScope scope;
-
     //     if (info.Length() < 3 || !info[2]->IsFunction()) {
     //         return Nan::ThrowError("Wrong arguments. Expected callback function.");
     //     }
-
     //     Nan::Callback callback(info[2].As<v8::Function>());
-
     //     v8::Local<v8::String> searchString = Nan::To<v8::String>(info[0]).ToLocalChecked();
     //     v8::Local<v8::String> searchPath = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
     //     Nan::Utf8String searchStringUtf8(searchString);
     //     const gchar* searchStringC = g_strdup(*searchStringUtf8);
-
     //      Nan::Utf8String searchPathUtf8(searchPath);
     //     const gchar* searchPathC = g_strdup(*searchPathUtf8);
-
     //     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-
     //     // Perform the search asynchronously
     //     GError *error = NULL;
     //     // TrackerSparqlConnection *connection = tracker_sparql_connection_new(TRACKER_SPARQL_CONNECTION_FLAGS_NONE, NULL, NULL, NULL, &error);
@@ -102,10 +94,8 @@ namespace gio {
     //         g_error_free(error);
     //         return;
     //     }
-
     //     gchar *query_string = g_strdup_printf("SELECT ?path WHERE { ?path a nfo:FileDataObject . FILTER(regex(?path, '%s', 'i') && regex(?path, '^%s.*', 'i')) }", *searchStringC, *searchPathC);
     //     TrackerSparqlCursor *cursor = tracker_sparql_connection_query(connection, query_string, NULL, &error);
-
     //     // g_free(query_string);
     //     if (error != NULL) {
     //         // g_error("Error executing query: %s", error->message);
@@ -114,51 +104,198 @@ namespace gio {
     //         g_free(query_string);
     //         return;
     //     }
-
     //     g_free(query_string);
-
     //     // Create a result array to store the search results
     //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
     //     guint index = 0;
-
     //     // Start iterating over the search results
     //     while (tracker_sparql_cursor_next(cursor, NULL, &error)) {
     //         const gchar *path = tracker_sparql_cursor_get_string(cursor, 0, NULL);
     //         v8::Local<v8::String> result = Nan::New<v8::String>(path).ToLocalChecked();
     //         Nan::Set(resultArray, index++, result);
     //     }
-
     //     // Clean up resources
     //     g_object_unref(cursor);
     //     g_object_unref(connection);
-
     //     // Call the callback function with the search results
     //     const int argc = 1;
     //     v8::Local<v8::Value> argv[argc] = { resultArray };
     //     Nan::Call(callback, Nan::GetCurrentContext()->Global(), argc, argv);
-
     //     // Clean up the GMainLoop
     //     g_main_loop_quit(loop);
     //     g_main_loop_unref(loop);
+    // }
+
+
+    // NAN_METHOD(get_thumbnail) {
+
+    //     Nan::HandleScope scope;
+
+    //     if (info.Length() < 1) {
+    //         return Nan::ThrowError("Wrong number of arguments");
+    //     }
+
+    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Isolate* isolate = info.GetIsolate();
+
+    //     // Get the current context from the execution context
+    //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+    //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+    //     GFile* src = g_file_new_for_path(*sourceFile);
+
+    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(*sourceFile);
+    //     }
+
+    //     v8::Local<v8::Array> result = Nan::New<v8::Array>();
+
+    //     GFileInfo* file_info = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME "," G_FILE_ATTRIBUTE_THUMBNAIL_PATH, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     gint thumbnail_size = 100;
+    //     GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     const gchar* display_name = g_file_info_get_display_name(file_info);
+    //     gchar* thumbnail_path = g_file_info_get_attribute_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
+
+    //     GdkPixbuf* thumbnail = NULL;
+    //     if (thumbnail_path != NULL) {
+    //         GFile* thumbnail_file = g_file_new_for_uri(thumbnail_path);
+    //         gchar* thumbnail_uri = g_file_get_uri(thumbnail_file);
+
+    //         GError* error = NULL;
+    //         thumbnail = gdk_pixbuf_new_from_file_at_size(thumbnail_uri, thumbnail_size, thumbnail_size, &error);
+
+    //         v8::Local<v8::Object> file_obj = Nan::New<v8::Object>();
+    //         Nan::Set(file_obj, Nan::New("name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
+    //         Nan::Set(file_obj, Nan::New("path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
+
+    //         if (error != NULL) {
+    //             g_print("Error loading thumbnail: %s\n", error->message);
+    //             g_error_free(error);
+    //         }
+
+    //         g_free(thumbnail_uri);
+    //         g_object_unref(thumbnail_file);
+    //     }
+
+    //     g_free(thumbnail_path);
+    //     g_object_unref(file_info);
+    //     g_object_unref(src);
+
+    //     info.GetReturnValue().Set(result);
+
+    //     // return thumbnail;
+    // }
+
+    // NAN_METHOD(thumbnail) {
+
+    //     Nan::HandleScope scope;
+
+    //     if (info.Length() < 1) {
+    //         return Nan::ThrowError("Wrong number of arguments");
+    //     }
+
+    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Isolate* isolate = info.GetIsolate();
+
+    //     // Get the current context from the execution context
+    //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
+    //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+    //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+    //     GFile* src = g_file_new_for_path(*sourceFile);
+
+    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(*sourceFile);
+    //     }
+
+    //     gchar *file_path = g_file_get_path(src);
+
+    //     const gint thumbnail_width = 128;
+    //     const gint thumbnail_height = 128;
+
+    //     // Load the image file
+    //     GError *error = NULL;
+    //     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(file_path, &error);
+    //     if (error != NULL) {
+    //         // g_print("Failed to load image: %s\n", error->message);
+    //         g_error_free(error);
+    //         return;
+    //     }
+
+    //     // Scale the image to thumbnail size
+    //     GdkPixbuf *thumbnail_pixbuf = gdk_pixbuf_scale_simple(pixbuf, thumbnail_width, thumbnail_height, GDK_INTERP_BILINEAR);
+    //     if (thumbnail_pixbuf != nullptr) {
+
+    //         // Create the thumbnail filename based on the image file's hash
+    //         // gchar *file_hash = g_compute_checksum_for_string(G_CHECKSUM_MD5, file_path, -1);
+    //         GChecksum *checksum = g_checksum_new(G_CHECKSUM_MD5);
+    //         g_checksum_update(checksum, (const guchar*)file_path, -1);
+    //         const gchar *file_hash = g_checksum_get_string(checksum);
+    //         gchar *thumbnail_filename = g_strdup_printf("%s.png", file_hash);
+
+    //         //////////////
+    //         gchar *uri, *filename, *path;
+    //         // GChecksum *checksum;
+    //         guint8 digest[16];
+    //         gsize digest_len = sizeof (digest);
+    //         gint success;
+
+    //         // uri = nemo_file_get_uri (file);
+    //         // checksum = g_checksum_new (G_CHECKSUM_MD5);
+    //         g_checksum_update (checksum, (const guchar *) uri, strlen (uri));
+
+    //         g_checksum_get_digest (checksum, digest, &digest_len);
+    //         g_assert (digest_len == 16);
+
+    //         filename = g_strconcat (g_checksum_get_string (checksum), ".png", NULL);
+    //         g_checksum_free (checksum);
+    //         //////////////////////
+
+    //         // Create the thumbnails directory if it doesn't exist
+    //         gchar *thumbnails_directory = g_build_filename(g_get_home_dir(), ".cache", "thumbnails", "large", NULL);
+    //         g_mkdir_with_parents(thumbnails_directory, 0755);
+
+    //         // Save the thumbnail image to the cache/thumbnails directory
+    //         gchar *thumbnail_path = g_build_filename(thumbnails_directory, thumbnail_filename, NULL);
+    //         if (g_file_test(thumbnail_path, G_FILE_TEST_EXISTS)) {
+    //             // g_print("Thumbnail already exists: %s\n", thumbnail_path);
+    //             // g_free(file_hash);
+    //             g_free(thumbnail_filename);
+    //             g_free(thumbnail_path);
+    //             g_checksum_free(checksum);
+    //             g_object_unref(thumbnail_pixbuf);
+    //             g_object_unref(pixbuf);
+    //             return;
+    //         }
+
+    //         gboolean is_saved = gdk_pixbuf_save(thumbnail_pixbuf, thumbnail_path, "png", NULL, NULL);
+
+    //         // Clean up resources
+    //         // g_free(file_hash);
+    //         g_free(thumbnail_filename);
+    //         g_free(thumbnail_path);
+
+    //     }
+
+    //     g_object_unref(thumbnail_pixbuf);
+    //     g_object_unref(pixbuf);
 
     // }
 
     NAN_METHOD(thumbnail) {
-
          if (info.Length() < 2) {
             return Nan::ThrowError("Wrong number of arguments");
         }
-
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
         v8::Isolate* isolate = info.GetIsolate();
         v8::String::Utf8Value sourceFile(isolate, sourceString);
         v8::String::Utf8Value destFile(isolate, destString);
-
         GFile* src = g_file_new_for_path(*sourceFile);
         GFile* dest = g_file_new_for_path(*destFile);
-
         const char *src_scheme = g_uri_parse_scheme(*sourceFile);
         const char *dest_scheme = g_uri_parse_scheme(*destFile);
         if (src_scheme != NULL) {
@@ -167,43 +304,34 @@ namespace gio {
         if (dest_scheme != NULL) {
             dest = g_file_new_for_uri(*destFile);
         }
-
         // GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
         // int thumbnailWidth = 100;  // Adjust the width as per your requirements
         // int thumbnailHeight = 100; // Adjust the height as per your requirements
         // GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
-
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
-
-        if (inputPixbuf == NULL) {
+        if (inputPixbuf == nullptr) {
             // g_print("Error loading input image\n");
             // Handle the error appropriately (e.g., return, cleanup, etc.)
+            return;
         }
-
-        int thumbnailWidth = 100;  // Adjust the width as per your requirements
-        int thumbnailHeight = 100; // Adjust the height as per your requirements
-
+        int thumbnailWidth = 75;  // Adjust the width as per your requirements
+        int thumbnailHeight = 75; // Adjust the height as per your requirements
         GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
-
-        if (thumbnailPixbuf == NULL) {
+        if (thumbnailPixbuf == nullptr) {
             // g_print("Error creating thumbnail\n");
             // Handle the error appropriately (e.g., return, cleanup, etc.)
+            return;
         }
-
-
         GError* error = NULL;
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
         if (fileType != NULL) {
             // const char *outputFile = dest; // Adjust the file extension as per your requirements
             gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
         }
-
-
         g_object_unref(thumbnailPixbuf);
         g_object_unref(inputPixbuf);
         g_object_unref(src);
         g_object_unref(dest);
-
     }
 
     // Return Disk Space
@@ -558,25 +686,6 @@ namespace gio {
     */
     NAN_METHOD(du) {
 
-        // Check if the argument is a string
-        // if (info.Length() < 1) {
-        //     return Nan::ThrowError("Wrong number of arguments");
-        // }
-
-        // // Convert the argument to a C++ string
-        // v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        // v8::Isolate* isolate = info.GetIsolate();
-
-        // // Get the current context from the execution context
-        // v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        // v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-
-        // // Calculate the folder size recursively
-        // guint64 folderSize = du(*sourceFile);
-
-        // // Return the result as a number
-        // info.GetReturnValue().Set(Nan::New<v8::Number>(static_cast<double>(folderSize)));
-
         if (info.Length() < 1) {
             Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
             return;
@@ -755,12 +864,18 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
+
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
+
+            const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
+            if (thumbnail_path != nullptr) {
+                Nan::Set(fileObj, Nan::New("thumbnail_path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
+            }
 
             if (mimetype != nullptr) {
                 Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
@@ -1163,17 +1278,6 @@ namespace gio {
 
     NAN_METHOD(mv) {
 
-        // gboolean
-        // g_file_move (
-        //   GFile* source,
-        //   GFile* destination,
-        //   GFileCopyFlags flags,
-        //   GCancellable* cancellable,
-        //   GFileProgressCallback progress_callback,
-        //   gpointer progress_callback_data,
-        //   GError** error
-        // )
-
         if (info.Length() < 2) {
             return Nan::ThrowError("Wrong number of arguments");
         }
@@ -1220,6 +1324,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        // Nan::Export(target, "get_thumbnail", get_thumbnail);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);

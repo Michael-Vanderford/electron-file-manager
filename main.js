@@ -217,7 +217,7 @@ function getRecentFiles (callback) {
             return a
         }, [])
 
-        
+
 
         return callback(recent_files);
     })
@@ -493,7 +493,6 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
-
 ipcMain.on('search_results', (e , search_arr) => {
     let arr = []
     search_arr.forEach(item => {
@@ -527,9 +526,15 @@ ipcMain.on('get_settings', (e) => {
 })
 
 ipcMain.on('create_thumbnail', (e, href) => {
+
+    // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails');
+    // let thumbnail = `${path.join(thumb_dir, path.basename(href))}`;
+    // gio.thumbnail(href);
+    // thumb.postMessage({cmd: 'create_thumbnail', href: href});
+
     if (!href.indexOf('sftp:') > -1) {
         let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-        thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+            thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
     }
 })
 

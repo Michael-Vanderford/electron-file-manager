@@ -223,6 +223,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         let file = dirents[i];
         let card = getCardGio(file);
 
+        // console.log(file);
+
         if (file.is_dir) {
 
             if (file.is_hidden) {
@@ -245,6 +247,22 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             auto_complete_arr.push(file.href);
 
         } else {
+
+            // Create thumbnails
+            if (file.content_type) {
+
+                if (file.content_type.indexOf('image/') > -1) {
+
+                    if (file.content_type === 'image/x-xcf') {
+
+                    } else if (file.content_type === 'image/svg+xml') {
+
+                    } else {
+                        let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+                        ipcRenderer.send('create_thumbnail', file.href, thumbnail);
+                    }
+                }
+            }
 
             if (file.is_hidden) {
                 hidden_file_grid.append(card);
@@ -382,37 +400,6 @@ ipcRenderer.on('sort_cards', (e, sort_by) => {
     localStorage.setItem('sort', sort_by);
     sort_cards();
 })
-
-// // On Sort
-// ipcRenderer.on('sort', (e, sort) => {
-//     let direction = 0;
-//     if (sort === 'Desc') {
-//         direction = 0;
-//     } else if (sort === 'Asc') {
-//         direction = 1;
-//     }
-//     switch (sort) {
-//         case 'date': {
-//             localStorage.setItem('sort', 'date')
-//             break
-//         }
-//         case 'name': {
-//             localStorage.setItem('sort', 'name')
-//             break
-//         }
-//         case 'size': {
-//             localStorage.setItem('sort', 'size')
-//             break
-//         }
-//         case 'type': {
-//             localStorage.setItem('sort', 'type')
-//             break
-//         }
-//     }
-//     sort_cards(direction);
-//     // let location = document.querySelector('.location')
-//     // getView(location.value, () => {});
-// })
 
 // On Recent Files
 ipcRenderer.on('recent_files', (e, dirents) => {
@@ -1367,111 +1354,6 @@ function sort_cards() {
 
     })
 
-    // let folder_grid = active_tab_content.querySelector('.folder_grid');
-    // let file_grid = active_tab_content.querySelector('.file_grid');
-
-    // let folders = Array.from(folder_grid.querySelectorAll('.card'));
-    // let files = Array.from(file_grid.querySelectorAll('.card'));
-
-    // let sort = '';
-    // if (localStorage.getItem('sort') !== null) {
-    //     sort = localStorage.getItem('sort');
-    // }
-
-    // ipcRenderer.send('sort', sort);
-    console.log(sort)
-
-    // let sort_flag = 0;
-
-    // switch (sort) {
-    //     case 'name_asc': {
-    //         active_tab_content.sort((a, b) => {
-    //             if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
-    //                 return -1;
-    //             }
-    //             if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
-    //                 return 1;
-    //             }
-    //             return 0;
-    //         })
-    //         // files.sort((a, b) => {
-    //         //     if (a.dataset.name.toLocaleLowerCase() < b.dataset.name.toLocaleLowerCase()) {
-    //         //         return -1;
-    //         //     }
-    //         //     if (a.dataset.name.toLocaleLowerCase() > b.dataset.name.toLocaleLowerCase()) {
-    //         //         return 1;
-    //         //     }
-    //         //     return 0;
-    //         // })
-    //         break;
-    //     }
-    //     case 'name_desc': {
-    //         folders.sort((a, b) => {
-    //             if (b.dataset.name.toLocaleLowerCase() < a.dataset.name.toLocaleLowerCase()) {
-    //                 return -1;
-    //             }
-    //             if (b.dataset.name.toLocaleLowerCase() > a.dataset.name.toLocaleLowerCase()) {
-    //                 return 1;
-    //             }
-    //             return 0;
-    //         })
-    //         files.sort((a, b) => {
-    //             if (b.dataset.name.toLocaleLowerCase() < a.dataset.name.toLocaleLowerCase()) {
-    //                 return -1;
-    //             }
-    //             if (b.dataset.name.toLocaleLowerCase() > a.dataset.name.toLocaleLowerCase()) {
-    //                 return 1;
-    //             }
-    //             return 0;
-    //         })
-    //         break;
-    //     }
-    //     case 'date_desc': {
-    //         folders.sort((a, b) => {
-    //             return b.dataset.mtime - a.dataset.mtime
-    //         })
-    //         files.sort((a, b) => {
-    //             return b.dataset.mtime - a.dataset.mtime
-    //         })
-    //         break;
-    //     }
-    //     case 'date_asc': {
-    //         folders.sort((a, b) => {
-    //             return a.dataset.mtime - b.dataset.mtime
-    //         })
-    //         files.sort((a, b) => {
-    //             return a.dataset.mtime - b.dataset.mtime
-    //         })
-    //         break;
-    //     }
-    //     case 'size': {
-    //         folders.sort((a, b) => {
-    //             if (sort_flag == 0) {
-    //                 return b.dataset.size - a.dataset.size
-    //             } else {
-    //                 return a.dataset.size - b.dataset.size
-    //             }
-
-    //         })
-    //         files.sort((a, b) => {
-    //             if (sort_flag == 0) {
-    //                 return b.dataset.size - a.dataset.size
-    //             } else {
-    //                 return a.dataset.size - b.dataset.size
-    //             }
-    //         })
-    //         break;
-    //     }
-    // }
-
-    // folders.forEach(card => {
-    //     folder_grid.appendChild(card);
-    // })
-
-    // files.forEach(card => {
-    //     file_grid.appendChild(card);
-    // })
-
 }
 
 function find_files(callback) {
@@ -2391,6 +2273,7 @@ function msg(message) {
         msg = add_div(['msg', 'bottom']);
         main.append(msg);
     }
+
     msg.innerHTML = '';
     msg.classList.remove('hidden');
     if (message === '') {
@@ -2404,6 +2287,10 @@ function msg(message) {
     }
 
     msg.innerHTML = message;
+
+    setTimeout(() => {
+        msg.classList.add('hidden')
+    }, 3000);
 
 }
 
@@ -3338,12 +3225,6 @@ function getCardGio(file) {
             tooltip.classList.remove('hidden')
             tooltip.innerText = title;
 
-            // var x = e.clientX;
-            // var y = e.clientY;
-            // tooltip.style.left = x + "px";
-            // tooltip.style.top = y + "px";
-            // tooltip.classList.remove('hidden')
-            // tooltip.innerText = title;
         }, 1000);
 
     })
@@ -3512,12 +3393,21 @@ function getCardGio(file) {
                         img.src = res;
                     })
                 } else if (file.content_type === 'image/svg+xml') {
-                        img.classList.add('lazy')
-                        img.dataset.src = file.href;
-                        img.classList.add('svg')
+
+                    img.classList.add('lazy')
+                    img.dataset.src = file.href;
+                    img.classList.add('svg')
                 } else {
+                    // ipcRenderer.send('create_thumbnail', file.href);
+                    // console.log(file.thumbnail_path);
+
                     img.classList.add('lazy', 'img');
                     img.dataset.src = file.href;
+                    // if (file.thumbnail_path === undefined) {
+                    //     img.dataset.src = file.href;
+                    // } else {
+                    //     img.dataset.src = file.thumbnail_path;
+                    // }
                 }
             } else if (file.content_type.indexOf('video/') > -1) {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
@@ -3538,14 +3428,12 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
-
             ipcRenderer.send('saveRecentFile', file);
 
         })
         img.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
-
             ipcRenderer.send('saveRecentFile', file);
 
         })
@@ -3555,7 +3443,6 @@ function getCardGio(file) {
             e.preventDefault();
             e.stopPropagation();
             card.classList.add('highlight_select')
-            console.log(file)
             ipcRenderer.send('file_menu', file);
         })
     }
@@ -3651,10 +3538,10 @@ function lazyload() {
                     let thumbnail = path.join(thumbnail_dir, path.basename(img.dataset.src));
                     let exists = fs.existsSync(thumbnail);
                     if (exists) {
-                        // console.log(thumbnail)
+                        console.log(thumbnail)
                         img.src = thumbnail;
                     } else {
-                        ipcRenderer.send('create_thumbnail', img.dataset.src);
+                        ipcRenderer.send('create_thumbnail', img.dataset.src, thumbnail);
                         img.src = img.dataset.src;
                     }
 
@@ -3784,9 +3671,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         break;
                     }
                 }
-
                 sidebar.classList.remove('hidden');
-
             })
 
             // if (mb_item.id === 'mb_workspace') {
@@ -3842,28 +3727,28 @@ window.addEventListener('DOMContentLoaded', (e) => {
         //     input_container.append(autocomplete_container);
         // }
 
-        location.addEventListener('input', (e) => {
-            let input = location.value.trim().toLocaleLowerCase();
-            autocomplete_container.innerHTML = '';
-            const dir_list = auto_complete_arr.filter(option => {
-                return option.toLowerCase().startsWith(input);
-            });
-            dir_list.forEach((dir, i) => {
-                let suggestion = add_div(['suggestion']);
-                suggestion.textContent = dir;
-                autocomplete_container.appendChild(suggestion);
-                autocomplete_container.classList.remove('hidden');
-                suggestion.addEventListener('click', (e) => {
-                    getView(dir);
-                    autocomplete_container.classList.add('hidden');
-                })
-            })
-        })
-        location.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                autocomplete_container.classList.add('hidden');
-            }
-        })
+        // location.addEventListener('input', (e) => {
+        //     let input = location.value.trim().toLocaleLowerCase();
+        //     autocomplete_container.innerHTML = '';
+        //     const dir_list = auto_complete_arr.filter(option => {
+        //         return option.toLowerCase().startsWith(input);
+        //     });
+        //     dir_list.forEach((dir, i) => {
+        //         let suggestion = add_div(['suggestion']);
+        //         suggestion.textContent = dir;
+        //         autocomplete_container.appendChild(suggestion);
+        //         autocomplete_container.classList.remove('hidden');
+        //         suggestion.addEventListener('click', (e) => {
+        //             getView(dir);
+        //             autocomplete_container.classList.add('hidden');
+        //         })
+        //     })
+        // })
+        // location.addEventListener('keydown', (e) => {
+        //     if (e.key === 'Escape') {
+        //         autocomplete_container.classList.add('hidden');
+        //     }
+        // })
 
         // Handle Sidebar
         if (localStorage.getItem('sidebar') !== null) {
@@ -3893,6 +3778,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Home
         let home = document.querySelectorAll('.home');
         home.forEach(item => {
+
             item.onclick = (e) => {
                 e.preventDefault();
                 location.value = os.homedir();
@@ -4231,7 +4117,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 } else {
                     // msg(`${sc} Items Selected`)
                 }
-
             });
 
             ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {

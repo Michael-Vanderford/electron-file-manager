@@ -7,9 +7,10 @@ const gio           = require('../gio/build/Release/obj.target/gio')
 parentPort.on('message', data => {
 
     if (data.cmd === 'create_thumbnail') {
+        // gio.thumbnail((data.href));
         let thumbnail = `${path.join(data.thumb_dir, path.basename(data.href))}`
         if (!gio.exists(thumbnail)) {
-            // console.log('creating thumbnail', thumbnail);
+            console.log('creating thumbnail', thumbnail);
             gio.thumbnail(data.href, thumbnail);
         }
     }
