@@ -2262,7 +2262,7 @@ function get_folder_icon(callback) {
             folder_icon_path = icon_dir
             return false;
         } else {
-            folder_icon_path = path.join(__dirname, 'assets/icons/kora/places/scalable/folder.svg')
+            folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
             return true;
         }
     })
@@ -3408,10 +3408,10 @@ function getCardGio(file) {
                         img.src = res;
                     })
                 } else if (file.content_type === 'image/svg+xml') {
-
-                    img.classList.add('lazy')
-                    img.dataset.src = file.href;
-                    img.classList.add('svg')
+                    img.src = file.href
+                    // img.classList.add('lazy')
+                    // img.dataset.src = href;
+                    // img.classList.add('svg')
                 } else if (file.content_type === 'image/webp') {
                     console.log('what the', file.href)
                     img.src = file.href;
@@ -3566,8 +3566,7 @@ function lazyload() {
                 if (e.isIntersecting) {
 
                     let img = e.target;
-                    let thumbnail = path.join(thumbnail_dir, path.basename(img.dataset.src));
-                    img.src = thumbnail;
+                    img.src = img.dataset.stc;
                     // let exists = fs.existsSync(thumbnail);
                     // if (exists) {
                     //     console.log(thumbnail)
