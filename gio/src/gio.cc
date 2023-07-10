@@ -130,92 +130,69 @@ namespace gio {
     // NAN_METHOD(get_thumbnail) {
 
     //     Nan::HandleScope scope;
-
     //     if (info.Length() < 1) {
     //         return Nan::ThrowError("Wrong number of arguments");
     //     }
-
     //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
     //     v8::Isolate* isolate = info.GetIsolate();
-
     //     // Get the current context from the execution context
     //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
     //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-
     //     GFile* src = g_file_new_for_path(*sourceFile);
-
     //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
     //     if (src_scheme != NULL) {
     //         src = g_file_new_for_uri(*sourceFile);
     //     }
-
     //     v8::Local<v8::Array> result = Nan::New<v8::Array>();
-
     //     GFileInfo* file_info = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_DISPLAY_NAME "," G_FILE_ATTRIBUTE_THUMBNAIL_PATH, G_FILE_QUERY_INFO_NONE, NULL, NULL);
     //     gint thumbnail_size = 100;
     //     GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
     //     const gchar* display_name = g_file_info_get_display_name(file_info);
     //     gchar* thumbnail_path = g_file_info_get_attribute_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
-
     //     GdkPixbuf* thumbnail = NULL;
     //     if (thumbnail_path != NULL) {
     //         GFile* thumbnail_file = g_file_new_for_uri(thumbnail_path);
     //         gchar* thumbnail_uri = g_file_get_uri(thumbnail_file);
-
     //         GError* error = NULL;
     //         thumbnail = gdk_pixbuf_new_from_file_at_size(thumbnail_uri, thumbnail_size, thumbnail_size, &error);
-
     //         v8::Local<v8::Object> file_obj = Nan::New<v8::Object>();
     //         Nan::Set(file_obj, Nan::New("name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
     //         Nan::Set(file_obj, Nan::New("path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
-
     //         if (error != NULL) {
     //             g_print("Error loading thumbnail: %s\n", error->message);
     //             g_error_free(error);
     //         }
-
     //         g_free(thumbnail_uri);
     //         g_object_unref(thumbnail_file);
     //     }
-
     //     g_free(thumbnail_path);
     //     g_object_unref(file_info);
     //     g_object_unref(src);
-
     //     info.GetReturnValue().Set(result);
-
     //     // return thumbnail;
     // }
 
     // NAN_METHOD(thumbnail) {
 
     //     Nan::HandleScope scope;
-
     //     if (info.Length() < 1) {
     //         return Nan::ThrowError("Wrong number of arguments");
     //     }
-
     //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
     //     v8::Isolate* isolate = info.GetIsolate();
-
     //     // Get the current context from the execution context
     //     v8::Local<v8::Context> context = isolate->GetCurrentContext();
     //     v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
     //     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-
     //     GFile* src = g_file_new_for_path(*sourceFile);
-
     //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
     //     if (src_scheme != NULL) {
     //         src = g_file_new_for_uri(*sourceFile);
     //     }
-
     //     gchar *file_path = g_file_get_path(src);
-
     //     const gint thumbnail_width = 128;
     //     const gint thumbnail_height = 128;
-
     //     // Load the image file
     //     GError *error = NULL;
     //     GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file(file_path, &error);
@@ -224,40 +201,32 @@ namespace gio {
     //         g_error_free(error);
     //         return;
     //     }
-
     //     // Scale the image to thumbnail size
     //     GdkPixbuf *thumbnail_pixbuf = gdk_pixbuf_scale_simple(pixbuf, thumbnail_width, thumbnail_height, GDK_INTERP_BILINEAR);
     //     if (thumbnail_pixbuf != nullptr) {
-
     //         // Create the thumbnail filename based on the image file's hash
     //         // gchar *file_hash = g_compute_checksum_for_string(G_CHECKSUM_MD5, file_path, -1);
     //         GChecksum *checksum = g_checksum_new(G_CHECKSUM_MD5);
     //         g_checksum_update(checksum, (const guchar*)file_path, -1);
     //         const gchar *file_hash = g_checksum_get_string(checksum);
     //         gchar *thumbnail_filename = g_strdup_printf("%s.png", file_hash);
-
     //         //////////////
     //         gchar *uri, *filename, *path;
     //         // GChecksum *checksum;
     //         guint8 digest[16];
     //         gsize digest_len = sizeof (digest);
     //         gint success;
-
     //         // uri = nemo_file_get_uri (file);
     //         // checksum = g_checksum_new (G_CHECKSUM_MD5);
     //         g_checksum_update (checksum, (const guchar *) uri, strlen (uri));
-
     //         g_checksum_get_digest (checksum, digest, &digest_len);
     //         g_assert (digest_len == 16);
-
     //         filename = g_strconcat (g_checksum_get_string (checksum), ".png", NULL);
     //         g_checksum_free (checksum);
     //         //////////////////////
-
     //         // Create the thumbnails directory if it doesn't exist
     //         gchar *thumbnails_directory = g_build_filename(g_get_home_dir(), ".cache", "thumbnails", "large", NULL);
     //         g_mkdir_with_parents(thumbnails_directory, 0755);
-
     //         // Save the thumbnail image to the cache/thumbnails directory
     //         gchar *thumbnail_path = g_build_filename(thumbnails_directory, thumbnail_filename, NULL);
     //         if (g_file_test(thumbnail_path, G_FILE_TEST_EXISTS)) {
@@ -270,19 +239,14 @@ namespace gio {
     //             g_object_unref(pixbuf);
     //             return;
     //         }
-
     //         gboolean is_saved = gdk_pixbuf_save(thumbnail_pixbuf, thumbnail_path, "png", NULL, NULL);
-
     //         // Clean up resources
     //         // g_free(file_hash);
     //         g_free(thumbnail_filename);
     //         g_free(thumbnail_path);
-
     //     }
-
     //     g_object_unref(thumbnail_pixbuf);
     //     g_object_unref(pixbuf);
-
     // }
 
     NAN_METHOD(thumbnail) {
@@ -304,10 +268,6 @@ namespace gio {
         if (dest_scheme != NULL) {
             dest = g_file_new_for_uri(*destFile);
         }
-        // GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
-        // int thumbnailWidth = 100;  // Adjust the width as per your requirements
-        // int thumbnailHeight = 100; // Adjust the height as per your requirements
-        // GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
         if (inputPixbuf == nullptr) {
             // g_print("Error loading input image\n");
@@ -316,6 +276,8 @@ namespace gio {
         }
         int thumbnailWidth = 75;  // Adjust the width as per your requirements
         int thumbnailHeight = 75; // Adjust the height as per your requirements
+
+        GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
         GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
         if (thumbnailPixbuf == nullptr) {
             // g_print("Error creating thumbnail\n");
@@ -326,8 +288,9 @@ namespace gio {
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
         if (fileType != NULL) {
             // const char *outputFile = dest; // Adjust the file extension as per your requirements
-            gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
+            gdk_pixbuf_save(oriented_pixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
         }
+        g_object_unref(oriented_pixbuf);
         g_object_unref(thumbnailPixbuf);
         g_object_unref(inputPixbuf);
         g_object_unref(src);

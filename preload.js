@@ -30,6 +30,15 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
+
+ipcRenderer.on('get_thumbnail', (e, href) => {
+    let card = document.querySelector(`[data-href="${href}"]`);
+    let img = card.querySelector('img');
+    let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
+    // console.log('thumbnail', thumbnail, img)
+    img.src = thumbnail
+})
+
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
@@ -249,20 +258,20 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         } else {
 
             // Create thumbnails
-            if (file.content_type) {
+            // if (file.content_type) {
 
-                if (file.content_type.indexOf('image/') > -1) {
+            //     if (file.content_type.indexOf('image/') > -1) {
 
-                    if (file.content_type === 'image/x-xcf') {
+            //         if (file.content_type === 'image/x-xcf') {
 
-                    } else if (file.content_type === 'image/svg+xml') {
+            //         } else if (file.content_type === 'image/svg+xml') {
 
-                    } else {
-                        let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
-                        ipcRenderer.send('create_thumbnail', file.href, thumbnail);
-                    }
-                }
-            }
+            //         } else {
+            //             let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+            //             ipcRenderer.send('create_thumbnail', file.href, thumbnail);
+            //         }
+            //     }
+            // }
 
             if (file.is_hidden) {
                 hidden_file_grid.append(card);
@@ -686,9 +695,9 @@ ipcRenderer.on('connect', (e) => {
 })
 
 // Msg
-ipcRenderer.on('msg', (e, message) => {
+ipcRenderer.on('msg', (e, message, has_timeout) => {
     console.log(message)
-    msg(message);
+    msg(message, has_timeout);
 })
 
 // Edit mode
@@ -2265,7 +2274,7 @@ let folder_icon = get_folder_icon();
  * Set Msg in lower right side
  * @param {string} message
  */
-function msg(message) {
+function msg(message, has_timeout = 1) {
 
     let main = document.querySelector('.main');
     let msg = document.querySelector('.msg');
@@ -2288,9 +2297,11 @@ function msg(message) {
 
     msg.innerHTML = message;
 
-    setTimeout(() => {
-        msg.classList.add('hidden')
-    }, 3000);
+    if (has_timeout) {
+        setTimeout(() => {
+            msg.classList.add('hidden')
+        }, 3000);
+    }
 
 }
 
@@ -2851,7 +2862,7 @@ function getHome(callback) {
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link)
         home.append(item)
 
-        item.onclick = () => {
+        item.addEventListener('click', (e) => {
             let items = home.querySelectorAll('.item')
             items.forEach(item => {
                 item.classList.remove('active')
@@ -2860,12 +2871,16 @@ function getHome(callback) {
             item.classList.add('active')
             if (href === 'Recent') {
                 ipcRenderer.send('get_recent_files', location.value);
-                // msg('Not Implemented Yet');
             } else {
-                // location.value = my_computer_paths_arr[i];
-                getView(my_computer_paths_arr[i]);
+
+                if (e.ctrlKey) {
+                    getView(my_computer_paths_arr[i], 1);
+                } else {
+                    getView(my_computer_paths_arr[i]);
+                }
+
             }
-        }
+        })
 
         item.draggable = true;
         item.addEventListener('dragenter', (e) => {
@@ -3397,17 +3412,35 @@ function getCardGio(file) {
                     img.classList.add('lazy')
                     img.dataset.src = file.href;
                     img.classList.add('svg')
+                } else if (file.content_type === 'image/webp') {
+                    console.log('what the', file.href)
+                    img.src = file.href;
+                } else if (file.content_type === 'image/gif') {
+                    img.src = file.href;
                 } else {
                     // ipcRenderer.send('create_thumbnail', file.href);
                     // console.log(file.thumbnail_path);
+                    img.src = './assets/icons/image-generic.svg';
+                    let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+                    fs.readFile(thumbnail, (err, data) => {
+                        if (err) {
+                            return;
+                        }
+                        img.src = thumbnail;
+                    })
 
-                    img.classList.add('lazy', 'img');
-                    img.dataset.src = file.href;
+                    // console.log('thumb', thumbnail);
+
+                    // img.classList.add('lazy', 'img');
+                    // img.src = './assets/icons/image-generic.svg';
+                    // img.dataset.src = file.href;
+                    // img.dataset.src = thumbnail;
                     // if (file.thumbnail_path === undefined) {
                     //     img.dataset.src = file.href;
                     // } else {
                     //     img.dataset.src = file.thumbnail_path;
                     // }
+
                 }
             } else if (file.content_type.indexOf('video/') > -1) {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
@@ -3490,38 +3523,36 @@ function clearContextMenu(e) {
     }
 }
 
-function lazyloadCards() {
-    // Lazy load images
-    let lazy = [].slice.call(document.querySelectorAll('.card'));
-    // // console.log(lazy)
-    // Check if window
-    if ("IntersectionObserver" in window) {
-        // Get reference to lazy objects
-        let lazyObserver = new IntersectionObserver(function (entries, observer) {
-            // console.log('entries', entries.length);
-            entries.forEach((e, idx) => {
-                if (e.isIntersecting) {
-
-                    let lazyCard = e.target;
-                    // let card = document.querySelector(`[data-href="${lazyCard.dataset.href}"]`)
-                    // // console.log(file);
-                    // card.append(getCardGio(file));
-                    // lazyCard.append(card);
-                    // lazyCard.src = lazyCard.dataset.src;
-                    lazyCard.classList.remove("lazy");
-                    // // console.log(lazyCard.dataset.href)
-                    ipcRenderer.send('get_card_gio', lazyCard.dataset.href);
-
-                    lazyObserver.unobserve(lazyCard);
-                }
-            })
-        })
-        // THIS RUNS ON INITIAL LOAD
-        for (let i = 0; i < lazy.length; i++) {
-            lazyObserver.observe(lazy[i])
-        }
-    }
-}
+// function lazyloadCards() {
+//     // Lazy load images
+//     let lazy = [].slice.call(document.querySelectorAll('.card'));
+//     // // console.log(lazy)
+//     // Check if window
+//     if ("IntersectionObserver" in window) {
+//         // Get reference to lazy objects
+//         let lazyObserver = new IntersectionObserver(function (entries, observer) {
+//             // console.log('entries', entries.length);
+//             entries.forEach((e, idx) => {
+//                 if (e.isIntersecting) {
+//                     let lazyCard = e.target;
+//                     // let card = document.querySelector(`[data-href="${lazyCard.dataset.href}"]`)
+//                     // // console.log(file);
+//                     // card.append(getCardGio(file));
+//                     // lazyCard.append(card);
+//                     // lazyCard.src = lazyCard.dataset.src;
+//                     lazyCard.classList.remove("lazy");
+//                     // // console.log(lazyCard.dataset.href)
+//                     // ipcRenderer.send('get_card_gio', lazyCard.dataset.href);
+//                     lazyObserver.unobserve(lazyCard);
+//                 }
+//             })
+//         })
+//         // THIS RUNS ON INITIAL LOAD
+//         for (let i = 0; i < lazy.length; i++) {
+//             lazyObserver.observe(lazy[i])
+//         }
+//     }
+// }
 
 function lazyload() {
     // Lazy load images
@@ -3536,14 +3567,15 @@ function lazyload() {
 
                     let img = e.target;
                     let thumbnail = path.join(thumbnail_dir, path.basename(img.dataset.src));
-                    let exists = fs.existsSync(thumbnail);
-                    if (exists) {
-                        console.log(thumbnail)
-                        img.src = thumbnail;
-                    } else {
-                        ipcRenderer.send('create_thumbnail', img.dataset.src, thumbnail);
-                        img.src = img.dataset.src;
-                    }
+                    img.src = thumbnail;
+                    // let exists = fs.existsSync(thumbnail);
+                    // if (exists) {
+                    //     console.log(thumbnail)
+                    //     img.src = thumbnail;
+                    // } else {
+                    //     // ipcRenderer.send('create_thumbnail', img.dataset.src, thumbnail);
+                    //     img.src = img.dataset.src;
+                    // }
 
                     img.classList.remove("lazy");
                     lazyImageObserver.unobserve(img);
@@ -3726,7 +3758,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
         //     const input_container = nav_menu.querySelector('.input');
         //     input_container.append(autocomplete_container);
         // }
-
         // location.addEventListener('input', (e) => {
         //     let input = location.value.trim().toLocaleLowerCase();
         //     autocomplete_container.innerHTML = '';
@@ -4117,6 +4148,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 } else {
                     // msg(`${sc} Items Selected`)
                 }
+
             });
 
             ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {

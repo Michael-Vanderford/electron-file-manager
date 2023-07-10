@@ -11,10 +11,13 @@ const path = require('path');
 const { Worker } = require('worker_threads');
 const gio_utils = require('./utils/gio');
 const gio = require('./gio/build/Release/gio')
+
+// Workers
 const worker = new Worker('./workers/worker.js');
 const ls = new Worker('./workers/ls.js');
 const thumb = new Worker('./workers/thumbnailer.js');
 const find = new Worker('./workers/find.js');
+
 const home = app.getPath('home');
 
 // Monitor USB Devices
@@ -80,6 +83,23 @@ ipcMain.on('active_window', (e) => {
 })
 
 // Worker Threads ///////////////////////////////////////////
+
+thumb.on('message', (data) => {
+    if (data.cmd === 'msg') {
+        win.send('msg', data.msg, data.has_timeout);
+    }
+    if (data.cmd === 'thumbnail_chunk_done') {
+        win.send('get_thumbnail', data.href);
+        // gio_utils.get_file(data.href, file => {
+            // win.send('replace_card', data.href, file);
+        // })
+        // win.send('replace_card', )
+    }
+    if (data.cmd === 'thumbnail_done') {
+        win.send('msg', 'Done Creating Thumbnails', has_timeout = 1);
+    }
+})
+
 
 find.on('message', (data) => {
     if (data.cmd === 'search_done') {
@@ -474,8 +494,16 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 let watchdir = new Set();
 function get_files(source, tab) {
+
+    // Call create thumbnails
+    let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
+    thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir});
+
+    // Call ls worker to get file data
     ls.postMessage({ cmd: 'ls', source: source, tab: tab });
+
     get_disk_space(source);
+
 }
 
 function copyOverwrite(copy_overwrite_arr) {
@@ -527,14 +555,16 @@ ipcMain.on('get_settings', (e) => {
 
 ipcMain.on('create_thumbnail', (e, href) => {
 
+    // Note: Attempting thumbnail creation at the get_files call
+
     // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails');
     // let thumbnail = `${path.join(thumb_dir, path.basename(href))}`;
     // gio.thumbnail(href);
     // thumb.postMessage({cmd: 'create_thumbnail', href: href});
 
     if (!href.indexOf('sftp:') > -1) {
-        let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails')
-            thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
+        let thumb_dir = path.join(app.getPath('userData'), 'thumbnails')
+        thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
     }
 })
 
