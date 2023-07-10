@@ -4,15 +4,58 @@ const path          = require('path');
 const gio_utils     = require('../utils/gio');
 const gio           = require('../gio/build/Release/obj.target/gio')
 
-
+let sort = 'date_desc'
 function get_images(source, start, offset, callback) {
     gio.ls(source, (err, dirents) => {
         if (!err) {
             let exclude = ['image/x-xcf', 'image/svg+xml', 'image/gif', 'image/webp', 'image/vnd.dxf']
             let filter = dirents.filter(x => x.content_type.startsWith('image/') && !exclude.includes(x.content_type));
-            filter.sort((a,b) => {
-                return b.mtime - a.mtime
-            })
+
+            switch (sort) {
+                case 'name_asc': {
+                    filter.sort((a, b) => {
+                        if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
+                }
+                case 'name_desc': {
+                    filter.sort((a, b) => {
+                        if (b.name.toLocaleLowerCase() < a.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (b.name.toLocaleLowerCase() > a.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
+                }
+                case 'date_desc': {
+                    filter.sort((a, b) => {
+                        return b.mtime - a.mtime
+                    })
+                    break;
+                }
+                case 'date_asc': {
+                    filter.sort((a, b) => {
+                        return a.mtime - b.mtime
+                    })
+
+                    break;
+                }
+                case 'size': {
+                    filter.sort((a, b) => {
+                        return b.size - a.size
+                    })
+                    break;
+                }
+            }
             // console.log(filter)
             let chunk = []
             for (let i = start; i < offset; i++) {
@@ -44,7 +87,8 @@ parentPort.on('message', data => {
                 images.forEach(image => {
                     let thumbnail = `${path.join(destination, path.basename(image.href))}`
                     if (!gio.exists(thumbnail)) {
-                        // parentPort.postMessage({cmd: 'msg', msg: 'Creating Thumbnails...', has_timeout: 0});
+                        sort = data.sort;
+                        parentPort.postMessage({cmd: 'msg', msg: `Creating Thumbnail ${thumbnail}`, has_timeout: 0});
                         gio.thumbnail(image.href, thumbnail);
                         parentPort.postMessage({cmd: 'thumbnail_chunk_done', href: image.href})
                     }

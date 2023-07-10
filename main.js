@@ -497,7 +497,7 @@ function get_files(source, tab) {
 
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
-    thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir});
+    thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
 
     // Call ls worker to get file data
     ls.postMessage({ cmd: 'ls', source: source, tab: tab });

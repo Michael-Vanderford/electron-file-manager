@@ -30,7 +30,7 @@ if (localStorage.getItem('view') == null) {
 
 // IPC ///////////////////////////////////////////////////////////////////
 
-
+// Update thumbnails
 ipcRenderer.on('get_thumbnail', (e, href) => {
     let card = document.querySelector(`[data-href="${href}"]`);
     let img = card.querySelector('img');
@@ -3402,24 +3402,23 @@ function getCardGio(file) {
         try {
             if (file.content_type.indexOf('image/') > -1) {
 
+                // Load generic icon
+                img.src = './assets/icons/image-generic.svg';
+
                 if (file.content_type === 'image/x-xcf') {
                     img.classList.remove('lazy')
                     ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                         img.src = res;
                     })
                 } else if (file.content_type === 'image/svg+xml') {
-                    img.src = file.href
-                    // img.classList.add('lazy')
-                    // img.dataset.src = href;
-                    // img.classList.add('svg')
+                    img.classList.add('lazy')
+                    img.dataset.src = file.href;
+                    img.classList.add('svg')
                 } else if (file.content_type === 'image/webp') {
-                    console.log('what the', file.href)
                     img.src = file.href;
                 } else if (file.content_type === 'image/gif') {
                     img.src = file.href;
                 } else {
-                    // ipcRenderer.send('create_thumbnail', file.href);
-                    // console.log(file.thumbnail_path);
                     img.src = './assets/icons/image-generic.svg';
                     let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
                     fs.readFile(thumbnail, (err, data) => {
@@ -3428,19 +3427,6 @@ function getCardGio(file) {
                         }
                         img.src = thumbnail;
                     })
-
-                    // console.log('thumb', thumbnail);
-
-                    // img.classList.add('lazy', 'img');
-                    // img.src = './assets/icons/image-generic.svg';
-                    // img.dataset.src = file.href;
-                    // img.dataset.src = thumbnail;
-                    // if (file.thumbnail_path === undefined) {
-                    //     img.dataset.src = file.href;
-                    // } else {
-                    //     img.dataset.src = file.thumbnail_path;
-                    // }
-
                 }
             } else if (file.content_type.indexOf('video/') > -1) {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
@@ -3455,7 +3441,6 @@ function getCardGio(file) {
             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                 img.src = res;
             })
-            // console.log('fix images for sftp files')
         }
         // Open href in default application
         href.addEventListener('click', (e) => {
@@ -3566,7 +3551,7 @@ function lazyload() {
                 if (e.isIntersecting) {
 
                     let img = e.target;
-                    img.src = img.dataset.stc;
+                    img.src = img.dataset.src;
                     // let exists = fs.existsSync(thumbnail);
                     // if (exists) {
                     //     console.log(thumbnail)
