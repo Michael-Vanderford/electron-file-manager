@@ -278,7 +278,7 @@ namespace gio {
         int thumbnailHeight = 75; // Adjust the height as per your requirements
 
         GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
-        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(inputPixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
+        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
         if (thumbnailPixbuf == nullptr) {
             // g_print("Error creating thumbnail\n");
             // Handle the error appropriately (e.g., return, cleanup, etc.)
@@ -288,7 +288,7 @@ namespace gio {
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
         if (fileType != NULL) {
             // const char *outputFile = dest; // Adjust the file extension as per your requirements
-            gdk_pixbuf_save(oriented_pixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
+            gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
         }
         g_object_unref(oriented_pixbuf);
         g_object_unref(thumbnailPixbuf);
