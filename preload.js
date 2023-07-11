@@ -2993,6 +2993,7 @@ function getWorkspace(callback) {
 
 // Get Devices
 function getDevices(callback) {
+
     let location = document.getElementById('location');
     let devices = document.querySelector('device_view')
     if (!devices) {
@@ -3027,8 +3028,11 @@ function getDevices(callback) {
 
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
+
+                    console.log('device path', device.path)
+
                     location.value = device.path; //item.href;
-                    getView(device.path);
+                    getView(`${device.path}`);
                     // getView(item.href, () => {});
                 })
 
@@ -3043,6 +3047,8 @@ function getDevices(callback) {
 
             return callback(devices)
 
+        }).catch(err => {
+            console.log(err);
         })
     }
 }

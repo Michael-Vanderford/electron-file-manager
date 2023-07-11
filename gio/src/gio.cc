@@ -512,11 +512,10 @@ namespace gio {
         }
     }
 
+    // This handles mtp connections
     void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
         Nan::HandleScope scope;
-        // Get the device name
         const char* mountName = g_mount_get_name(mount);
-        // Create a V8 string from the device name
         v8::Local<v8::String> v8MountName = Nan::New(mountName).ToLocalChecked();
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
         Nan::TryCatch tryCatch;
@@ -539,9 +538,7 @@ namespace gio {
 
     void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
         Nan::HandleScope scope;
-        // Get the device name
         const char* deviceName = g_drive_get_name(drive);
-        // Create a V8 string from the device name
         v8::Local<v8::String> v8DeviceName = Nan::New(deviceName).ToLocalChecked();
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
         Nan::TryCatch tryCatch;
@@ -644,9 +641,6 @@ namespace gio {
         info.GetReturnValue().Set(result);
     }
 
-    /**
-     * This does not seem to work with intellisense
-    */
     NAN_METHOD(du) {
 
         if (info.Length() < 1) {
