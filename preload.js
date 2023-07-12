@@ -32,7 +32,11 @@ if (localStorage.getItem('view') == null) {
 
 // Update thumbnails
 ipcRenderer.on('get_thumbnail', (e, href) => {
+
     let card = document.querySelector(`[data-href="${href}"]`);
+
+    console.log(card)
+
     let img = card.querySelector('img');
     let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
     // console.log('thumbnail', thumbnail, img)
@@ -41,6 +45,8 @@ ipcRenderer.on('get_thumbnail', (e, href) => {
 
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
+
+    console.log('running')
 
     localStorage.setItem('location', source);
     auto_complete_arr = [];
@@ -696,7 +702,6 @@ ipcRenderer.on('connect', (e) => {
 
 // Msg
 ipcRenderer.on('msg', (e, message, has_timeout) => {
-    console.log(message)
     msg(message, has_timeout);
 })
 
@@ -3030,15 +3035,12 @@ function getDevices(callback) {
                     e.preventDefault();
 
                     console.log('device path', device.path)
-
-                    location.value = device.path; //item.href;
                     getView(`${device.path}`);
-                    // getView(item.href, () => {});
+
                 })
 
                 item.addEventListener('contextmenu', (e) => {
                     ipcRenderer.send('device_menu', device.path);
-                    // ipcRenderer.send('device_menu', item.href);
                     item.classList.add('highlight_select');
                 })
 

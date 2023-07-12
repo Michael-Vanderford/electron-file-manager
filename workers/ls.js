@@ -10,7 +10,7 @@ parentPort.on('message', data => {
         if (gio.exists(data.source)) {
             gio.ls(data.source, (err, dirents) => {
                 if (err) {
-                    // parentPort.postMessage({cmd: 'msg', msg: err});
+                    parentPort.postMessage({cmd: 'ls_err', err: err});
                     return;
                 }
                 parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});

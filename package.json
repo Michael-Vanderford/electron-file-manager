@@ -4,13 +4,19 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron . --filesystem=xdg-run/gvfsd"
+    "start": "electron . --filesystem=xdg-run/gvfsd",
+    "build": "electron-builder --linux deb"
   },
   "keywords": [],
-  "author": "michael.vanderford@gmail.com",
+  "author": {
+    "name": "Michael Vanderford",
+    "email": "michael.vanderford@gmail.com"
+  },
+  "email": "michael.vanderford@gmail.com",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^24.6.0"
+    "electron": "^24.6.0",
+    "electron-builder": "^24.4.0"
   },
   "dependencies": {
     "bootstrap-icons": "^1.10.5",
@@ -18,7 +24,6 @@
     "dragselect": "^2.7.4",
     "mousetrap": "^1.6.5",
     "node-addon-api": "^6.1.0",
-    "node-gio": "file:../node-gio",
     "semantic-ui-icon": "^2.5.0"
   }
 }

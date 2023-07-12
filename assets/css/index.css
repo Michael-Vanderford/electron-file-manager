@@ -614,6 +614,7 @@ progress::-webkit-progress-bar {
 }
 
 .grid5 {
+    min-height: 60px;
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: auto;

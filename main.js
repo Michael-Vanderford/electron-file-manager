@@ -90,10 +90,6 @@ thumb.on('message', (data) => {
     }
     if (data.cmd === 'thumbnail_chunk_done') {
         win.send('get_thumbnail', data.href);
-        // gio_utils.get_file(data.href, file => {
-            // win.send('replace_card', data.href, file);
-        // })
-        // win.send('replace_card', )
     }
     if (data.cmd === 'thumbnail_done') {
         win.send('msg', 'Done Creating Thumbnails', has_timeout = 1);
@@ -108,6 +104,11 @@ find.on('message', (data) => {
 })
 
 ls.on('message', (data) => {
+
+    // if (data.cmd === 'ls_err') {
+    //     win.send('get_devices');
+    // }
+
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source, data.tab);
     }
@@ -687,6 +688,7 @@ ipcMain.handle('get_devices', async (e) => {
 
     return new Promise((resolve, reject) => {
         let device_arr = gio.get_mounts();
+        // console.log(device_arr)
         let filter_arr = device_arr.filter(x => x.name != 'mtp')
         resolve(filter_arr);
     });

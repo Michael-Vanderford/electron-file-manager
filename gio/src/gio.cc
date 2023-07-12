@@ -270,8 +270,6 @@ namespace gio {
         }
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
         if (inputPixbuf == nullptr) {
-            // g_print("Error loading input image\n");
-            // Handle the error appropriately (e.g., return, cleanup, etc.)
             return;
         }
         int thumbnailWidth = 75;  // Adjust the width as per your requirements
@@ -280,8 +278,6 @@ namespace gio {
         GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
         GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
         if (thumbnailPixbuf == nullptr) {
-            // g_print("Error creating thumbnail\n");
-            // Handle the error appropriately (e.g., return, cleanup, etc.)
             return;
         }
         GError* error = NULL;
@@ -515,8 +511,8 @@ namespace gio {
     // This handles mtp connections
     void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
         Nan::HandleScope scope;
-        const char* mountName = g_mount_get_name(mount);
-        v8::Local<v8::String> v8MountName = Nan::New(mountName).ToLocalChecked();
+        const gchar* mountName = g_mount_get_name(mount);
+        v8::Local<v8::String> v8MountName = Nan::New<v8::String>(mountName).ToLocalChecked();
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
         Nan::TryCatch tryCatch;
         const unsigned argc = 1;
@@ -526,6 +522,19 @@ namespace gio {
             Nan::FatalException(tryCatch); // Handle the exception if occurred
         }
     }
+    // void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
+    //     Nan::HandleScope scope;
+    //     const char* mountName = g_mount_get_name(mount);
+    //     v8::Local<v8::String> v8MountName = Nan::New(mountName).ToLocalChecked();
+    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+    //     Nan::TryCatch tryCatch;
+    //     const unsigned argc = 1;
+    //     v8::Local<v8::Value> argv[argc] = { v8MountName };
+    //     callback->Call(argc, argv);
+    //     if (tryCatch.HasCaught()) {
+    //         Nan::FatalException(tryCatch); // Handle the exception if occurred
+    //     }
+    // }
 
     void on_mount_removed(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
         // Call your Nan module's function here
@@ -567,7 +576,6 @@ namespace gio {
             return;
         }
 
-        // Get the JavaScript callback function from the arguments
         Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
 
         // Start monitoring for device changes
@@ -576,6 +584,7 @@ namespace gio {
         g_signal_connect(volumeMonitor, "drive-disconnected", G_CALLBACK(on_device_removed), new Nan::Callback(info[0].As<v8::Function>()));
 
         g_signal_connect(volumeMonitor, "mount-added", G_CALLBACK(on_mount_added), callback);
+        g_signal_connect(volumeMonitor, "mount-changed", G_CALLBACK(on_mount_added), callback);
         g_signal_connect(volumeMonitor, "mount-removed", G_CALLBACK(on_mount_removed), new Nan::Callback(info[0].As<v8::Function>()));
 
         // Return undefined (no immediate return value)
