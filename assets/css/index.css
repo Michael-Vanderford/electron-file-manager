@@ -153,8 +153,8 @@ html, body {
 
 #quicksearch {
     border-radius: 5px;
-    border: 1px solid var(--moredark);
-    background: var(--dark);
+    border: 1px solid var(--border);
+    background: var(--input);
     padding: 5px;
     height: 14px;
     width: 350px;
@@ -163,6 +163,8 @@ html, body {
 }
 
 #txt_quicksearch {
+    color: var(--text);
+    background: var(--input);
     border-radius: 5px;
     width: 100%;
     font-size: 12px;
@@ -755,6 +757,8 @@ input[type=text]:focus {
     z-index: 1000;
 }
 
+
+
 .loader {
     position: fixed;
     top: 50%;
@@ -852,7 +856,7 @@ input[type=text]:focus {
     :root {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
-        --input: #cfcfcf;
+        --input: #efefef;
         --main: #f7f7f7;
         --minibar: #ffffff;
         --border: #cfcfcf;

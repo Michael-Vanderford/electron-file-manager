@@ -154,6 +154,17 @@ worker.on('message', (data) => {
         })
     }
 
+    if (data.cmd === 'mkdir_done') {
+        if (is_main) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        } else {
+            let href = path.dirname(data.destination)
+            let file = gio.get_file(href)
+            win.send('replace_card', href, file);
+        }
+    }
+
     if (data.cmd === 'copy_done') {
         if (is_main) {
             let file = gio.get_file(data.destination);
@@ -164,7 +175,6 @@ worker.on('message', (data) => {
             win.send('replace_card', href, file);
         }
         win.send('lazyload');
-        // win.send('sort_cards');
         win.send('clear');
     }
 
@@ -197,7 +207,7 @@ worker.on('message', (data) => {
 // Functions //////////////////////////////////////////////
 
 // Save Recent File
-function saveRecentFile (recent_file) {
+function saveRecentFile (href) {
 
     // Check if the file exists
     const fileExists = fs.existsSync(recent_files_path);
@@ -213,7 +223,17 @@ function saveRecentFile (recent_file) {
     if (!jsonData) {
         jsonData = [];
     }
-    jsonData.push(recent_file);
+
+    let exists = 0;
+    for (key in jsonData) {
+        if (jsonData[key] === href) {
+            exists = 1;
+        }
+    }
+
+    if (!exists) {
+        jsonData.push(href);
+    }
 
     // Convert the data back to JSON format
     const updatedData = JSON.stringify(jsonData, null, 2); // null, 2 adds indentation for readability
@@ -229,18 +249,24 @@ function getRecentFiles (callback) {
         if (err) {
             return;
         }
+        let file_arr = []
         let json_data = JSON.parse(data);
-        const recent_files = json_data.reduce((a, b) => {
-            let existing_obj = a.find(obj => obj.href === b.href);
-            if (!existing_obj) {
-                a.push(b);
-            }
-            return a
-        }, [])
-
-
-
-        return callback(recent_files);
+        for (let key in json_data) {
+            let file = gio.get_file(json_data[key]);
+            file_arr.push(file);
+        }
+        callback(file_arr);
+        //     const recent_files = json_data.reduce((a, b) => {
+        //         let existing_obj = a.find(obj => obj.href === b.href);
+        //         if (!existing_obj) {
+        //             a.push(b);
+        //         }
+        //         return a
+        //     }, [])
+        //     let recent_arr = recent_files.sort((a, b) => {
+        //         return b.atime - a.atime;
+        //     })
+        //     return callback(recent_arr);
     })
 }
 
@@ -540,8 +566,8 @@ ipcMain.on('change_theme', (e, theme) => {
 })
 
 // Get Settings
-ipcMain.on('saveRecentFile', (e, file) => {
-    saveRecentFile(file);
+ipcMain.on('saveRecentFile', (e, href) => {
+    saveRecentFile(href);
 })
 
 ipcMain.on('update_settings', (e, key, value) => {

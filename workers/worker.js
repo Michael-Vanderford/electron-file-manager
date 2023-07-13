@@ -113,7 +113,7 @@ parentPort.on('message', data => {
     // New Folder
     if (data.cmd === 'mkdir') {
         gio.mkdir(data.destination)
-        parentPort.postMessage({cmd: 'copy_done', destination: data.destination})
+        parentPort.postMessage({cmd: 'mkdir_done', destination: data.destination})
     }
 
     // Copy File for Overwrite

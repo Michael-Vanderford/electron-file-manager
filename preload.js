@@ -34,19 +34,13 @@ if (localStorage.getItem('view') == null) {
 ipcRenderer.on('get_thumbnail', (e, href) => {
 
     let card = document.querySelector(`[data-href="${href}"]`);
-
-    console.log(card)
-
     let img = card.querySelector('img');
     let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
-    // console.log('thumbnail', thumbnail, img)
     img.src = thumbnail
 })
 
 // On ls
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
-
-    console.log('running')
 
     localStorage.setItem('location', source);
     auto_complete_arr = [];
@@ -507,8 +501,9 @@ ipcRenderer.on('new_folder', (e, file) => {
 
     console.log('running new folder');
 
-    let main = document.querySelector('.main');
-    let folder_grid = document.getElementById('folder_grid');
+    // let main = document.querySelector('.main');
+    let active_tab_content = document.querySelector('.active-tab-content');
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
     let card = getCardGio(file);
     folder_grid.prepend(card);
 
@@ -754,31 +749,48 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 // Get Card Gio
 ipcRenderer.on('get_card_gio', (e, file) => {
 
-    // console.log('running get card gio');
-    let tabs = document.querySelectorAll('.tab')
-    let tab_content = document.querySelectorAll('.tab_content')
+    console.log('running get card gio');
 
-    tabs.forEach((tab, i) => {
+    let active_tab_content = document.querySelector('.active-tab-content');
+    let folder_grid = active_tab_content.querySelector('.folder_grid');
+    let file_grid = active_tab_content.querySelector('.file_grid');
+    let card = getCardGio(file);
 
-        if (tab.classList.contains('active-tab')) {
-            let content = tab_content[i]
+    if (file.is_dir) {
 
-            let folder_grid = content.querySelector('.folder_grid');
-            let file_grid = content.querySelector('.file_grid');
-            let card = getCardGio(file);
+        folder_grid.prepend(card);
 
-            if (file.is_dir) {
-                folder_grid.prepend(card);
-            } else {
-                file_grid.prepend(card);
-            }
+        getFolderCount(file.href);
+        getFolderSize(file.href);
 
-            getFolderCount(file.href);
+    } else {
+        file_grid.prepend(card);
+    }
 
-            getFolderSize(file.href);
+    // let tabs = document.querySelectorAll('.tab')
+    // let tab_content = document.querySelectorAll('.tab_content')
 
-        }
-    })
+    // tabs.forEach((tab, i) => {
+
+    //     if (tab.classList.contains('active-tab')) {
+    //         let content = tab_content[i]
+
+    //         let folder_grid = content.querySelector('.folder_grid');
+    //         let file_grid = content.querySelector('.file_grid');
+    //         let card = getCardGio(file);
+
+    //         if (file.is_dir) {
+    //             folder_grid.prepend(card);
+    //         } else {
+    //             file_grid.prepend(card);
+    //         }
+
+    //         getFolderCount(file.href);
+
+    //         getFolderSize(file.href);
+
+    //     }
+    // })
 
     lazyload();
 
@@ -2029,7 +2041,9 @@ function toggleHidden() {
 // Clear Items
 function clear() {
 
-    clearHighlight()
+    console.log('running clear');
+
+    clearHighlight();
     msg('');
 
     copy_arr = [];
@@ -2516,24 +2530,24 @@ function getRecentView(dirents) {
     }
 
     let tab_content = add_tab('Recent')
+
     dirents.sort((a, b) => {
-        return b.atime - a.time
+        return b.atime - a.atime
     })
+
+    console.log(dirents)
 
     let add_folder_label = 1;
     let add_file_label = 1;
     let folder_counter = 0;
+    let file_counter = 0;
     dirents.forEach(file => {
         if (file.is_dir) {
 
-            if (folder_counter < 10) {
+            if (folder_counter < 20) {
 
                 ++folder_counter;
                 if (add_folder_label === 1) {
-
-                    let hr = document.createElement('hr');
-                    tab_content.append('Recent Folders', hr)
-                    tab_content.append(folder_grid)
                     add_folder_label = 0;
                 }
 
@@ -2547,20 +2561,20 @@ function getRecentView(dirents) {
 
         } else {
 
-            if (add_file_label === 1) {
-                let hr = document.createElement('hr');
-                tab_content.append('Recent Files', hr)
-                tab_content.append(file_grid)
-                // file_grid.append('Recent Files', hr);
-
-                add_file_label = 0;
+            if (file_counter < 20) {
+                ++folder_counter;
+                if (add_file_label === 1) {
+                    add_file_label = 0;
+                }
             }
 
             let card = getCardGio(file);
             file_grid.append(card);
-
         }
+
     })
+
+    tab_content.append(folder_grid, file_grid)
 
     localStorage.setItem('location', 'Recent');
     lazyload();
@@ -3006,7 +3020,7 @@ function getDevices(callback) {
         devices.classList.add('device_view')
         devices.append(add_header('Devices'));
         ipcRenderer.invoke('get_devices').then(device_arr => {
-            console.log('running get devices', device_arr)
+            // console.log('running get devices', device_arr)
             device_arr.sort((a, b) => {
                 return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
             })
@@ -3074,7 +3088,7 @@ function getSelectedFiles() {
     let active_tab_content = document.querySelector('.active-tab-content');
     let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
     selected_items.forEach(item => {
-        console.log(item)
+        // console.log(item)
         selected_files_arr.push(item.dataset.href);
         // selected_files_arr.push(item.dataset.search_href);
     })
@@ -3379,7 +3393,7 @@ function getCardGio(file) {
                 location.dispatchEvent(new Event('change'));
             }
 
-            ipcRenderer.send('saveRecentFile', file);
+            ipcRenderer.send('saveRecentFile', file.href);
 
         })
 
@@ -3393,7 +3407,7 @@ function getCardGio(file) {
                 location.dispatchEvent(new Event('change'));
             }
 
-            ipcRenderer.send('saveRecentFile', file);
+            ipcRenderer.send('saveRecentFile', file.href);
 
         })
         // Context Menu
@@ -3454,14 +3468,13 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
-            ipcRenderer.send('saveRecentFile', file);
+            ipcRenderer.send('saveRecentFile', file.href);
 
         })
         img.addEventListener('click', (e) => {
             e.preventDefault();
             ipcRenderer.invoke('open', file.href);
-            ipcRenderer.send('saveRecentFile', file);
-
+            ipcRenderer.send('saveRecentFile', file.href);
         })
         size.append(getFileSize(file["size"]));
         // Context Menu

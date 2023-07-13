@@ -160,12 +160,12 @@
 
 /* Styles for the scrollbar thumb */
 ::-webkit-scrollbar-thumb {
-    background: rgba(25, 25, 25, 0.2);
+    background: var(--input);
     border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(20, 20, 20, 0.5);
+    background: var(--input);
 }
 
 .search_results .icon16 {
