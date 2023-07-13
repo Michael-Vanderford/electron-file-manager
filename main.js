@@ -247,13 +247,16 @@ function saveRecentFile (href) {
 function getRecentFiles (callback) {
     fs.readFile(recent_files_path, 'utf-8', (err, data) => {
         if (err) {
+            console.log(err);
             return;
         }
         let file_arr = []
         let json_data = JSON.parse(data);
         for (let key in json_data) {
-            let file = gio.get_file(json_data[key]);
-            file_arr.push(file);
+            if (gio.exists(json_data[key])) {
+                let file = gio.get_file(json_data[key]);
+                file_arr.push(file);
+            }
         }
         callback(file_arr);
         //     const recent_files = json_data.reduce((a, b) => {

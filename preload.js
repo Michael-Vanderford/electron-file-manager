@@ -2509,7 +2509,7 @@ function getProperties(properties_arr) {
 // Get Recent View
 function getRecentView(dirents) {
 
-    // console.log(dirents)
+    console.log(dirents)
 
     let location = document.querySelector('.location')
     location.value = 'Recent'
@@ -4087,6 +4087,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 // Compress Files
                 mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
                     compress('zip');
+                })
+
+                // New Tav
+                mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
+                    getView(location.value, 1);
                 })
 
                 //

@@ -35,7 +35,8 @@
         "OpenNewTab": "Ctrl+Enter",
         "Escape": "Escape",
         "NewWindow": "Ctrl+N",
-        "Reload": "F5"
+        "Reload": "F5",
+        "NewTab": "Ctrl+T"
     },
     "window": {
         "length": 1400,

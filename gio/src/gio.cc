@@ -749,6 +749,7 @@ namespace gio {
             if (mtime_dt != NULL) {
                 gint64 mtime = g_date_time_to_unix(mtime_dt);
                 Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
+                g_date_time_unref(mtime_dt);
             }
 
             // Get the access time (atime)
@@ -756,6 +757,7 @@ namespace gio {
             if (atime_dt != NULL) {
                 gint64 atime = g_date_time_to_unix(atime_dt);
                 Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
+                g_date_time_unref(atime_dt);
             }
 
             // // Get the change time (ctime)
@@ -763,11 +765,9 @@ namespace gio {
             if (ctime_dt != NULL) {
                 gint64 ctime = g_date_time_to_unix(ctime_dt);
                 Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
+                g_date_time_unref(ctime_dt);
             }
 
-            g_date_time_unref(mtime_dt);
-            g_date_time_unref(atime_dt);
-            g_date_time_unref(ctime_dt);
             g_object_unref(file_info);
             g_object_unref(src);
             info.GetReturnValue().Set(fileObj);
