@@ -14,6 +14,7 @@ parentPort.on('message', data => {
                     return;
                 }
                 parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
+
             })
         } else {
             parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});

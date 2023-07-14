@@ -137,8 +137,8 @@ worker.on('message', (data) => {
 
         // Handle Cut / Move
         if (is_main) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+            // let file = gio.get_file(data.destination);
+            // win.send('get_card_gio', file);
         } else {
             win.send('remove_card', data.source);
         }
@@ -149,26 +149,26 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'rename_done') {
-        gio_utils.get_file(data.destination, file => {
-            win.send('replace_card', data.source, file);
-        })
+        // gio_utils.get_file(data.destination, file => {
+        //     win.send('replace_card', data.source, file);
+        // })
     }
 
     if (data.cmd === 'mkdir_done') {
         if (is_main) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
-        } else {
-            let href = path.dirname(data.destination)
-            let file = gio.get_file(href)
-            win.send('replace_card', href, file);
+            // let file = gio.get_file(data.destination);
+            // win.send('get_card_gio', file);
+        // } else {
+            // let href = path.dirname(data.destination)
+            // let file = gio.get_file(href)
+            // win.send('replace_card', href, file);
         }
     }
 
     if (data.cmd === 'copy_done') {
         if (is_main) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+            // let file = gio.get_file(data.destination);
+            // win.send('get_card_gio', file);
         } else {
             let href = path.dirname(data.destination)
             let file = gio.get_file(href)
@@ -460,7 +460,7 @@ function get_apps() {
 
 function new_folder(destination) {
     gio.mkdir(destination);
-    win.send('new_folder', gio.get_file(destination));
+    // win.send('new_folder', gio.get_file(destination));
 }
 
 function watch_for_theme_change() {
@@ -522,8 +522,19 @@ function get_files_arr(source, destination, callback) {
 }
 
 // Get files array
-let watchdir = new Set();
 function get_files(source, tab) {
+
+    gio.watcher(source, (watcher) => {
+        if (watcher.event !== 'unknown') {
+            console.log(watcher);
+            if (watcher.event === 'created') {
+                win.send('get_card_gio', gio.get_file(watcher.filename));
+            }
+            if (watcher.event === 'deleted') {
+                win.send('remove_card', watcher.filename);
+            }
+        }
+    })
 
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');

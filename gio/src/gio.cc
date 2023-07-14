@@ -442,6 +442,7 @@ namespace gio {
     }
 
     std::vector<std::string> watcher_dir;
+    GFileMonitor* fileMonitor0 = NULL;
     NAN_METHOD(watcher) {
 
         Nan::HandleScope scope;
@@ -454,7 +455,6 @@ namespace gio {
         }
 
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-
         Nan::Utf8String utf8Str(sourceString);
         const char* cstring = *utf8Str;
 
@@ -489,6 +489,11 @@ namespace gio {
             Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
             GFileMonitor* fileMonitor = g_file_monitor_directory(src, G_FILE_MONITOR_NONE, NULL, NULL);
 
+            if (fileMonitor0 != NULL) {
+                g_file_monitor_cancel(fileMonitor0);
+            }
+            fileMonitor0 = fileMonitor;
+
             if (fileMonitor == NULL) {
                 Nan::ThrowError("Failed to create file monitor for the directory.");
                 return;
@@ -502,6 +507,7 @@ namespace gio {
                 g_object_unref(fileMonitor);
                 return;
             }
+            g_object_unref(src);
 
             info.GetReturnValue().SetUndefined();
 
