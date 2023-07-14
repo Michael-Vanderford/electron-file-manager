@@ -1,5 +1,6 @@
 
 .sidebar {
+    overflow: hidden;
     position: relative;
     box-sizing: border-box;
     background-color: var(--sidebar);
@@ -190,5 +191,10 @@
 }
 
 .workspace_item {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    width: 100%;
+    display: block;
     padding-left: 5px;
 }
+

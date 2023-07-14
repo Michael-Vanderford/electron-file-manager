@@ -1939,35 +1939,10 @@ function toggleHidden() {
 
 }
 
-// function initResize(event) {
-//     isResizing = true;
-//     var grid = document.getElementsByClassName("grid")[0];
-//     startX = event.clientX;
-//     startWidth = parseInt(document.defaultView.getComputedStyle(grid).getPropertyValue("width"), 10);
-
-//     document.addEventListener("mousemove", doResize, false);
-//     document.addEventListener("mouseup", stopResize, false);
-// }
-
-// function doResize(event) {
-//     if (!isResizing) return;
-
-//     var grid = document.getElementsByClassName("grid")[0];
-//     var width = startWidth + (event.clientX - startX);
-//     grid.style.width = width + "px";
-// }
-
-// function stopResize() {
-//     isResizing = false;
-//     document.removeEventListener("mousemove", doResize, false);
-//     document.removeEventListener("mouseup", stopResize, false);
-// }
-
 // Clear Items
 function clear() {
 
-    console.log('running clear');
-
+    // console.log('running clear');
     clearHighlight();
     msg('');
 
@@ -1978,11 +1953,6 @@ function clear() {
 
 // Clear Highlighted Cards
 function clearHighlight() {
-
-    // let items = document.querySelectorAll('.item');
-    // items.forEach(item => {
-    //     item.classList.remove('active')
-    // })
 
     let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
     cards.forEach(item => {
@@ -2906,18 +2876,19 @@ function getWorkspace(callback) {
                 })
             }
 
-            workspace_item.addEventListener('mouseover', (e) => {
-                workspace_item.title = item.href
+            workspace_div.addEventListener('mouseover', (e) => {
+                workspace_div.title = item.href
             })
 
             // Show Workspace Context Menu
-            workspace_item.addEventListener( 'contextmenu', (e) => {
+            workspace_div.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
                 ipcRenderer.send('workspace_menu', item);
-                workspace_item.classList.add('highlight_select')
+                workspace_div.classList.add('highlight')
             });
 
             // Open Workspace Item
-            workspace_item.addEventListener('click', (e) => {
+            workspace_div.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (item.is_dir) {
                     getView(item.href);
