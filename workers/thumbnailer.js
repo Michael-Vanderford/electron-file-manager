@@ -86,6 +86,8 @@ parentPort.on('message', data => {
                 // console.log(images);
                 images.forEach(image => {
                     let thumbnail = `${path.join(destination, path.basename(image.href))}`
+                    let md5 = gio.md5sum(thumbnail)
+                    console.log(md5)
                     if (!gio.exists(thumbnail)) {
                         sort = data.sort;
                         parentPort.postMessage({cmd: 'msg', msg: `Creating Thumbnail ${path.basename(thumbnail)}`, has_timeout: 0});
