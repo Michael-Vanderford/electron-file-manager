@@ -1837,6 +1837,7 @@ function compress(type) {
         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
         cmd = `cd '${location.value}'; zip -r '${destination}' ${file_list}`;
     } else {
+        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
         cmd = `cd '${location.value}'; tar czf '${destination}' ${file_list}`;
     }
 
@@ -1847,10 +1848,11 @@ function compress(type) {
         if (err) {
             // console.log(err);
         } else {
-            ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
+            // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
         }
-
     })
+
+    clear();
 
 }
 
