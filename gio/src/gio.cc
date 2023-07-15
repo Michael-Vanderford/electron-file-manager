@@ -447,7 +447,7 @@ namespace gio {
 
         Nan::HandleScope scope;
 
-        int watch = 0;
+        // int watch = 0;
 
         if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
             Nan::ThrowTypeError("Invalid arguments. Expected a directory path as a string and a watcher object.");
@@ -458,22 +458,22 @@ namespace gio {
         Nan::Utf8String utf8Str(sourceString);
         const char* cstring = *utf8Str;
 
-        if (watcher_dir.size() > 0) {
-            for (int i = 0; i < watcher_dir.size(); i++) {
-                if (watcher_dir[i] == cstring) {
-                    // Already being watched
-                    return;
-                } else {
-                    watcher_dir.push_back(cstring);
-                    watch = 0;
-                }
-            }
-        } else {
-            watcher_dir.push_back(cstring);
-            watch = 1;
-        }
+        // if (watcher_dir.size() > 0) {
+        //     for (int i = 0; i < watcher_dir.size(); i++) {
+        //         if (watcher_dir[i] == cstring) {
+        //             // Already being watched
+        //             return;
+        //         } else {
+        //             watcher_dir.push_back(cstring);
+        //             watch = 0;
+        //         }
+        //     }
+        // } else {
+        //     watcher_dir.push_back(cstring);
+        //     watch = 1;
+        // }
 
-        if (watch) {
+        // if (watch) {
 
             v8::Isolate* isolate = info.GetIsolate();
             v8::Local<v8::Context> context = isolate->GetCurrentContext();
@@ -511,7 +511,7 @@ namespace gio {
 
             info.GetReturnValue().SetUndefined();
 
-        }
+        // }
     }
 
     // This handles mtp connections

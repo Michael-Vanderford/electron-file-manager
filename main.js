@@ -526,7 +526,7 @@ function get_files(source, tab) {
 
     gio.watcher(source, (watcher) => {
         if (watcher.event !== 'unknown') {
-            // console.log(watcher);
+            console.log(watcher);
             if (watcher.event === 'created') {
                 win.send('get_card_gio', gio.get_file(watcher.filename));
             }
@@ -828,6 +828,7 @@ ipcMain.on('paste', (e, destination) => {
             // Files
             } else {
                 if (source === destination) {
+                    // this is not building the filename correctly when a file extension has .tar.gz
                     destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
                 } else {
                     if (gio.exists(destination)) {
@@ -1006,7 +1007,7 @@ function createWindow() {
 };
 
 process.on('uncaughtException', (err) => {
-    console.log(err.message)
+    console.log('Uncaught Exception', err.message)
     // win.send('msg', error.message);
 })
 
