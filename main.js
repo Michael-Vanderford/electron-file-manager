@@ -105,9 +105,9 @@ find.on('message', (data) => {
 
 ls.on('message', (data) => {
 
-    // if (data.cmd === 'ls_err') {
-    //     win.send('get_devices');
-    // }
+    if (data.cmd === 'ls_err') {
+        win.send('msg', data.err)
+    }
 
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source, data.tab);
@@ -526,7 +526,7 @@ function get_files(source, tab) {
 
     gio.watcher(source, (watcher) => {
         if (watcher.event !== 'unknown') {
-            console.log(watcher);
+            // console.log(watcher);
             if (watcher.event === 'created') {
                 win.send('get_card_gio', gio.get_file(watcher.filename));
             }
@@ -1005,8 +1005,8 @@ function createWindow() {
 
 };
 
-process.on('uncaughtException', (error) => {
-    // console.log(error.message)
+process.on('uncaughtException', (err) => {
+    console.log(err.message)
     // win.send('msg', error.message);
 })
 
