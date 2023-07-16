@@ -1388,7 +1388,7 @@ function find_files(callback) {
             search_view = add_div();
             search_view.classList.add('search_view');
         }
-        let search_html = fs.readFileSync('views/find.html');
+        let search_html = fs.readFileSync(path.join(__dirname, 'views/find.html'));
         search_view.innerHTML = search_html;
         sb_search.innerHTML = search_view.innerHTML;
         sidebar.append(sb_search);
@@ -2467,7 +2467,7 @@ function getSettings() {
     let location = document.querySelector('.location');
     let tab_content = add_tab('Settings');
 
-    let settings_html = fs.readFileSync('views/settings.html');
+    let settings_html = fs.readFileSync(path.join(__dirname, 'views/settings.html'));
     tab_content.innerHTML = settings_html;
 
     location.value = 'Settings';
@@ -2634,7 +2634,7 @@ function getSearch() {
             search_view = add_div();
             search_view.classList.add('search_view');
         }
-        let search_html = fs.readFileSync('views/search.html');
+        let search_html = fs.readFileSync(path.join(__dirname, 'views/search.html'));
         search_view.innerHTML = search_html;
         sb_search.innerHTML = search_view.innerHTML;
         sidebar.append(sb_search);
