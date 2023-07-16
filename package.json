@@ -4,8 +4,13 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder --linux deb"
+    "start": "electron ."
+  },
+  "build": {
+    "appId": "com.example.app",
+    "linux": {
+      "target": "deb"
+    }
   },
   "keywords": [],
   "author": {

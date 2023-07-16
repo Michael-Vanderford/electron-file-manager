@@ -13,10 +13,10 @@ const gio_utils = require('./utils/gio');
 const gio = require('./gio/build/Release/gio')
 
 // Workers
-const worker = new Worker('./workers/worker.js');
-const ls = new Worker('./workers/ls.js');
-const thumb = new Worker('./workers/thumbnailer.js');
-const find = new Worker('./workers/find.js');
+const worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+const ls = new Worker(path.join(__dirname, 'workers/ls.js'));
+const thumb = new Worker(path.join(__dirname, 'workers/thumbnailer.js'));
+const find = new Worker(path.join(__dirname, 'workers/find.js'));
 
 const home = app.getPath('home');
 
@@ -526,12 +526,12 @@ function get_files(source, tab) {
 
     gio.watcher(source, (watcher) => {
         if (watcher.event !== 'unknown') {
-            console.log(watcher);
-            if (watcher.event === 'created') {
-                win.send('get_card_gio', gio.get_file(watcher.filename));
-            }
+            // console.log(watcher);
             if (watcher.event === 'deleted') {
                 win.send('remove_card', watcher.filename);
+            }
+            if (watcher.event === 'created') {
+                win.send('get_card_gio', gio.get_file(watcher.filename));
             }
         }
     })
@@ -2052,7 +2052,7 @@ ipcMain.on('folder_menu', (e, file) => {
         {
             label: 'New Window',
             click: () => {
-                e.sender.send('context-menu-command', 'open_in_new_window')
+                createWindow(file.href);
             }
         },
         {

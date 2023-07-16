@@ -1,7 +1,0 @@
-{
-    "appId": "com.stringboardsoftware.stringfilemanager",
-    "linux": {
-      "target": "deb"
-    }
-  }
-

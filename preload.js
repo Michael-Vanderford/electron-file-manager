@@ -343,6 +343,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     clearHighlight();
 
+    main.classList.remove('loader')
+
 })
 
 ipcRenderer.on('lazyload', (e) => {
@@ -754,45 +756,28 @@ ipcRenderer.on('get_card_gio', (e, file) => {
     let active_tab_content = document.querySelector('.active-tab-content');
     let folder_grid = active_tab_content.querySelector('.folder_grid');
     let file_grid = active_tab_content.querySelector('.file_grid');
-    let card = getCardGio(file);
 
-    if (file.is_dir) {
+    // Check if card already exists
+    let exists = 0;
+    let cards = active_tab_content.querySelectorAll('.card')
+    cards.forEach(card => {
+        if (card.dataset.href === file.href) {
+            exists = 1;
+            return;
+        }
+    })
 
-        folder_grid.prepend(card);
-
-        getFolderCount(file.href);
-        getFolderSize(file.href);
-
-    } else {
-        file_grid.prepend(card);
+    if (!exists) {
+        let card = getCardGio(file);
+        if (file.is_dir) {
+            folder_grid.prepend(card);
+            getFolderCount(file.href);
+            getFolderSize(file.href);
+        } else {
+            file_grid.prepend(card);
+        }
+        lazyload();
     }
-
-    // let tabs = document.querySelectorAll('.tab')
-    // let tab_content = document.querySelectorAll('.tab_content')
-
-    // tabs.forEach((tab, i) => {
-
-    //     if (tab.classList.contains('active-tab')) {
-    //         let content = tab_content[i]
-
-    //         let folder_grid = content.querySelector('.folder_grid');
-    //         let file_grid = content.querySelector('.file_grid');
-    //         let card = getCardGio(file);
-
-    //         if (file.is_dir) {
-    //             folder_grid.prepend(card);
-    //         } else {
-    //             file_grid.prepend(card);
-    //         }
-
-    //         getFolderCount(file.href);
-
-    //         getFolderSize(file.href);
-
-    //     }
-    // })
-
-    lazyload();
 
 })
 
@@ -3407,6 +3392,8 @@ function getCardGio(file) {
  */
 function getView(dir, tab = 0) {
 
+    let main = document.querySelector('.main');
+    main.classList.add('loader')
     // Moved code
     // reference: ipcRenderer.on('ls', (e, dirents)
     // getSubFolders(dir, () => {});
