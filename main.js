@@ -524,17 +524,22 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 function get_files(source, tab) {
 
-    gio.watcher(source, (watcher) => {
-        if (watcher.event !== 'unknown') {
-            // console.log(watcher);
-            if (watcher.event === 'deleted') {
-                win.send('remove_card', watcher.filename);
+    try {
+        gio.watcher(source, (watcher) => {
+            if (watcher.event !== 'unknown') {
+                // console.log(watcher);
+                if (watcher.event === 'deleted') {
+                    win.send('remove_card', watcher.filename);
+                }
+                if (watcher.event === 'created') {
+                    win.send('get_card_gio', gio.get_file(watcher.filename));
+                }
             }
-            if (watcher.event === 'created') {
-                win.send('get_card_gio', gio.get_file(watcher.filename));
-            }
-        }
-    })
+        })
+    } catch (err) {
+        win.send('msg', err);
+    }
+
 
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
