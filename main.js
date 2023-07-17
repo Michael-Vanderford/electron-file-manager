@@ -737,14 +737,14 @@ ipcMain.handle('get_devices', async (e) => {
 // Add Workspace
 ipcMain.on('add_workspace', (e, selected_files_arr) => {
 
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'))
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    settings = JSON.parse(fs.readFileSync(workspace_file, 'utf8'))
 
     selected_files_arr.forEach(item => {
         let file = gio.get_file(item);
-        settings['workspace'].push(file)
+        settings.push(file)
     })
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    fs.writeFileSync(workspace_file, JSON.stringify(settings, null, 4));
     win.send('get_workspace');
     selected_files_arr = [];
 })
@@ -752,11 +752,11 @@ ipcMain.on('add_workspace', (e, selected_files_arr) => {
 // Remove Workspace
 ipcMain.on('remove_workspace', (e, href) => {
 
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'));
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    settings_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
 
-    settings['workspace'] = settings['workspace'].filter(data => data.href !== href);
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    settings = settings_data.filter(data => data.href !== href);
+    fs.writeFileSync(workspace_file, JSON.stringify(settings, null, 4));
 
     win.send('get_workspace');
 
@@ -765,9 +765,14 @@ ipcMain.on('remove_workspace', (e, href) => {
 
 // Get Workspae
 ipcMain.handle('get_workspace', async (e) => {
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    let workspace_items = JSON.parse(fs.readFileSync(settings_file, 'utf-8')).workspace;
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    if (!gio.exists(workspace_file)) {
+        let settings = [];
+        fs.writeFileSync(workspace_file, JSON.stringify(settings, null, 4));
+    }
+    let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
     return workspace_items;
+
 })
 
 // Set isMain Flag
