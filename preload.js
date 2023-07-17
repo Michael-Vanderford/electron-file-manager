@@ -160,25 +160,36 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         let colNames = ['Name', 'Date', 'Size', 'Items'];
         let colClasses = ['name', 'date', 'size', 'items'];
-
+        let sort_by = '_desc'
         let headerRow = colNames.map((colName, index) => {
             let col = add_div();
             col.classList.add('item', colClasses[index]);
             col.append(colName);
-
             col.addEventListener('click', (e) => {
+
                 sort = colName.toLocaleLowerCase();
-                localStorage.setItem('sort', sort);
+                if (sort === 'name' || sort === 'date') {
+                    if (sort_by === '_desc') {
+                        sort_by = '_asc'
+                    } else if (sort_by === '_asc') {
+                        sort_by = '_desc'
+                    }
+                    localStorage.setItem('sort', `${sort}${sort_by}`);
+                }
+
+                if (sort === 'size' || sort === 'items') {
+                    localStorage.setItem('sort', `${sort}`)
+                }
+
                 sort_cards();
+
             })
 
             return col;
         });
 
         header.append(...headerRow);
-        // main.append(header);
         active_tab_content.append(header)
-        // main.append(tab_content)
 
     }
 
@@ -232,8 +243,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         let file = dirents[i];
         let card = getCardGio(file);
 
-        // console.log(file);
-
         if (file.is_dir) {
 
             if (file.is_hidden) {
@@ -256,22 +265,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             auto_complete_arr.push(file.href);
 
         } else {
-
-            // Create thumbnails
-            // if (file.content_type) {
-
-            //     if (file.content_type.indexOf('image/') > -1) {
-
-            //         if (file.content_type === 'image/x-xcf') {
-
-            //         } else if (file.content_type === 'image/svg+xml') {
-
-            //         } else {
-            //             let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
-            //             ipcRenderer.send('create_thumbnail', file.href, thumbnail);
-            //         }
-            //     }
-            // }
 
             if (file.is_hidden) {
                 hidden_file_grid.append(card);
@@ -302,7 +295,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         e.stopPropagation();
 
         for (const f of e.dataTransfer.files) {
-            // console.log('file path', f.path)
+
         }
 
         ipcRenderer.send('main', 1);
@@ -329,14 +322,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Set Icon Size
     if (localStorage.getItem('icon_size') !== null) {
         let icon_size = localStorage.getItem('icon_size')
-        // console.log('icon_size', icon_size);
         slider.value = icon_size;
         resizeIcons(icon_size);
     }
 
     // watch_dir(location.value);
 
-    // lazyloadCards();
     lazyload();
 
     sort_cards();
@@ -2248,7 +2239,7 @@ function edit() {
         let header_link = card.querySelector('a');
         let input = card.querySelector('input');
 
-        header.classList.add('hidden');
+        header_link.classList.add('hidden');
         input.classList.remove('hidden');
 
         input.select()
@@ -2270,7 +2261,7 @@ function edit() {
         document.addEventListener('keyup', (e) => {
             if (e.key === 'Escape') {
                 input.value = path.basename(href);
-                header.classList.remove('hidden');
+                header_link.classList.remove('hidden');
                 input.classList.add('hidden');
             }
         })
@@ -3127,23 +3118,28 @@ function getCardGio(file) {
             '\n' +
             'Type: ' + file.content_type
 
-        // card.title = title;
+        card.title = title;
         // main.tabIndex = 0;
-        tooltip_timeout = setTimeout(() => {
+        // tooltip_timeout = setTimeout(() => {
 
-            // Calculate the position
-            const rect = card.getBoundingClientRect();
-            const top = rect.top + rect.height;
-            const left = rect.left;
+        //     // Calculate the position
+        //     const rect = card.getBoundingClientRect();
+        //     const top = rect.top + rect.height;
+        //     const left = rect.left;
 
-            // Set the position of the popup
-            tooltip.style.top = top + 'px';
-            tooltip.style.left = left + 'px';
+        //     // const main_rect = main.getBoundingClientRect();
 
-            tooltip.classList.remove('hidden')
-            tooltip.innerText = title;
+        //     // Set the position of the popup
+        //     tooltip.style.top = top + 'px';
+        //     tooltip.style.left = left + 'px';
 
-        }, 1000);
+        //     tooltip.classList.remove('hidden')
+        //     tooltip.innerText = title;
+
+        //     const tooltip_rect = tooltip.height;
+
+
+        // }, 1000);
 
     })
 
@@ -3254,7 +3250,7 @@ function getCardGio(file) {
     type.append(file.content_type);
 
     icon.append(img);
-    header.append(href);
+    header.append(href, input);
 
     // Directory
     if (file.is_dir || file.type === 'directory') {
@@ -3370,13 +3366,13 @@ function getCardGio(file) {
     if (view == 'list') {
         card.classList.add('list');
         content.classList.add('list');
-        content.append(header, input, mtime, ctime, atime, size, count);
+        content.append(header, mtime, ctime, atime, size, count);
     }
 
     if (view === 'grid') {
         card.classList.remove('list');
         content.classList.remove('list');
-        content.append(header, input, mtime, ctime, atime, size, count);
+        content.append(header, mtime, ctime, atime, size, count);
     }
 
     card.append(icon, content, tooltip);

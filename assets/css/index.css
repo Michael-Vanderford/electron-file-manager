@@ -515,6 +515,10 @@ progress::-webkit-progress-bar {
     width: 15%;
 }
 
+.header .input {
+    width: 95%;
+}
+
 .header_row {
     box-sizing: border-box;
     position: sticky;
