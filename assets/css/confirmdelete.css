@@ -24,6 +24,8 @@ html, body {
     width: 100%;
     height: 75%;
     overflow: auto;
+    word-break: break-all;
+
 }
 
 #confirm_delete .header {

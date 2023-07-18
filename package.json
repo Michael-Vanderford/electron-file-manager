@@ -1,11 +1,16 @@
 {
   "name": "string-file-manager",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "File Manager",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "build": "electron-builder --linux deb"
+    "start": "electron ."
+  },
+  "build": {
+    "appId": "com.stringboardsoftware.stringfilemanager",
+    "linux": {
+      "target": "deb"
+    }
   },
   "keywords": [],
   "author": {

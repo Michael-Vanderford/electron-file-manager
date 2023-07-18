@@ -44,43 +44,5 @@
         "x": 2194,
         "y": 247,
         "height": 696
-    },
-    "workspace": [
-        {
-            "name": "string.xlsx",
-            "href": "/home/michael/Documents/efm/string.xlsx",
-            "is_dir": false,
-            "is_hidden": false,
-            "is_writable": true,
-            "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "size": 7452,
-            "mtime": 1685664336,
-            "atime": 1687007494,
-            "ctime": 1685664336
-        },
-        {
-            "name": "tracking.xlsx",
-            "href": "/home/michael/Documents/stock/tracking.xlsx",
-            "is_dir": false,
-            "is_hidden": false,
-            "is_writable": true,
-            "content_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "size": 9008,
-            "mtime": 1686947454,
-            "atime": 1686991412,
-            "ctime": 1686947454
-        },
-        {
-            "name": "settings.svg",
-            "href": "/home/michael/Documents/efm/settings.svg",
-            "is_dir": false,
-            "is_hidden": false,
-            "is_writable": true,
-            "content_type": "image/svg+xml",
-            "size": 115550,
-            "mtime": 1686860573,
-            "atime": 1687579214,
-            "ctime": 1686860548
-        }
-    ]
+    }
 }

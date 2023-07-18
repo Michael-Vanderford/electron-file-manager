@@ -74,11 +74,15 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'count') {
-        let item_count = gio.count(data.source)
-        if (item_count === undefined) {
-            item_count = ''
+        try {
+            let item_count = gio.count(data.source)
+            if (item_count === undefined) {
+                item_count = ''
+            }
+            parentPort.postMessage({cmd: 'count', source: data.source, count: item_count});
+        } catch (err) {
+            parentPort.postMessage({cmd: 'msg', 'msg': err})
         }
-        parentPort.postMessage({cmd: 'count', source: data.source, count: item_count});
     }
 
     if (data.cmd === 'exists') {
@@ -112,18 +116,31 @@ parentPort.on('message', data => {
 
     // New Folder
     if (data.cmd === 'mkdir') {
-        gio.mkdir(data.destination)
-        parentPort.postMessage({cmd: 'mkdir_done', destination: data.destination})
+        try {
+            gio.mkdir(data.destination);
+            parentPort.postMessage({cmd: 'mkdir_done', destination: data.destination});
+        } catch (err) {
+            console.log(err);
+        }
     }
 
     // Copy File for Overwrite
     if (data.cmd === 'cp') {
         if (gio.exists(data.destination)) {
-            gio.cp(data.source, data.destination, data.overwrite_flag)
+            try {
+                gio.cp(data.source, data.destination, data.overwrite_flag);
+                parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
+            } catch (err) {
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
+            }
         } else {
-            gio.cp(data.source, data.destination, 0);
+            try {
+                gio.cp(data.source, data.destination, 0);
+                parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
+            } catch (err) {
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
+            }
         }
-        parentPort.postMessage({cmd: 'copy_done', destination: data.destination})
     }
 
     // Delete Confirmed
@@ -244,9 +261,10 @@ parentPort.on('message', data => {
 
             if (is_writable) {
 
-                gio_utils.get_file(copy_item.source, file => {
+                // gio_utils.get_file(copy_item.source, file => {
+                    let file = gio.get_file(copy_item.source);
 
-                    if (file.type === 'directory') {
+                    if (file.is_dir || file.type === 'directory') {
 
                         let c = 0;
                         while(gio.exists(destination)) {
@@ -300,10 +318,11 @@ parentPort.on('message', data => {
                                     if (gio.exists(f.destination)) {
                                         // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
                                     } else {
-                                        gio.cp(f.source, f.destination, 0)
-                                        // gio.cp_async(f.source, f.destination)
-                                        // Delay for 1 second
-                                        // new Promise((resolve) => setTimeout(resolve, 500));
+                                        try {
+                                            gio.cp(f.source, f.destination, 0)
+                                        } catch (err) {
+                                            console.log(err);
+                                        }
                                     }
                                     data = {
                                         cmd: 'progress',
@@ -331,18 +350,24 @@ parentPort.on('message', data => {
                     // File
                     } else {
 
-                        gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
-                        let data = {
-                            cmd: 'copy_done',
-                            destination: copy_item.destination
+                        try {
+                            gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
+                            let data = {
+                                cmd: 'copy_done',
+                                destination: copy_item.destination
+                            }
+                            parentPort.postMessage(data);
+                            parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
+
+                        } catch (err) {
+                            console.log(err.message);
+                            parentPort.postMessage({cmd: 'msg', msg: err.message});
                         }
-                        parentPort.postMessage(data);
-                        parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
                         copy_next();
 
                     }
 
-                })
+                // })
 
             } else {
                 parentPort.postMessage({cmd: 'msg', msg: 'Error: Permission Denied'});

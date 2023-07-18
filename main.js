@@ -13,10 +13,10 @@ const gio_utils = require('./utils/gio');
 const gio = require('./gio/build/Release/gio')
 
 // Workers
-const worker = new Worker('./workers/worker.js');
-const ls = new Worker('./workers/ls.js');
-const thumb = new Worker('./workers/thumbnailer.js');
-const find = new Worker('./workers/find.js');
+const worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+const ls = new Worker(path.join(__dirname, 'workers/ls.js'));
+const thumb = new Worker(path.join(__dirname, 'workers/thumbnailer.js'));
+const find = new Worker(path.join(__dirname, 'workers/find.js'));
 
 const home = app.getPath('home');
 
@@ -31,17 +31,18 @@ let win;
 let window_id = 0;
 let window_id0 = 0;
 let is_main = 1;
+let watcher_failed = 0;
 
 let selected_files_arr = []
 
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
-let settings = {};
+let workspace = {};
 try {
     checkSettings();
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+    workspace = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 } catch (err) {
     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+    workspace = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 }
 
 function checkSettings() {
@@ -105,9 +106,9 @@ find.on('message', (data) => {
 
 ls.on('message', (data) => {
 
-    // if (data.cmd === 'ls_err') {
-    //     win.send('get_devices');
-    // }
+    if (data.cmd === 'ls_err') {
+        win.send('msg', data.err)
+    }
 
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source, data.tab);
@@ -136,9 +137,9 @@ worker.on('message', (data) => {
     if (data.cmd === 'move_done') {
 
         // Handle Cut / Move
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             win.send('remove_card', data.source);
         }
@@ -155,20 +156,20 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'mkdir_done') {
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
-        // } else {
-            // let href = path.dirname(data.destination)
-            // let file = gio.get_file(href)
-            // win.send('replace_card', href, file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        } else if (!is_main && watcher_failed) {
+            let href = path.dirname(data.destination)
+            let file = gio.get_file(href)
+            win.send('replace_card', href, file);
         }
     }
 
     if (data.cmd === 'copy_done') {
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             let href = path.dirname(data.destination)
             let file = gio.get_file(href)
@@ -459,8 +460,17 @@ function get_apps() {
 }
 
 function new_folder(destination) {
-    gio.mkdir(destination);
+
+    try {
+        gio.mkdir(destination);
+        if (watcher_failed) {
+            win.send('get_card_gio', gio.get_file(destination));
+        }
+    } catch (err) {
+        win.send('msg', err);
+    }
     // win.send('new_folder', gio.get_file(destination));
+
 }
 
 function watch_for_theme_change() {
@@ -524,17 +534,23 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 function get_files(source, tab) {
 
-    gio.watcher(source, (watcher) => {
-        if (watcher.event !== 'unknown') {
-            console.log(watcher);
-            if (watcher.event === 'created') {
-                win.send('get_card_gio', gio.get_file(watcher.filename));
+    try {
+        gio.watcher(source, (watcher) => {
+            if (watcher.event !== 'unknown') {
+                if (watcher.event === 'deleted') {
+                    win.send('remove_card', watcher.filename);
+                }
+                if (watcher.event === 'created') {
+                    win.send('get_card_gio', gio.get_file(watcher.filename));
+                }
             }
-            if (watcher.event === 'deleted') {
-                win.send('remove_card', watcher.filename);
-            }
-        }
-    })
+        })
+    } catch (err) {
+        console.log('watcher err', err.message);
+        win.send('msg', err);
+        watcher_failed = 1;
+    }
+
 
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
@@ -585,8 +601,8 @@ ipcMain.on('saveRecentFile', (e, href) => {
 })
 
 ipcMain.on('update_settings', (e, key, value) => {
-    settings[key] = value;
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    workspace[key] = value;
+    fs.writeFileSync(settings_file, JSON.stringify(workspace, null, 4));
     win.send('msg', 'Settings updated')
 })
 
@@ -737,14 +753,14 @@ ipcMain.handle('get_devices', async (e) => {
 // Add Workspace
 ipcMain.on('add_workspace', (e, selected_files_arr) => {
 
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'))
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'))
 
     selected_files_arr.forEach(item => {
         let file = gio.get_file(item);
-        settings['workspace'].push(file)
+        workspace_data.push(file)
     })
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
     win.send('get_workspace');
     selected_files_arr = [];
 })
@@ -752,11 +768,11 @@ ipcMain.on('add_workspace', (e, selected_files_arr) => {
 // Remove Workspace
 ipcMain.on('remove_workspace', (e, href) => {
 
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf8'));
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
 
-    settings['workspace'] = settings['workspace'].filter(data => data.href !== href);
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    let workspace = workspace_data.filter(data => data.href !== href);
+    fs.writeFileSync(workspace_file, JSON.stringify(workspace, null, 4));
 
     win.send('get_workspace');
 
@@ -765,9 +781,14 @@ ipcMain.on('remove_workspace', (e, href) => {
 
 // Get Workspae
 ipcMain.handle('get_workspace', async (e) => {
-    let settings_file = path.join(app.getPath('userData'), 'settings.json');
-    let workspace_items = JSON.parse(fs.readFileSync(settings_file, 'utf-8')).workspace;
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    if (!gio.exists(workspace_file)) {
+        let workspace_data = [];
+        fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
+    }
+    let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
     return workspace_items;
+
 })
 
 // Set isMain Flag
@@ -828,6 +849,7 @@ ipcMain.on('paste', (e, destination) => {
             // Files
             } else {
                 if (source === destination) {
+                    // this is not building the filename correctly when a file extension has .tar.gz
                     destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
                 } else {
                     if (gio.exists(destination)) {
@@ -943,23 +965,23 @@ function createWindow() {
         }
     }
 
-    if (settings.window.x == 0) {
-        settings.window.x = displayToUse.bounds.x + 50
+    if (workspace.window.x == 0) {
+        workspace.window.x = displayToUse.bounds.x + 50
     }
 
-    if (settings.window.y == 0) {
-        settings.window.y = displayToUse.bounds.y + 50
+    if (workspace.window.y == 0) {
+        workspace.window.y = displayToUse.bounds.y + 50
     }
 
     // WINDOW OPTIONS
     let options = {
         minWidth: 400,
         minHeight: 600,
-        width: settings.window.width,
-        height: settings.window.height,
+        width: workspace.window.width,
+        height: workspace.window.height,
         backgroundColor: '#2e2c29',
-        x: settings.window.x,
-        y: settings.window.y,
+        x: workspace.window.x,
+        y: workspace.window.y,
         frame: true,
         autoHideMenuBar: true,
         icon: path.join(__dirname, '/assets/icons/folder.png'),
@@ -988,25 +1010,25 @@ function createWindow() {
 
     win.on('resize', (e) => {
         let intervalid = setInterval(() => {
-            settings.window.width = win.getBounds().width;
-            settings.window.height = win.getBounds().height;
+            workspace.window.width = win.getBounds().width;
+            workspace.window.height = win.getBounds().height;
             // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-            fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+            fs.writeFileSync(settings_file, JSON.stringify(workspace, null, 4));
         }, 1000);
     })
 
     win.on('move', (e) => {
-        settings.window.x = win.getBounds().x;
-        settings.window.y = win.getBounds().y;
+        workspace.window.x = win.getBounds().x;
+        workspace.window.y = win.getBounds().y;
         // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-        fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+        fs.writeFileSync(settings_file, JSON.stringify(workspace, null, 4));
     })
     windows.add(win);
 
 };
 
-process.on('uncaughtException', (error) => {
-    // console.log(error.message)
+process.on('uncaughtException', (err) => {
+    console.log('Uncaught Exception', err.message)
     // win.send('msg', error.message);
 })
 
@@ -1741,11 +1763,11 @@ function createFileFromTemplate(source, destination) {
 }
 
 // Templated Menu
-function add_templates_menu(menu, e, location) {
+function add_templates_menu(menu, location) {
     let template_menu = menu.getMenuItemById('templates')
-    let templates = fs.readdirSync(path.join(__dirname, 'assets/templates'))
+    let templates = fs.readdirSync(path.join(home, 'Templates'))
     templates.forEach((file, idx) => {
-        let source = path.join(__dirname, 'assets/templates', file);
+        let source = path.join(home, 'Templates', file);
         let destination = path.format({ dir: location, base: file });
         template_menu.submenu.append(new MenuItem({
             label: file.replace(path.extname(file), ''),
@@ -1762,7 +1784,7 @@ function extract_menu(menu, e) {
     let menu_item = new MenuItem(
         {
             label: '&Extract',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Extract : settings.keyboard_shortcuts.Extract,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Extract : workspace.keyboard_shortcuts.Extract,
             click: () => {
                 e.sender.send('context-menu-command', 'extract')
             }
@@ -1931,7 +1953,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'New Folder',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.NewFolder : workspace.keyboard_shortcuts.NewFolder,
             click: () => {
                 new_folder(path.format({ dir: destination, base: 'New Folder' }));
             }
@@ -1943,7 +1965,7 @@ ipcMain.on('main_menu', (e, destination) => {
                 {
                     label: 'Open Templates Folder',
                     click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'),
+                        e.sender.send('context-menu-command', 'open_templates'),
                         {
                             type: 'separator'
                         }
@@ -1963,7 +1985,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Paste',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Paste : workspace.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send('context-menu-command', 'paste')
             }
@@ -2023,7 +2045,7 @@ ipcMain.on('main_menu', (e, destination) => {
     }
 
     // Add templates
-    add_templates_menu(menu, e, destination)
+    add_templates_menu(menu, destination)
 
     // Show menu
     menu.popup(BrowserWindow.fromWebContents(e.sender))
@@ -2051,7 +2073,7 @@ ipcMain.on('folder_menu', (e, file) => {
         {
             label: 'New Window',
             click: () => {
-                e.sender.send('context-menu-command', 'open_in_new_window')
+                createWindow(file.href);
             }
         },
         {
@@ -2081,32 +2103,32 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'New Folder',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.NewFolder : workspace.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send('context-menu-command', 'new_folder')
             }
         },
-        {
-            id: 'templates',
-            label: 'New Document',
-            submenu: [
-                {
-                    label: 'Open Templates Folder',
-                    click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'
-                        ),
-                        {
-                            type: 'separator'
-                        }
-                    }
-                },],
-        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         },],
+        // },
         {
             type: 'separator'
         },
         {
             label: 'Add to workspace',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.AddWorkspace : workspace.keyboard_shortcuts.AddWorkspace,
             click: () => {
                 e.sender.send('context-menu-command', 'add_workspace');
             },
@@ -2116,21 +2138,21 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Cut',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Cut : workspace.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send('context-menu-command', 'cut')
             }
         },
         {
             label: 'Copy',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Copy : workspace.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
             }
         },
         {
             label: '&Rename',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Rename : workspace.keyboard_shortcuts.Rename,
             click: () => {
                 e.sender.send('context-menu-command', 'rename')
             }
@@ -2140,7 +2162,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Compress',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Compress : workspace.keyboard_shortcuts.Compress,
             submenu: [
                 {
                     label: 'tar.gz',
@@ -2161,7 +2183,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Delete',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Delete : workspace.keyboard_shortcuts.Delete,
             click: () => {
                 // e.sender.send('context-menu-command', 'delete_folder')
                 e.sender.send('context-menu-command', 'delete')
@@ -2191,7 +2213,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Properties',
-            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+            accelerator: process.platform == 'darwin' ? workspace.keyboard_shortcuts.Properties : workspace.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
             }
@@ -2214,7 +2236,7 @@ ipcMain.on('folder_menu', (e, file) => {
     add_launcher_menu(menu, e, file)
 
     // ADD TEMPLATES
-    // add_templates_menu(menu1, e, args[0]);
+    // add_templates_menu(menu, file.);
 
     // ADD LAUNCHER MENU
     //   add_launcher_menu(menu1, e, args);
@@ -2237,7 +2259,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Add to workspace',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.AddWorkspace : workspace.keyboard_shortcuts.AddWorkspace,
             click: () => {
                 e.sender.send('context-menu-command', 'add_workspace')
             }
@@ -2255,44 +2277,44 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Cut',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Cut : workspace.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send('context-menu-command', 'cut')
             }
         },
         {
             label: 'Copy',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Copy : workspace.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
             }
         },
         {
             label: '&Rename',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Rename : workspace.keyboard_shortcuts.Rename,
             click: () => { e.sender.send('context-menu-command', 'rename') }
         },
         {
             type: 'separator'
         },
-        {
-            id: 'templates',
-            label: 'New Document',
-            submenu: [
-                {
-                    label: 'Open Templates Folder',
-                    click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'
-                        ),
-                        {
-                            type: 'separator'
-                        }
-                    }
-                }],
-        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates_folder'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         }],
+        // },
         {
             label: '&New Folder',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.NewFolder : workspace.keyboard_shortcuts.NewFolder,
             click: () => {
                 e.sender.send('context-menu-command', 'new_folder')
             }
@@ -2302,7 +2324,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Compress',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Compress : workspace.keyboard_shortcuts.Compress,
             submenu: [
                 {
                     label: 'tar.gz',
@@ -2323,7 +2345,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Delete File',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Delete : workspace.keyboard_shortcuts.Delete,
             click: () => {
                 // e.sender.send('context-menu-command', 'delete_file')
                 e.sender.send('context-menu-command', 'delete')
@@ -2345,7 +2367,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Properties',
-            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+            accelerator: process.platform == 'darwin' ? workspace.keyboard_shortcuts.Properties : workspace.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
             }
@@ -2500,7 +2522,7 @@ const template = [
             {
                 label: 'Disks',
                 click: () => {
-                    let cmd = settings['Disk Utility']
+                    let cmd = workspace['Disk Utility']
                     exec(cmd, (err) => {
                         console.log(err)
                     });
@@ -2556,7 +2578,7 @@ const template = [
             {type: 'separator'},
             {
                 label: 'Show Sidebar',
-                accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.ShowSidebar : settings.keyboard_shortcuts.ShowSidebar,
+                accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.ShowSidebar : workspace.keyboard_shortcuts.ShowSidebar,
                 click: () => {
                     let win = window.getFocusedWindow();
                     win.webContents.send('sidebar');
