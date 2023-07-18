@@ -131,14 +131,14 @@ parentPort.on('message', data => {
                 gio.cp(data.source, data.destination, data.overwrite_flag);
                 parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
             } catch (err) {
-                console.log(err);
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
             }
         } else {
             try {
                 gio.cp(data.source, data.destination, 0);
                 parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
             } catch (err) {
-                console.log(err);
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
             }
         }
     }

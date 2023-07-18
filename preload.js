@@ -928,6 +928,10 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             clear();
             break;
         }
+        case 'open_templates': {
+            getView(path.join(os.homedir(), 'Templates'), 1)
+            break;
+        }
 
     }
 

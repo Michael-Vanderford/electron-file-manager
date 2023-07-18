@@ -31,6 +31,7 @@ let win;
 let window_id = 0;
 let window_id0 = 0;
 let is_main = 1;
+let watcher_failed = 0;
 
 let selected_files_arr = []
 
@@ -136,9 +137,9 @@ worker.on('message', (data) => {
     if (data.cmd === 'move_done') {
 
         // Handle Cut / Move
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             win.send('remove_card', data.source);
         }
@@ -155,20 +156,20 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'mkdir_done') {
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
-        // } else {
-            // let href = path.dirname(data.destination)
-            // let file = gio.get_file(href)
-            // win.send('replace_card', href, file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        } else if (!is_main && watcher_failed) {
+            let href = path.dirname(data.destination)
+            let file = gio.get_file(href)
+            win.send('replace_card', href, file);
         }
     }
 
     if (data.cmd === 'copy_done') {
-        if (is_main) {
-            // let file = gio.get_file(data.destination);
-            // win.send('get_card_gio', file);
+        if (is_main && watcher_failed) {
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
         } else {
             let href = path.dirname(data.destination)
             let file = gio.get_file(href)
@@ -459,8 +460,17 @@ function get_apps() {
 }
 
 function new_folder(destination) {
-    gio.mkdir(destination);
+
+    try {
+        gio.mkdir(destination);
+        if (watcher_failed) {
+            win.send('get_card_gio', gio.get_file(destination));
+        }
+    } catch (err) {
+        win.send('msg', err);
+    }
     // win.send('new_folder', gio.get_file(destination));
+
 }
 
 function watch_for_theme_change() {
@@ -527,7 +537,6 @@ function get_files(source, tab) {
     try {
         gio.watcher(source, (watcher) => {
             if (watcher.event !== 'unknown') {
-                // console.log(watcher);
                 if (watcher.event === 'deleted') {
                     win.send('remove_card', watcher.filename);
                 }
@@ -537,7 +546,9 @@ function get_files(source, tab) {
             }
         })
     } catch (err) {
+        console.log('watcher err', err.message);
         win.send('msg', err);
+        watcher_failed = 1;
     }
 
 
@@ -1752,11 +1763,11 @@ function createFileFromTemplate(source, destination) {
 }
 
 // Templated Menu
-function add_templates_menu(menu, e, location) {
+function add_templates_menu(menu, location) {
     let template_menu = menu.getMenuItemById('templates')
-    let templates = fs.readdirSync(path.join(__dirname, 'assets/templates'))
+    let templates = fs.readdirSync(path.join(home, 'Templates'))
     templates.forEach((file, idx) => {
-        let source = path.join(__dirname, 'assets/templates', file);
+        let source = path.join(home, 'Templates', file);
         let destination = path.format({ dir: location, base: file });
         template_menu.submenu.append(new MenuItem({
             label: file.replace(path.extname(file), ''),
@@ -1954,7 +1965,7 @@ ipcMain.on('main_menu', (e, destination) => {
                 {
                     label: 'Open Templates Folder',
                     click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'),
+                        e.sender.send('context-menu-command', 'open_templates'),
                         {
                             type: 'separator'
                         }
@@ -2034,7 +2045,7 @@ ipcMain.on('main_menu', (e, destination) => {
     }
 
     // Add templates
-    add_templates_menu(menu, e, destination)
+    add_templates_menu(menu, destination)
 
     // Show menu
     menu.popup(BrowserWindow.fromWebContents(e.sender))
@@ -2097,21 +2108,21 @@ ipcMain.on('folder_menu', (e, file) => {
                 e.sender.send('context-menu-command', 'new_folder')
             }
         },
-        {
-            id: 'templates',
-            label: 'New Document',
-            submenu: [
-                {
-                    label: 'Open Templates Folder',
-                    click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'
-                        ),
-                        {
-                            type: 'separator'
-                        }
-                    }
-                },],
-        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         },],
+        // },
         {
             type: 'separator'
         },
@@ -2225,7 +2236,7 @@ ipcMain.on('folder_menu', (e, file) => {
     add_launcher_menu(menu, e, file)
 
     // ADD TEMPLATES
-    // add_templates_menu(menu1, e, args[0]);
+    // add_templates_menu(menu, file.);
 
     // ADD LAUNCHER MENU
     //   add_launcher_menu(menu1, e, args);
@@ -2286,21 +2297,21 @@ ipcMain.on('file_menu', (e, file) => {
         {
             type: 'separator'
         },
-        {
-            id: 'templates',
-            label: 'New Document',
-            submenu: [
-                {
-                    label: 'Open Templates Folder',
-                    click: () => {
-                        e.sender.send('context-menu-command', 'open_templates_folder'
-                        ),
-                        {
-                            type: 'separator'
-                        }
-                    }
-                }],
-        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates_folder'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         }],
+        // },
         {
             label: '&New Folder',
             accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.NewFolder : workspace.keyboard_shortcuts.NewFolder,
