@@ -31,11 +31,11 @@ if (localStorage.getItem('view') == null) {
 // IPC ///////////////////////////////////////////////////////////////////
 
 // Update thumbnails
-ipcRenderer.on('get_thumbnail', (e, href) => {
+ipcRenderer.on('get_thumbnail', (e, href, thumbnail) => {
 
     let card = document.querySelector(`[data-href="${href}"]`);
     let img = card.querySelector('img');
-    let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
+    // let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
     img.src = thumbnail
 })
 
@@ -3323,7 +3323,8 @@ function getCardGio(file) {
                     img.src = file.href;
                 } else {
                     img.src = './assets/icons/image-generic.svg';
-                    let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+                    // let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+                    let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
                     fs.readFile(thumbnail, (err, data) => {
                         if (err) {
                             return;
