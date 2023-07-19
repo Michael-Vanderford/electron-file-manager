@@ -90,7 +90,7 @@ thumb.on('message', (data) => {
         win.send('msg', data.msg, data.has_timeout);
     }
     if (data.cmd === 'thumbnail_chunk_done') {
-        win.send('get_thumbnail', data.href);
+        win.send('get_thumbnail', data.href, data.thumbnail);
     }
     if (data.cmd === 'thumbnail_done') {
         win.send('msg', 'Done Creating Thumbnails', has_timeout = 1);
