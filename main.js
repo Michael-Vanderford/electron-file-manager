@@ -23,6 +23,7 @@ const home = app.getPath('home');
 // Monitor USB Devices
 gio.monitor(data => {
     if (data) {
+        // console.log(data)
         win.send('get_devices');
     }
 });
@@ -1064,7 +1065,19 @@ ipcMain.on('get_files', (e, source, tab) => {
 
 // Dialogs ////////////////////////////////////////////////////////////
 
-// Network connect dialog
+function aboutDialog() {
+    const packageInfo = require('./package.json');
+    const aboutOptions = {
+        title: `About ${packageInfo.name}`,
+        message: `${packageInfo.name} ${packageInfo.version}`,
+        detail: packageInfo.description,
+        icon: path.join(__dirname, 'path/to/your/app-icon.png'),
+        buttons: ['OK'],
+        defaultId: 0,
+    };
+
+    dialog.showMessageBox(null, aboutOptions);
+}
 
 function open_with(file) {
 
@@ -1115,6 +1128,7 @@ function open_with(file) {
 
 }
 
+// Network connect dialog
 function connectDialog() {
 
     let bounds = win.getBounds()
@@ -2618,7 +2632,10 @@ const template = [
         label: 'Help',
         submenu : [
             {
-                label: 'About'
+                label: 'About',
+                click: () => {
+                    aboutDialog();
+                }
             }
         ]
     }

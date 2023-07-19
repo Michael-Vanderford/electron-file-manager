@@ -342,7 +342,6 @@ namespace gio {
         GList *mounts, *iter;
         GList *volumes;
 
-
         // Initialize GLib
         g_type_init();
 
@@ -361,11 +360,26 @@ namespace gio {
             const gchar *name = g_mount_get_name(mount);
 
             GFile *mount_path = NULL;
-            mount_path = g_mount_get_default_location(mount);
-            gchar *path = g_file_get_path(mount_path);
+            // mount_path = g_mount_get_default_location(mount);
+            mount_path = g_mount_get_root(mount);
+            gchar *path = g_file_get_uri(mount_path);
+            // gchar *path = g_file_get_path(mount_path);
+
+            //
+            // GFile *mount_location = g_mount_get_root (mount);
+            // gchar *mount_root_uri = g_file_get_uri (mount_location);
+            // gchar *location_uri = g_file_get_uri (mount_path);
+            //
+
             if (path == NULL) {
                 path = g_strdup("");
             }
+
+            // GDrive *drive = g_mount_get_drive(mount);
+            // GMountOperation *mount_operation = g_mount_operation_new();
+            // g_drive_eject_with_operation(drive, G_MOUNT_UNMOUNT_NONE, mount_operation, NULL, NULL, NULL);
+
+            // g_object_unref(mount_operation);
 
             v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
             Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
@@ -556,6 +570,7 @@ namespace gio {
         g_signal_connect(volumeMonitor, "mount-added", G_CALLBACK(on_mount_added), callback);
         g_signal_connect(volumeMonitor, "mount-changed", G_CALLBACK(on_mount_added), callback);
         g_signal_connect(volumeMonitor, "mount-removed", G_CALLBACK(on_mount_removed), new Nan::Callback(info[0].As<v8::Function>()));
+
 
         // Return undefined (no immediate return value)
         info.GetReturnValue().SetUndefined();
@@ -1260,7 +1275,6 @@ namespace gio {
 
     NAN_MODULE_INIT(init) {
         // Nan::Export(target, "get_thumbnail", get_thumbnail);
-        Nan::Export(target, "md5sum", md5sum);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);

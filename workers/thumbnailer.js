@@ -6,70 +6,74 @@ const gio           = require('../gio/build/Release/obj.target/gio')
 
 let sort = 'date_desc'
 function get_images(source, start, offset, callback) {
-    gio.ls(source, (err, dirents) => {
-        if (!err) {
-            let exclude = ['image/x-xcf', 'image/svg+xml', 'image/gif', 'image/webp', 'image/vnd.dxf']
-            let filter = dirents.filter(x => x.content_type.startsWith('image/') && !exclude.includes(x.content_type));
+    try {
+        gio.ls(source, (err, dirents) => {
+            if (!err) {
+                let exclude = ['image/x-xcf', 'image/svg+xml', 'image/gif', 'image/webp', 'image/vnd.dxf']
+                let filter = dirents.filter(x => x.content_type.startsWith('image/') && !exclude.includes(x.content_type));
 
-            switch (sort) {
-                case 'name_asc': {
-                    filter.sort((a, b) => {
-                        if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
-                            return -1;
-                        }
-                        if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
-                            return 1;
-                        }
-                        return 0;
-                    })
-                    break;
-                }
-                case 'name_desc': {
-                    filter.sort((a, b) => {
-                        if (b.name.toLocaleLowerCase() < a.name.toLocaleLowerCase()) {
-                            return -1;
-                        }
-                        if (b.name.toLocaleLowerCase() > a.name.toLocaleLowerCase()) {
-                            return 1;
-                        }
-                        return 0;
-                    })
-                    break;
-                }
-                case 'date_desc': {
-                    filter.sort((a, b) => {
-                        return b.mtime - a.mtime
-                    })
-                    break;
-                }
-                case 'date_asc': {
-                    filter.sort((a, b) => {
-                        return a.mtime - b.mtime
-                    })
+                switch (sort) {
+                    case 'name_asc': {
+                        filter.sort((a, b) => {
+                            if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
+                                return -1;
+                            }
+                            if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
+                                return 1;
+                            }
+                            return 0;
+                        })
+                        break;
+                    }
+                    case 'name_desc': {
+                        filter.sort((a, b) => {
+                            if (b.name.toLocaleLowerCase() < a.name.toLocaleLowerCase()) {
+                                return -1;
+                            }
+                            if (b.name.toLocaleLowerCase() > a.name.toLocaleLowerCase()) {
+                                return 1;
+                            }
+                            return 0;
+                        })
+                        break;
+                    }
+                    case 'date_desc': {
+                        filter.sort((a, b) => {
+                            return b.mtime - a.mtime
+                        })
+                        break;
+                    }
+                    case 'date_asc': {
+                        filter.sort((a, b) => {
+                            return a.mtime - b.mtime
+                        })
 
-                    break;
+                        break;
+                    }
+                    case 'size': {
+                        filter.sort((a, b) => {
+                            return b.size - a.size
+                        })
+                        break;
+                    }
                 }
-                case 'size': {
-                    filter.sort((a, b) => {
-                        return b.size - a.size
-                    })
-                    break;
+                // console.log(filter)
+                let chunk = []
+                for (let i = start; i < offset; i++) {
+                    if (i < filter.length) {
+                        chunk.push(filter[i])
+                    } else {
+                        // parentPort.postMessage({cmd: 'thumbnail_done'})
+                        return
+                    }
                 }
+                // parentPort.postMessage({cmd: 'thumbnail_chunk_done'})
+                return callback(chunk)
             }
-            // console.log(filter)
-            let chunk = []
-            for (let i = start; i < offset; i++) {
-                if (i < filter.length) {
-                    chunk.push(filter[i])
-                } else {
-                    // parentPort.postMessage({cmd: 'thumbnail_done'})
-                    return
-                }
-            }
-            // parentPort.postMessage({cmd: 'thumbnail_chunk_done'})
-            return callback(chunk)
-        }
-    })
+        })
+    } catch (err) {
+        console.log('ls worker', err.message)
+    }
 }
 
 parentPort.on('message', data => {
