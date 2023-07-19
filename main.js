@@ -415,6 +415,10 @@ function get_apps() {
     let exe_arr = [];
     gio.ls('/usr/share/applications', (err, data) => {
 
+        if (err) {
+            console.log('error:' + err)
+        }
+
         data.forEach(item => {
             let content = fs.readFileSync(item.href, 'utf-8');
             let data = content.split('\n');
@@ -535,6 +539,7 @@ function get_files_arr(source, destination, callback) {
 function get_files(source, tab) {
 
     try {
+        watcher_failed = 0;
         gio.watcher(source, (watcher) => {
             if (watcher.event !== 'unknown') {
                 if (watcher.event === 'deleted') {

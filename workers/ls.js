@@ -7,6 +7,7 @@ const gio           = require('../gio/build/Release/obj.target/gio')
 parentPort.on('message', data => {
     // List Files
     if (data.cmd === 'ls') {
+        
         if (gio.exists(data.source)) {
             try {
                 gio.ls(data.source, (err, dirents) => {
