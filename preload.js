@@ -1,12 +1,12 @@
 const { ipcRenderer, shell, clipboard } = require('electron');
 const { exec, execSync } = require('child_process');
-const mt  = require('mousetrap');
+const mt         = require('mousetrap');
 const path       = require('path');
 const fs         = require('fs');
 const os         = require('os');
 const DragSelect = require('dragselect');
 const Chart      = require('chart.js')
-const gio_utils  = require('./utils/gio.js');
+// const gio_utils  = require('./utils/gio.js');
 // const gio        = require('./gio/build/Release/gio');
 
 // Global Arrays
@@ -35,7 +35,6 @@ ipcRenderer.on('get_thumbnail', (e, href, thumbnail) => {
 
     let card = document.querySelector(`[data-href="${href}"]`);
     let img = card.querySelector('img');
-    // let thumbnail = `${path.join(thumbnail_dir, path.basename(href))}`;
     img.src = thumbnail
 })
 
@@ -58,12 +57,14 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     menu_items.forEach(item => {
         let menu_item = item.querySelector('a')
         if (menu_item) {
-            let match = path.basename(source).toLocaleLowerCase();
-            if (menu_item.classList.contains(match)) {
-                item.classList.add('active')
-            } else {
-                item.classList.remove('active')
-            }
+            ipcRenderer.invoke('basename', source).then(basename => {
+                let match = basename.toLocaleLowerCase();
+                if (menu_item.classList.contains(match)) {
+                    item.classList.add('active')
+                } else {
+                    item.classList.remove('active')
+                }
+            })
         }
     })
 
@@ -97,7 +98,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     active_tab.dataset.href = source;
     active_tab.title = source;
-    active_label.innerHTML = path.basename(source);
+    ipcRenderer.invoke('basename', source).then(basename => {
+        active_label.innerHTML = basename;
+    })
+    // active_label.innerHTML = path.basename(source);
 
     let location = document.querySelector('.location');
     let slider = document.querySelector('.slider');
@@ -150,7 +154,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     hidden_file_grid.classList.add('hidden_file_grid');
 
     location.value = source;
-    document.title = path.basename(location.value);
+    ipcRenderer.invoke('basename', location.value).then(basename => {
+        document.title = basename;
+    })
+    // document.title = path.basename(location.value);
 
     let header = active_tab_content.querySelector('.header_row')
     if (!header) {
@@ -338,6 +345,13 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 })
 
+//
+let folder_icon;
+ipcRenderer.invoke('icon_theme').then(icon => {
+    folder_icon = icon;
+    console.log('folder_icon', folder_icon)
+})
+
 ipcRenderer.on('lazyload', (e) => {
     lazyload();
 })
@@ -518,7 +532,7 @@ ipcRenderer.on('new_folder', (e, file) => {
 
         let location = document.getElementById('location');
         let source = file.href;
-        let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
+        let destination = path.format({dir: location.value, base: path.basename(e.target.value)});
         ipcRenderer.send('rename', source, destination);
 
     })
@@ -666,23 +680,35 @@ ipcRenderer.on('connect', (e) => {
 
         // Output
         if (state == 1) {
-            if (conntection_type.value == 'ssh') {
-                // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
-                cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
-            } else if (conntection_type.value == 'smb') {
-                cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
-            }
-            exec(cmd, (err, stdout, stderr) => {
-                if (!err) {
-                    connect_msg.style.color = 'green';
-                    connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
 
-                } else {
-                    if (stderr) {
-                        connect_msg.innerHTML = stderr;
-                    }
+                if (conntection_type.value == 'ssh') {
+                    // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
+                    cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+                } else if (conntection_type.value == 'smb') {
+                    cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
                 }
-            })
+
+                ipcRenderer.invoke('connect', cmd).then(res => {
+                    if (res) {
+                        console.log('connection success')
+                        connect_msg.style.color = 'green';
+                        connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+                    } else {
+                        connect_msg.innerHTML = res;
+                    }
+                })
+
+            // exec(cmd, (err, stdout, stderr) => {
+            //     if (!err) {
+            //         connect_msg.style.color = 'green';
+            //         connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+
+            //     } else {
+            //         if (stderr) {
+            //             connect_msg.innerHTML = stderr;
+            //         }
+            //     }
+            // })
         }
         // console.log(conntection_type.value);
     }
@@ -886,10 +912,14 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
                 console.log(cards.length)
                 if (cards.length > 0) {
                     cards.forEach(card => {
-                        exec(cmd.replace(/%u/g, `'${card.dataset.href}'`), (error, data, getter) => { });
+                        let new_cmd = cmd.replace(/%u/g, `'${card.dataset.href}'`)
+                        ipcRenderer.send('command', (e, new_cmd))
+                        // exec(cmd.replace(/%u/g, `'${card.dataset.href}'`), (error, data, getter) => { });
                     })
                 } else {
-                    exec(cmd.replace(/%u/g, `'${location.value}'`), (error, data, getter) => { });
+                    let new_cmd = cmd.replace(/%u/g, `'${location.value}'`);
+                    ipcRenderer.send('command', (e, new_cmd));
+                    // exec(cmd.replace(/%u/g, `'${location.value}'`), (error, data, getter) => { });
                     // exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
                 }
                 clear();
@@ -2117,53 +2147,6 @@ function add_header(text) {
     return header;
 }
 
-// Get icon theme path
-function get_icon_theme() {
-    // console.log('running icon theme')
-    let icon_theme = 'kora';
-    let icon_dir = path.join(__dirname, 'assets', 'icons');
-    try {
-        if (process.platform === 'linux') {
-            icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
-            let search_path = [];
-            search_path.push(path.join(os.homedir(), '.local/share/icons'), path.join(os.homedir(), '.icons'), '/usr/share/icons');
-            search_path.every(icon_path => {
-                if (fs.existsSync(path.join(icon_path, icon_theme))) {
-                    icon_dir = path.join(icon_path, icon_theme);
-                    return false;
-                } else {
-                    icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
-                    return true;
-                }
-            })
-        } else if (process.platform === 'win32' || process.platform === 'darwin') {
-        } else {
-        }
-    } catch (err) {
-    }
-    return icon_dir;
-}
-
-// Get icon theme directory
-let theme_dir = get_icon_theme();
-
-// Get Folder Icon
-function get_folder_icon(callback) {
-    let folder_icon_path = ''
-    let icon_dirs = [path.join(theme_dir, 'places@2x/48/folder.svg'), path.join(theme_dir, '32x32/places/folder.png'), path.join(theme_dir, 'places/scalable/folder.svg'), path.join(theme_dir, 'places/64/folder.svg')];
-    icon_dirs.every(icon_dir => {
-        if (fs.existsSync(icon_dir)) {
-            folder_icon_path = icon_dir
-            return false;
-        } else {
-            folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
-            return true;
-        }
-    })
-    return folder_icon_path;
-}
-let folder_icon = get_folder_icon();
-
 /**
  * Set Msg in lower right side
  * @param {string} message
@@ -3011,12 +2994,6 @@ function getFolderCount(href) {
 // Load Folder Size Seperatley
 function getFolderSize(href) {
 
-    // Note: Dont do this may try returning calculated size using gio in cpp
-    // let cards = document.querySelectorAll('.folder_card')
-    // cards.forEach(card => {
-    //     ipcRenderer.send('get_folder_size', card.dataset.href);
-    // })
-
     ipcRenderer.invoke('get_folder_size', (href)).then(res => {
         let active_tab_content = document.querySelector('.active-tab-content')
         let card = active_tab_content.querySelector(`[data-href="${href}"]`);
@@ -3024,12 +3001,12 @@ function getFolderSize(href) {
             let size = card.querySelector('.size');
             size.innerHTML = '';
 
-            if (href.indexOf('sftp:') > -1) {
-                size.innerHTML = ''
-            } else {
+            // if (href.indexOf('sftp:') > -1) {
+            //     size.innerHTML = ''
+            // } else {
                 card.dataset.size = res;
                 size.append(getFileSize(res));
-            }
+            // }
 
         }
 
@@ -3101,11 +3078,6 @@ function getCardGio(file) {
     // Mouse Over
     card.addEventListener('mouseover', (e) => {
 
-        // console.log('running mouse over');
-
-        // e.preventDefault();
-        // e.stopPropagation();
-
         card.classList.add('highlight');
         title =
             'Name: ' + path.basename(file.href) +
@@ -3160,7 +3132,6 @@ function getCardGio(file) {
     card.addEventListener('mouseenter', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        // // console.log('running mouse enter');
     })
 
     // Mouse Leave
@@ -3222,7 +3193,6 @@ function getCardGio(file) {
 
     card.addEventListener('dragleave', (e) => {
         card.classList.remove('highlight_target');
-        // ipcRenderer.send('main', 1);
         msg('');
     })
 

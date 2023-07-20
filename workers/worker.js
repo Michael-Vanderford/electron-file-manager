@@ -93,12 +93,17 @@ parentPort.on('message', data => {
     if (data.cmd === 'mv') {
         let selected_files_arr = data.selected_items;
         for (let i = 0; i < selected_files_arr.length; i++) {
-            let f = selected_files_arr[i];
-            gio.mv(f.source, f.destination);
-            parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
-            if (i === selected_files_arr.length - 1) {{
-                parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
-            }}
+            try {
+                let f = selected_files_arr[i];
+                gio.mv(f.source, f.destination);
+                parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
+                if (i === selected_files_arr.length - 1) {{
+                    parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
+                }}
+            } catch (err) {
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
+            }
+
         }
     }
 

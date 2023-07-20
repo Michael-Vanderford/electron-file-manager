@@ -584,6 +584,12 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
+// Get path
+ipcMain.handle('basename', (e, source) => {
+    return path.basename(source);
+})
+
+// Search Results
 ipcMain.on('search_results', (e , search_arr) => {
     let arr = []
     search_arr.forEach(item => {
@@ -595,6 +601,64 @@ ipcMain.on('search_results', (e , search_arr) => {
     win.send('search_results', (e, arr))
 })
 
+// Run external command
+ipcMain.on('command', (e, cmd) => {
+    exec(cmd, (error, data, getter) => { });
+})
+
+// Connect
+ipcMain.handle('connect', (e, cmd) => {
+    exec(cmd, (err, stdout, stderr) => {
+        if (!err) {
+            return 1;
+        } else {
+            return err;
+        }
+    })
+})
+
+// Icon Theme
+ipcMain.handle('icon_theme', (e) => {
+
+    let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+
+    // let icon_theme = 'kora';
+    let icon_dir = path.join(__dirname, 'assets', 'icons');
+    try {
+
+        let search_path = [];
+        search_path.push(path.join(home, '.local/share/icons'), path.join(home, '.icons'), '/usr/share/icons');
+        search_path.every(icon_path => {
+            if (fs.existsSync(path.join(icon_path, icon_theme))) {
+                icon_dir = path.join(icon_path, icon_theme);
+
+                return false;
+            } else {
+                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                return true;
+            }
+        })
+        console.log(icon_dir)
+        let folder_icon_path = ''
+        let icon_dirs = [path.join(icon_dir, 'places@2x/48/folder.svg'), path.join(icon_dir, '32x32/places/folder.png'), path.join(icon_dir, 'places/scalable/folder.svg'), path.join(icon_dir, 'places/64/folder.svg')];
+        icon_dirs.every(icon_dir => {
+            if (fs.existsSync(icon_dir)) {
+                folder_icon_path = icon_dir
+                return false;
+            } else {
+                folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
+                return true;
+            }
+        })
+        return folder_icon_path;
+
+    } catch (err) {
+        console.log(err)
+    }
+
+
+
+})
 
 // Change theme
 ipcMain.on('change_theme', (e, theme) => {
@@ -912,8 +976,6 @@ ipcMain.on('move', (e, destination) => {
             }
             copy_arr.push(copy_data);
         }
-        // // console.log('sending array', copy_arr);
-        // ipcRenderer.send('move', copy_arr);
         worker.postMessage({ cmd: 'mv', selected_items: copy_arr })
         selected_files_arr = [];
         copy_arr = [];
@@ -992,7 +1054,7 @@ function createWindow() {
         autoHideMenuBar: true,
         icon: path.join(__dirname, '/assets/icons/folder.png'),
         webPreferences: {
-            nodeIntegration: true, // is default value after Electron v5
+            nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution
             enableRemoteModule: false, // turn off remote
             nodeIntegrationInWorker: true,
