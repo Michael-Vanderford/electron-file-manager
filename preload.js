@@ -1824,43 +1824,39 @@ function compress(type) {
     let file_list = '';
     let cmd = '';
 
-    getSelectedFiles()
-    selected_files_arr.forEach((item, idx) => {
-        // if (idx == 0) {
-        //     destination = path.basename(item);
-        //     if (type === 'zip') {
-        //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-        //     } else {
-        //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-        //     }
-        //     // console.log(destination);
-        // }
-        file_list += "'" + path.basename(item) + "' ";
-
-    })
-
-    // Create command for compressed file
-    destination = path.basename(selected_files_arr[0]);
-    selected_files_arr = [];
-
-    if (type === 'zip') {
-        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-        cmd = `cd '${location.value}'; zip -r '${destination}' ${file_list}`;
-    } else {
-        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-        cmd = `cd '${location.value}'; tar czf '${destination}' ${file_list}`;
-    }
-
-    // console.log('file list', file_list);
-    // console.log(cmd);
-
-    exec(cmd, (err, stdout) => {
-        if (err) {
-            // console.log(err);
-        } else {
-            // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
-        }
-    })
+    getSelectedFiles();
+    ipcRenderer.send('compress', location.value, type);
+    // selected_files_arr.forEach((item, idx) => {
+    //     // if (idx == 0) {
+    //     //     destination = path.basename(item);
+    //     //     if (type === 'zip') {
+    //     //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+    //     //     } else {
+    //     //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
+    //     //     }
+    //     //     // console.log(destination);
+    //     // }
+    //     file_list += "'" + path.basename(item) + "' ";
+    // })
+    // // Create command for compressed file
+    // destination = path.basename(selected_files_arr[0]);
+    // selected_files_arr = [];
+    // if (type === 'zip') {
+    //     destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+    //     cmd = `cd '${location.value}'; zip -r '${destination}' ${file_list}`;
+    // } else {
+    //     destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
+    //     cmd = `cd '${location.value}'; tar czf '${destination}' ${file_list}`;
+    // }
+    // // console.log('file list', file_list);
+    // // console.log(cmd);
+    // exec(cmd, (err, stdout) => {
+    //     if (err) {
+    //         // console.log(err);
+    //     } else {
+    //         // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
+    //     }
+    // })
 
     clear();
 

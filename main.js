@@ -584,6 +584,37 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 
+// Compress
+ipcMain.on('compress', (e, location, type) => {
+
+    let file_list = [];
+    selected_files_arr.forEach((item, idx) => {
+        file_list += "'" + path.basename(item) + "' ";
+    })
+
+    // Create command for compressed file
+    destination = path.basename(selected_files_arr[0]);
+    selected_files_arr = [];
+
+    if (type === 'zip') {
+        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+        cmd = `cd '${location}'; zip -r '${destination}' ${file_list}`;
+    } else {
+        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
+        cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
+    }
+
+    exec(cmd, (err, stdout) => {
+        if (err) {
+            // console.log(err);
+        } else {
+            win.send('get_card_gio', path.format({dir: location, base: destination}))
+            // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
+        }
+    })
+    selected_files_arr = [];
+})
+
 // Get path
 ipcMain.handle('basename', (e, source) => {
     return path.basename(source);
