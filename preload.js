@@ -1,11 +1,11 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
 // const { exec, execSync } = require('child_process');
-// const mt         = require('mousetrap');
+const mt         = require('mousetrap');
 // const path       = require('path');
 // const fs         = require('fs');
 // const os         = require('os');
-// const DragSelect = require('dragselect');
-// const Chart      = require('chart.js')
+const DragSelect = require('dragselect');
+const Chart      = require('chart.js')
 // const gio_utils  = require('./utils/gio.js');
 // const gio        = require('./gio/build/Release/gio');
 
@@ -31,9 +31,13 @@ if (localStorage.getItem('view') == null) {
 
 contextBridge.exposeInMainWorld('api', {
 
-    add_selectable: (card) => {
-        add_selectable(card)
+    getView: (dir, tab = 0) => {
+        getView(dir, tab);
     }
+
+    // add_selectable: (card) => {
+    //     add_selectable(card)
+    // }
 
     // init_ds: () => {
     //     const DragSelect = require('dragselect');
@@ -2080,8 +2084,8 @@ function getDateTime (date) {
 function edit() {
 
     // console.log('running edit');
-    let main = document.querySelector('.main')
-    let quicksearch = document.querySelector('.quicksearch')
+    let main = document.querySelector('.main');
+    let quicksearch = document.querySelector('.quicksearch');
 
     getSelectedFiles();
     selected_files_arr.forEach(href => {
@@ -2094,7 +2098,7 @@ function edit() {
         header_link.classList.add('hidden');
         input.classList.remove('hidden');
 
-        input.select()
+        input.select();
         input.focus();
 
         main.removeEventListener('keydown', quickSearch);
@@ -3195,7 +3199,7 @@ function getCardGio(file) {
     }
 
     card.append(icon, content, tooltip);
-    // ds.addSelectables(card);
+    ds.addSelectables(card);
 
     return card;
 }
@@ -3860,32 +3864,32 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // INITIALIZE DRAG SELECT
         try {
 
-            // ds = new DragSelect({
-            //     area: main,
-            //     selectorClass: 'drag_select',
-            //     keyboardDragSpeed: 0,
-            // })
+            ds = new DragSelect({
+                area: main,
+                selectorClass: 'drag_select',
+                keyboardDragSpeed: 0,
+            })
 
-            // let sc = 0;
-            // ds.subscribe('elementselect', (e) => {
-            //     // msg(`${++sc} Items Selected`)
-            // });
-            // ds.subscribe('elementunselect', (e) => {
-            //     if (--sc == 0) {
-            //         msg('')
-            //     } else {
-            //         // msg(`${sc} Items Selected`)
-            //     }
+            let sc = 0;
+            ds.subscribe('elementselect', (e) => {
+                // msg(`${++sc} Items Selected`)
+            });
+            ds.subscribe('elementunselect', (e) => {
+                if (--sc == 0) {
+                    msg('')
+                } else {
+                    // msg(`${sc} Items Selected`)
+                }
 
-            // });
+            });
 
-            // ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
-            //     if (isDragging || isDraggingKeyboard) {
-            //         ds.break()
-            //     } else {
+            ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+                if (isDragging || isDraggingKeyboard) {
+                    ds.break()
+                } else {
 
-            //     }
-            // })
+                }
+            })
 
 
         } catch (err) {

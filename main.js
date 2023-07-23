@@ -593,7 +593,7 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // Path Format
 ipcMain.handle('path:format', (e, dir, base) => {
-    path.format({dir: dir, base: path.basename(base)});
+    return path.format({dir: dir, base: path.basename(base)});
 })
 
 //
@@ -1282,7 +1282,7 @@ function createWindow() {
             nodeIntegrationInWorker: true,
             nativeWindowOpen: true,
             preload: path.join(__dirname, 'preload.js'),
-            sandbox: true,
+            sandbox: false,
         },
     }
 
