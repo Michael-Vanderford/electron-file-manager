@@ -1,11 +1,11 @@
-const { ipcRenderer, shell, clipboard } = require('electron');
-const { exec, execSync } = require('child_process');
-const mt         = require('mousetrap');
-const path       = require('path');
-const fs         = require('fs');
-const os         = require('os');
-const DragSelect = require('dragselect');
-const Chart      = require('chart.js')
+const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
+// const { exec, execSync } = require('child_process');
+// const mt         = require('mousetrap');
+// const path       = require('path');
+// const fs         = require('fs');
+// const os         = require('os');
+// const DragSelect = require('dragselect');
+// const Chart      = require('chart.js')
 // const gio_utils  = require('./utils/gio.js');
 // const gio        = require('./gio/build/Release/gio');
 
@@ -19,7 +19,8 @@ let auto_complete_arr   = [];
 
 let ds;
 let sort = 'date_desc';
-let thumbnail_dir
+let folder_icon;
+let thumbnail_dir;
 
 let view = 'grid';
 if (localStorage.getItem('view') == null) {
@@ -28,7 +29,36 @@ if (localStorage.getItem('view') == null) {
     view = localStorage.getItem('view');
 }
 
+contextBridge.exposeInMainWorld('api', {
+
+    add_selectable: (card) => {
+        add_selectable(card)
+    }
+
+    // init_ds: () => {
+    //     const DragSelect = require('dragselect');
+    //     ds = new DragSelect({
+    //         area: main,
+    //         selectorClass: 'drag_select',
+    //         keyboardDragSpeed: 0,
+    //     })
+    // },
+    // join_path: () => {
+    //     console.log('testing')
+    // }
+})
+
 // IPC ///////////////////////////////////////////////////////////////////
+/**/
+
+// Get folder count
+ipcRenderer.on('get_folder_count', (e, href) => {
+    getFolderCount(href);
+})
+
+ipcRenderer.on('get_folder_size', (e, href) => {
+    getFolderSize(href)
+})
 
 // Update thumbnails
 ipcRenderer.on('get_thumbnail', (e, href, thumbnail) => {
@@ -38,7 +68,7 @@ ipcRenderer.on('get_thumbnail', (e, href, thumbnail) => {
     img.src = thumbnail
 })
 
-// On ls
+// On ls - Get Directory
 ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     localStorage.setItem('location', source);
@@ -281,15 +311,15 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         }
 
-        mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
-            console.log('down')
-        })
+        // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+        //     console.log('down')
+        // })
 
-        mt.bind(shortcut.Up.toLocaleLowerCase(), (e) => {
-            active_tab_content.tabIndex = 0
-            active_tab_content.scrollTop -= 10;
-            console.log('up')
-        })
+        // mt.bind(shortcut.Up.toLocaleLowerCase(), (e) => {
+        //     active_tab_content.tabIndex = 0
+        //     active_tab_content.scrollTop -= 10;
+        //     console.log('up')
+        // })
 
     }
 
@@ -345,8 +375,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 })
 
-//
-let folder_icon;
+// Get icon theme directory
 ipcRenderer.invoke('icon_theme').then(icon => {
     folder_icon = icon;
     console.log('folder_icon', folder_icon)
@@ -356,10 +385,12 @@ ipcRenderer.on('lazyload', (e) => {
     lazyload();
 })
 
+// Get Thumbnil directory
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
     thumbnail_dir = res
 })
 
+// Get Devices
 ipcRenderer.on('get_devices', (e) => {
     // console.log('getting devices');
     let device_view = document.querySelector('.device_view');
@@ -412,6 +443,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
 })
 
+// Sort Views
 ipcRenderer.on('sort_cards', (e, sort_by) => {
     localStorage.setItem('sort', sort_by);
     sort_cards();
@@ -886,7 +918,8 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
         }
         case 'mkdir': {
             // console.log('running new folder')
-            ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
+            // ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
+            ipcRenderer.send('new_folder', location.value);
             break;
         }
         case 'copy': {
@@ -941,7 +974,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break;
         }
         case 'compress': {
-            compress();
+            compress('tar.gz');
             break;
         }
         case 'compress_zip': {
@@ -1685,189 +1718,23 @@ function add_img(src) {
     return img
 }
 
-function watchDir(dir) {
-    let fsTimeout
-    let watcher = fs.watch(dir, (e, filename) => {
-        // console.log(e)
-        let href = path.join(dir, filename);
-        ipcRenderer.send('get_card_gio', href);
-        fsTimeout = setTimeout(function() {
-            fsTimeout = null
-            // fs.unwatchFile(dir, )
-        }, 5000)
-    })
-}
-
 function extract() {
-
-    let items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected')
-
-    items.forEach(item => {
-
-        let cmd = '';
-        let us_cmd = '';
-        let filename = '';
-        let source = item.dataset.href;
-        let ext = path.extname(source).toLowerCase();
-        let makedir = 1;
-
-        // console.log('extension ', source);
-        let c = 0;
-        switch (ext) {
-            case '.zip':
-                filename = source.replace('.zip', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = "unzip '" + source + "' -d '" + filename + "'"
-                break;
-            case '.tar':
-                filename = source.replace('.tar', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location.value + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
-                break;
-            case '.gz':
-                filename = source.replace('.tar.gz', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location.value + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
-
-                break;
-            case '.xz':
-                filename = source.replace('tar.xz', '')
-                filename = filename.replace('.img.xz', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
-                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
-                if (source.indexOf('img.xz') > -1) {
-                    makedir = 0;
-                    cmd = 'cd "' + location.value + '"; /usr/bin/unxz -k "' + source + '"';
-                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
-                } else {
-                    cmd = 'cd "' + location.value + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
-                }
-                break;
-            case '.bz2':
-                filename = source.replace('.bz2', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location.value + '"; /usr/bin/bzip2 -dk "' + source + '"'
-                break;
-
-        }
-
-        // console.log('cmd ' + cmd);
-        // console.log('uncompressed size cmd ' + us_cmd);
-
-        if (makedir) {
-            fs.mkdirSync(filename);
-        }
-
-        // GET UNCOMPRESSED SIZE
-        let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
-        // console.log('uncompressed size:', uncompressed_size);
-
-        // RUN PROGRESS
-        // get_progress(get_raw_file_size(uncompressed_size))
-        // get_progress(uncompressed_size)
-
-        msg(`Extracting ${source}`)
-        // open(cmd);
-
-        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-        exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
-
-            if (err) {
-                // console.log('error ' + err)
-                msg(err)
-            } else {
-                try {
-                    // GET REFERENCE TO FOLDER GRID
-                    ipcRenderer.send('get_card_gio', filename);
-                } catch (err) {
-                    // console.log(err)
-                    msg(err)
-                }
-                msg(`Extracted ${source}`)
-            }
-        })
-    })
+    let location = document.getElementById('location');
+    getSelectedFiles();
+    ipcRenderer.send('extract', location.value);
+    clear();
 }
 
 // Compress Files
 function compress(type) {
-
-    msg('running compression');
-
     let location = document.getElementById('location');
-    let destination = '';
-    let file_list = '';
-    let cmd = '';
-
     getSelectedFiles();
     ipcRenderer.send('compress', location.value, type);
-    // selected_files_arr.forEach((item, idx) => {
-    //     // if (idx == 0) {
-    //     //     destination = path.basename(item);
-    //     //     if (type === 'zip') {
-    //     //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-    //     //     } else {
-    //     //         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-    //     //     }
-    //     //     // console.log(destination);
-    //     // }
-    //     file_list += "'" + path.basename(item) + "' ";
-    // })
-    // // Create command for compressed file
-    // destination = path.basename(selected_files_arr[0]);
-    // selected_files_arr = [];
-    // if (type === 'zip') {
-    //     destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-    //     cmd = `cd '${location.value}'; zip -r '${destination}' ${file_list}`;
-    // } else {
-    //     destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-    //     cmd = `cd '${location.value}'; tar czf '${destination}' ${file_list}`;
-    // }
-    // // console.log('file list', file_list);
-    // // console.log(cmd);
-    // exec(cmd, (err, stdout) => {
-    //     if (err) {
-    //         // console.log(err);
-    //     } else {
-    //         // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
-    //     }
-    // })
-
     clear();
-
 }
 
 var isResizing = false;
 var startX, startWidth;
-
-/**
- * Display Loader
- */
 
 function resizeIcons(icon_size) {
     let slider = document.getElementById('slider');
@@ -2051,7 +1918,9 @@ function add_tab(href) {
     tab_content.classList.remove('hidden');
     tab_content.classList.add('active-tab-content');
 
-    col1.append(path.basename(href));
+    ipcRenderer.invoke('basename', href).then(basename => {
+        col1.append(basename);
+    })
     tab.append(tab_container);
     tabs.append(tab);
     main.append(tab_content);
@@ -2236,8 +2105,11 @@ function edit() {
 
             let location = document.getElementById('location');
             let source = href;
-            let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
-            ipcRenderer.send('rename', source, destination);
+            ipcRenderer.invoke('path:format', location.value, e.target.value).then(destination => {
+                ipcRenderer.send('rename', source, destination);
+            })
+            // let destination = path.format({dir: location.value, base: path.basename(e.target.value)}); //path.join(location.value, path.basename(e.target.value))
+            // ipcRenderer.send('rename', source, destination);
 
         })
 
@@ -2551,20 +2423,11 @@ function settingsForm(settings) {
                         }
 
                     }
-
-                    // if (key.toLocaleLowerCase() === 'terminal' || key.toLocaleLowerCase() === 'disk utility') {
-
-                    // } else {
-                    //     input.disabled = true;
-                    // }
                 }
             }
 
             // settings_item.append(label, input);
             form.appendChild(settings_item);
-
-            // form.appendChild(label);
-            // form.appendChild(input);
 
         }
 
@@ -2578,56 +2441,6 @@ function settingsForm(settings) {
             ipcRenderer.send('update_settings', setting, input.value)
         })
     };
-
-    // const submitButton = document.createElement('input');
-    // submitButton.type = 'submit';
-    // submitButton.value = 'Save';
-    // form.appendChild(submitButton);
-
-}
-
-// Get Search View
-function getSearch() {
-
-    clearViews();
-
-    let mb = document.getElementById('mb_find');
-    mb.classList.add('active');
-
-    let location = document.querySelector('.location');
-    let sidebar = document.querySelector('.sidebar');
-
-    let sb_search = document.querySelector('.sb_search');
-    if (sb_search) {
-        sb_search.classList.remove('hidden');
-    } else {
-        sb_search = add_div();
-        sb_search.classList.add('sb_search', 'sb_view');
-        let search_view = document.querySelector('.search_view');
-        if (!search_view) {
-            search_view = add_div();
-            search_view.classList.add('search_view');
-        }
-        let search_html = fs.readFileSync(path.join(__dirname, 'views/search.html'));
-        search_view.innerHTML = search_html;
-        sb_search.innerHTML = search_view.innerHTML;
-        sidebar.append(sb_search);
-    }
-
-    let search = sb_search.querySelector('.search')
-    let search_results = document.querySelector('.search_results');
-    search.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            search_results.innerHTML = '';
-            // let interval = setInterval(() => {
-            ipcRenderer.send('search', search.value, location.value, 3);
-                // console.log(search.value);
-            // }, 1000);
-        }
-    })
-
-    search.focus();
-    search.select();
 
 }
 
@@ -2683,7 +2496,7 @@ function getSubFolders(dir, callback) {
 function getHome(callback) {
 
     let location = document.getElementById('location');
-    let home_dir = os.homedir();
+    // let home_dir = os.homedir();
     let my_computer_arr = [
         'Home',
         'Documents',
@@ -2695,16 +2508,27 @@ function getHome(callback) {
         'File System'
     ]
 
+    // let my_computer_paths_arr = [
+    //     home_dir,
+    //     `${path.join(home_dir, 'Documents')}`,
+    //     `${path.join(home_dir, 'Downloads')}`,
+    //     `${path.join(home_dir, 'Music')}`,
+    //     `${path.join(home_dir, 'Pictures')}`,
+    //     `${path.join(home_dir, 'Videos')}`,
+    //     'Recent',
+    //     '/'
+    // ]
     let my_computer_paths_arr = [
-        home_dir,
-        `${path.join(home_dir, 'Documents')}`,
-        `${path.join(home_dir, 'Downloads')}`,
-        `${path.join(home_dir, 'Music')}`,
-        `${path.join(home_dir, 'Pictures')}`,
-        `${path.join(home_dir, 'Videos')}`,
+        'Home',
+        'Documents',
+        'Downloads',
+        'Music',
+        'Pictures',
+        'Videos',
         'Recent',
         '/'
     ]
+
     let my_computer_icons_arr = [
         'house',
         'folder',
@@ -2746,11 +2570,19 @@ function getHome(callback) {
                 ipcRenderer.send('get_recent_files', location.value);
             } else {
 
-                if (e.ctrlKey) {
-                    getView(my_computer_paths_arr[i], 1);
-                } else {
-                    getView(my_computer_paths_arr[i]);
-                }
+                ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+
+                    if (e.ctrlKey) {
+                        getView(nav_path, 1);
+                    } else {
+                        getView(nav_path);
+                    }
+                })
+                // if (e.ctrlKey) {
+                //     getView(my_computer_paths_arr[i], 1);
+                // } else {
+                //     getView(my_computer_paths_arr[i]);
+                // }
 
             }
         })
@@ -2955,6 +2787,7 @@ function getSelectedFiles() {
         msg(`No Items Selected`);
     }
 
+    console.log(selected_files_arr)
     ipcRenderer.send('get_selected_files', selected_files_arr);
 
 }
@@ -2969,7 +2802,7 @@ function add_button(text) {
 }
 
 function paste(destination) {
-    console.log('running paste')
+    console.log('running paste', destination)
     ipcRenderer.send('paste', destination);
     clearHighlight();
 }
@@ -3051,12 +2884,16 @@ function getCardGio(file) {
     card.style.opacity = 1;
 
     href.href = file.href;
-    href.innerHTML = path.basename(file.href);
+    ipcRenderer.invoke('basename', file.href).then(basename => {
+        href.innerHTML = basename;
+        input.value = basename;
+        card.dataset.name = basename;
+    })
 
     input.spellcheck = false;
     input.type = 'text';
     input.dataset.href = file.href;
-    input.value = path.basename(file.href);
+    // input.value = path.basename(file.href);
 
     href.draggable = false;
     img.draggable = false;
@@ -3064,7 +2901,7 @@ function getCardGio(file) {
     card.draggable = true;
 
     card.dataset.href = file.href;
-    card.dataset.name = path.basename(file.href);
+    // card.dataset.name = path.basename(file.href);
     card.dataset.mtime = file.mtime;
     card.dataset.size = file.size;
 
@@ -3075,22 +2912,24 @@ function getCardGio(file) {
     card.addEventListener('mouseover', (e) => {
 
         card.classList.add('highlight');
-        title =
-            'Name: ' + path.basename(file.href) +
-            '\n' +
-            'Location: ' + path.dirname(file.href) +
-            '\n' +
-            'Size: ' + getFileSize(file.size) +
-            '\n' +
-            'Accessed: ' + getDateTime(file.atime) +
-            '\n' +
-            'Modified: ' + getDateTime(file.mtime) +
-            // '\n' +
-            // 'Created: ' + getDateTime(file.ctime) +
-            '\n' +
-            'Type: ' + file.content_type
+        // title =
+        //     'Name: ' + path.basename(file.href) +
+        //     '\n' +
+        //     'Location: ' + path.dirname(file.href) +
+        //     '\n' +
+        //     'Size: ' + getFileSize(file.size) +
+        //     '\n' +
+        //     'Accessed: ' + getDateTime(file.atime) +
+        //     '\n' +
+        //     'Modified: ' + getDateTime(file.mtime) +
+        //     // '\n' +
+        //     // 'Created: ' + getDateTime(file.ctime) +
+        //     '\n' +
+        //     'Type: ' + file.content_type
 
-        card.title = title;
+        // card.title = title;
+
+
         // main.tabIndex = 0;
         // tooltip_timeout = setTimeout(() => {
 
@@ -3151,8 +2990,8 @@ function getCardGio(file) {
     card.addEventListener('dragstart', (e) => {
         // e.preventDefault();
         // clearTimeout(tooltip_timeout);
-        tooltip.classList.add('hidden')
-        clearTimeout(tooltip_timeout)
+        // tooltip.classList.add('hidden')
+        // clearTimeout(tooltip_timeout)
         getSelectedFiles();
 
         // const dataTransfer = new DataTransfer();
@@ -3178,10 +3017,10 @@ function getCardGio(file) {
             card.classList.add('highlight_target');
             if (e.ctrlKey) {
                 e.dataTransfer.dropEffect = "copy";
-                msg(`Copy Item to "${path.basename(file.href)}"`);
+                msg(`Copy Item to "${file.href}"`);
             } else {
                 e.dataTransfer.dropEffect = "move";
-                msg(`Move Item to "${path.basename(file.href)}"`);
+                msg(`Move Item to "${file.href}"`);
             }
 
         }
@@ -3209,10 +3048,14 @@ function getCardGio(file) {
         }
     })
 
-    try {
-        ds.addSelectables(card)
-    } catch (err) {
-    }
+    // try {
+    //     // ds.addSelectables(card)
+    //     ipcRenderer.send('add_item_dragselect', '.card');
+    // } catch (err) {
+    //     console.log(err)
+    // }
+
+    // add_selectable(card)
 
     mtime.append(getDateTime(file.mtime));
     ctime.append(getDateTime(file.ctime));
@@ -3289,14 +3132,19 @@ function getCardGio(file) {
                     img.src = file.href;
                 } else {
                     img.src = './assets/icons/image-generic.svg';
-                    // let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
-                    let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
-                    fs.readFile(thumbnail, (err, data) => {
-                        if (err) {
-                            return;
-                        }
+
+                    ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
                         img.src = thumbnail;
                     })
+
+                    // let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
+                    // let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
+                    // fs.readFile(thumbnail, (err, data) => {
+                    //     if (err) {
+                    //         return;
+                    //     }
+                    //     img.src = thumbnail;
+                    // })
                 }
             } else if (file.content_type.indexOf('video/') > -1) {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
@@ -3347,7 +3195,7 @@ function getCardGio(file) {
     }
 
     card.append(icon, content, tooltip);
-    ds.addSelectables(card);
+    // ds.addSelectables(card);
 
     return card;
 }
@@ -3661,66 +3509,79 @@ window.addEventListener('DOMContentLoaded', (e) => {
             })
         })
 
-        // Home
-        let home = document.querySelectorAll('.home');
-        home.forEach(item => {
+        let nav_items = document.querySelectorAll('.nav_item')
+        console.log(nav_items)
+        nav_items.forEach(nav_item => {
+            nav_item.addEventListener('click', (e) => {
+                let dir = nav_item.innerText.replace(' ', '');
+                if (dir === 'Home') {dir = ''}
+                ipcRenderer.invoke('nav_item', dir).then(path => {
+                    location.value = path;
+                    getView(path)
+                })
+            })
+        })
 
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = os.homedir();
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        // // Home
+        // let home = document.querySelectorAll('.home');
+        // home.forEach(item => {
 
-        // Documents
-        let documents = document.querySelectorAll('.documents');
-        documents.forEach(item => {
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = path.join(os.homedir(), 'Documents');
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = os.homedir();
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
 
-        // Downloads
-        let downloads = document.querySelectorAll('.downloads');
-        downloads.forEach(item => {
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = path.join(os.homedir(), 'Downloads');
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        // // Documents
+        // let documents = document.querySelectorAll('.documents');
+        // documents.forEach(item => {
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = path.join(os.homedir(), 'Documents');
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
 
-        // Music
-        let music = document.querySelectorAll('.music');
-        music.forEach(item => {
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = path.join(os.homedir(), 'Music');
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        // // Downloads
+        // let downloads = document.querySelectorAll('.downloads');
+        // downloads.forEach(item => {
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = path.join(os.homedir(), 'Downloads');
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
 
-        // Pictures
-        let pictures = document.querySelectorAll('.pictures');
-        pictures.forEach(item => {
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = path.join(os.homedir(), 'Pictures');
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        // // Music
+        // let music = document.querySelectorAll('.music');
+        // music.forEach(item => {
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = path.join(os.homedir(), 'Music');
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
 
-        // videos
-        let videos = document.querySelectorAll('.videos');
-        videos.forEach(item => {
-            item.onclick = (e) => {
-                e.preventDefault();
-                location.value = path.join(os.homedir(), 'Videos');
-                location.dispatchEvent(new Event('change'));
-            }
-        });
+        // // Pictures
+        // let pictures = document.querySelectorAll('.pictures');
+        // pictures.forEach(item => {
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = path.join(os.homedir(), 'Pictures');
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
+
+        // // videos
+        // let videos = document.querySelectorAll('.videos');
+        // videos.forEach(item => {
+        //     item.onclick = (e) => {
+        //         e.preventDefault();
+        //         location.value = path.join(os.homedir(), 'Videos');
+        //         location.dispatchEvent(new Event('change'));
+        //     }
+        // });
 
         // List view
         let list_view = document.querySelectorAll('.list_view');
@@ -3767,9 +3628,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Navigate left
         let left = document.getElementById('left');
         left.addEventListener('click', (e) => {
-            location.value = path.dirname(location.value);
-            getView(location.value);
-            localStorage.setItem('location', location.value);
+
+            ipcRenderer.invoke('dirname', location.value).then(dir => {
+                location.value = dir;
+                getView(location.value);
+                localStorage.setItem('location', location.value);
+            })
+
+            // location.value = path.dirname(location.value);
+            // getView(location.value);
+            // localStorage.setItem('location', location.value);
         })
 
         // Settings
@@ -3803,146 +3671,146 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 shortcut =  res.keyboard_shortcuts;
             }).then(() => {
 
-                // Delete
-                mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
-                    e.preventDefault();
-                    getSelectedFiles();
-                    if (selected_files_arr.length > 0) {
-                        ipcRenderer.send('delete', (selected_files_arr));
-                    }
-                    clear();
-                })
+                // // Delete
+                // mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
+                //     e.preventDefault();
+                //     getSelectedFiles();
+                //     if (selected_files_arr.length > 0) {
+                //         ipcRenderer.send('delete', (selected_files_arr));
+                //     }
+                //     clear();
+                // })
 
-                // Escape (Cancel)
-                mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
-                    // Clear Arrays and selected items
-                    clear();
-                })
+                // // Escape (Cancel)
+                // mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
+                //     // Clear Arrays and selected items
+                //     clear();
+                // })
 
-                // Reload
-                mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
-                    getView(location.value)
-                })
+                // // Reload
+                // mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
+                //     getView(location.value)
+                // })
 
-                // Edit
-                mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
-                    edit();
-                })
+                // // Edit
+                // mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
+                //     edit();
+                // })
 
-                // Ctrl+C (Copy)
-                mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles();
-                })
+                // // Ctrl+C (Copy)
+                // mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
+                //     getSelectedFiles();
+                // })
 
-                // Ctrl+X (Cut)
-                mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
-                    cut_flag = 1;
-                    getSelectedFiles();
-                    selected_files_arr.forEach(item => {
-                        let active_tab_content = document.querySelector('.active-tab-content');
-                        let card = active_tab_content.querySelector(`[data-href="${item}"]`);
-                        card.style = 'opacity: 0.6 !important';
-                    })
-                })
+                // // Ctrl+X (Cut)
+                // mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
+                //     cut_flag = 1;
+                //     getSelectedFiles();
+                //     selected_files_arr.forEach(item => {
+                //         let active_tab_content = document.querySelector('.active-tab-content');
+                //         let card = active_tab_content.querySelector(`[data-href="${item}"]`);
+                //         card.style = 'opacity: 0.6 !important';
+                //     })
+                // })
 
-                // Ctrl+V (Paste)
-                mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('main', 1);
-                    if (cut_flag) {
-                        move(location.value);
-                    } else {
-                        paste(location.value);
-                    }
-                    cut_flag = 0;
-                })
+                // // Ctrl+V (Paste)
+                // mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
+                //     ipcRenderer.send('main', 1);
+                //     if (cut_flag) {
+                //         move(location.value);
+                //     } else {
+                //         paste(location.value);
+                //     }
+                //     cut_flag = 0;
+                // })
 
-                // Show / Hide Sidebar
-                mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
-                    if (sidebar.classList.contains('hidden')) {
-                        sidebar.classList.remove('hidden');
-                        localStorage.setItem('sidebar', 1);
-                    } else {
-                        sidebar.classList.add('hidden');
-                        localStorage.setItem('sidebar', 0);
-                    }
-                })
+                // // Show / Hide Sidebar
+                // mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
+                //     if (sidebar.classList.contains('hidden')) {
+                //         sidebar.classList.remove('hidden');
+                //         localStorage.setItem('sidebar', 1);
+                //     } else {
+                //         sidebar.classList.add('hidden');
+                //         localStorage.setItem('sidebar', 0);
+                //     }
+                // })
 
-                // Find
-                mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
-                    // getSearch();
-                    find_files(res => {})
-                })
+                // // Find
+                // mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
+                //     // getSearch();
+                //     find_files(res => {})
+                // })
 
-                // Quick Search
-                mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
-                    quickSearch(e);
-                })
+                // // Quick Search
+                // mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
+                //     quickSearch(e);
+                // })
 
-                // New Window
-                mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('new_window');
-                })
+                // // New Window
+                // mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
+                //     ipcRenderer.send('new_window');
+                // })
 
-                // Show Home View Sidebar
-                mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
-                    clearViews();
-                    sidebarHome();
-                })
+                // // Show Home View Sidebar
+                // mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
+                //     clearViews();
+                //     sidebarHome();
+                // })
 
-                // Get File Info
-                mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles();
-                    ipcRenderer.send('get_properties', selected_files_arr, location.value);
-                    selected_files_arr = [];
-                })
+                // // Get File Info
+                // mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
+                //     getSelectedFiles();
+                //     ipcRenderer.send('get_properties', selected_files_arr, location.value);
+                //     selected_files_arr = [];
+                // })
 
-                // Select All
-                mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
-                    e.preventDefault();
-                    let cards = main.querySelectorAll('.card')
-                    cards.forEach(item => {
-                        item.classList.add('highlight');
-                    })
-                })
+                // // Select All
+                // mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
+                //     e.preventDefault();
+                //     let cards = main.querySelectorAll('.card')
+                //     cards.forEach(item => {
+                //         item.classList.add('highlight');
+                //     })
+                // })
 
-                // Go Back
-                mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
-                    location.value = path.dirname(location.value);
-                    getView(location.value);
-                    // localStorage.setItem('location', location.value);
-                })
+                // // Go Back
+                // mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
+                //     location.value = path.dirname(location.value);
+                //     getView(location.value);
+                //     // localStorage.setItem('location', location.value);
+                // })
 
-                // Add to Workspace
-                mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles()
-                    ipcRenderer.send('add_workspace', selected_files_arr);
-                    clear()
-                })
+                // // Add to Workspace
+                // mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
+                //     getSelectedFiles()
+                //     ipcRenderer.send('add_workspace', selected_files_arr);
+                //     clear()
+                // })
 
-                // New Folder
-                mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
-                })
+                // // New Folder
+                // mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
+                //     ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
+                // })
 
-                // Show settings
-                mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
-                    getSettings();
-                })
+                // // Show settings
+                // mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
+                //     getSettings();
+                // })
 
-                // Extract Compressed Files
-                mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
-                    extract();
-                })
+                // // Extract Compressed Files
+                // mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
+                //     extract();
+                // })
 
-                // Compress Files
-                mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
-                    compress('zip');
-                })
+                // // Compress Files
+                // mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
+                //     compress('zip');
+                // })
 
-                // New Tav
-                mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
-                    getView(location.value, 1);
-                })
+                // // New Tav
+                // mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
+                //     getView(location.value, 1);
+                // })
 
                 //
                 // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
@@ -3992,32 +3860,32 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // INITIALIZE DRAG SELECT
         try {
 
-            ds = new DragSelect({
-                area: main,
-                selectorClass: 'drag_select',
-                keyboardDragSpeed: 0,
-            })
+            // ds = new DragSelect({
+            //     area: main,
+            //     selectorClass: 'drag_select',
+            //     keyboardDragSpeed: 0,
+            // })
 
-            let sc = 0;
-            ds.subscribe('elementselect', (e) => {
-                // msg(`${++sc} Items Selected`)
-            });
-            ds.subscribe('elementunselect', (e) => {
-                if (--sc == 0) {
-                    msg('')
-                } else {
-                    // msg(`${sc} Items Selected`)
-                }
+            // let sc = 0;
+            // ds.subscribe('elementselect', (e) => {
+            //     // msg(`${++sc} Items Selected`)
+            // });
+            // ds.subscribe('elementunselect', (e) => {
+            //     if (--sc == 0) {
+            //         msg('')
+            //     } else {
+            //         // msg(`${sc} Items Selected`)
+            //     }
 
-            });
+            // });
 
-            ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
-                if (isDragging || isDraggingKeyboard) {
-                    ds.break()
-                } else {
+            // ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+            //     if (isDragging || isDraggingKeyboard) {
+            //         ds.break()
+            //     } else {
 
-                }
-            })
+            //     }
+            // })
 
 
         } catch (err) {

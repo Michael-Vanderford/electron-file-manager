@@ -18,7 +18,7 @@
     "email": "michael.vanderford@gmail.com"
   },
   "email": "michael.vanderford@gmail.com",
-  "license": "ISC",
+  "license": "GPL-3.0",
   "devDependencies": {
     "electron": "^24.6.0",
     "electron-builder": "^24.4.0"

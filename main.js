@@ -46,6 +46,7 @@ try {
     workspace = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 }
 
+
 function checkSettings() {
 
     // Read the content of the first JSON file
@@ -97,7 +98,6 @@ thumb.on('message', (data) => {
         win.send('msg', 'Done Creating Thumbnails', has_timeout = 1);
     }
 })
-
 
 find.on('message', (data) => {
     if (data.cmd === 'search_done') {
@@ -172,9 +172,9 @@ worker.on('message', (data) => {
             let file = gio.get_file(data.destination);
             win.send('get_card_gio', file);
         } else {
-            let href = path.dirname(data.destination)
-            let file = gio.get_file(href)
-            win.send('replace_card', href, file);
+            // let href = path.dirname(data.destination)
+            // let file = gio.get_file(href)
+            // win.send('replace_card', href, file);
         }
         win.send('lazyload');
         win.send('clear');
@@ -547,7 +547,13 @@ function get_files(source, tab) {
                     win.send('remove_card', watcher.filename);
                 }
                 if (watcher.event === 'created') {
-                    win.send('get_card_gio', gio.get_file(watcher.filename));
+                    let file = gio.get_file(watcher.filename);
+                    win.send('get_card_gio', file);
+                    if (file.is_dir) {
+                        win.send('get_folder_count', filename);
+                        win.send('get_folder_size', filename);
+                    }
+
                 }
             }
         })
@@ -583,6 +589,166 @@ function copyOverwrite(copy_overwrite_arr) {
 }
 
 // IPC ////////////////////////////////////////////////////
+/** */
+
+// Path Format
+ipcMain.handle('path:format', (e, dir, base) => {
+    path.format({dir: dir, base: path.basename(base)});
+})
+
+//
+ipcMain.handle('nav_item', (e, dir) => {
+    // Handle special dirs
+    switch (dir) {
+        case 'Home': {
+            dir = home;
+            break;
+        }
+        case '/': {
+            dir = '/';
+            break;
+        }
+        default: {
+            dir = path.join(home, dir);
+        }
+    }
+
+    return dir;
+})
+
+// DragSelect
+// ipcMain.handle('init_drag_select', (e) => {
+//     return ds = new DragSelect({
+//         // area: main,
+//         // selectorClass: 'drag_select',
+//         // keyboardDragSpeed: 0,
+//     })
+//     // return DragSelect;
+// })
+
+// New Folder
+ipcMain.on('new_folder', (e, destination) => {
+    let folder_path = `${path.format({dir: destination, base: 'New Folder'})}`
+    gio.mkdir(folder_path)
+    win.send('get_card_gio', folder_path);
+})
+
+// Extract
+ipcMain.on('extract', (e, location) => {
+
+    selected_files_arr.forEach(item => {
+
+        let cmd = '';
+        let us_cmd = '';
+        let filename = '';
+        let source = item;
+        let ext = path.extname(source).toLowerCase();
+        let makedir = 1;
+
+        // console.log('extension ', source);
+        let c = 0;
+        switch (ext) {
+            case '.zip':
+                filename = source.replace('.zip', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = "unzip '" + source + "' -d '" + filename + "'"
+                break;
+            case '.tar':
+                filename = source.replace('.tar', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+                break;
+            case '.gz':
+                filename = source.replace('.tar.gz', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+
+                break;
+            case '.xz':
+                filename = source.replace('tar.xz', '')
+                filename = filename.replace('.img.xz', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
+                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                if (source.indexOf('img.xz') > -1) {
+                    makedir = 0;
+                    cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
+                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
+                } else {
+                    cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
+                }
+                break;
+            case '.bz2':
+                filename = source.replace('.bz2', '')
+                c = 0
+                while (fs.existsSync(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
+                break;
+
+        }
+
+        // console.log('cmd ' + cmd);
+        // console.log('uncompressed size cmd ' + us_cmd);
+
+        if (makedir) {
+            gio.mkdir(filename)
+            // fs.mkdirSync(filename);
+        }
+
+        // GET UNCOMPRESSED SIZE
+        let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
+
+        win.send('msg', `Extracting ${source}`);
+
+        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+        exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
+
+            if (err) {
+                // console.log('error ' + err)
+                win.send('msg', err);
+            } else {
+                try {
+                    // GET REFERENCE TO FOLDER GRID
+                    if (watcher_failed) {
+                        win.send('get_card_gio', gio.get_file(filename));
+                    }
+                    win.send('get_folder_count', filename);
+                    win.send('get_folder_size', filename);
+                } catch (err) {
+                    // console.log(err)
+                    win.send('msg', err);
+                }
+                win.send('msg', `Extracted ${source}`);
+            }
+        })
+    })
+
+    selected_files_arr = [];
+
+})
 
 // Compress
 ipcMain.on('compress', (e, location, type) => {
@@ -608,17 +774,29 @@ ipcMain.on('compress', (e, location, type) => {
         if (err) {
             // console.log(err);
         } else {
-            win.send('get_card_gio', path.format({dir: location, base: destination}))
+
+            if (watcher_failed) {
+                win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
+            }
             // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
         }
     })
     selected_files_arr = [];
 })
 
+// Path Utilities //////////////////////////////////
+
+// Dirname
+ipcMain.handle('dirname', (e, source) => {
+    return path.dirname(source);
+})
+
 // Get path
 ipcMain.handle('basename', (e, source) => {
     return path.basename(source);
 })
+
+////////////////////////////////////////////////////
 
 // Search Results
 ipcMain.on('search_results', (e , search_arr) => {
@@ -732,6 +910,11 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
         fs.mkdirSync(thumbnails_dir)
     }
     return thumbnails_dir;
+})
+
+ipcMain.handle('get_thumbnail', (e, file) => {
+    let thumbnail_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    return thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
 })
 
 // Populate global selected files array
@@ -1039,6 +1222,14 @@ ipcMain.on('rename', (e, source, destination) => {
     worker.postMessage({ cmd: 'rename', source: source, destination: destination });
 })
 
+// Function to add new items to DragSelect in the main process
+// ipcMain.on('add_item_dragselect', (e, selector) => {
+//     if (dragSelect) {
+//       const selectables = win.webContents.executeJavaScript(`document.querySelectorAll("${selector}")`);
+//       dragSelect.addSelectables(selectables);
+//     }
+// })
+
 //////////////////////////////////////////////////////////////
 
 // Create Main Winsow
@@ -1091,7 +1282,7 @@ function createWindow() {
             nodeIntegrationInWorker: true,
             nativeWindowOpen: true,
             preload: path.join(__dirname, 'preload.js'),
-            sandbox: false,
+            sandbox: true,
         },
     }
 
@@ -1101,6 +1292,15 @@ function createWindow() {
     win.once('ready-to-show', () => {
         win.show();
         // watch_for_theme_change();
+        // win.webContents.once('dom-ready', () => {
+        //     const selectables = win.webContents.executeJavaScript('document.querySelectorAll(".card")');
+        //     const selectableContainer = win.webContents.executeJavaScript('document.getElementById("main")');
+        //     dragSelect = new DragSelect({
+        //         selectables: selectables,
+        //         area: selectableContainer,
+        //     });
+        // });
+
     });
 
     win.on('closed', () => {
