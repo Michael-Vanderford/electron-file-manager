@@ -84,7 +84,9 @@ parentPort.on('message', data => {
         let start = 0;
         let offset = 1;
         let destination = data.destination;
+
         function get_next_images(source, start, offset) {
+
             get_images(source, start, offset, images => {
 
                 // console.log(images);
@@ -106,6 +108,9 @@ parentPort.on('message', data => {
         }
 
         get_next_images(data.source, start, offset)
+
+
+
 
         // if (!gio.exists(thumbnail)) {
         //     console.log('creating thumbnail', thumbnail);

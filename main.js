@@ -566,7 +566,13 @@ function get_files(source, tab) {
 
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
-    thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
+
+    if (source !== thumb_dir) {
+        thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
+    } else {
+
+    }
+
 
     // Call ls worker to get file data
     ls.postMessage({ cmd: 'ls', source: source, tab: tab });
@@ -590,11 +596,6 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 /** */
-
-// Path Format
-ipcMain.handle('path:format', (e, dir, base) => {
-    return path.format({dir: dir, base: path.basename(base)});
-})
 
 //
 ipcMain.handle('nav_item', (e, dir) => {
@@ -785,6 +786,17 @@ ipcMain.on('compress', (e, location, type) => {
 })
 
 // Path Utilities //////////////////////////////////
+// **
+
+// Join
+ipcMain.handle('path:join', (e, base, dir) => {
+    return path.join(base, dir)
+})
+
+// Path Format
+ipcMain.handle('path:format', (e, dir, base) => {
+    return path.format({dir: dir, base: path.basename(base)});
+})
 
 // Dirname
 ipcMain.handle('dirname', (e, source) => {
@@ -898,10 +910,10 @@ ipcMain.on('create_thumbnail', (e, href) => {
     // gio.thumbnail(href);
     // thumb.postMessage({cmd: 'create_thumbnail', href: href});
 
-    if (!href.indexOf('sftp:') > -1) {
+    // if (!href.indexOf('sftp:') > -1) {
         let thumb_dir = path.join(app.getPath('userData'), 'thumbnails')
         thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
-    }
+    // }
 })
 
 ipcMain.handle('get_thumbnails_directory', async (e) => {
@@ -1235,13 +1247,13 @@ ipcMain.on('rename', (e, source, destination) => {
 // Create Main Winsow
 function createWindow() {
 
-    let displayToUse = 0
-    let lastActive = 0
-    let displays = screen.getAllDisplays()
+    let displayToUse = 0;
+    let lastActive = 0;
+    let displays = screen.getAllDisplays();
 
     // Single Display
     if (displays.length === 1) {
-        displayToUse = displays[0]
+        displayToUse = displays[0];
         // Multi Display
     } else {
         // if we have a last active window, use that display for the new window

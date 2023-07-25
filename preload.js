@@ -1,8 +1,8 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
-// const { exec, execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
 const path       = require('path');
-// const fs         = require('fs');
+const fs         = require('fs');
 // const os         = require('os');
 const DragSelect = require('dragselect');
 const Chart      = require('chart.js')
@@ -24,6 +24,7 @@ if (localStorage.getItem('view') == null) {
 } else {
     view = localStorage.getItem('view');
 }
+
 
 contextBridge.exposeInMainWorld('api', {
 
@@ -420,6 +421,8 @@ ipcRenderer.on('search_results', (e, find_arr) => {
         }
 
     })
+
+    resizeIcons(localStorage.getItem('icon_size'));
 
     switch_view(localStorage.getItem('view'));
     lazyload();
@@ -1429,10 +1432,25 @@ function find_files(callback) {
             search_view = add_div();
             search_view.classList.add('search_view');
         }
+
+        // ipcRenderer.invoke('path:join', __dirname, 'views/find.html').then(path => {
+        //     console.log('path', path)
+        //     fetch(path)
+        //     .then(res => {
+        //         return res.text();
+        //     })
+        //     .then(search_html => {
+        //         search_view.innerHTML = search_html;
+        //         sb_search.innerHTML = search_view.innerHTML;
+        //         sidebar.append(sb_search);
+        //     })
+        // })
+
         let search_html = fs.readFileSync(path.join(__dirname, 'views/find.html'));
         search_view.innerHTML = search_html;
         sb_search.innerHTML = search_view.innerHTML;
         sidebar.append(sb_search);
+
     }
 
     let cmd = '';
@@ -1689,6 +1707,8 @@ function find_files(callback) {
         }
 
     })
+
+
 
     callback(1)
 
@@ -3651,151 +3671,151 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 shortcut =  res.keyboard_shortcuts;
             }).then(() => {
 
-                // // Delete
-                // mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
-                //     e.preventDefault();
-                //     getSelectedFiles();
-                //     if (selected_files_arr.length > 0) {
-                //         ipcRenderer.send('delete', (selected_files_arr));
-                //     }
-                //     clear();
-                // })
+                // Delete
+                mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
+                    e.preventDefault();
+                    getSelectedFiles();
+                    if (selected_files_arr.length > 0) {
+                        ipcRenderer.send('delete', (selected_files_arr));
+                    }
+                    clear();
+                })
 
-                // // Escape (Cancel)
-                // mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
-                //     // Clear Arrays and selected items
-                //     clear();
-                // })
+                // Escape (Cancel)
+                mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
+                    // Clear Arrays and selected items
+                    clear();
+                })
 
-                // // Reload
-                // mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
-                //     getView(location.value)
-                // })
+                // Reload
+                mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
+                    getView(location.value)
+                })
 
-                // // Edit
-                // mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
-                //     edit();
-                // })
+                // Edit
+                mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
+                    edit();
+                })
 
-                // // Ctrl+C (Copy)
-                // mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
-                //     getSelectedFiles();
-                // })
+                // Ctrl+C (Copy)
+                mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
+                    getSelectedFiles();
+                })
 
-                // // Ctrl+X (Cut)
-                // mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
-                //     cut_flag = 1;
-                //     getSelectedFiles();
-                //     selected_files_arr.forEach(item => {
-                //         let active_tab_content = document.querySelector('.active-tab-content');
-                //         let card = active_tab_content.querySelector(`[data-href="${item}"]`);
-                //         card.style = 'opacity: 0.6 !important';
-                //     })
-                // })
+                // Ctrl+X (Cut)
+                mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
+                    cut_flag = 1;
+                    getSelectedFiles();
+                    selected_files_arr.forEach(item => {
+                        let active_tab_content = document.querySelector('.active-tab-content');
+                        let card = active_tab_content.querySelector(`[data-href="${item}"]`);
+                        card.style = 'opacity: 0.6 !important';
+                    })
+                })
 
-                // // Ctrl+V (Paste)
-                // mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
-                //     ipcRenderer.send('main', 1);
-                //     if (cut_flag) {
-                //         move(location.value);
-                //     } else {
-                //         paste(location.value);
-                //     }
-                //     cut_flag = 0;
-                // })
+                // Ctrl+V (Paste)
+                mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
+                    ipcRenderer.send('main', 1);
+                    if (cut_flag) {
+                        move(location.value);
+                    } else {
+                        paste(location.value);
+                    }
+                    cut_flag = 0;
+                })
 
-                // // Show / Hide Sidebar
-                // mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
-                //     if (sidebar.classList.contains('hidden')) {
-                //         sidebar.classList.remove('hidden');
-                //         localStorage.setItem('sidebar', 1);
-                //     } else {
-                //         sidebar.classList.add('hidden');
-                //         localStorage.setItem('sidebar', 0);
-                //     }
-                // })
+                // Show / Hide Sidebar
+                mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
+                    if (sidebar.classList.contains('hidden')) {
+                        sidebar.classList.remove('hidden');
+                        localStorage.setItem('sidebar', 1);
+                    } else {
+                        sidebar.classList.add('hidden');
+                        localStorage.setItem('sidebar', 0);
+                    }
+                })
 
-                // // Find
-                // mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
-                //     // getSearch();
-                //     find_files(res => {})
-                // })
+                // Find
+                mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
+                    // getSearch();
+                    find_files(res => {})
+                })
 
-                // // Quick Search
-                // mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
-                //     quickSearch(e);
-                // })
+                // Quick Search
+                mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
+                    quickSearch(e);
+                })
 
-                // // New Window
-                // mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
-                //     ipcRenderer.send('new_window');
-                // })
+                // New Window
+                mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
+                    ipcRenderer.send('new_window');
+                })
 
-                // // Show Home View Sidebar
-                // mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
-                //     clearViews();
-                //     sidebarHome();
-                // })
+                // Show Home View Sidebar
+                mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
+                    clearViews();
+                    sidebarHome();
+                })
 
-                // // Get File Info
-                // mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
-                //     getSelectedFiles();
-                //     ipcRenderer.send('get_properties', selected_files_arr, location.value);
-                //     selected_files_arr = [];
-                // })
+                // Get File Info
+                mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
+                    getSelectedFiles();
+                    ipcRenderer.send('get_properties', selected_files_arr, location.value);
+                    selected_files_arr = [];
+                })
 
-                // // Select All
-                // mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
-                //     e.preventDefault();
-                //     let cards = main.querySelectorAll('.card')
-                //     cards.forEach(item => {
-                //         item.classList.add('highlight');
-                //     })
-                // })
+                // Select All
+                mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
+                    e.preventDefault();
+                    let cards = main.querySelectorAll('.card')
+                    cards.forEach(item => {
+                        item.classList.add('highlight');
+                    })
+                })
 
-                // // Go Back
-                // mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
-                //     location.value = path.dirname(location.value);
-                //     getView(location.value);
-                //     // localStorage.setItem('location', location.value);
-                // })
+                // Go Back
+                mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
+                    location.value = path.dirname(location.value);
+                    getView(location.value);
+                    // localStorage.setItem('location', location.value);
+                })
 
-                // // Add to Workspace
-                // mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
-                //     getSelectedFiles()
-                //     ipcRenderer.send('add_workspace', selected_files_arr);
-                //     clear()
-                // })
+                // Add to Workspace
+                mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
+                    getSelectedFiles()
+                    ipcRenderer.send('add_workspace', selected_files_arr);
+                    clear()
+                })
 
-                // // New Folder
-                // mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
-                //     ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
-                // })
+                // New Folder
+                mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
+                    ipcRenderer.send('mkdir', `${path.format({dir: location.value, base: 'New Folder'})}`)
+                })
 
-                // // Show settings
-                // mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
-                //     getSettings();
-                // })
+                // Show settings
+                mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
+                    getSettings();
+                })
 
-                // // Extract Compressed Files
-                // mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
-                //     extract();
-                // })
+                // Extract Compressed Files
+                mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
+                    extract();
+                })
 
-                // // Compress Files
-                // mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
-                //     compress('zip');
-                // })
+                // Compress Files
+                mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
+                    compress('zip');
+                })
 
-                // // New Tav
-                // mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
-                //     getView(location.value, 1);
-                // })
+                // New Tav
+                mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
+                    getView(location.value, 1);
+                })
 
-                //
-                // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
-                //     console.log('down')
-                // })
+
+                mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+                    console.log('down')
+                })
 
             })
 
