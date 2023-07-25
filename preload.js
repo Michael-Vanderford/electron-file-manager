@@ -411,6 +411,9 @@ ipcRenderer.on('search_results', (e, find_arr) => {
                     folder_grid.append(card);
                 }
 
+                getFolderSize(file.href)
+                getFolderCount(file.href)
+
             } else {
                 if (file.is_hidden) {
                     hidden_file_grid.append(card);
