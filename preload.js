@@ -2303,8 +2303,10 @@ function getRecentView(dirents) {
     })
 
     tab_content.append(folder_grid, file_grid)
-
     localStorage.setItem('location', 'Recent');
+
+    resizeIcons(localStorage.getItem('icon_size'));
+
     lazyload();
 
 }
@@ -3136,9 +3138,15 @@ function getCardGio(file) {
                 } else {
                     img.src = './assets/icons/image-generic.svg';
 
-                    ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
-                        img.src = thumbnail;
-                    })
+                    if (file.href.indexOf('thumbnails') > 1) {
+                        img.src = file.href
+                    } else if (file.href.indexOf('mtp') > -1) {
+                        // img.src =
+                    } else {
+                        ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
+                            img.src = thumbnail;
+                        })
+                    }
 
                     // let thumbnail = path.join(thumbnail_dir, path.basename(file.href));
                     // let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
