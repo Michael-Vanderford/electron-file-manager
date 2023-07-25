@@ -1,7 +1,7 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
 // const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
-// const path       = require('path');
+const path       = require('path');
 // const fs         = require('fs');
 // const os         = require('os');
 const DragSelect = require('dragselect');
@@ -11,10 +11,6 @@ const Chart      = require('chart.js')
 
 // Global Arrays
 let selected_files_arr  = [];
-let nav_arr             = [];
-let copy_arr_overwrite  = [];
-let copy_arr            = [];
-let copy_overwrite_arr  = [];
 let auto_complete_arr   = [];
 
 let ds;
@@ -31,25 +27,8 @@ if (localStorage.getItem('view') == null) {
 
 contextBridge.exposeInMainWorld('api', {
 
-    getView: (dir, tab = 0) => {
-        getView(dir, tab);
-    }
 
-    // add_selectable: (card) => {
-    //     add_selectable(card)
-    // }
 
-    // init_ds: () => {
-    //     const DragSelect = require('dragselect');
-    //     ds = new DragSelect({
-    //         area: main,
-    //         selectorClass: 'drag_select',
-    //         keyboardDragSpeed: 0,
-    //     })
-    // },
-    // join_path: () => {
-    //     console.log('testing')
-    // }
 })
 
 // IPC ///////////////////////////////////////////////////////////////////
@@ -1737,9 +1716,6 @@ function compress(type) {
     clear();
 }
 
-var isResizing = false;
-var startX, startWidth;
-
 function resizeIcons(icon_size) {
     let slider = document.getElementById('slider');
     let cards = document.querySelectorAll('.card');
@@ -1857,7 +1833,6 @@ function add_div(classlist = []) {
 }
 
 // Add Tab
-let tab_arr = []
 let tab_id = 0
 function add_tab(href) {
 
@@ -2698,6 +2673,7 @@ function getWorkspace(callback) {
 
         })
         return callback(workspace);
+
     })
 }
 
