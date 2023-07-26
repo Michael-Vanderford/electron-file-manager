@@ -1428,6 +1428,7 @@ function find_files(callback) {
     if (sb_search) {
         sb_search.classList.remove('hidden');
     } else {
+
         sb_search = add_div();
         sb_search.classList.add('sb_search', 'sb_view');
         let search_view = document.querySelector('.search_view');
@@ -1436,282 +1437,286 @@ function find_files(callback) {
             search_view.classList.add('search_view');
         }
 
-        // ipcRenderer.invoke('path:join', __dirname, 'views/find.html').then(path => {
-        //     console.log('path', path)
-        //     fetch(path)
-        //     .then(res => {
-        //         return res.text();
-        //     })
-        //     .then(search_html => {
-        //         search_view.innerHTML = search_html;
-        //         sb_search.innerHTML = search_view.innerHTML;
-        //         sidebar.append(sb_search);
-        //     })
-        // })
+        ipcRenderer.invoke('path:join', __dirname, 'views/find.html').then(path => {
 
-        let search_html = fs.readFileSync(path.join(__dirname, 'views/find.html'));
-        search_view.innerHTML = search_html;
-        sb_search.innerHTML = search_view.innerHTML;
-        sidebar.append(sb_search);
+            fetch(path)
+            .then(res => {
+                return res.text();
+            })
+            .then(search_html => {
 
-    }
+                search_view.innerHTML = search_html;
+                sb_search.innerHTML = search_view.innerHTML;
+                sidebar.append(sb_search);
 
-    let cmd = '';
+                // let search_html = fs.readFileSync(path.join(__dirname, 'views/find.html'));
+                // search_view.innerHTML = search_html;
+                // sb_search.innerHTML = search_view.innerHTML;
+                // sidebar.append(sb_search);
 
-    let search_results = document.getElementById('search_results');
-    let find = document.getElementById('find');
-    let find_div = document.getElementById('find_div');
-    let find_options = document.getElementById('find_options');
-    let find_folders = document.getElementById('find_folders')
-    let find_files = document.getElementById('find_files')
-    let btn_find_options = document.getElementById('btn_find_options');
-    let find_size = document.getElementById('find_size');
-    let start_date = document.getElementById('start_date');
-    let end_date = document.getElementById('end_date');
-    let mb_find = document.getElementById('mb_find');
-    let search_progress = document.getElementById('search_progress')
+                let cmd = '';
 
-    let options = {
-        show_folders: 1,
-        show_files: 1,
-        case: 0,
-        depth: 1,
-        start_date: '',
-        end_date: '',
-        size: ''
-    }
+                let search_results = document.getElementById('search_results');
+                let find = document.getElementById('find');
+                let find_div = document.getElementById('find_div');
+                let find_options = document.getElementById('find_options');
+                let find_folders = document.getElementById('find_folders')
+                let find_files = document.getElementById('find_files')
+                let btn_find_options = document.getElementById('btn_find_options');
+                let find_size = document.getElementById('find_size');
+                let start_date = document.getElementById('start_date');
+                let end_date = document.getElementById('end_date');
+                let mb_find = document.getElementById('mb_find');
+                let search_progress = document.getElementById('search_progress')
 
-    find.focus();
-    find.select();
-
-    options.show_folders = parseInt(localStorage.getItem('find_folders'));
-    options.show_files = parseInt(localStorage.getItem('find_files'));
-    options.depth = parseInt(localStorage.getItem('depth'));
-
-    find_folders.checked = options.show_folders;
-    find_files.checked = options.show_files;
-
-    localStorage.setItem('minibar', 'mb_find')
-
-    // FIND FOLDERS
-    find_folders.addEventListener('change', (e) => {
-        if (find_folders.checked) {
-            localStorage.setItem('find_folders', 1);
-            options.show_folders = 1
-        } else {
-            localStorage.setItem('find_folders', 0);
-            options.show_folders = 0
-        }
-    })
-
-    // FIND FILES
-    find_files.addEventListener('change', (e) => {
-        if (find_files.checked) {
-            localStorage.setItem('find_files', 1);
-            options.show_files = 1
-        } else {
-            localStorage.setItem('find_files', 0);
-            options.show_files = 0
-        }
-
-    })
-
-    let inputs = find_div.querySelectorAll('.find_input')
-    inputs.forEach(input => {
-
-        input.preventDefault = true
-
-        if (localStorage.getItem(input.id) != null) {
-            options[input.id] = localStorage.getItem(input.id)
-        } else {
-
-            if (input.id == 'find_files') {
-                options[input.id] = 1;
-                localStorage.setItem(options[input.id], 1);
-            }
-
-            if (input.id == 'find_folders') {
-                options[input.id] = 1;
-                localStorage.setItem(options[input.id], 1);
-            }
-
-        }
-
-        input.value = localStorage.getItem(input.id)
-
-        input.addEventListener('change', (e) => {
-            localStorage.setItem(input.id, input.value)
-            options[input.id] = input.value
-        })
-
-        input.addEventListener('keyup', (e) => {
-
-            if (e.key === 'Enter') {
-
-                if (find.value != '') {
-                    search_info.innerHTML = 'Searching...';
-                    search_progress.classList.remove('hidden')
-                } else {
-                    search_info.innerHTML = '';
-                    search_progress.classList.add('hidden')
+                let options = {
+                    show_folders: 1,
+                    show_files: 1,
+                    case: 0,
+                    depth: 1,
+                    start_date: '',
+                    end_date: '',
+                    size: ''
                 }
-                search_results.innerHTML = '';
-                if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
-                    // CHECK LOCAL STORAGE
-                    if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
-                        localStorage.setItem('find_folders', 1)
-                    }
+                find.focus();
+                find.select();
 
-                    if (localStorage.getItem('find_files') == '' || localStorage.getItem('find_files') == null) {
-                        localStorage.setItem('find_files', 1)
-                    }
+                options.show_folders = parseInt(localStorage.getItem('find_folders'));
+                options.show_files = parseInt(localStorage.getItem('find_files'));
+                options.depth = parseInt(localStorage.getItem('depth'));
 
-                    let find_folders = localStorage.getItem('find_folders')
-                    let find_files = localStorage.getItem('find_files')
-                    let depth = parseInt(localStorage.getItem('depth'));
+                find_folders.checked = options.show_folders;
+                find_files.checked = options.show_files;
 
-                    options.d = find_folders,
-                    options.f = find_files,
-                    options.depth = depth,
-                    options.start_date = start_date.value,
-                    options.end_date = end_date.value,
-                    options.size = find_size.value, //localStorage.getItem('find_by_size'),
-                    options.o = ' -o ',
-                    options.s = '*' + find.value + '*'
+                localStorage.setItem('minibar', 'mb_find')
 
-                    //  SIZE
-                    if (options.size != '') {
-                        let size_option = document.querySelector('input[name="size_options"]:checked').value
-                        options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
-                    }
-                    //  DEPTH
-                    if (options.depth != '') {
-                        options.depth = ' -maxdepth ' + options.depth
+                // FIND FOLDERS
+                find_folders.addEventListener('change', (e) => {
+                    if (find_folders.checked) {
+                        localStorage.setItem('find_folders', 1);
+                        options.show_folders = 1
                     } else {
-                        options.depth = ''
+                        localStorage.setItem('find_folders', 0);
+                        options.show_folders = 0
                     }
-                    // START DATE
-                    if (options.start_date != '') {
-                        let start_date = ' -newermt "' + options.start_date + '"'
-                        options.start_date = start_date
+                })
+
+                // FIND FILES
+                find_files.addEventListener('change', (e) => {
+                    if (find_files.checked) {
+                        localStorage.setItem('find_files', 1);
+                        options.show_files = 1
                     } else {
-                        options.start_date = ''
+                        localStorage.setItem('find_files', 0);
+                        options.show_files = 0
                     }
-                    // END DATE
-                    if (options.end_date != '') {
-                        let end_date = ' ! -newermt "' + options.end_date + '"'
-                        options.end_date = end_date
+
+                })
+
+                let inputs = find_div.querySelectorAll('.find_input')
+                inputs.forEach(input => {
+
+                    input.preventDefault = true
+
+                    if (localStorage.getItem(input.id) != null) {
+                        options[input.id] = localStorage.getItem(input.id)
                     } else {
-                        options.end_date = ''
-                    }
-                    // DIR
-                    if (options.d == 1 && options.s != '') {
-                        options.d = ' -type d ' + '-iname "' + options.s + '"'
-                    } else {
-                        options.d = ''
-                    }
-                    // FILES
-                    if (options.f == 1 && options.s != '') {
-                        options.f = ' -type f ' + '-iname "' + options.s + '" ' + options.size
-                    } else {
-                        options.f = ''
-                    }
-                    // OR
-                    if (options.d && options.f && options.s != '') {
-                        options.o = ' -or '
-                    } else {
-                        options.o = ''
+
+                        if (input.id == 'find_files') {
+                            options[input.id] = 1;
+                            localStorage.setItem(options[input.id], 1);
+                        }
+
+                        if (input.id == 'find_folders') {
+                            options[input.id] = 1;
+                            localStorage.setItem(options[input.id], 1);
+                        }
+
                     }
 
-                    cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}`
-                    if (process.platform === 'Win32') {
-                        // notification('find is not yet implemented on window');
-                        // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
-                    }
-                    let data = 0;
-                    let c = 0
-                    let child = exec(cmd)
-                    console.log(cmd)
+                    input.value = localStorage.getItem(input.id)
 
-                    let search_arr = [];
-                    child.stdout.on('data', (res) => {
+                    input.addEventListener('change', (e) => {
+                        localStorage.setItem(input.id, input.value)
+                        options[input.id] = input.value
+                    })
 
-                        data = 1;
-                        search_info.innerHTML = ''
-                        let files = res.split('\n')
-                        search_progress.value = 0
-                        search_progress.max = files.length
+                    input.addEventListener('keyup', (e) => {
 
-                        if (files.length > 500) {
+                        if (e.key === 'Enter') {
 
-                            search_info.innerHTML = 'Please narrow your search.'
-                            search_progress.classList.add('hidden')
-                            return false;
+                            if (find.value != '') {
+                                search_info.innerHTML = 'Searching...';
+                                search_progress.classList.remove('hidden')
+                            } else {
+                                search_info.innerHTML = '';
+                                search_progress.classList.add('hidden')
+                            }
+                            search_results.innerHTML = '';
+                            if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
-                        } else {
-
-                            for (let i = 0; i < files.length; i++) {
-
-                                if (files[i] != '') {
-                                    ++c
-                                    search_arr.push(files[i])
+                                // CHECK LOCAL STORAGE
+                                if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
+                                    localStorage.setItem('find_folders', 1)
                                 }
 
+                                if (localStorage.getItem('find_files') == '' || localStorage.getItem('find_files') == null) {
+                                    localStorage.setItem('find_files', 1)
+                                }
+
+                                let find_folders = localStorage.getItem('find_folders')
+                                let find_files = localStorage.getItem('find_files')
+                                let depth = parseInt(localStorage.getItem('depth'));
+
+                                options.d = find_folders,
+                                options.f = find_files,
+                                options.depth = depth,
+                                options.start_date = start_date.value,
+                                options.end_date = end_date.value,
+                                options.size = find_size.value, //localStorage.getItem('find_by_size'),
+                                options.o = ' -o ',
+                                options.s = '*' + find.value + '*'
+
+                                //  SIZE
+                                if (options.size != '') {
+                                    let size_option = document.querySelector('input[name="size_options"]:checked').value
+                                    options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
+                                }
+                                //  DEPTH
+                                if (options.depth != '') {
+                                    options.depth = ' -maxdepth ' + options.depth
+                                } else {
+                                    options.depth = ''
+                                }
+                                // START DATE
+                                if (options.start_date != '') {
+                                    let start_date = ' -newermt "' + options.start_date + '"'
+                                    options.start_date = start_date
+                                } else {
+                                    options.start_date = ''
+                                }
+                                // END DATE
+                                if (options.end_date != '') {
+                                    let end_date = ' ! -newermt "' + options.end_date + '"'
+                                    options.end_date = end_date
+                                } else {
+                                    options.end_date = ''
+                                }
+                                // DIR
+                                if (options.d == 1 && options.s != '') {
+                                    options.d = ' -type d ' + '-iname "' + options.s + '"'
+                                } else {
+                                    options.d = ''
+                                }
+                                // FILES
+                                if (options.f == 1 && options.s != '') {
+                                    options.f = ' -type f ' + '-iname "' + options.s + '" ' + options.size
+                                } else {
+                                    options.f = ''
+                                }
+                                // OR
+                                if (options.d && options.f && options.s != '') {
+                                    options.o = ' -or '
+                                } else {
+                                    options.o = ''
+                                }
+
+                                cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}`
+                                if (process.platform === 'Win32') {
+                                    // notification('find is not yet implemented on window');
+                                    // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
+                                }
+                                let data = 0;
+                                let c = 0
+                                let child = exec(cmd)
+                                console.log(cmd)
+
+                                let search_arr = [];
+                                child.stdout.on('data', (res) => {
+
+                                    data = 1;
+                                    search_info.innerHTML = ''
+                                    let files = res.split('\n')
+                                    search_progress.value = 0
+                                    search_progress.max = files.length
+
+                                    if (files.length > 500) {
+
+                                        search_info.innerHTML = 'Please narrow your search.'
+                                        search_progress.classList.add('hidden')
+                                        return false;
+
+                                    } else {
+
+                                        for (let i = 0; i < files.length; i++) {
+
+                                            if (files[i] != '') {
+                                                ++c
+                                                search_arr.push(files[i])
+                                            }
+
+                                        }
+
+                                    }
+
+                                })
+
+                                child.stdout.on('end', (res) => {
+                                    if (!data) {
+                                        search_info.innerHTML = '0 matches found'
+                                    } else {
+
+                                        console.log('ipc send search results')
+                                        ipcRenderer.send('search_results', search_arr);
+                                        search_info.innerHTML = c + ' matches found'
+                                    }
+                                    search_progress.classList.add('hidden')
+                                })
+
+                            } else {
+                                search_results.innerHTML = '';
+                                fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
                             }
 
                         }
 
                     })
 
-                    child.stdout.on('end', (res) => {
-                        if (!data) {
-                            search_info.innerHTML = '0 matches found'
-                        } else {
+                })
 
-                            console.log('ipc send search results')
-                            ipcRenderer.send('search_results', search_arr);
-                            search_info.innerHTML = c + ' matches found'
-                        }
-                        search_progress.classList.add('hidden')
-                    })
+                // FIND OPTIONS
+                btn_find_options.addEventListener('click', (e) => {
 
-                } else {
-                    search_results.innerHTML = '';
-                    fs.writeFileSync(path.join(__dirname, 'src/find.html'), sidebar_items.innerHTML)
-                }
+                    let chevron = btn_find_options.querySelector('i');
 
-            }
+                    // Remove Hidden
+                    if (find_options.classList.contains('hidden')) {
+
+                        find_options.classList.remove('hidden')
+                        chevron.classList.add('down')
+                        chevron.classList.remove('right')
+                        localStorage.setItem('find_options', 1);
+
+                    } else {
+
+                        find_options.classList.add('hidden')
+                        chevron.classList.add('right')
+                        chevron.classList.remove('down')
+                        localStorage.setItem('find_options', 0);
+
+                    }
+
+                })
+
+            })
+            .catch (err => {
+                console.log(err)
+            })
 
         })
 
-    })
-
-    // FIND OPTIONS
-    btn_find_options.addEventListener('click', (e) => {
-
-        let chevron = btn_find_options.querySelector('i');
-
-        // Remove Hidden
-        if (find_options.classList.contains('hidden')) {
-
-            find_options.classList.remove('hidden')
-            chevron.classList.add('down')
-            chevron.classList.remove('right')
-            localStorage.setItem('find_options', 1);
-
-        } else {
-
-            find_options.classList.add('hidden')
-            chevron.classList.add('right')
-            chevron.classList.remove('down')
-            localStorage.setItem('find_options', 0);
-
-        }
-
-    })
-
-
+    }
 
     callback(1)
 
@@ -2317,16 +2322,42 @@ function getSettings() {
     let location = document.querySelector('.location');
     let tab_content = add_tab('Settings');
 
-    let settings_html = fs.readFileSync(path.join(__dirname, 'views/settings.html'));
-    tab_content.innerHTML = settings_html;
+    ipcRenderer.invoke('path:join', __dirname, 'views/settings.html').then(path => {
 
-    location.value = 'Settings';
-    // localStorage.setItem('location', 'Settings')
+        fetch(path)
+        .then(res => {
+            return res.text();
+        })
+        .then(settings_html => {
 
-    ipcRenderer.invoke('settings')
-    .then(res => res)
-    .then(settings => settingsForm(settings))
-    .catch(error => console.error('Error:', error))
+            tab_content.innerHTML = settings_html;
+            location.value = 'Settings';
+            // localStorage.setItem('location', 'Settings')
+
+            ipcRenderer.invoke('settings')
+            .then(res => res)
+            .then(settings => settingsForm(settings))
+            .catch(error => console.error('Error:', error))
+
+        })
+        .catch (err => {
+            console.log(err)
+        })
+
+        // let settings_html = fs.readFileSync(path.join(__dirname, 'views/settings.html'));
+        // // tab_content.innerHTML = settings_html;
+
+        // location.value = 'Settings';
+        // // localStorage.setItem('location', 'Settings')
+
+        // ipcRenderer.invoke('settings')
+        // .then(res => res)
+        // .then(settings => settingsForm(settings))
+        // .catch(error => console.error('Error:', error))
+
+    })
+
+
 
 }
 
