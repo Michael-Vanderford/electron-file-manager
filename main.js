@@ -151,6 +151,7 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'rename_done') {
+        console.log('rename_done');
         // gio_utils.get_file(data.destination, file => {
         //     win.send('replace_card', data.source, file);
         // })
@@ -172,6 +173,10 @@ worker.on('message', (data) => {
             let file = gio.get_file(data.destination);
             win.send('get_card_gio', file);
         } else {
+            if (!is_main) {
+                win.send('get_folder_count', path.dirname(data.destination));
+                win.send('get_folder_size', path.dirname(data.destination));
+            }
             // let href = path.dirname(data.destination)
             // let file = gio.get_file(href)
             // win.send('replace_card', href, file);
@@ -568,7 +573,7 @@ function get_files(source, tab) {
 
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
-        
+
     } else {
         thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
     }
@@ -596,6 +601,11 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 /** */
+
+// Write find page
+ipcMain.on('save_find', (e, data) => {
+    fs.writeFileSync(path.join(__dirname, 'src/find.html'), data);
+})
 
 //
 ipcMain.handle('nav_item', (e, dir) => {
@@ -631,7 +641,7 @@ ipcMain.handle('nav_item', (e, dir) => {
 ipcMain.on('new_folder', (e, destination) => {
     let folder_path = `${path.format({dir: destination, base: 'New Folder'})}`
     gio.mkdir(folder_path)
-    win.send('get_card_gio', folder_path);
+    // win.send('get_card_gio', folder_path);
 })
 
 // Extract
@@ -926,7 +936,11 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
 
 ipcMain.handle('get_thumbnail', (e, file) => {
     let thumbnail_dir  = path.join(app.getPath('userData'), 'thumbnails')
-    return thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
+    let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
+    if (!gio.exists(thumbnail)) {
+        thumbnail = `./assets/icons/image-generic.svg`
+    }
+    return thumbnail;
 })
 
 // Populate global selected files array
@@ -1233,14 +1247,6 @@ ipcMain.handle('get_folder_size', async (e, href) => {
 ipcMain.on('rename', (e, source, destination) => {
     worker.postMessage({ cmd: 'rename', source: source, destination: destination });
 })
-
-// Function to add new items to DragSelect in the main process
-// ipcMain.on('add_item_dragselect', (e, selector) => {
-//     if (dragSelect) {
-//       const selectables = win.webContents.executeJavaScript(`document.querySelectorAll("${selector}")`);
-//       dragSelect.addSelectables(selectables);
-//     }
-// })
 
 //////////////////////////////////////////////////////////////
 
