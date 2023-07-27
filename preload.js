@@ -1,13 +1,11 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
 const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
-const path       = require('path');
+// const path       = require('path');
 // const fs         = require('fs');
 // const os         = require('os');
 const DragSelect = require('dragselect');
 const Chart      = require('chart.js')
-// const gio_utils  = require('./utils/gio.js');
-// const gio        = require('./gio/build/Release/gio');
 
 // Global Arrays
 let selected_files_arr  = [];
@@ -2897,22 +2895,22 @@ function getCardGio(file) {
     card.addEventListener('mouseover', (e) => {
 
         card.classList.add('highlight');
-        // title =
-        //     'Name: ' + path.basename(file.href) +
-        //     '\n' +
-        //     'Location: ' + path.dirname(file.href) +
-        //     '\n' +
-        //     'Size: ' + getFileSize(file.size) +
-        //     '\n' +
-        //     'Accessed: ' + getDateTime(file.atime) +
-        //     '\n' +
-        //     'Modified: ' + getDateTime(file.mtime) +
-        //     // '\n' +
-        //     // 'Created: ' + getDateTime(file.ctime) +
-        //     '\n' +
-        //     'Type: ' + file.content_type
+        title =
+            'Name: ' + file.name +
+            '\n' +
+            'Location: ' + file.location +
+            '\n' +
+            'Size: ' + getFileSize(file.size) +
+            '\n' +
+            'Accessed: ' + getDateTime(file.atime) +
+            '\n' +
+            'Modified: ' + getDateTime(file.mtime) +
+            // '\n' +
+            // 'Created: ' + getDateTime(file.ctime) +
+            '\n' +
+            'Type: ' + file.content_type
 
-        // card.title = title;
+        card.title = title;
 
 
         // main.tabIndex = 0;
