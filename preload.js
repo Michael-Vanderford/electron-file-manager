@@ -23,13 +23,6 @@ if (localStorage.getItem('view') == null) {
     view = localStorage.getItem('view');
 }
 
-
-contextBridge.exposeInMainWorld('api', {
-
-
-
-})
-
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
 
@@ -367,6 +360,7 @@ ipcRenderer.on('lazyload', (e) => {
 
 // Get Thumbnil directory
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
+    console.log('thumb dir', res)
     thumbnail_dir = res
 })
 
@@ -2445,6 +2439,8 @@ function settingsForm(settings) {
 
 function sidebarHome() {
 
+    console.log('what')
+
     let mb = document.getElementById('mb_home');
     mb.classList.add('active');
 
@@ -3406,8 +3402,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
         if (localStorage.getItem('location') !== null) {
             location.value = localStorage.getItem('location');
         } else {
-            location.value = os.homedir();
-            localStorage.setItem('location', location.value);
+
+            ipcRenderer.invoke('home').then(home => {
+                location.value = home;
+                getView(location.value);
+                localStorage.setItem('location', location.value);
+            })
+            // location.value = os.homedir();
+            // localStorage.setItem('location', location.value);
         }
 
         // Load view on reload
@@ -3942,7 +3944,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
 
     } catch (err) {
-        // console.log(err)
+        console.log(err)
     }
 
 });

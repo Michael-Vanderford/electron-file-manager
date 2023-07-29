@@ -621,6 +621,11 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+// Get home directory
+ipcMain.handle('home', (e) => {
+    return home;
+})
+
 // Write find page
 ipcMain.on('save_find', (e, data) => {
     fs.writeFileSync(path.join(__dirname, 'src/find.html'), data);
