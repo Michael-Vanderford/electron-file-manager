@@ -33,6 +33,152 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
+    if (data.cmd === 'merge') {
+
+        let idx = 0;
+        let copy_arr = data.copy_arr;
+        let copy_overwrite_arr = [];
+        function copy_next() {
+
+            if (idx === copy_arr.length) {
+                // Callback goes here
+                return;
+            }
+
+            let copy_item = copy_arr[idx];
+            let source = copy_item.source;
+            let destination = copy_item.destination;
+            idx++
+
+            let is_writable = 0;
+            if (gio.is_writable(path.dirname(destination))) {
+                is_writable = 1;
+            } else {
+                is_writable = 0;
+            }
+
+            if (is_writable) {
+
+
+                let file = gio.get_file(copy_item.source);
+
+                if (file.is_dir || file.type === 'directory') {
+
+                    get_files_arr(copy_item.source, destination, dirents => {
+
+                        let size = gio.du(path.dirname("/"))
+                        console.log(size);
+
+                        let cpc = 0;
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'directory') {
+
+                                cpc++
+
+                                if (!gio.exists(f.destination)) {
+                                    gio.mkdir(f.destination)
+                                    data = {
+                                        cmd: 'progress',
+                                        msg: `Copied Folder ${path.basename(f.source)}`,
+                                        max: dirents.length,
+                                        value: cpc
+                                    }
+                                    parentPort.postMessage(data);
+                                }
+                            }
+                        }
+
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'file') {
+                                cpc++
+                                if (gio.exists(f.destination)) {
+                                    // Send Confirm Overwrite
+                                    // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
+                                    let src = gio.get_file(f.source);
+                                    let dest = gio.get_file(f.destination);
+
+                                    if (src.mtime > dest.mtime) {
+
+                                        copy_overwrite_arr.push({source: f.source, destination: f.destination});
+                                        // parentPort.postMessage({'cmd':'confirm_overwrite', source: f.source, destination: f.destination, copy_overwrite_arr: copy_overwrite_arr});
+                                        // parentPort.postMessage({'cmd':'confirm_overwrite', source: f.source, destination: f.destination});
+                                        // gio.cp(f.source, f.destination, 1);
+                                        // console.log('found newer file', f.destination)
+
+                                    } else if (src.mtime < dest.mtime) {
+
+                                        copy_overwrite_arr.push({source: f.source, destination: f.destination});
+
+                                    }
+                                    // console.log('file conflict', f.destination)
+
+                                } else {
+                                    try {
+                                        gio.cp(f.source, f.destination, 0)
+                                    } catch (err) {
+                                        console.log(err);
+                                    }
+                                }
+
+                                data = {
+                                    cmd: 'progress',
+                                    msg: `Skipping File ${path.basename(f.source)}`,
+                                    max: dirents.length,
+                                    value: cpc
+
+                                }
+                                parentPort.postMessage(data);
+                            }
+                        }
+
+                        if (cpc === dirents.length) {
+
+                            if (copy_overwrite_arr.length > 0) {
+                                parentPort.postMessage({'cmd':'confirm_overwrite', copy_overwrite_arr: copy_overwrite_arr});
+                            }
+
+                            // console.log('done copying files');
+                            let data = {
+                                cmd: 'copy_done',
+                                destination: destination
+                            }
+                            parentPort.postMessage(data);
+                            copy_next();
+                        }
+
+                    })
+
+                // File
+                } else {
+
+                    try {
+                        gio.cp(copy_item.source, copy_item.destination, 1)
+                        let data = {
+                            cmd: 'copy_done',
+                            destination: copy_item.destination
+                        }
+                        parentPort.postMessage(data);
+                        parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
+
+                    } catch (err) {
+                        console.log(err.message);
+                        parentPort.postMessage({cmd: 'msg', msg: err.message});
+                    }
+                    copy_next();
+
+                }
+
+            } else {
+                parentPort.postMessage({cmd: 'msg', msg: 'Error: Permission Denied'});
+            }
+
+        }
+        copy_next();
+    }
+
+
     if (data.cmd === 'folder_size') {
         try {
             get_files_arr(data.source, '', dirents => {
@@ -261,8 +407,6 @@ parentPort.on('message', data => {
             } else {
                 is_writable = 0;
             }
-
-            // // console.log('is_writeable', is_writable)
 
             if (is_writable) {
 

@@ -128,7 +128,8 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'confirm_overwrite') {
-        confirmOverwrite(data.source, data.destination);
+        overWriteNext(data.copy_overwrite_arr);
+        // confirmOverwrite(data.source, data.destination, data.copy_overwrite_arr);
     }
 
     if (data.cmd === 'msg') {
@@ -523,16 +524,35 @@ function get_files_arr(source, destination, callback) {
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({ dir: destination, base: file.name }), callback)
             } else {
-                file_arr.push(
-                    { type: 'file',
-                    source: file.href,
-                    destination: path.format({ dir: destination, base: file.name }),
-                    size: file.size,
-                })
+                let src = file.href;
+                let dest = path.format({ dir: destination, base: file.name });
+
+                if (gio.exists(dest)) {
+
+                    let f1 = gio.get_file(src);
+                    let f2 = gio.get_file(dest);
+
+                    if (f1.mtime < f2.mtime) {
+                        file_arr.push({
+                            type: 'file',
+                            source: src,
+                            destination: dest,
+                            size: file.size,
+                        })
+                    }
+
+                } else {
+                    file_arr.push({
+                        type: 'file',
+                        source: src,
+                        destination: dest,
+                        size: file.size,
+                    })
+                }
+
             }
         }
         if (--cp_recursive == 0) {
-
             let file_arr1 = file_arr;
             file_arr = []
             return callback(file_arr1);
@@ -558,8 +578,8 @@ function get_files(source, tab) {
                         win.send('get_folder_count', filename);
                         win.send('get_folder_size', filename);
                     }
-
                 }
+                get_disk_space(source);
             }
         })
     } catch (err) {
@@ -570,7 +590,6 @@ function get_files(source, tab) {
 
 
     // Call create thumbnails
-
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
 
@@ -887,8 +906,6 @@ ipcMain.handle('icon_theme', (e) => {
         console.log(err)
     }
 
-
-
 })
 
 // Change theme
@@ -1130,8 +1147,8 @@ ipcMain.on('paste', (e, destination) => {
     // Note: Added a global array called selected_files_arr
     // This facilitates copying files between windows
     // Make sure this array gets cleared
-    // Refer to preload.js: getSelectedFiles() sends the call to populate the array and is used in multple opertations in preload.js
-    // Refere to main.js: ipcMain.on('selected_files', (e, selected_files)
+    // Refer to preload.js: getSelectedFiles() sends the call to populate the array and is used in multiple operations in preload.js
+    // Refer to main.js: ipcMain.on('selected_files', (e, selected_files)
 
     let copy_arr = [];
     let copy_overwrite_arr = []
@@ -1743,45 +1760,25 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
         checkboxLabel: 'Apply this action to all files and folders',
 
     }).then((response) => {
+
         let overwrite_all = response.checkboxChecked;
         switch (response.response) {
             case 0: {
+
                 // Cancel
                 break;
             }
             case 1: {
 
                 // Merge / Replace
-                // let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
-                // // console.log(`Overwrite Confirmed ${source} with ${destination}`);
-
-                // if (!is_dir) {
-                // worker.postMessage({cmd: 'paste', copy_arr: copy_arr, overwrite_flag: 1});
-                // worker.postMessage({cmd: 'cp', })
-                // }
-
-                copy_overwrite_arr.splice(0, 1);
-
-                // first file
-                // if (!gio.exists(destination)) {
-                    if (is_dir) {
-                        // console.log(`getting directory ${destination}`)
-                        gio.mkdir(destination)
-                    } else {
-                        // console.log(`copying file ${source} ${destination}`)
-                        gio.cp(source, destination, 1);
-                    }
-                // }
-
-                if (overwrite_all) {
-                    overWriteNext(copy_overwrite_arr, 1);
-                } else {
-                    overWriteNext(copy_overwrite_arr);
-                }
+                // win.send('msg', 'Error: This is not yet implemented!');
+                let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+                worker.postMessage({'cmd': 'merge', copy_arr: copy_arr});
 
                 break;
             }
             case 2: {
+
                 // Skip
                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
                 copy_arr[0].overwrite_flag = 1;
