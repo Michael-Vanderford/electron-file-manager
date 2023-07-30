@@ -1422,9 +1422,27 @@ function find_files(callback) {
                 find.focus();
                 find.select();
 
-                options.show_folders = parseInt(localStorage.getItem('find_folders'));
-                options.show_files = parseInt(localStorage.getItem('find_files'));
-                options.depth = parseInt(localStorage.getItem('depth'));
+                if (localStorage.getItem('find_folders') != null) {
+                    options.show_files = parseInt(localStorage.getItem('find_files'));
+                } else {
+                    options.find_files = 1;
+                    options.depth = localStorage.setItem('find_files', options.find_files);
+                }
+
+                if (localStorage.getItem('find_folders')) {
+                    options.show_folders = parseInt(localStorage.getItem('find_folders'));
+                } else {
+                    options.find_folders = 1;
+                    options.depth = localStorage.setItem('find_folders', options.find_folders);
+                }
+
+                if (localStorage.getItem('depth') != null) {
+                    options.depth = parseInt(localStorage.getItem('depth'));
+                } else {
+                    options.depth = 1;
+                    options.depth = localStorage.setItem('depth', options.depth);
+                }
+
 
                 find_folders.checked = options.show_folders;
                 find_files.checked = options.show_files;
@@ -2996,10 +3014,10 @@ function getCardGio(file) {
             card.classList.add('highlight_target');
             if (e.ctrlKey) {
                 e.dataTransfer.dropEffect = "copy";
-                msg(`Copy Item to "${file.href}"`);
+                // msg(`Copy Item to "${file.href}"`, 0);
             } else {
                 e.dataTransfer.dropEffect = "move";
-                msg(`Move Item to "${file.href}"`);
+                // msg(`Move Item to "${file.href}"`, 0);
             }
 
         }

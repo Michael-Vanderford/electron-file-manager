@@ -291,48 +291,48 @@ namespace gio {
         g_object_unref(dest);
     }
 
-    // Return Disk Space
-    guint64 du(const char *dir) {
+    // // Return Disk Space
+    // guint64 du(const char *dir) {
 
-        GFile* src = g_file_new_for_path(dir);
+    //     GFile* src = g_file_new_for_path(dir);
 
-        const char *src_scheme = g_uri_parse_scheme(dir);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(dir);
-        }
+    //     const char *src_scheme = g_uri_parse_scheme(dir);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(dir);
+    //     }
 
-        GFileInfo* folderInfo = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_SIZE,
-                                                    G_FILE_QUERY_INFO_NONE, NULL, NULL);
-        guint64 folderSize = g_file_info_get_size(folderInfo);
+    //     GFileInfo* folderInfo = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_SIZE,
+    //                                                 G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     guint64 folderSize = g_file_info_get_size(folderInfo);
 
-        GFileEnumerator* enumerator = g_file_enumerate_children(src, "standard::*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-        GFileInfo* childInfo = NULL;
+    //     GFileEnumerator* enumerator = g_file_enumerate_children(src, "standard::*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //     GFileInfo* childInfo = NULL;
 
-        while ((childInfo = g_file_enumerator_next_file(enumerator, NULL, NULL)) != NULL) {
-            const char* childName = g_file_info_get_name(childInfo);
-            char* childPath = g_build_filename(dir, childName, NULL);
+    //     while ((childInfo = g_file_enumerator_next_file(enumerator, NULL, NULL)) != NULL) {
+    //         const char* childName = g_file_info_get_name(childInfo);
+    //         char* childPath = g_build_filename(dir, childName, NULL);
 
-            if (g_file_info_get_file_type(childInfo) == G_FILE_TYPE_DIRECTORY) {
-                folderSize += du(childPath);
-            } else {
-                GFileInfo* fileInfo = g_file_query_info(g_file_new_for_path(childPath),
-                                                        G_FILE_ATTRIBUTE_STANDARD_SIZE,
-                                                        G_FILE_QUERY_INFO_NONE, NULL, NULL);
-                folderSize += g_file_info_get_size(fileInfo);
-                g_object_unref(fileInfo);
-            }
+    //         if (g_file_info_get_file_type(childInfo) == G_FILE_TYPE_DIRECTORY) {
+    //             folderSize += du(childPath);
+    //         } else {
+    //             GFileInfo* fileInfo = g_file_query_info(g_file_new_for_path(childPath),
+    //                                                     G_FILE_ATTRIBUTE_STANDARD_SIZE,
+    //                                                     G_FILE_QUERY_INFO_NONE, NULL, NULL);
+    //             folderSize += g_file_info_get_size(fileInfo);
+    //             g_object_unref(fileInfo);
+    //         }
 
-            g_free(childPath);
-            g_object_unref(childInfo);
-        }
+    //         g_free(childPath);
+    //         g_object_unref(childInfo);
+    //     }
 
-        g_object_unref(enumerator);
-        g_object_unref(folderInfo);
-        g_object_unref(src);
+    //     g_object_unref(enumerator);
+    //     g_object_unref(folderInfo);
+    //     g_object_unref(src);
 
-        return folderSize;
+    //     return folderSize;
 
-    }
+    // }
 
     NAN_METHOD(get_mounts) {
 
@@ -365,21 +365,9 @@ namespace gio {
             gchar *path = g_file_get_uri(mount_path);
             // gchar *path = g_file_get_path(mount_path);
 
-            //
-            // GFile *mount_location = g_mount_get_root (mount);
-            // gchar *mount_root_uri = g_file_get_uri (mount_location);
-            // gchar *location_uri = g_file_get_uri (mount_path);
-            //
-
             if (path == NULL) {
                 path = g_strdup("");
             }
-
-            // GDrive *drive = g_mount_get_drive(mount);
-            // GMountOperation *mount_operation = g_mount_operation_new();
-            // g_drive_eject_with_operation(drive, G_MOUNT_UNMOUNT_NONE, mount_operation, NULL, NULL, NULL);
-
-            // g_object_unref(mount_operation);
 
             v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
             Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
@@ -388,29 +376,6 @@ namespace gio {
             ++c;
 
         }
-
-        // // Iterate over the mounts
-        // for (iter = volumes; iter != NULL; iter = iter->next) {
-        //     GVolume *volume = G_VOLUME(iter->data);
-        //     const gchar *name = g_volume_get_name(volume);
-        //     const gchar *uuid = g_volume_get_uuid(volume);
-        //     const gchar *type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
-        //     GMount *mount = g_volume_get_mount(volume);
-        //     GFile *mount_path = NULL;
-        //     // if (mount != NULL) {
-        //     mount_path = g_mount_get_default_location(mount);
-        //     gchar *path = g_file_get_path(mount_path);
-        //     if (path == NULL) {
-        //         path = g_strdup("");
-        //     }
-        //     v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
-        //     Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
-        //     Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
-        //     Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
-        //     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
-        //     Nan::Set(resultArray, c, deviceObj);
-        //     ++c;
-        // }
 
         // Free resources
         g_list_free_full(mounts, g_object_unref);
@@ -657,17 +622,19 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
-        GFileInfo* fileInfo = g_file_query_info(src, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE "," G_FILE_ATTRIBUTE_FILESYSTEM_FREE, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+        GFileInfo* fileInfo = g_file_query_filesystem_info(src, "*", NULL, NULL);
 
         gint64 totalSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
+        gint64 usedSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
         gint64 freeSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
 
         g_object_unref(fileInfo);
         g_object_unref(src);
 
         v8::Local<v8::Object> result = Nan::New<v8::Object>();
-        Nan::Set(result, Nan::New("totalSpace").ToLocalChecked(), Nan::New<v8::Number>(totalSpace));
-        Nan::Set(result, Nan::New("freeSpace").ToLocalChecked(), Nan::New<v8::Number>(freeSpace));
+        Nan::Set(result, Nan::New("total").ToLocalChecked(), Nan::New<v8::Number>(totalSpace));
+        Nan::Set(result, Nan::New("used").ToLocalChecked(), Nan::New<v8::Number>(usedSpace));
+        Nan::Set(result, Nan::New("free").ToLocalChecked(), Nan::New<v8::Number>(freeSpace));
 
         info.GetReturnValue().Set(result);
 

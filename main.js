@@ -344,77 +344,87 @@ function getFileCount(source, callback) {
 // Get Disk Space
 function get_disk_space(href) {
 
-    df = [];
-    try {
+    // console.log("Disk Space", getFileSize(parseInt(gio.du(source).totalSpace)));
+    // console.log("Free Space", getFileSize(parseInt(gio.du(source).freeSpace)));
 
-        let cmd = 'df "' + href + '"';
-        let data = execSync(cmd).toString();
-        let data_arr = data.split('\n');
-
-        // CREATE OPTIONS OBJECT
-        let options = {
-            disksize: 0,
-            usedspace: 0,
-            availablespace: 0,
-            foldersize: 0,
-            foldercount: 0,
-            filecount: 0
-        }
-
-        if (data_arr.length > 0) {
-
-            let res1 = data_arr[1].split(' ');
-
-            let c = 0;
-            res1.forEach((size, i) => {
-
-                if (size != '') {
-
-                    // 0 DISK
-                    // 6 SIZE OF DISK
-                    // 7 USED SPACE
-                    // 8 AVAILABLE SPACE
-                    // 10 PERCENTAGE USED
-                    // 11 CURRENT DIR
-
-                    switch (c) {
-                        case 1:
-                            options.disksize = getFileSize(parseFloat(size) * 1024)
-                            break;
-                        case 2:
-                            options.usedspace = getFileSize(parseFloat(size) * 1024)
-                            break;
-                        case 3:
-                            options.availablespace = getFileSize(parseFloat(size) * 1024)
-                            break;
-                    }
-
-                    ++c;
-
-                }
-            })
-
-            // options.foldercount = href.folder_count
-            // options.filecount = href.file_count
-
-            df.push(options);
-
-            // SEND DISK SPACE
-            win.send('disk_space', df);
-            cmd = 'cd "' + href.href + '"; du -s';
-            du = exec(cmd);
-
-            du.stdout.on('data', function (res) {
-                let size = parseInt(res.replace('.', '') * 1024)
-                size = get_file_size(size)
-                win.send('du_folder_size', size)
-            })
-
-        }
-
-    } catch {
-        win.send('disk_space', df)
+    let options = {
+        disksize: getFileSize(parseInt(gio.du(href).total)),
+        usedspace: getFileSize(parseInt(gio.du(href).used)),
+        availablespace: getFileSize(parseInt(gio.du(href).free))
     }
+    let df = [];
+    df.push(options);
+    win.send('disk_space', df);
+
+    // df = [];
+    // try {
+
+    //     let cmd = 'df "' + href + '"';
+    //     let data = execSync(cmd).toString();
+    //     let data_arr = data.split('\n');
+
+    //     // CREATE OPTIONS OBJECT
+    //     let options = {
+    //         disksize: 0,
+    //         usedspace: 0,
+    //         availablespace: 0,
+    //         foldersize: 0,
+    //         foldercount: 0,
+    //         filecount: 0
+    //     }
+
+    //     if (data_arr.length > 0) {
+
+    //         let res1 = data_arr[1].split(' ');
+
+    //         let c = 0;
+    //         res1.forEach((size, i) => {
+
+    //             if (size != '') {
+
+    //                 // 0 DISK
+    //                 // 6 SIZE OF DISK
+    //                 // 7 USED SPACE
+    //                 // 8 AVAILABLE SPACE
+    //                 // 10 PERCENTAGE USED
+    //                 // 11 CURRENT DIR
+
+    //                 switch (c) {
+    //                     case 1:
+    //                         options.disksize = getFileSize(parseFloat(size) * 1024)
+    //                         break;
+    //                     case 2:
+    //                         options.usedspace = getFileSize(parseFloat(size) * 1024)
+    //                         break;
+    //                     case 3:
+    //                         options.availablespace = getFileSize(parseFloat(size) * 1024)
+    //                         break;
+    //                 }
+
+    //                 ++c;
+
+    //             }
+    //         })
+
+    //         // options.foldercount = href.folder_count
+    //         // options.filecount = href.file_count
+    //         df.push(options);
+    //         // SEND DISK SPACE
+    //         win.send('disk_space', df);
+    //         cmd = 'cd "' + href.href + '"; du -s';
+    //         du = exec(cmd);
+
+    //         du.stdout.on('data', function (res) {
+    //             let size = parseInt(res.replace('.', '') * 1024)
+    //             size = get_file_size(size)
+    //             win.send('du_folder_size', size)
+    //         })
+
+    //     }
+
+    // } catch {
+    //     win.send('disk_space', df)
+    // }
 
 }
 
@@ -592,11 +602,10 @@ function get_files(source, tab) {
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
-
+        thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
     } else {
         thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
     }
-
 
     // Call ls worker to get file data
     ls.postMessage({ cmd: 'ls', source: source, tab: tab });
