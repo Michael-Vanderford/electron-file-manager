@@ -14,6 +14,7 @@ let auto_complete_arr   = [];
 let ds;
 let sort = 'date_desc';
 let folder_icon;
+let symlink_icon;
 let thumbnail_dir;
 
 let view = 'grid';
@@ -250,10 +251,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Loop Files Array
     for (let i = 0; i < dirents.length; i++) {
 
-        let file = dirents[i];
+    let file = dirents[i];
         let card = getCardGio(file);
 
-        if (file.is_dir) {
+        if (file.is_dir || file.content_type === 'inode/symlink') {
 
             if (file.is_hidden) {
                 hidden_folder_grid.append(card);
@@ -268,7 +269,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
                 // Call Get Folder Size
                 getFolderSize(file.href);
-
                 getFolderCount(file.href);
             }
 
@@ -283,6 +283,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             }
 
         }
+
+
 
         // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
         //     console.log('down')
@@ -349,9 +351,14 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 })
 
 // Get icon theme directory
-ipcRenderer.invoke('icon_theme').then(icon => {
+ipcRenderer.invoke('folder_icon').then(icon => {
     folder_icon = icon;
     console.log('folder_icon', folder_icon)
+})
+
+ipcRenderer.invoke('symlink_icon').then(icon => {
+    console.log(icon)
+    symlink_icon = icon;
 })
 
 ipcRenderer.on('lazyload', (e) => {
@@ -2194,7 +2201,10 @@ function getProperties(properties_arr) {
         content.append(add_item('Type:'), add_item(file.content_type));
         content.append(add_item(`Contents:`), folder_count);
 
-        content.append(add_item('Location:'), add_item(path.dirname(file.href)));
+        let location = add_item(file.location)
+        location.title = file.location
+
+        content.append(add_item('Location:'), location);
         if (file.is_dir) {
             folder_count.append('Calculating..');
             content.append(add_item('Size:'), add_item(size));
@@ -2225,7 +2235,7 @@ function getProperties(properties_arr) {
         // ipcRenderer.send('get_file_count', item.href);
 
     })
-    // return callback(properties_view);
+
 }
 
 // Get Recent View
@@ -2846,10 +2856,11 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    // console.log(file)
+    console.log(file)
 
     let location = document.getElementById('location');
     let is_dir   = 0;
+    let is_symlink = 0;
 
     let card    = add_div();
     let content = add_div();
@@ -2883,11 +2894,9 @@ function getCardGio(file) {
     card.style.opacity = 1;
 
     href.href = file.href;
-    // ipcRenderer.invoke('basename', file.href).then(basename => {
-        href.innerHTML = file.name //basename;
-        input.value = file.name //basename;
-        card.dataset.name = file.name //basename;
-    // })
+    href.innerHTML = file.name;
+    input.value = file.name;
+    card.dataset.name = file.name;
 
     input.spellcheck = false;
     input.type = 'text';
@@ -3063,12 +3072,18 @@ function getCardGio(file) {
     header.append(href, input);
 
     // Directory
-    if (file.is_dir || file.type === 'directory') {
+    if (file.is_dir || file.type === 'directory' || file.content_type === 'inode/symlink') {
 
         is_dir = 1;
         img.src = folder_icon;
+        card.classList.add('folder_card', 'lazy')
 
-        card.classList.add('folder_card')
+        if (file.content_type === 'inode/symlink') {
+            let symlink_img = document.createElement('img');
+            symlink_img.src = symlink_icon;
+            symlink_img.classList.add('symlink');
+            icon.append(symlink_img);
+        }
 
         // Href
         href.addEventListener('click', (e) => {
@@ -3079,9 +3094,7 @@ function getCardGio(file) {
             } else {
                 location.dispatchEvent(new Event('change'));
             }
-
             ipcRenderer.send('saveRecentFile', file.href);
-
         })
 
         // Img
@@ -3093,9 +3106,7 @@ function getCardGio(file) {
             } else {
                 location.dispatchEvent(new Event('change'));
             }
-
             ipcRenderer.send('saveRecentFile', file.href);
-
         })
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
@@ -3133,7 +3144,9 @@ function getCardGio(file) {
                     if (file.href.indexOf('thumbnails') > 1) {
                         img.src = file.href
                     } else if (file.href.indexOf('mtp') > -1) {
-                        // img.src =
+                        ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
+                            img.src = thumbnail;
+                        })
                     } else {
                         ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
                             img.src = thumbnail;

@@ -100,19 +100,10 @@ parentPort.on('message', data => {
                                     let dest = gio.get_file(f.destination);
 
                                     if (src.mtime > dest.mtime) {
-
                                         copy_overwrite_arr.push({source: f.source, destination: f.destination});
-                                        // parentPort.postMessage({'cmd':'confirm_overwrite', source: f.source, destination: f.destination, copy_overwrite_arr: copy_overwrite_arr});
-                                        // parentPort.postMessage({'cmd':'confirm_overwrite', source: f.source, destination: f.destination});
-                                        // gio.cp(f.source, f.destination, 1);
-                                        // console.log('found newer file', f.destination)
-
                                     } else if (src.mtime < dest.mtime) {
-
                                         copy_overwrite_arr.push({source: f.source, destination: f.destination});
-
                                     }
-                                    // console.log('file conflict', f.destination)
 
                                 } else {
                                     try {
@@ -139,6 +130,8 @@ parentPort.on('message', data => {
                                 parentPort.postMessage({'cmd':'confirm_overwrite', copy_overwrite_arr: copy_overwrite_arr});
                             }
 
+                            copy_overwrite_arr = [];
+
                             // console.log('done copying files');
                             let data = {
                                 cmd: 'copy_done',
@@ -149,6 +142,9 @@ parentPort.on('message', data => {
                         }
 
                     })
+
+                // Skip symlinks
+                } else if (file.content_type === 'inode/symlink') {
 
                 // File
                 } else {

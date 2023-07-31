@@ -421,6 +421,13 @@ progress::-webkit-progress-bar {
     height: 48px;
 }
 
+.symlink {
+    display: block;
+    height: 12px;
+    position: relative;
+    margin-top: -15px;
+}
+
 .pointer {
     cursor: pointer;
 }
@@ -760,8 +767,6 @@ input[type=text]:focus {
     display: block;
     z-index: 1000;
 }
-
-
 
 .loader {
     cursor: wait;

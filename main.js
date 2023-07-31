@@ -598,7 +598,6 @@ function get_files(source, tab) {
         watcher_failed = 1;
     }
 
-
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
@@ -882,14 +881,10 @@ ipcMain.handle('connect', (e, cmd) => {
 })
 
 // Icon Theme
-ipcMain.handle('icon_theme', (e) => {
-
+ipcMain.handle('folder_icon', (e) => {
     let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
-
-    // let icon_theme = 'kora';
     let icon_dir = path.join(__dirname, 'assets', 'icons');
     try {
-
         let search_path = [];
         search_path.push(path.join(home, '.local/share/icons'), path.join(home, '.icons'), '/usr/share/icons');
         search_path.every(icon_path => {
@@ -902,7 +897,6 @@ ipcMain.handle('icon_theme', (e) => {
                 return true;
             }
         })
-        console.log(icon_dir)
         let folder_icon_path = ''
         let icon_dirs = [path.join(icon_dir, 'places@2x/48/folder.svg'), path.join(icon_dir, '32x32/places/folder.png'), path.join(icon_dir, 'places/scalable/folder.svg'), path.join(icon_dir, 'places/64/folder.svg')];
         icon_dirs.every(icon_dir => {
@@ -915,11 +909,43 @@ ipcMain.handle('icon_theme', (e) => {
             }
         })
         return folder_icon_path;
-
     } catch (err) {
-        console.log(err)
+        console.log(err);
     }
+})
 
+// Icon Theme
+ipcMain.handle('symlink_icon', (e) => {
+    let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+    let icon_dir = path.join(__dirname, 'assets', 'icons');
+    try {
+        let search_path = [];
+        search_path.push(path.join(home, '.local/share/icons'), path.join(home, '.icons'), '/usr/share/icons');
+        search_path.every(icon_path => {
+            if (fs.existsSync(path.join(icon_path, icon_theme))) {
+                icon_dir = path.join(icon_path, icon_theme);
+
+                return false;
+            } else {
+                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                return true;
+            }
+        })
+        let folder_icon_path = ''
+        let icon_dirs = [path.join(icon_dir, 'emblems@2x/16/emblem-symbolic-link.svg'), path.join(icon_dir, '16x16/emblems/emblem-symbolic-link.svg'), path.join(icon_dir, 'emblems/scalable/emblem-symbolic-link.svg'), path.join(icon_dir, 'emblems/16/emblem-symbolic-link.svg')];
+        icon_dirs.every(icon_dir => {
+            if (fs.existsSync(icon_dir)) {
+                folder_icon_path = icon_dir
+                return false;
+            } else {
+                folder_icon_path = path.join(__dirname, 'emblems/icons/emblem-symbolic-link.svg')
+                return true;
+            }
+        })
+        return folder_icon_path;
+    } catch (err) {
+        console.log(err);
+    }
 })
 
 // Change theme
@@ -1787,6 +1813,8 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
                 // Merge / Replace
                 // win.send('msg', 'Error: This is not yet implemented!');
                 let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+
+                let file = gio.get_file(source)
                 worker.postMessage({'cmd': 'merge', copy_arr: copy_arr});
 
                 break;

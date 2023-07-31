@@ -628,6 +628,8 @@ namespace gio {
         gint64 usedSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
         gint64 freeSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
 
+        
+
         g_object_unref(fileInfo);
         g_object_unref(src);
 
@@ -678,11 +680,14 @@ namespace gio {
             gboolean is_hidden = g_file_info_get_is_hidden(file_info);
             gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
             const char* mimetype = g_file_info_get_content_type(file_info);
+            GFile* parent = g_file_get_parent(src);
+            const char* location = g_file_get_path(parent);
             // gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
+            Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
