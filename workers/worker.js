@@ -118,7 +118,6 @@ parentPort.on('message', data => {
                                     msg: `Skipping File ${path.basename(f.source)}`,
                                     max: dirents.length,
                                     value: cpc
-
                                 }
                                 parentPort.postMessage(data);
                             }

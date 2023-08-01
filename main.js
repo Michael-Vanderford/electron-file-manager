@@ -1723,7 +1723,7 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     let source_date = source_file.mtime;
     let destination_date = destination_file.mtime;
 
-    // // console.log(source, destination)
+    // console.log(source, destination)
 
     let is_newer = 0;
     if (destination_date > source_date) {
@@ -1810,14 +1810,17 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
             }
             case 1: {
 
-                // Merge / Replace
-                // win.send('msg', 'Error: This is not yet implemented!');
-                let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
-
-                let file = gio.get_file(source)
-                worker.postMessage({'cmd': 'merge', copy_arr: copy_arr});
-
+                // Merge
+                if (is_dir) {
+                    worker.postMessage({'cmd': 'merge', copy_arr: copy_overwrite_arr});
+                } else {
+                    // Replace
+                    worker.postMessage({'cmd': 'cp', source: source, destination: destination, overwrite_flag: 1});
+                    copy_overwrite_arr.splice(0, 1);
+                    overWriteNext(copy_overwrite_arr);
+                }
                 break;
+
             }
             case 2: {
 
