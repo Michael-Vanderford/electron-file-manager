@@ -353,11 +353,11 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 // Get icon theme directory
 ipcRenderer.invoke('folder_icon').then(icon => {
     folder_icon = icon;
-    console.log('folder_icon', folder_icon)
+    // console.log('folder_icon', folder_icon)
 })
 
 ipcRenderer.invoke('symlink_icon').then(icon => {
-    console.log(icon)
+    // console.log(icon)
     symlink_icon = icon;
 })
 
@@ -367,7 +367,7 @@ ipcRenderer.on('lazyload', (e) => {
 
 // Get Thumbnil directory
 ipcRenderer.invoke('get_thumbnails_directory').then(res => {
-    console.log('thumb dir', res)
+    // console.log('thumb dir', res)
     thumbnail_dir = res
 })
 
@@ -384,7 +384,7 @@ ipcRenderer.on('get_devices', (e) => {
 // On Search Results
 ipcRenderer.on('search_results', (e, find_arr) => {
 
-    console.log('getting array');
+    // console.log('getting array');
 
     let location = document.querySelector('.location');
     location.value = 'Search Results';
@@ -665,7 +665,7 @@ ipcRenderer.on('connect', (e) => {
 
                 ipcRenderer.invoke('connect', cmd).then(res => {
                     if (res) {
-                        console.log('connection success')
+                        // console.log('connection success')
                         connect_msg.style.color = 'green';
                         connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
                     } else {
@@ -743,7 +743,7 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 // Get Card Gio
 ipcRenderer.on('get_card_gio', (e, file) => {
 
-    console.log('running get card gio');
+    // console.log('running get card gio');
 
     let active_tab_content = document.querySelector('.active-tab-content');
     let folder_grid = active_tab_content.querySelector('.folder_grid');
@@ -884,7 +884,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             .then(settings => {
                 let cmd = settings.Terminal;
                 let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-                console.log(cards.length)
+                // console.log(cards.length)
                 if (cards.length > 0) {
                     cards.forEach(card => {
                         let new_cmd = cmd.replace(/%u/g, `'${card.dataset.href}'`)
@@ -1595,7 +1595,7 @@ function find_files(callback) {
                                 let data = 0;
                                 let c = 0
                                 let child = exec(cmd)
-                                console.log(cmd)
+                                // console.log(cmd)
 
                                 let search_arr = [];
                                 child.stdout.on('data', (res) => {
@@ -1632,7 +1632,7 @@ function find_files(callback) {
                                         search_info.innerHTML = '0 matches found';
                                     } else {
 
-                                        console.log('ipc send search results');
+                                        // console.log('ipc send search results');
                                         ipcRenderer.send('search_results', search_arr);
                                         search_info.innerHTML = c + ' matches found';
                                     }
@@ -1941,7 +1941,7 @@ function add_tab(href) {
     tabs.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log(e.target)
+        // console.log(e.target)
     })
 
     return tab_content;
@@ -2241,7 +2241,7 @@ function getProperties(properties_arr) {
 // Get Recent View
 function getRecentView(dirents) {
 
-    console.log(dirents)
+    // console.log(dirents)
 
     let location = document.querySelector('.location')
     location.value = 'Recent'
@@ -2267,7 +2267,7 @@ function getRecentView(dirents) {
         return b.atime - a.atime
     })
 
-    console.log(dirents)
+    // console.log(dirents)
 
     let add_folder_label = 1;
     let add_file_label = 1;
@@ -2398,7 +2398,7 @@ function settingsForm(settings) {
 
                     switch (key.toLocaleLowerCase()) {
                         case 'theme': {
-                            console.log('running theme')
+                            // console.log('running theme')
                             input = document.createElement('select');
                             let options = ['Light', 'Dark']
                             options.forEach((option, i) => {
@@ -2466,8 +2466,6 @@ function settingsForm(settings) {
 }
 
 function sidebarHome() {
-
-    console.log('what')
 
     let mb = document.getElementById('mb_home');
     mb.classList.add('active');
@@ -2742,7 +2740,7 @@ function getDevices(callback) {
                 item.addEventListener('click', (e) => {
                     e.preventDefault();
 
-                    console.log('device path', device.path)
+                    // console.log('device path', device.path)
                     getView(`${device.path}`);
 
                 })
@@ -2794,7 +2792,7 @@ function getSelectedFiles() {
         msg(`No Items Selected`);
     }
 
-    console.log(selected_files_arr)
+    // console.log(selected_files_arr)
     ipcRenderer.send('get_selected_files', selected_files_arr);
 
 }
@@ -2809,7 +2807,7 @@ function add_button(text) {
 }
 
 function paste(destination) {
-    console.log('running paste', destination)
+    // console.log('running paste', destination)
     ipcRenderer.send('paste', destination);
     clearHighlight();
 }
@@ -2856,7 +2854,7 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    console.log(file)
+    // console.log(file)
 
     let location = document.getElementById('location');
     let is_dir   = 0;
@@ -3321,7 +3319,7 @@ function quickSearch (e) {
         }
 
         if (e.key === 'Enter') {
-            console.log('running')
+
             let cards = document.querySelectorAll('.card')
             cards.forEach(card => {
                 if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
@@ -3524,7 +3522,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         })
 
         let nav_items = document.querySelectorAll('.nav_item')
-        console.log(nav_items)
+        // console.log(nav_items)
         nav_items.forEach(nav_item => {
             nav_item.addEventListener('click', (e) => {
                 let dir = nav_item.innerText.replace(' ', '');
@@ -3663,7 +3661,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Main Context Menu
         main.addEventListener('contextmenu', (e) => {
             // e.preventDefault();
-            console.log('running main menu');
+            // console.log('running main menu');
             ipcRenderer.send('main_menu', location.value);
         })
 
@@ -3962,14 +3960,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 document.removeEventListener("mousemove", resize);
                 document.removeEventListener("mouseup", stopResize);
 
-                console.log('testing', sidebar.style.width)
+                // console.log('testing', sidebar.style.width)
                 localStorage.setItem('sidebar_width', sidebar.style.width)
 
             }
         }
 
         if (localStorage.getItem("sidebar_width") !== null) {
-            console.log(localStorage.getItem("sidebar_width"));
+            // console.log(localStorage.getItem("sidebar_width"));
             sidebar.style.width = localStorage.getItem("sidebar_width")
         }
 
