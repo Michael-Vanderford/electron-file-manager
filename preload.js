@@ -2646,9 +2646,7 @@ function getWorkspace(callback) {
             clear()
         })
 
-        res.forEach(item => {
-
-            let file = item
+        res.forEach(file => {
 
             let workspace_div = add_div(['flex', 'item'])
             let workspace_item = add_div(['workspace_item']);
@@ -2658,14 +2656,16 @@ function getWorkspace(callback) {
             img.classList.add('icon', 'icon16')
 
             let a = document.createElement('a');
-            a.href = item.href;
-            a.innerHTML = item.name;
+            a.href = file.href;
+            a.innerHTML = file.name;
             a.preventDefault = true;
 
-            if (item.type === 'directory') {
-
+            if (file.content_type === 'inode/directory') {
+                img.src = folder_icon;
+                workspace_item.append(a);
+                workspace_div.append(img, workspace_item);
             } else {
-                ipcRenderer.invoke('get_icon', (item.href)).then(res => {
+                ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                     img.src = res;
                     workspace_item.append(a);
                     workspace_div.append(img, workspace_item);
@@ -2674,23 +2674,23 @@ function getWorkspace(callback) {
             }
 
             workspace_div.addEventListener('mouseover', (e) => {
-                workspace_div.title = item.href
+                workspace_div.title = file.href
             })
 
             // Show Workspace Context Menu
             workspace_div.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                ipcRenderer.send('workspace_menu', item);
+                ipcRenderer.send('workspace_menu', file);
                 workspace_div.classList.add('highlight')
             });
 
             // Open Workspace Item
             workspace_div.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (item.is_dir) {
-                    getView(item.href);
+                if (file.is_dir) {
+                    getView(file.href);
                 } else {
-                    ipcRenderer.invoke('open', item.href);
+                    ipcRenderer.invoke('open', file.href);
                 }
 
             })
