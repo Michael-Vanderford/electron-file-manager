@@ -628,7 +628,7 @@ namespace gio {
         gint64 usedSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
         gint64 freeSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
 
-        
+
 
         g_object_unref(fileInfo);
         g_object_unref(src);
@@ -760,7 +760,8 @@ namespace gio {
 
         GError* error = NULL;
         guint index = 0;
-        GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, &error);
+        // GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, &error);
+        GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
 
         if (enumerator == NULL) {
             GError *enum_err;
@@ -786,6 +787,7 @@ namespace gio {
             gboolean is_hidden = g_file_info_get_is_hidden(file_info);
             gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
             const char* mimetype = g_file_info_get_content_type(file_info);
+            gboolean is_symlink = g_file_info_get_is_symlink(file_info);
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
 
@@ -796,6 +798,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
+            Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
 
             const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
             if (thumbnail_path != nullptr) {

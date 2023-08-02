@@ -1059,6 +1059,7 @@ ipcMain.on('get_properties', (e, selected_files_arr, location) => {
     if (selected_files_arr.length > 0) {
         selected_files_arr.forEach(item => {
             let properties = gio.get_file(item);
+            console.log(properties);
             properties_arr.push(properties);
         })
     } else {

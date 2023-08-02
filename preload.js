@@ -3069,14 +3069,16 @@ function getCardGio(file) {
     icon.append(img);
     header.append(href, input);
 
+    console.log(file)
+
     // Directory
-    if (file.is_dir || file.type === 'directory' || file.content_type === 'inode/symlink') {
+    if (file.is_dir || file.type === 'inode/directory') {
 
         is_dir = 1;
         img.src = folder_icon;
         card.classList.add('folder_card', 'lazy')
 
-        if (file.content_type === 'inode/symlink') {
+        if (file.is_symlink) {
             let symlink_img = document.createElement('img');
             symlink_img.src = symlink_icon;
             symlink_img.classList.add('symlink');
@@ -3118,6 +3120,14 @@ function getCardGio(file) {
     } else {
         // Get Icon
         try {
+
+            if (file.is_symlink) {
+                let symlink_img = document.createElement('img');
+                symlink_img.src = symlink_icon;
+                symlink_img.classList.add('symlink');
+                icon.append(symlink_img);
+            }
+
             if (file.content_type.indexOf('image/') > -1) {
 
                 // Load generic icon
