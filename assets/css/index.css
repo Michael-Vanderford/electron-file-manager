@@ -12,6 +12,10 @@ html, body {
     color: var(--text);
 }
 
+th {
+    text-align: left;
+}
+
 #header_menu {
     display: flex;
     background: var(--menu);
@@ -259,6 +263,14 @@ html, body {
     border: none;
 }
 
+#selection-rectangle {
+    position: absolute;
+    border: 1px solid #000;
+    background-color: rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 100;
+}
+
 .info_view {
     padding: 20px;
 }
@@ -336,6 +348,10 @@ html, body {
     outline: none;
 }
 
+.merge_file_container {
+    /* background: var(--dialog) */
+}
+
 #chart {
     color: var(--text);
     width: '100px';
@@ -355,24 +371,24 @@ progress::-webkit-progress-bar {
 }
 
 .folder_grid {
-    box-sizing: border-box;
+    /* box-sizing: border-box; */
     /* padding: 5px; */
     width: 100%;
 }
 .file_grid {
-    box-sizing: border-box;
+    /* box-sizing: border-box; */
     /* padding: 5px; */
     width: 100%;
 }
 
 .hidden_folder_grid {
-    box-sizing: border-box;
-    padding: 5px;
+    /* box-sizing: border-box; */
+    /* padding: 5px; if this is turned on then it will drag the entire file grid if the cursor passed over it. */
     width: 100%;
 }
 .hidden_file_grid {
-    box-sizing: border-box;
-    padding: 5px;
+    /* box-sizing: border-box; */
+    /* padding: 5px; */
     width: 100%;
 }
 

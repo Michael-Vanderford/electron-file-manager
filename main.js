@@ -119,6 +119,11 @@ ls.on('message', (data) => {
 let progress_counter = 0;
 worker.on('message', (data) => {
 
+    if (data.cmd === 'merge_files') {
+        win.send("merge_files", data.merge_arr);
+        data.merge_arr = []
+    }
+
     if (data.cmd === 'folder_size') {
         win.send('folder_size', data.source, data.size);
     }
@@ -133,7 +138,7 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'msg') {
-        win.send('msg', data.msg);
+        win.send('msg', data.msg, data.has_timeout);
     }
 
     if (data.cmd === 'move_done') {
@@ -629,6 +634,21 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+// Get templates path
+ipcMain.handle('get_templates_folder', (e) => {
+    return path.join(home, 'Templates');
+})
+
+// Get Files Array
+ipcMain.on('get_files_arr_merge', (e, source, destination) => {
+
+    worker.postMessage({'cmd': 'merge_files', source: source, destination: destination});
+
+    // get_files_arr(source, destination, dirents => {
+    //     win.send('get_files_arr_merge', (e, source, destination, dirents))
+    // })
+})
+
 // Get home directory
 ipcMain.handle('home', (e) => {
     return home;
@@ -851,6 +871,11 @@ ipcMain.handle('basename', (e, source) => {
 })
 
 ////////////////////////////////////////////////////
+/** */
+
+ipcMain.on('umount', (e, uuid) => {
+    gio.umount(uuid)
+})
 
 // Search Results
 ipcMain.on('search_results', (e , search_arr) => {
@@ -1059,7 +1084,7 @@ ipcMain.on('get_properties', (e, selected_files_arr, location) => {
     if (selected_files_arr.length > 0) {
         selected_files_arr.forEach(item => {
             let properties = gio.get_file(item);
-            console.log(properties);
+            // console.log(properties);
             properties_arr.push(properties);
         })
     } else {
@@ -1099,13 +1124,13 @@ ipcMain.on('clip', (e, href) => {
     clipboard.write()
 })
 
-ipcMain.on('ondragstart', (e, href) => {
-    const icon = path.join(__dirname, 'assets/icons/dd.png');
-    e.sender.startDrag({
-        file: href,
-        icon: icon
-    })
-})
+// ipcMain.on('ondragstart', (e, href) => {
+//     const icon = path.join(__dirname, 'assets/icons/dd.png');
+//     e.sender.startDrag({
+//         file: href,
+//         icon: icon
+//     })
+// })
 
 // Get Devices
 ipcMain.handle('get_devices', async (e) => {
@@ -1264,7 +1289,6 @@ ipcMain.on('paste', (e, destination) => {
 
 // Move
 ipcMain.on('move', (e, destination) => {
-    // // console.log('destination', destination)
     let copy_arr = [];
     if (selected_files_arr.length > 0) {
         for(let i = 0; i < selected_files_arr.length; i++) {
@@ -1280,7 +1304,6 @@ ipcMain.on('move', (e, destination) => {
     } else {
         win.send('msg', `Nothing to Paste`);
     }
-    // worker.postMessage({ cmd: 'mv', selected_items: selected_files_arr })
 })
 
 // Get Folder Size
@@ -1423,6 +1446,8 @@ app.on('activate', () => {
         createWindow();
     }
 });
+
+
 
 ipcMain.on('get_files', (e, source, tab) => {
     get_files(source, tab)
@@ -1721,130 +1746,135 @@ function confirm(source_file, destination_file, copy_overwrite_arr) {
     let source = source_file.href;
     let destination = destination_file.href;
 
-    let source_date = source_file.mtime;
-    let destination_date = destination_file.mtime;
+    win.send('merge_view', source, destination, copy_overwrite_arr);
 
-    // console.log(source, destination)
+    // let source_date = source_file.mtime;
+    // let destination_date = destination_file.mtime;
 
-    let is_newer = 0;
-    if (destination_date > source_date) {
-        is_newer = 1;
-    } else if (destination_date < source_date) {
-        is_newer = 0;
-    } else if (destination_date == source_date) {
-        is_newer = 2;
-        // copy_overwrite_arr.splice(0, 1);
-        // overWriteNext(copy_overwrite_arr);
-        // return;
-    }
+    // // console.log(source, destination)
 
-    let is_dir = 0;
-    if (source_file.is_dir) {
-        is_dir = 1;
-    } else {
-        is_dir = 0;
-    }
+    // let is_newer = 0;
+    // if (destination_date > source_date) {
+    //     is_newer = 1;
+    // } else if (destination_date < source_date) {
+    //     is_newer = 0;
+    // } else if (destination_date == source_date) {
+    //     is_newer = 2;
+    //     // copy_overwrite_arr.splice(0, 1);
+    //     // overWriteNext(copy_overwrite_arr);
+    //     // return;
+    // }
 
-    let title = ''
-    let msg = ''
-    let buttons = []
+    // let is_dir = 0;
+    // if (source_file.is_dir) {
+    //     is_dir = 1;
+    // } else {
+    //     is_dir = 0;
+    // }
 
-    if (is_dir) {
+    // let title = ''
+    // let msg = ''
+    // let buttons = []
 
-        title = `Folder Conflict "${path.basename(source)}"`
-        msg = `Merge Folder "${path.basename(source)}"\n`
+    // if (is_dir) {
 
-        if (is_newer) {
-            msg = msg + `A newer folder with the same name already exists.\n`
-        } else {
-            msg = msg + `A older folder with the same name already exists.\n`
-        }
+    //     title = `Folder Conflict "${path.basename(source)}"`
+    //     msg = `Merge Folder "${path.basename(source)}"\n`
 
-        msg = msg + `Merging will ask for confirmation before replacing any files in te folder that confilict with the files being copied.\n`
+    //     if (is_newer) {
+    //         msg = msg + `A newer folder with the same name already exists.\n`
+    //     } else {
+    //         msg = msg + `A older folder with the same name already exists.\n`
+    //     }
 
-        msg = msg + `\nOriginal Folder\n`
-        buttons = ['Cancel', 'Merge', 'Skip'];
+    //     msg = msg + `Merging will ask for confirmation before replacing any files in te folder that confilict with the files being copied.\n`
 
-    } else {
+    //     msg = msg + `\nOriginal Folder\n`
+    //     buttons = ['Cancel', 'Merge', 'Skip'];
 
-        title = `File Confict "${path.basename(source)}"`
-        msg = msg + `Replace File "${path.basename(source)}"\n`
+    // } else {
 
-        if (is_newer == 1) {
-            msg = msg + `A newer file with the same name already exists. `
-        } else if (is_newer == 0) {
-            msg = msg + `An older file with the same name already exists. `
-        } else if (is_newer == 2) {
-            msg = msg + `A file with the same name already exists. `
-        }
+    //     title = `File Confict "${path.basename(source)}"`
+    //     msg = msg + `Replace File "${path.basename(source)}"\n`
 
-        msg = msg + `Replacing it will overwrite its content\n`
+    //     if (is_newer == 1) {
+    //         msg = msg + `A newer file with the same name already exists. `
+    //     } else if (is_newer == 0) {
+    //         msg = msg + `An older file with the same name already exists. `
+    //     } else if (is_newer == 2) {
+    //         msg = msg + `A file with the same name already exists. `
+    //     }
 
-        msg = msg + `\nOriginal File\n`
-        buttons = ['Cancel', 'Replace', 'Skip'];
-    }
+    //     msg = msg + `Replacing it will overwrite its content\n`
 
-    msg = msg + `Last Modified: ${gio_utils.getDateTime(destination_date)}\n\n`
+    //     msg = msg + `\nOriginal File\n`
+    //     buttons = ['Cancel', 'Replace', 'Skip'];
+    // }
 
-    if (is_dir) {
-        msg = msg + `Merge With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
-    } else {
-        msg = msg + `Replace With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
-    }
+    // msg = msg + `Last Modified: ${gio_utils.getDateTime(destination_date)}\n\n`
 
-    dialog.showMessageBox(win, {
+    // if (is_dir) {
+    //     msg = msg + `Merge With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
+    // } else {
+    //     msg = msg + `Replace With\nLast Modified: ${gio_utils.getDateTime(source_date)}`
+    // }
 
-        type: 'warning',
-        title: title, //`Merge Folder "${path.basename(source)}"`,
-        message: msg,
-        buttons: buttons, //['Cancel', 'Merge', 'Skip'],
-        checkboxLabel: 'Apply this action to all files and folders',
+    // dialog.showMessageBox(win, {
 
-    }).then((response) => {
+    //     type: 'warning',
+    //     title: title, //`Merge Folder "${path.basename(source)}"`,
+    //     message: msg,
+    //     buttons: buttons, //['Cancel', 'Merge', 'Skip'],
+    //     checkboxLabel: 'Apply this action to all files and folders',
 
-        let overwrite_all = response.checkboxChecked;
-        switch (response.response) {
-            case 0: {
+    // }).then((response) => {
 
-                // Cancel
-                break;
-            }
-            case 1: {
+    //     let overwrite_all = response.checkboxChecked;
+    //     switch (response.response) {
+    //         case 0: {
 
-                // Merge
-                if (is_dir) {
-                    worker.postMessage({'cmd': 'merge', copy_arr: copy_overwrite_arr});
-                } else {
-                    // Replace
-                    worker.postMessage({'cmd': 'cp', source: source, destination: destination, overwrite_flag: 1});
-                    copy_overwrite_arr.splice(0, 1);
-                    overWriteNext(copy_overwrite_arr);
-                }
-                break;
+    //             // Cancel
+    //             break;
+    //         }
+    //         case 1: {
 
-            }
-            case 2: {
+    //             // Merge
+    //             if (is_dir) {
+    //                 // worker.postMessage({'cmd': 'merge', copy_arr: copy_overwrite_arr});
 
-                // Skip
-                let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
-                copy_arr[0].overwrite_flag = 1;
+    //                 win.send('merge_view', source, destination);
 
-                // console.log(`Overwrite Skipped ${source} with ${destination}`);
+    //             } else {
+    //                 // Replace
+    //                 worker.postMessage({'cmd': 'cp', source: source, destination: destination, overwrite_flag: 1});
+    //                 copy_overwrite_arr.splice(0, 1);
+    //                 overWriteNext(copy_overwrite_arr);
+    //             }
+    //             break;
 
-                copy_overwrite_arr.splice(0, 1);
-                overWriteNext(copy_overwrite_arr);
+    //         }
+    //         case 2: {
 
-                break;
-            }
-            default:
-                // Cancel
-                break;
+    //             // Skip
+    //             let copy_arr = copy_overwrite_arr.filter(x => x.source == source);
+    //             copy_arr[0].overwrite_flag = 1;
 
-        }
+    //             // console.log(`Overwrite Skipped ${source} with ${destination}`);
 
-    }).catch((error) => {
-        console.error(error);
-    });
+    //             copy_overwrite_arr.splice(0, 1);
+    //             overWriteNext(copy_overwrite_arr);
+
+    //             break;
+    //         }
+    //         default:
+    //             // Cancel
+    //             break;
+
+    //     }
+
+    // }).catch((error) => {
+    //     console.error(error);
+    // });
 
 }
 
@@ -2784,7 +2814,9 @@ ipcMain.on('file_menu', (e, file) => {
 })
 
 // Devices Menu
-ipcMain.on('device_menu', (e, href) => {
+ipcMain.on('device_menu', (e, href, uuid) => {
+
+    console.log(uuid)
 
     device_menu_template = [
         {

@@ -27,6 +27,74 @@ if (localStorage.getItem('view') == null) {
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
 
+ipcRenderer.on('merge_view', (e, source, destination) => {
+    merge(source, destination);
+})
+
+ipcRenderer.on('merge_files', (e, merge_arr) => {
+
+    const table = document.querySelector('.destination_table');
+    const btn_merge = document.querySelector('.btn_merge');
+
+    merge_arr.forEach(item => {
+
+        console.log(merge_arr.length);
+
+        const row = table.insertRow();
+
+        const dest_cell = row.insertCell(0);
+        const source_date_cell = row.insertCell(1);
+        const destination_date_cell = row.insertCell(2);
+        const action_cell = row.insertCell(3);
+
+        ipcRenderer.invoke('get_icon', item.destination).then(icon => {
+
+            let img = document.createElement('img');
+            img.classList.add('icon', 'icon16');
+            img.src = icon;
+
+            dest_cell.append(img, item.destination);
+            source_date_cell.textContent = getDateTime(item.source_date);
+            if (item.destination_date != "") {
+                destination_date_cell.textContent = getDateTime(item.destination_date);
+            }
+
+            let action_select = document.createElement('select');
+            action_select.classList.add('input');
+            let action_arr = ['Skip', 'Replace', 'New'];
+            for (let i = 0; i < action_arr.length; i++) {
+                let action_option = document.createElement('option');
+                action_option.text = action_arr[i];
+                action_option.value = i;
+                action_select.append(action_option);
+            }
+            action_cell.append(action_select); //item.action
+
+            for (const option of action_select.options) {
+                if (option.value == item.action) {
+                    option.selected = true
+                    option.selectedIndex = item.action;
+                    break;
+                }
+            }
+
+            action_select.addEventListener('change', (e) => {
+                let target = e.target;
+                item.action = target.value;
+            })
+
+        })
+
+    })
+
+    btn_merge.addEventListener('click', (e) => {
+        console.log(merge_arr)
+    })
+
+    // merge_arr = []
+
+})
+
 // Get folder count
 ipcRenderer.on('get_folder_count', (e, href) => {
     getFolderCount(href);
@@ -104,9 +172,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     active_tab.dataset.href = source;
     active_tab.title = source;
-    ipcRenderer.invoke('basename', source).then(basename => {
-        active_label.innerHTML = basename;
-    })
 
     let location = document.querySelector('.location');
     let slider = document.querySelector('.slider');
@@ -157,6 +222,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     file_grid.classList.add('file_grid');
     hidden_folder_grid.classList.add('hidden_folder_grid');
     hidden_file_grid.classList.add('hidden_file_grid');
+
+    file_grid.draggable = false;
+    hidden_file_grid.draggable = false;
+    folder_grid.draggable = false;
+    hidden_folder_grid.draggable = false;
+    // hidden_folder_grid.style = "border: 1px solid red;"
 
     location.value = source;
     ipcRenderer.invoke('basename', location.value).then(basename => {
@@ -251,7 +322,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Loop Files Array
     for (let i = 0; i < dirents.length; i++) {
 
-    let file = dirents[i];
+        let file = dirents[i];
         let card = getCardGio(file);
 
         if (file.is_dir || file.content_type === 'inode/symlink') {
@@ -266,7 +337,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             if (file.href.indexOf('mtp:') > -1) {
 
             } else {
-
                 // Call Get Folder Size
                 getFolderSize(file.href);
                 getFolderCount(file.href);
@@ -283,8 +353,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             }
 
         }
-
-
 
         // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
         //     console.log('down')
@@ -317,6 +385,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     main.addEventListener('mouseenter', (e) => {
         // console.log("running mouse enter");
         // document.addEventListener('keyup', quick_search)
+
+        // let cards = active_tab_content.querySelectorAll('.card')
+        // let href = cards[0].querySelector('a')
+        // href.tabIndex = 1
+        // href.focus()
+
     })
 
     main.addEventListener('mouseleave', (e) => {
@@ -347,6 +421,73 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     clearHighlight();
 
     main.classList.remove('loader')
+
+    // const selectionRectangle = document.getElementById('selection-rectangle');
+    // const cards = document.querySelectorAll('.card');
+    // let isSelecting = false;
+    // let startPosX, startPosY, endPosX, endPosY;
+
+    // main.addEventListener('mousedown', (e) => {
+
+    //     // console.log('running')
+
+    //     isSelecting = true;
+    //     startPosX = e.clientX;
+    //     startPosY = e.clientY;
+
+    //     selectionRectangle.style.left = startPosX + 'px';
+    //     selectionRectangle.style.top = startPosY + 'px';
+    //     selectionRectangle.style.width = '0';
+    //     selectionRectangle.style.height = '0';
+    //     selectionRectangle.style.display = 'block';
+
+    //     cards.forEach(item => item.classList.remove('selected'));
+
+    // });
+
+    // document.addEventListener('mousemove', (e) => {
+
+    //     if (!isSelecting) return;
+
+    //     console.log(cards)
+
+    //     endPosX = e.clientX;
+    //     endPosY = e.clientY;
+
+    //     const rectWidth = endPosX - startPosX;
+    //     const rectHeight = endPosY - startPosY;
+
+    //     selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
+    //     selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
+    //     selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
+    //     selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
+
+    //     // Highlight selectable items within the selection area
+    //     cards.forEach(item => {
+
+    //         const itemRect = item.getBoundingClientRect();
+    //         const isSelected =
+    //         ((itemRect.left < endPosX && itemRect.right > startPosX) ||
+    //         (itemRect.left < startPosX && itemRect.right > endPosX)) &&
+    //         ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
+    //         (itemRect.top < startPosY && itemRect.bottom > endPosY));
+
+    //         if (isSelected) {
+    //             item.classList.add('highlight_select');
+    //         } else {
+    //             // item.classList.remove('highlight_select');
+    //         }
+    //     });
+
+    // });
+
+    // document.addEventListener('mouseup', () => {
+    //     isSelecting = false;
+    //     selectionRectangle.style.display = 'none';
+
+    // });
+
+    // merge();
 
 })
 
@@ -387,7 +528,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
     // console.log('getting array');
 
     let location = document.querySelector('.location');
-    location.value = 'Search Results';
+    // location.value = 'Search Results';
 
     let folder_grid = add_div(['folder_grid']);
     let hidden_folder_grid = add_div(['hidden_folder_grid']);
@@ -934,7 +1075,9 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break;
         }
         case 'open_templates': {
-            getView(path.join(os.homedir(), 'Templates'), 1)
+            ipcRenderer.invoke('get_templates_folder').then(path => {
+                getView(path, 1)
+            })
             break;
         }
 
@@ -947,6 +1090,54 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 // Functions //////////////////////////////////////////////////////////////
 
 // Utilities ///////////////////////////////////////////////////////////////
+/** */
+
+// Merge Dialog
+function merge(source, destination) {
+
+    const url = './views/merge.html';
+    fetch(url).then(res => {
+        return res.text();
+    }).then(data => {
+
+        const main = document.querySelector('.main')
+        let tab_content = add_tab('Merge Directory')
+        let active_tab = document.querySelector('.active-tab');
+        tab_content.innerHTML = data
+
+        // let source = '/home/michael/Downloads/chartjs/'
+        // let destination = '/home/michael/Downloads/testing/chartjs/'
+
+        let merge_source = document.querySelector('.merge_source');
+        let merge_destination = document.querySelector('.merge_destination');
+        let btn_cancel = document.querySelector('.btn_cancel');
+
+        merge_source.innerText = `Source: ${source}`
+        merge_destination.innerText = `Destination: ${destination}`;
+
+        ipcRenderer.send('get_files_arr_merge', source, destination);
+
+        btn_cancel.addEventListener('click', (e) => {
+
+            tab_content.remove();
+            active_tab.remove();
+
+            let tabs = document.querySelectorAll('.tabs');
+            let content = document.querySelectorAll('.tab_content')
+
+            let tab = tabs[0].querySelector('.tab');
+            tab.classList.add('active-tab')
+            content[0].classList.remove('hidden')
+
+        })
+
+        main.append(tab_content);
+
+    }).catch(err => {
+        console.log(err);
+    })
+
+}
 
 // DISK USAGE CHART
 let chart
@@ -2746,7 +2937,7 @@ function getDevices(callback) {
                 })
 
                 item.addEventListener('contextmenu', (e) => {
-                    ipcRenderer.send('device_menu', device.path);
+                    ipcRenderer.send('device_menu', device.path, device.uuid);
                     item.classList.add('highlight_select');
                 })
 
@@ -2992,7 +3183,9 @@ function getCardGio(file) {
     })
 
     card.addEventListener('dragstart', (e) => {
-        // e.preventDefault();
+
+        e.stopPropagation();
+
         // clearTimeout(tooltip_timeout);
         // tooltip.classList.add('hidden')
         // clearTimeout(tooltip_timeout)
@@ -3010,8 +3203,8 @@ function getCardGio(file) {
     })
 
     card.addEventListener('dragenter', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // e.preventDefault();
+        // e.stopPropagation();
     })
 
     card.addEventListener('dragover', (e) => {
@@ -3052,15 +3245,6 @@ function getCardGio(file) {
         }
     })
 
-    // try {
-    //     // ds.addSelectables(card)
-    //     ipcRenderer.send('add_item_dragselect', '.card');
-    // } catch (err) {
-    //     console.log(err)
-    // }
-
-    // add_selectable(card)
-
     mtime.append(getDateTime(file.mtime));
     ctime.append(getDateTime(file.ctime));
     atime.append(getDateTime(file.atime));
@@ -3069,7 +3253,7 @@ function getCardGio(file) {
     icon.append(img);
     header.append(href, input);
 
-    console.log(file)
+    // console.log(file)
 
     // Directory
     if (file.is_dir || file.type === 'inode/directory') {
@@ -3890,11 +4074,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
         try {
 
             ds = new DragSelect({
-                area: main,
+                area: main, //document.querySelector('.active-tab-content'), //main, //document.getElementById('files_grid'),
                 selectorClass: 'drag_select',
                 keyboardDragSpeed: 0,
             })
-
             let sc = 0;
             ds.subscribe('elementselect', (e) => {
                 // msg(`${++sc} Items Selected`)
@@ -3905,17 +4088,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 } else {
                     // msg(`${sc} Items Selected`)
                 }
-
             });
-
             ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
                 if (isDragging || isDraggingKeyboard) {
                     ds.break()
                 } else {
-
                 }
             })
-
 
         } catch (err) {
             // console.log(err);

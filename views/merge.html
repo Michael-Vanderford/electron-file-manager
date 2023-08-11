@@ -1,0 +1,66 @@
+
+<style>
+    .merge {
+        width: 100%;
+        height: 100%
+    }
+    .merge_file_container {
+        padding: 20px;
+        /* display:flex; */
+    }
+    .source {
+        /* background: red; */
+        margin: 10px;
+        overflow: auto;
+        height: 450px;
+        width: 50%;
+    }
+    .destination {
+        /* background: red; */
+        margin: 10px;
+        overflow: auto;
+        max-height: 300px;
+        width: 50%;
+    }
+    .destination_table {
+        width: 90%;
+    }
+</style>
+
+<div class="merge">
+
+    <br />
+    <p class="">
+        <div class="merge_msg">
+            <i class="bi bi-info-circle"></i> A folder with the same name already exists.
+        </div>
+        <br />
+        <div class="merge_source"></div>
+        <div class="merge_destination"></div>
+    </p>
+
+    <input type="button" class="button btn_merge" value="Merge" />
+    <!-- <input type="button" class="button btn_cancel" value="Cancel" /> -->
+    <div class="merge_file_container">
+
+        <table class="destination_table">
+            <thead>
+                <tr>
+                    <th>Destination</th>
+                    <th>Source Date</th>
+                    <th>Destination Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+        </table>
+
+        <div class="destination main"></div>
+        <div class="source"></div>
+
+    </div>
+
+    <div>
+
+    </div>
+
+</div>

@@ -12,7 +12,7 @@ function get_files_arr (source, destination, callback) {
     gio.ls(source, (err, dirents) => {
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
-            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`})
+            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
@@ -32,6 +32,85 @@ function get_files_arr (source, destination, callback) {
 
 // Handle Worker Messages
 parentPort.on('message', data => {
+
+    // New merge code
+    if (data.cmd === 'merge_files') {
+
+        let idx = 0;
+        let merge_arr = []
+
+        get_files_arr(data.source, data.destination, dirents => {
+
+            // console.log(dirents)
+
+            let files = dirents.filter(x => x.type === 'file')
+
+            for (let i = 0; i < files.length; i++) {
+
+                let f = files[i]
+                let src = gio.get_file(f.source);
+                let dest = ''; //gio.get_file(f.destination);
+
+                // console.log(src, dest)
+                // if (f.type === 'directory') {
+                //     // Check directories
+                //     merge_arr.push(
+                //         merge_obj.source = f.source,
+                //         merge_obj.destination = path.join(data.destination, f.destination),
+                //     )
+                // }
+
+                let merge_obj = {
+                    source: '',
+                    destination: '',
+                    source_date: '',
+                    destination_date: '',
+                    action: ''
+                }
+
+                merge_obj.source = src.href;
+                merge_obj.source_date = src.mtime;
+
+
+                if (gio.exists(f.destination)) {
+
+                    dest = gio.get_file(f.destination);
+
+                    merge_obj.destination = dest.href;
+                    merge_obj.destination_date = dest.mtime
+
+                    if (src.mtime > dest.mtime) {
+                        merge_obj.action = 1;
+                        merge_arr.push(merge_obj);
+                    } else if (src.mtime < dest.mtime) {
+                        merge_obj.action = 0;
+                        merge_arr.push(merge_obj);
+                    } else if (src.mtime === dest.mtime) {
+                        // merge_obj.action = 0;
+                        // merge_arr.push(merge_obj);
+                    }
+
+                } else {
+                    // New File
+                    merge_obj.destination = f.destination;
+                    merge_obj.action = 2;
+                    merge_arr.push(merge_obj);
+                }
+
+
+
+            }
+
+            parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
+            merge_arr = []
+
+            // }
+        })
+
+        // console.log(merge_arr);
+
+    }
+
 
     if (data.cmd === 'merge') {
 
