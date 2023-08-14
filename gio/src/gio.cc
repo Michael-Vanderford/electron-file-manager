@@ -95,27 +95,27 @@ namespace gio {
         for (iter = mounts; iter != NULL; iter = iter->next) {
 
             GMount *mount = G_MOUNT(iter->data);
-            GVolume* volume = g_mount_get_volume(mount);
+            // GVolume* volume = g_mount_get_volume(mount);
 
             const gchar *name = g_mount_get_name(mount);
             GFile *mount_path = NULL;
 
             mount_path = g_mount_get_root(mount);
             gchar *path = g_file_get_uri(mount_path);
-            const char* uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
+            // const char* uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
 
             if (path == NULL) {
                 path = g_strdup("");
             }
 
-            if (uuid == NULL) {
-                uuid = g_strdup("");
-            }
+            // if (uuid == NULL) {
+            //     uuid = g_strdup("");
+            // }
 
             v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
             Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
             Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
-            Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
+            // Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
             Nan::Set(resultArray, c, deviceObj);
             ++c;
 
@@ -795,12 +795,9 @@ namespace gio {
         v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
 
         int overwrite_flag = Nan::To<int>(info[2]).FromJust();
-        GFileCopyFlags flags;
+        GFileCopyFlags flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS);
         if (overwrite_flag == 1) {
-            flags = G_FILE_COPY_OVERWRITE;
-        } else {
-            flags = G_FILE_COPY_NOFOLLOW_SYMLINKS, G_FILE_COPY_ALL_METADATA;
-            // flags = G_FILE_COPY_NONE;
+            flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS | G_FILE_COPY_OVERWRITE);
         }
 
         v8::Isolate* isolate = info.GetIsolate();
@@ -819,25 +816,164 @@ namespace gio {
             dest = g_file_new_for_uri(*destFile);
         }
 
-        GError* error = nullptr;
-        gboolean ret = g_file_copy(
-            src,
-            dest,
-            flags,
-            nullptr,
-            nullptr,
-            nullptr,
-            &error
-        );
+        gboolean is_directory = g_file_query_file_type(src, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY;
+        if (is_directory) {
 
-        g_object_unref(src);
-        g_object_unref(dest);
+            GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+            GFileType type = g_file_info_get_file_type(file_info);
+            gboolean is_symlink = g_file_info_get_is_symlink(file_info);
 
-        if (ret == FALSE) {
-            return Nan::ThrowError(error->message);
+            // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
+            // if (is_symlink) {
+            //     cout << "is symlink" << endl;
+            //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
+            //     if (symlink_target) {
+            //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
+            //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
+            //         g_object_unref(destination_symlink);
+            //         g_object_unref(file_info);
+            //     }
+
+            // } else {
+
+                GError *error = NULL;
+                // Create the destination directory if it doesn't exist
+                g_file_make_directory_with_parents(dest, NULL, &error);
+
+                if (error) {
+                    g_print("Error creating destination directory: %s\n", error->message);
+                    g_error_free(error);
+                    // return;
+                }
+
+            // }
+
+        } else {
+
+            // Check if source is a symlink
+            GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+            GFileType type = g_file_info_get_file_type(file_info);
+
+            if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
+                const char *symlink_target = g_file_info_get_symlink_target(file_info);
+                if (symlink_target) {
+                    GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
+                    gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
+                    g_object_unref(destination_symlink);
+                    g_object_unref(file_info);
+                }
+            } else {
+
+                GError* error = nullptr;
+                gboolean ret = g_file_copy(
+                    src,
+                    dest,
+                    flags,
+                    nullptr,
+                    nullptr,
+                    nullptr,
+                    &error
+                );
+
+                g_object_unref(src);
+                g_object_unref(dest);
+
+                if (ret == FALSE) {
+                    return Nan::ThrowError(error->message);
+                }
+
+            }
+
         }
 
+
         info.GetReturnValue().Set(Nan::True());
+
+    }
+
+    void cpdir_recursive(GFile *source, GFile *destination) {
+        GError *error = NULL;
+        gboolean is_directory = g_file_query_file_type(source, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY;
+
+        if (is_directory) {
+            // Create the destination directory if it doesn't exist
+            g_file_make_directory_with_parents(destination, NULL, &error);
+
+            if (error) {
+                g_print("Error creating destination directory: %s\n", error->message);
+                g_error_free(error);
+                // return;
+            }
+
+            GFileEnumerator *enumerator = g_file_enumerate_children(source, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
+
+            if (error) {
+                g_print("Error enumerating source directory contents: %s\n", error->message);
+                g_error_free(error);
+                // return;
+            }
+
+            GFileInfo *info = NULL;
+
+            while ((info = g_file_enumerator_next_file(enumerator, NULL, &error))) {
+                const char *name = g_file_info_get_name(info);
+                GFile *source_child = g_file_get_child(source, name);
+                GFile *destination_child = g_file_get_child(destination, name);
+
+                cpdir_recursive(source_child, destination_child);
+
+                g_object_unref(source_child);
+                g_object_unref(destination_child);
+                g_object_unref(info);
+            }
+
+            g_file_enumerator_close(enumerator, NULL, NULL);
+            g_object_unref(enumerator);
+        } else {
+            // Copy individual file
+            gboolean success = g_file_copy(source, destination, G_FILE_COPY_ALL_METADATA, NULL, NULL, NULL, &error);
+
+            if (!success) {
+                g_print("Error copying file: %s\n", error->message);
+                g_error_free(error);
+            }
+        }
+    }
+
+    NAN_METHOD(cpdir) {
+
+        Nan:: HandleScope scope;
+
+        if (info.Length() < 2) {
+            return Nan::ThrowError("Wrong number of arguments");
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+        int overwrite_flag = Nan::To<int>(info[2]).FromJust();
+        GFileCopyFlags flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS);
+        if (overwrite_flag == 1) {
+            flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS | G_FILE_COPY_OVERWRITE);
+        }
+
+        v8::Isolate* isolate = info.GetIsolate();
+        v8::String::Utf8Value sourceFile(isolate, sourceString);
+        v8::String::Utf8Value destFile(isolate, destString);
+
+        GFile* source = g_file_new_for_path(*sourceFile);
+        GFile* destination = g_file_new_for_path(*destFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        const char *dest_scheme = g_uri_parse_scheme(*destFile);
+        if (src_scheme != NULL) {
+            source = g_file_new_for_uri(*sourceFile);
+        }
+        if (dest_scheme != NULL) {
+            destination = g_file_new_for_uri(*destFile);
+        }
+
+        cpdir_recursive(source, destination);
 
     }
 
@@ -974,10 +1110,25 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
+        GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+        GFileType type = g_file_info_get_file_type(file_info);
 
+        // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
+        //     cout << "found symlink" << endl;
+        //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
+        //     if (symlink_target) {
+        //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
+        //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
+        //         g_object_unref(destination_symlink);
+        //         g_object_unref(file_info);
+        //     }
+        // } else {
+
+        // }
 
         GError* error = NULL;
-        gboolean res = g_file_make_directory(src, NULL, &error);
+        // gboolean res = g_file_make_directory(src, NULL, &error);
+        gboolean res = g_file_make_directory_with_parents(src, NULL, &error);
 
         g_object_unref(src);
 
@@ -1039,6 +1190,7 @@ namespace gio {
     NAN_MODULE_INIT(init) {
         // Nan::Export(target, "get_thumbnail", get_thumbnail);
         // Nan::Export(target, "umount", umount);
+        Nan::Export(target, "cpdir", cpdir);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);

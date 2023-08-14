@@ -640,9 +640,9 @@ ipcMain.handle('get_templates_folder', (e) => {
 })
 
 // Get Files Array
-ipcMain.on('get_files_arr_merge', (e, source, destination) => {
+ipcMain.on('get_files_arr_merge', (e, source, destination, copy_arr) => {
 
-    worker.postMessage({'cmd': 'merge_files', source: source, destination: destination});
+    worker.postMessage({'cmd': 'merge_files', source: source, destination: destination, copy_arr: copy_arr});
 
     // get_files_arr(source, destination, dirents => {
     //     win.send('get_files_arr_merge', (e, source, destination, dirents))
@@ -872,6 +872,30 @@ ipcMain.handle('basename', (e, source) => {
 
 ////////////////////////////////////////////////////
 /** */
+
+ipcMain.on('merge_files_confirmed', (e, filter_merge_arr) => {
+
+    filter_merge_arr.forEach((item, i) => {
+        if (item.action === 1) {
+            gio.cp(item.source, item.destination, 1);
+        } else if (item.action === 2) {
+
+            let destination_dir = path.dirname(item.destination);
+            if (!gio.exists(destination_dir)) {
+                gio.mkdir(destination_dir);
+            }
+            gio.cp(item.source, item.destination, 1);
+        }
+        win.send('set_progress', { value: i + 1, max: filter_merge_arr.length, msg: `Copying ${i + 1} of ${filter_merge_arr.length}`});
+        if (i == filter_merge_arr.length - 1) {
+            progress_counter = 0;
+        }
+    })
+
+    win.send('done_merging_files');
+    // win.send('msg', 'Done Merging Files');
+
+})
 
 ipcMain.on('umount', (e, uuid) => {
     gio.umount(uuid)
@@ -1195,7 +1219,7 @@ ipcMain.on('mkdir', (e, href) => {
 })
 
 // Open File in Native Application
-ipcMain.handle('open', (e, href) => {
+ipcMain.on('open', (e, href) => {
     shell.openPath(href);
 })
 
@@ -1221,10 +1245,13 @@ ipcMain.on('paste', (e, destination) => {
     let overwrite = 0;
     let location = destination; //document.getElementById('location');
     if (selected_files_arr.length > 0) {
+
         for(let i = 0; i < selected_files_arr.length; i++) {
 
             let source = selected_files_arr[i];
             let destination = path.format({dir: location, base: path.basename(selected_files_arr[i])});
+
+            // gio.cpdir(source, destination);
 
             let file = gio.get_file(source)
 

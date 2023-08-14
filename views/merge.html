@@ -23,26 +23,65 @@
         width: 50%;
     }
     .destination_table {
-        width: 90%;
+        width: 100%;
     }
 </style>
 
 <div class="merge">
 
-    <br />
-    <p class="">
-        <div class="merge_msg">
+    <br>
+    <p>
+        <!-- <div class="merge_msg">
             <i class="bi bi-info-circle"></i> A folder with the same name already exists.
         </div>
         <br />
-        <div class="merge_source"></div>
-        <div class="merge_destination"></div>
+        <table class="table">
+            <tr>
+                <td class="bold">Source</td>
+                <td><div class="merge_source"></div></td>
+                <td></td>
+            </tr>
+            <tr>
+                <td class="bold">Destination</td>
+                <td>
+                    <div class="merge_destination"></div>
+                    <input type="text" class="txt_merge_destination input hidden" />
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td></td>
+            </tr>
+        </table> -->
+
+        <!-- <div class="flex">
+            <div>Source: </div>
+             <div class="merge_source"></div>
+        </div>
+        <div class="flex" style="width: 350px;">
+            <div>Destination: </div>
+            <div class="merge_destination"></div>
+            <div><input type="text" class="txt_merge_destination input hidden" /></div>
+        </div> -->
+
+        <div class="flex">
+            <div>
+                <i class="bi bi-info-circle"></i>
+            </div>
+            <div>
+                File conflict detected. <br>
+                You can merge files by reviewing the list and selecting the appropriate action. <br>
+            </div>
+
+        </div>
+
     </p>
 
     <input type="button" class="button btn_merge" value="Merge" />
+    <br>
     <!-- <input type="button" class="button btn_cancel" value="Cancel" /> -->
     <div class="merge_file_container">
-
+        <div class="merge_done_msg"></div>
         <table class="destination_table">
             <thead>
                 <tr>

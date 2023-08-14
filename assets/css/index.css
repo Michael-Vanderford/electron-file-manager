@@ -349,8 +349,15 @@ th {
 }
 
 .merge_file_container {
+    /* background-color: var(--dialog); */
+    /* border: inset; */
+    /* overflow: auto; */
+    width: 95%;
+    /* height: 90%; */
     /* background: var(--dialog) */
 }
+
+
 
 #chart {
     color: var(--text);
@@ -748,6 +755,8 @@ input[type=text]:focus {
 }
 
 .button {
+    background-color: var(--button);
+    color: var(--text);
     width: 120px;
     border: none;
     padding: 5px 5px;
@@ -760,6 +769,14 @@ input[type=text]:focus {
     border-radius: 5px;
 }
 
+.button:active {
+    background-color: var(--button-active);
+}
+
+.button:hover {
+    background-color: var(--button-active);
+}
+
 .button.warning {
     color: var(--white);
     background: var(--warning);
@@ -768,6 +785,10 @@ input[type=text]:focus {
 .context-menu-icon {
     width: 8px;
     height: 8px;
+}
+
+.border {
+    border: 1px solid var(--border)
 }
 
 /* Style for the tooltip */
@@ -796,6 +817,10 @@ input[type=text]:focus {
 .sticky {
     position: sticky;
     top: 0;
+}
+
+.bold {
+    font-weight: bold;
 }
 
 /* Mobile */
@@ -847,7 +872,8 @@ input[type=text]:focus {
         --text: #C0C0C0;
         --active: #ffffff;
         --tabs: #2c2c2c;
-        --button: #484848;
+        --button: #606366;
+        --button-active: #4b4b4b ;
 
         --svg: rgba(155, 155, 155, 0.7);
 

@@ -27,69 +27,110 @@ if (localStorage.getItem('view') == null) {
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
 
-ipcRenderer.on('merge_view', (e, source, destination) => {
-    merge(source, destination);
+ipcRenderer.on('done_merging_files', (e) => {
+
+    let active_tab = document.querySelector('.active-tab-content');
+    const table = active_tab.querySelector('.destination_table');
+    let msg = active_tab.querySelector('.merge_done_msg');
+
+    msg.innerHTML = '<i class="bi bi-info-circle"></i>Done merging files.';
+    table.remove();
+
+})
+
+ipcRenderer.on('merge_view', (e, source, destination, copy_merge_arr) => {
+    merge(source, destination, copy_merge_arr);
 })
 
 ipcRenderer.on('merge_files', (e, merge_arr) => {
 
-    const table = document.querySelector('.destination_table');
-    const btn_merge = document.querySelector('.btn_merge');
+    if (merge_arr.length > 0) {
 
-    merge_arr.forEach(item => {
+        const url = './views/merge.html';
+        fetch(url).then(res => {
+            return res.text();
+        }).then(data => {
 
-        console.log(merge_arr.length);
+            const main = document.querySelector('.main');
+            let tab_content = add_tab('Merge');
+            let active_tab = document.querySelector('.active-tab');
+            tab_content.innerHTML = data
 
-        const row = table.insertRow();
+            const table = document.querySelector('.destination_table');
+            const btn_merge = document.querySelector('.btn_merge');
 
-        const dest_cell = row.insertCell(0);
-        const source_date_cell = row.insertCell(1);
-        const destination_date_cell = row.insertCell(2);
-        const action_cell = row.insertCell(3);
+            merge_arr.forEach(item => {
 
-        ipcRenderer.invoke('get_icon', item.destination).then(icon => {
+                const row = table.insertRow();
 
-            let img = document.createElement('img');
-            img.classList.add('icon', 'icon16');
-            img.src = icon;
+                const dest_cell = row.insertCell(0);
+                const source_date_cell = row.insertCell(1);
+                const destination_date_cell = row.insertCell(2);
+                const action_cell = row.insertCell(3);
 
-            dest_cell.append(img, item.destination);
-            source_date_cell.textContent = getDateTime(item.source_date);
-            if (item.destination_date != "") {
-                destination_date_cell.textContent = getDateTime(item.destination_date);
-            }
+                ipcRenderer.invoke('get_icon', item.destination).then(icon => {
 
-            let action_select = document.createElement('select');
-            action_select.classList.add('input');
-            let action_arr = ['Skip', 'Replace', 'New'];
-            for (let i = 0; i < action_arr.length; i++) {
-                let action_option = document.createElement('option');
-                action_option.text = action_arr[i];
-                action_option.value = i;
-                action_select.append(action_option);
-            }
-            action_cell.append(action_select); //item.action
+                    let img = document.createElement('img');
+                    img.classList.add('icon', 'icon16');
+                    img.src = icon;
 
-            for (const option of action_select.options) {
-                if (option.value == item.action) {
-                    option.selected = true
-                    option.selectedIndex = item.action;
-                    break;
-                }
-            }
+                    let href = document.createElement('a');
+                    href.preventDefault = true;
+                    href.href = "#"
+                    href.text = item.destination
 
-            action_select.addEventListener('change', (e) => {
-                let target = e.target;
-                item.action = target.value;
+                    href.addEventListener('click', (e) => {
+                        ipcRenderer.send('open', item.destination);
+                    })
+
+                    dest_cell.append(img, href);
+                    source_date_cell.textContent = getDateTime(item.source_date);
+                    if (item.destination_date != "") {
+                        destination_date_cell.textContent = getDateTime(item.destination_date);
+                    }
+
+                    let action_select = document.createElement('select');
+                    action_select.classList.add('input');
+                    let action_arr = ['Skip', 'Replace', 'New'];
+                    for (let i = 0; i < action_arr.length; i++) {
+                        let action_option = document.createElement('option');
+                        action_option.text = action_arr[i];
+                        action_option.value = i;
+                        action_select.append(action_option);
+                    }
+                    action_cell.append(action_select); //item.action
+
+                    for (const option of action_select.options) {
+                        if (option.value == item.action) {
+                            option.selected = true
+                            option.selectedIndex = item.action;
+                            break;
+                        }
+                    }
+
+                    action_select.addEventListener('change', (e) => {
+                        let target = e.target;
+                        item.action = target.value;
+                    })
+
+                })
+
             })
 
+            btn_merge.addEventListener('click', (e) => {
+                let filter_merge_arr = merge_arr.filter(x => x.action != 0)
+                ipcRenderer.send('merge_files_confirmed', filter_merge_arr);
+                // console.log(filter_merge_arr)
+            })
+
+        }).catch(err => {
+            console.log(err);
         })
 
-    })
+    } else {
+        alert('Files exists and there is nothing to merge!')
+    }
 
-    btn_merge.addEventListener('click', (e) => {
-        console.log(merge_arr)
-    })
 
     // merge_arr = []
 
@@ -172,6 +213,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     active_tab.dataset.href = source;
     active_tab.title = source;
+
+    ipcRenderer.invoke('basename', source).then(basename => {
+        active_label.innerHTML = basename;
+    })
 
     let location = document.querySelector('.location');
     let slider = document.querySelector('.slider');
@@ -1093,49 +1138,49 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 /** */
 
 // Merge Dialog
-function merge(source, destination) {
+function merge(source, destination, copy_merge_arr) {
 
-    const url = './views/merge.html';
-    fetch(url).then(res => {
-        return res.text();
-    }).then(data => {
+    // const url = './views/merge.html';
+    // fetch(url).then(res => {
+    //     return res.text();
+    // }).then(data => {
 
-        const main = document.querySelector('.main')
-        let tab_content = add_tab('Merge Directory')
-        let active_tab = document.querySelector('.active-tab');
-        tab_content.innerHTML = data
+    //     const main = document.querySelector('.main');
+    //     let tab_content = add_tab('Merge Directory');
+    //     let active_tab = document.querySelector('.active-tab');
+    //     tab_content.innerHTML = data
 
         // let source = '/home/michael/Downloads/chartjs/'
         // let destination = '/home/michael/Downloads/testing/chartjs/'
 
-        let merge_source = document.querySelector('.merge_source');
-        let merge_destination = document.querySelector('.merge_destination');
-        let btn_cancel = document.querySelector('.btn_cancel');
+        // let merge_source = document.querySelector('.merge_source');
+        // let merge_destination = document.querySelector('.merge_destination');
+        // let btn_cancel = document.querySelector('.btn_cancel');
 
-        merge_source.innerText = `Source: ${source}`
-        merge_destination.innerText = `Destination: ${destination}`;
+        // merge_source.innerText = ` ${source}`;
+        // merge_destination.innerText = ` ${destination}`;
 
-        ipcRenderer.send('get_files_arr_merge', source, destination);
+        ipcRenderer.send('get_files_arr_merge', source, destination, copy_merge_arr);
 
-        btn_cancel.addEventListener('click', (e) => {
+        // btn_cancel.addEventListener('click', (e) => {
 
-            tab_content.remove();
-            active_tab.remove();
+        //     tab_content.remove();
+        //     active_tab.remove();
 
-            let tabs = document.querySelectorAll('.tabs');
-            let content = document.querySelectorAll('.tab_content')
+        //     let tabs = document.querySelectorAll('.tabs');
+        //     let content = document.querySelectorAll('.tab_content')
 
-            let tab = tabs[0].querySelector('.tab');
-            tab.classList.add('active-tab')
-            content[0].classList.remove('hidden')
+        //     let tab = tabs[0].querySelector('.tab');
+        //     tab.classList.add('active-tab')
+        //     content[0].classList.remove('hidden')
 
-        })
+        // })
 
-        main.append(tab_content);
+    //     main.append(tab_content);
 
-    }).catch(err => {
-        console.log(err);
-    })
+    // }).catch(err => {
+    //     console.log(err);
+    // })
 
 }
 
@@ -2879,7 +2924,7 @@ function getWorkspace(callback) {
                 if (file.is_dir) {
                     getView(file.href);
                 } else {
-                    ipcRenderer.invoke('open', file.href);
+                    ipcRenderer.send('open', file.href);
                 }
 
             })
@@ -3045,7 +3090,7 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    // console.log(file)
+    console.log(file)
 
     let location = document.getElementById('location');
     let is_dir   = 0;
@@ -3363,13 +3408,13 @@ function getCardGio(file) {
         // Open href in default application
         href.addEventListener('click', (e) => {
             e.preventDefault();
-            ipcRenderer.invoke('open', file.href);
+            ipcRenderer.send('open', file.href);
             ipcRenderer.send('saveRecentFile', file.href);
 
         })
         img.addEventListener('click', (e) => {
             e.preventDefault();
-            ipcRenderer.invoke('open', file.href);
+            ipcRenderer.send('open', file.href);
             ipcRenderer.send('saveRecentFile', file.href);
         })
         size.append(getFileSize(file["size"]));
