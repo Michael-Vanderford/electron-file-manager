@@ -473,6 +473,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         // console.log('running')
 
+        if (e.button === 2) {
+            return;
+        }
+
         isSelecting = true;
         startPosX = e.clientX;
         startPosY = e.clientY;
@@ -490,9 +494,9 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let allowClick = 1;
     document.addEventListener('mousemove', (e) => {
 
-        if (!isSelecting) return;
+        e.preventDefault();
 
-        // console.log(cards)
+        if (!isSelecting) return;
 
         endPosX = e.clientX;
         endPosY = e.clientY;
