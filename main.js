@@ -152,7 +152,7 @@ worker.on('message', (data) => {
         }
 
         win.send('lazyload');
-        win.send('sort_cards');
+        // win.send('sort_cards');
         win.send('clear');
     }
 

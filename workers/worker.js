@@ -149,7 +149,7 @@ parentPort.on('message', data => {
 
     }
 
-
+    // Merge
     if (data.cmd === 'merge') {
 
         let idx = 0;
@@ -290,7 +290,7 @@ parentPort.on('message', data => {
         copy_next();
     }
 
-
+    // Folder Size
     if (data.cmd === 'folder_size') {
         try {
             get_files_arr(data.source, '', dirents => {
@@ -306,6 +306,7 @@ parentPort.on('message', data => {
         }
     }
 
+    // Folder Count
     if (data.cmd === 'folder_count') {
         try {
             // Get Folder Count
@@ -349,20 +350,65 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'mv') {
+        let merge_arr = []
         let selected_files_arr = data.selected_items;
         for (let i = 0; i < selected_files_arr.length; i++) {
             try {
                 let f = selected_files_arr[i];
-                gio.mv(f.source, f.destination);
-                parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
-                if (i === selected_files_arr.length - 1) {{
-                    parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
-                }}
+
+                let src = gio.get_file(f.source);
+                let dest = ''; // gio.get_file(f.destination);
+
+                let merge_obj = {
+                    source: '',
+                    destination: '',
+                    source_date: '',
+                    destination_date: '',
+                    action: '',
+                    id_dir: 1
+                }
+
+                merge_obj.source = src.href;
+                merge_obj.source_date = src.mtime;
+
+
+                if (gio.exists(f.destination)) {
+
+                    dest = gio.get_file(f.destination);
+
+                    merge_obj.destination = dest.href;
+                    merge_obj.destination_date = dest.mtime
+
+                    if (src.mtime > dest.mtime) {
+                        merge_obj.action = 1;
+                        merge_arr.push(merge_obj);
+                    } else if (src.mtime < dest.mtime) {
+                        merge_obj.action = 0;
+                        merge_arr.push(merge_obj);
+                    } else if (src.mtime === dest.mtime) {
+                        merge_obj.action = 0;
+                        merge_arr.push(merge_obj);
+                    }
+
+                } else {
+                    gio.mv(f.source, f.destination);
+                    parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
+                    if (i === selected_files_arr.length - 1) {{
+                        parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
+                    }}
+                }
+
             } catch (err) {
                 parentPort.postMessage({cmd: 'msg', msg: err.message});
             }
 
         }
+
+        if (merge_arr.length > 0) {
+            parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
+            merge_arr = []
+        }
+
     }
 
     // Rename

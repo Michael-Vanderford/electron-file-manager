@@ -16,6 +16,7 @@ let sort = 'date_desc';
 let folder_icon;
 let symlink_icon;
 let thumbnail_dir;
+let isDragging = 0;
 
 let view = 'grid';
 if (localStorage.getItem('view') == null) {
@@ -70,6 +71,8 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
 
                 ipcRenderer.invoke('get_icon', item.destination).then(icon => {
 
+                    let dest_div = add_div(['flex'])
+
                     let img = document.createElement('img');
                     img.classList.add('icon', 'icon16');
                     img.src = icon;
@@ -79,11 +82,13 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
                     href.href = "#"
                     href.text = item.destination
 
+                    dest_div.append(img, href);
+
                     href.addEventListener('click', (e) => {
                         ipcRenderer.send('open', item.destination);
                     })
 
-                    dest_cell.append(img, href);
+                    dest_cell.append(dest_div);
                     source_date_cell.textContent = getDateTime(item.source_date);
                     if (item.destination_date != "") {
                         destination_date_cell.textContent = getDateTime(item.destination_date);
@@ -164,9 +169,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let tabs = document.querySelectorAll('.tab');
     let tabs_content = document.querySelectorAll('.tab_content');
     let tab_content = document.querySelector('.tab_content');
-
     let file_menu =document.querySelector('.header_menu');
     let menu_items = file_menu.querySelectorAll('.item');
+
+    const selectionRectangle = document.getElementById('selection-rectangle');
+    let isSelecting = false;
+    let startPosX, startPosY, endPosX, endPosY;
 
     // Set active on menu
     menu_items.forEach(item => {
@@ -425,6 +433,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         ipcRenderer.send('main', 1);
         paste(location.value);
+
     })
 
     main.addEventListener('mouseenter', (e) => {
@@ -443,12 +452,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         document.removeEventListener('keyup', quickSearch)
     })
 
-    // main.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     main.append(active_tab_content)
-
-    // tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
-    // main.append(tab_content)
 
     // Set Icon Size
     if (localStorage.getItem('icon_size') !== null) {
@@ -457,82 +462,86 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         resizeIcons(icon_size);
     }
 
-    // watch_dir(location.value);
-
     lazyload();
-
     sort_cards();
 
     clearHighlight();
+    main.classList.remove('loader');
 
-    main.classList.remove('loader')
+    const cards = document.querySelectorAll('.card');
+    active_tab_content.addEventListener('mousedown', (e) => {
 
-    // const selectionRectangle = document.getElementById('selection-rectangle');
-    // const cards = document.querySelectorAll('.card');
-    // let isSelecting = false;
-    // let startPosX, startPosY, endPosX, endPosY;
+        // console.log('running')
 
-    // main.addEventListener('mousedown', (e) => {
+        isSelecting = true;
+        startPosX = e.clientX;
+        startPosY = e.clientY;
 
-    //     // console.log('running')
+        selectionRectangle.style.left = startPosX + 'px';
+        selectionRectangle.style.top = startPosY + 'px';
+        selectionRectangle.style.width = '0';
+        selectionRectangle.style.height = '0';
+        selectionRectangle.style.display = 'block';
 
-    //     isSelecting = true;
-    //     startPosX = e.clientX;
-    //     startPosY = e.clientY;
+        cards.forEach(item => item.classList.remove('selected'));
 
-    //     selectionRectangle.style.left = startPosX + 'px';
-    //     selectionRectangle.style.top = startPosY + 'px';
-    //     selectionRectangle.style.width = '0';
-    //     selectionRectangle.style.height = '0';
-    //     selectionRectangle.style.display = 'block';
+    });
 
-    //     cards.forEach(item => item.classList.remove('selected'));
+    let allowClick = 1;
+    document.addEventListener('mousemove', (e) => {
 
-    // });
+        if (!isSelecting) return;
 
-    // document.addEventListener('mousemove', (e) => {
+        // console.log(cards)
 
-    //     if (!isSelecting) return;
+        endPosX = e.clientX;
+        endPosY = e.clientY;
 
-    //     console.log(cards)
+        const rectWidth = endPosX - startPosX;
+        const rectHeight = endPosY - startPosY;
 
-    //     endPosX = e.clientX;
-    //     endPosY = e.clientY;
+        selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
+        selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
+        selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
+        selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
 
-    //     const rectWidth = endPosX - startPosX;
-    //     const rectHeight = endPosY - startPosY;
+        // Highlight selectable items within the selection area
+        cards.forEach(item => {
 
-    //     selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
-    //     selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
-    //     selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
-    //     selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
+            const itemRect = item.getBoundingClientRect();
+            const isSelected =
+            ((itemRect.left < endPosX && itemRect.right > startPosX) ||
+            (itemRect.left < startPosX && itemRect.right > endPosX)) &&
+            ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
+            (itemRect.top < startPosY && itemRect.bottom > endPosY));
 
-    //     // Highlight selectable items within the selection area
-    //     cards.forEach(item => {
+            if (isSelected) {
+                item.classList.add('highlight_select');
+            }
 
-    //         const itemRect = item.getBoundingClientRect();
-    //         const isSelected =
-    //         ((itemRect.left < endPosX && itemRect.right > startPosX) ||
-    //         (itemRect.left < startPosX && itemRect.right > endPosX)) &&
-    //         ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
-    //         (itemRect.top < startPosY && itemRect.bottom > endPosY));
+            item.addEventListener('dragstart', (e ) => {
+                isSelecting = false;
+            })
 
-    //         if (isSelected) {
-    //             item.classList.add('highlight_select');
-    //         } else {
-    //             // item.classList.remove('highlight_select');
-    //         }
-    //     });
+        });
 
-    // });
+        allowClick = 0;
 
-    // document.addEventListener('mouseup', () => {
-    //     isSelecting = false;
-    //     selectionRectangle.style.display = 'none';
+    });
 
-    // });
 
-    // merge();
+    document.addEventListener('mouseup', (e) => {
+        isSelecting = false;
+        selectionRectangle.style.display = 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+        if (allowClick) {
+            clearHighlight()
+        } else {
+            allowClick = 1;
+        }
+    })
 
 })
 
@@ -2166,6 +2175,47 @@ function add_tab(href) {
                 tab_content.remove();
             }
         }
+    })
+
+    let draggingTab = null;
+    let tab_items = document.querySelectorAll('.tab')
+    tab_items.forEach(tab => {
+
+        tab.addEventListener("dragstart", (event) => {
+            if (event.target.classList.contains("tab")) {
+              draggingTab = event.target;
+              event.dataTransfer.setData("text/plain", ""); // Required for Firefox
+              event.target.style.opacity = 0.5;
+            }
+        });
+
+        tab.addEventListener("dragend", (event) => {
+            if (draggingTab) {
+              draggingTab.style.opacity = 1;
+              draggingTab = null;
+            }
+        });
+
+        tab.addEventListener("dragover", (event) => {
+            event.preventDefault();
+        });
+
+        tab.addEventListener("drop", (event) => {
+            event.preventDefault();
+
+            if (draggingTab) {
+              const targetTab = event.target.closest(".tab");
+              if (targetTab) {
+                const container = document.querySelector(".tabs");
+                const targetIndex = Array.from(container.children).indexOf(targetTab);
+                const draggingIndex = Array.from(container.children).indexOf(draggingTab);
+
+                if (draggingIndex !== targetIndex) {
+                  container.insertBefore(draggingTab, targetTab);
+                }
+              }
+            }
+        });
 
     })
 
@@ -3090,7 +3140,7 @@ function getFolderSize(href) {
  */
 function getCardGio(file) {
 
-    console.log(file)
+    // console.log(file)
 
     let location = document.getElementById('location');
     let is_dir   = 0;
@@ -3230,6 +3280,9 @@ function getCardGio(file) {
     card.addEventListener('dragstart', (e) => {
 
         e.stopPropagation();
+
+        isDragging = 1;
+        console.log('setting isdragging = 1')
 
         // clearTimeout(tooltip_timeout);
         // tooltip.classList.add('hidden')
@@ -3440,7 +3493,7 @@ function getCardGio(file) {
     }
 
     card.append(icon, content, tooltip);
-    ds.addSelectables(card);
+    // ds.addSelectables(card);
 
     return card;
 }
@@ -4118,28 +4171,28 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // INITIALIZE DRAG SELECT
         try {
 
-            ds = new DragSelect({
-                area: main, //document.querySelector('.active-tab-content'), //main, //document.getElementById('files_grid'),
-                selectorClass: 'drag_select',
-                keyboardDragSpeed: 0,
-            })
-            let sc = 0;
-            ds.subscribe('elementselect', (e) => {
-                // msg(`${++sc} Items Selected`)
-            });
-            ds.subscribe('elementunselect', (e) => {
-                if (--sc == 0) {
-                    msg('')
-                } else {
-                    // msg(`${sc} Items Selected`)
-                }
-            });
-            ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
-                if (isDragging || isDraggingKeyboard) {
-                    ds.break()
-                } else {
-                }
-            })
+            // ds = new DragSelect({
+            //     area: main, //document.querySelector('.active-tab-content'), //main, //document.getElementById('files_grid'),
+            //     selectorClass: 'drag_select',
+            //     keyboardDragSpeed: 0,
+            // })
+            // let sc = 0;
+            // ds.subscribe('elementselect', (e) => {
+            //     // msg(`${++sc} Items Selected`)
+            // });
+            // ds.subscribe('elementunselect', (e) => {
+            //     if (--sc == 0) {
+            //         msg('')
+            //     } else {
+            //         // msg(`${sc} Items Selected`)
+            //     }
+            // });
+            // ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
+            //     if (isDragging || isDraggingKeyboard) {
+            //         ds.break()
+            //     } else {
+            //     }
+            // })
 
         } catch (err) {
             // console.log(err);
