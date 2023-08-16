@@ -494,8 +494,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let allowClick = 1;
     document.addEventListener('mousemove', (e) => {
 
-        e.preventDefault();
-
         if (!isSelecting) return;
 
         endPosX = e.clientX;
@@ -523,9 +521,18 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
                 item.classList.add('highlight_select');
             }
 
-            item.addEventListener('dragstart', (e ) => {
+            item.addEventListener('dragstart', (e) => {
                 isSelecting = false;
+                selectionRectangle.style.display = 'none';
             })
+
+            // item.addEventListener('dragover', (e) => {
+            //     isSelecting = false;
+            // })
+
+            // item.addEventListener('drop', (e ) => {
+            //     isSelecting = false;
+            // })
 
         });
 
@@ -3284,9 +3291,6 @@ function getCardGio(file) {
     card.addEventListener('dragstart', (e) => {
 
         e.stopPropagation();
-
-        isDragging = 1;
-        console.log('setting isdragging = 1')
 
         // clearTimeout(tooltip_timeout);
         // tooltip.classList.add('hidden')
