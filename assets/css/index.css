@@ -256,6 +256,7 @@ th {
 
 .main {
     border-left: 1px solid var(--border);
+    justify-content: space-around;
 }
 
 .main:focus {
@@ -705,7 +706,25 @@ input[type=text]:focus {
 }
 
 .dragging {
-    
+    /* background-color: red; */
+    /* width: 100px;
+    height: 100px;
+    background-color: lightblue;
+    border: 2px solid blue;
+    text-align: center;
+    line-height: 100px;
+    user-select: none; */
+}
+
+
+
+.empty_msg {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 90%;
+    font-size: 24px;
+    font-weight: bold;
 }
 
 .ds-selected {

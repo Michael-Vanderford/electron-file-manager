@@ -222,6 +222,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     active_tab.dataset.href = source;
     active_tab.title = source;
 
+    if (dirents.length === 0) {
+        let empty_msg = add_div(['empty_msg']);
+        empty_msg.innerHTML = 'Folder is Empty';
+        active_tab_content.append(empty_msg);
+    }
+
     ipcRenderer.invoke('basename', source).then(basename => {
         active_label.innerHTML = basename;
     })
@@ -490,6 +496,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         cards.forEach(item => item.classList.remove('selected'));
 
+
     });
 
     let allowClick = 1;
@@ -523,6 +530,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             }
 
             item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', item.textContent);
                 isSelecting = false;
                 selectionRectangle.style.display = 'none';
                 item.classList.add('dragging')
@@ -539,7 +547,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         });
 
         allowClick = 0;
-        console.log('allow click', allowClick)
 
     });
 
