@@ -468,8 +468,9 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     clearHighlight();
     main.classList.remove('loader');
 
+    // Drag Select for cards
     const cards = document.querySelectorAll('.card');
-    active_tab_content.addEventListener('mousedown', (e) => {
+    main.addEventListener('mousedown', (e) => {
 
         // console.log('running')
 
@@ -524,22 +525,23 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             item.addEventListener('dragstart', (e) => {
                 isSelecting = false;
                 selectionRectangle.style.display = 'none';
+                item.classList.add('dragging')
             })
 
-            // item.addEventListener('dragover', (e) => {
-            //     isSelecting = false;
-            // })
+            item.addEventListener('dragover', (e) => {
+                isSelecting = false;
+            })
 
-            // item.addEventListener('drop', (e ) => {
-            //     isSelecting = false;
-            // })
+            item.addEventListener('drop', (e ) => {
+                isSelecting = false;
+            })
 
         });
 
         allowClick = 0;
+        console.log('allow click', allowClick)
 
     });
-
 
     document.addEventListener('mouseup', (e) => {
         isSelecting = false;
@@ -552,6 +554,54 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         } else {
             allowClick = 1;
         }
+    })
+
+    // Drag and drop for tabs
+    let draggingTab = null;
+    let tab_items = document.querySelectorAll('.tab')
+    tab_items.forEach(tab => {
+
+        tab.draggable = true
+
+        tab.addEventListener("dragstart", (e) => {
+            if (e.target.classList.contains("tab")) {
+                draggingTab = e.target;
+                e.target.style.opacity = 0.5;
+            }
+        });
+
+        tab.addEventListener("dragend", (e) => {
+            if (draggingTab) {
+                draggingTab.style.opacity = 1;
+                draggingTab = null;
+            }
+        });
+
+        tab.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            tab.classList.add('highlight')
+        });
+
+        tab.addEventListener("drop", (e) => {
+            e.preventDefault();
+
+            isSelecting = false;
+            selectionRectangle.style.display = 'none';
+
+            if (draggingTab) {
+                const targetTab = e.target.closest(".tab");
+                if (targetTab) {
+                    const container = document.querySelector(".tabs");
+                    const targetIndex = Array.from(container.children).indexOf(targetTab);
+                    const draggingIndex = Array.from(container.children).indexOf(draggingTab);
+
+                    if (draggingIndex !== targetIndex) {
+                        container.insertBefore(draggingTab, targetTab);
+                    }
+                }
+            }
+        });
+
     })
 
 })
@@ -2188,58 +2238,60 @@ function add_tab(href) {
         }
     })
 
-    let draggingTab = null;
-    let tab_items = document.querySelectorAll('.tab')
-    tab_items.forEach(tab => {
+    // tab.draggable = true
+    // let draggingTab = null;
+    // let tab_items = document.querySelectorAll('.tab')
+    // tab_items.forEach(tab => {
 
-        tab.addEventListener("dragstart", (event) => {
-            if (event.target.classList.contains("tab")) {
-              draggingTab = event.target;
-              event.dataTransfer.setData("text/plain", ""); // Required for Firefox
-              event.target.style.opacity = 0.5;
-            }
-        });
+    //     tab.addEventListener("dragstart", (event) => {
+    //         if (event.target.classList.contains("tab")) {
+    //           draggingTab = event.target;
+    //           event.dataTransfer.setData("text/plain", ""); // Required for Firefox
+    //           event.target.style.opacity = 0.5;
+    //         }
+    //     });
 
-        tab.addEventListener("dragend", (event) => {
-            if (draggingTab) {
-              draggingTab.style.opacity = 1;
-              draggingTab = null;
-            }
-        });
+    //     tab.addEventListener("dragend", (event) => {
+    //         if (draggingTab) {
+    //           draggingTab.style.opacity = 1;
+    //           draggingTab = null;
+    //         }
+    //     });
 
-        tab.addEventListener("dragover", (event) => {
-            event.preventDefault();
-        });
+    //     tab.addEventListener("dragover", (event) => {
+    //         event.preventDefault();
+    //         tab.classList.add('highlight')
+    //     });
 
-        tab.addEventListener("drop", (event) => {
-            event.preventDefault();
+    //     tab.addEventListener("drop", (event) => {
+    //         event.preventDefault();
 
-            if (draggingTab) {
-              const targetTab = event.target.closest(".tab");
-              if (targetTab) {
-                const container = document.querySelector(".tabs");
-                const targetIndex = Array.from(container.children).indexOf(targetTab);
-                const draggingIndex = Array.from(container.children).indexOf(draggingTab);
+    //         if (draggingTab) {
+    //           const targetTab = event.target.closest(".tab");
+    //           if (targetTab) {
+    //             const container = document.querySelector(".tabs");
+    //             const targetIndex = Array.from(container.children).indexOf(targetTab);
+    //             const draggingIndex = Array.from(container.children).indexOf(draggingTab);
 
-                if (draggingIndex !== targetIndex) {
-                  container.insertBefore(draggingTab, targetTab);
-                }
-              }
-            }
-        });
+    //             if (draggingIndex !== targetIndex) {
+    //               container.insertBefore(draggingTab, targetTab);
+    //             }
+    //           }
+    //         }
+    //     });
 
-    })
+    // })
 
-    tabs.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    })
+    // tabs.addEventListener('dragover', (e) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+    // })
 
-    tabs.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        // console.log(e.target)
-    })
+    // tabs.addEventListener('drop', (e) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+    //     // console.log(e.target)
+    // })
 
     return tab_content;
 

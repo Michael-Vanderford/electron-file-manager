@@ -694,6 +694,7 @@ input[type=text]:focus {
 .highlight_select {
     border-radius: 5px;
     background: var(--highlight-select);
+    user-select: none;
 }
 
 .highlight_target {
@@ -701,6 +702,10 @@ input[type=text]:focus {
     /* border: 1px solid var(--orange); */
     border-radius: 5px;
     background: var(--highlight-select);
+}
+
+.dragging {
+    
 }
 
 .ds-selected {
