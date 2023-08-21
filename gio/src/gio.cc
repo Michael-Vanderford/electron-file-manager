@@ -406,15 +406,20 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
-        GFileInfo* fileInfo = g_file_query_filesystem_info(src, "*", NULL, NULL);
+        GFileInfo* file_info = g_file_query_filesystem_info(src, "*", NULL, NULL);
+        if (!file_info) {
+            g_object_unref(file_info);
+            g_object_unref(src);
+            return;
+        }
 
-        gint64 totalSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
-        gint64 usedSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
-        gint64 freeSpace = g_file_info_get_attribute_uint64(fileInfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+        gint64 totalSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
+        gint64 usedSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
+        gint64 freeSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
 
 
 
-        g_object_unref(fileInfo);
+        g_object_unref(file_info);
         g_object_unref(src);
 
         v8::Local<v8::Object> result = Nan::New<v8::Object>();
@@ -452,6 +457,10 @@ namespace gio {
         GError* error = NULL;
         GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
 
+        if (!file_info) {
+            return;
+        }
+
         if (error != NULL) {
             g_object_unref(src);
             return Nan::ThrowError(error->message);
@@ -466,7 +475,7 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             GFile* parent = g_file_get_parent(src);
             const char* location = g_file_get_path(parent);
-            // gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+            // // gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -474,8 +483,31 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
-            // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
-            // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+
+            const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
+            if (!owner) {
+                owner = "Unknown";
+            }
+            Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
+
+            const char* group = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_GROUP);
+            if (!group) {
+                group = "Unknown";
+            }
+            Nan::Set(fileObj, Nan::New("group").ToLocalChecked(), Nan::New(group).ToLocalChecked());
+
+            gint32 permissions;
+            permissions = g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_UNIX_MODE);
+            // permissions & (S_IRWXU | S_IRWXG | S_IRWXO);
+            Nan::Set(fileObj, Nan::New("permissions").ToLocalChecked(), Nan::New<v8::Int32>(permissions));
+
+            // Check if execution bit is set
+            gboolean is_execute = g_file_info_get_attribute_boolean(file_info,
+                                                                     G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE);
+            Nan::Set(fileObj, Nan::New("is_execute").ToLocalChecked(), Nan::New<v8::Boolean>(is_execute));
+
+            // // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
+            // // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
             if (mimetype != nullptr) {
                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
             } else {
@@ -573,7 +605,7 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             gboolean is_symlink = g_file_info_get_is_symlink(file_info);
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
-
+            // const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -583,6 +615,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
+            // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
 
             const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
             if (thumbnail_path != nullptr) {
@@ -1110,33 +1143,37 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
-        GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-        GFileType type = g_file_info_get_file_type(file_info);
+        // GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+        // if (file_info) {
 
-        // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
-        //     cout << "found symlink" << endl;
-        //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
-        //     if (symlink_target) {
-        //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
-        //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
-        //         g_object_unref(destination_symlink);
-        //         g_object_unref(file_info);
-        //     }
-        // } else {
+            // This crashes in android ////////////////
+            // GFileType type = g_file_info_get_file_type(file_info);
+            // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
+            //     cout << "found symlink" << endl;
+            //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
+            //     if (symlink_target) {
+            //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
+            //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
+            //         g_object_unref(destination_symlink);
+            //         g_object_unref(file_info);
+            //     }
+            // } else {
+
+            // }
+
+            GError* error = NULL;
+            gboolean res;
+            // res = g_file_make_directory(src, NULL, &error);
+            res = g_file_make_directory_with_parents(src, NULL, &error);
+            g_object_unref(src);
+
+            if (res == FALSE) {
+                // g_error_free(error);
+                return Nan::ThrowError(error->message);
+            }
 
         // }
-
-        GError* error = NULL;
-        // gboolean res = g_file_make_directory(src, NULL, &error);
-        gboolean res = g_file_make_directory_with_parents(src, NULL, &error);
-
-        g_object_unref(src);
-
-        if (res == FALSE) {
-            return Nan::ThrowError(error->message);
-        }
-
-        info.GetReturnValue().Set(Nan::True());
+        // info.GetReturnValue().Set(Nan::True());
 
     }
 

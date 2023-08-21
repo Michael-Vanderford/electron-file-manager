@@ -296,6 +296,14 @@ th {
     box-sizing: border-box;
 }
 
+.tab-container {
+    border: 1px solid var(--border);
+    width: 90%;
+    /* background: var(--sidebar); */
+    /* width: 500px; */
+    /* height: 100%; */
+}
+
 .tab {
     height:21px;
     border-radius: 5px 5px 0px 0px;
@@ -341,6 +349,44 @@ th {
     padding-left: 5px;
     padding-right: 5px;
     padding-bottom: 50px;
+}
+
+/* Properties Tab */
+.tab-header {
+    /* padding-right: 10px; */
+    background: var(--tabs);
+    height: 23px;
+    top: 0;
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    display: inline-block;
+    z-index: 1000;
+    box-sizing: border-box;
+    line-height: 18px;
+}
+
+.properties-tab {
+    padding-left: 10px;
+    padding-right: 10px;
+    height:21px;
+    border-radius: 5px 5px 0px 0px;
+    background: var(--main);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 1px solid transparent;
+    display: inline-block;
+}
+
+.properties-tab:hover {
+    cursor: pointer;
+}
+
+.properties-tab.active-properties-tab {
+    color: var(--text);
+    border-top: 2px solid var(--blue);
+    border-bottom: none;
+    font-weight: bold;
 }
 
 .active_tab_content {
@@ -716,8 +762,6 @@ input[type=text]:focus {
     user-select: none; */
 }
 
-
-
 .empty_msg {
     display: flex;
     justify-content: center;
@@ -847,6 +891,47 @@ input[type=text]:focus {
     font-weight: bold;
 }
 
+.tab-buttons {
+    list-style: none;
+    padding: 0;
+}
+
+.tab-buttons li {
+    display: inline-block;
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.tab-content {
+    /* border: 1px solid gray; */
+    padding: 10px;
+}
+
+.basic {
+    /* padding-right: 20px; */
+}
+
+.basic .content {
+    line-height: 24px;;
+}
+
+.permissions {
+    padding-top:30px;
+}
+
+.permissions .row {
+    display: table-row;
+}
+
+.permissions .td {
+    display: table-cell;
+    padding: 2px;
+}
+
+.permissions .td:first-child {
+    width: 50px;
+}
+
 /* Mobile */
 @media only screen and (max-width: 768px) {
     .grid {
@@ -895,7 +980,7 @@ input[type=text]:focus {
         --dialog: #262626;
         --text: #C0C0C0;
         --active: #ffffff;
-        --tabs: #2c2c2c;
+        --tabs: #292929;
         --button: #2C3E50;
         --button-active: #1b557c ;
 

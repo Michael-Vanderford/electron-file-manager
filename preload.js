@@ -4,7 +4,7 @@ const mt         = require('mousetrap');
 // const path       = require('path');
 // const fs         = require('fs');
 // const os         = require('os');
-const DragSelect = require('dragselect');
+// const DragSelect = require('dragselect');
 const Chart      = require('chart.js')
 
 // Global Arrays
@@ -23,6 +23,54 @@ if (localStorage.getItem('view') == null) {
     localStorage.setItem('view', view);
 } else {
     view = localStorage.getItem('view');
+}
+
+class TabManager {
+
+    constructor(containerElement) {
+
+        this.tabs = [];
+        this.containerElement = containerElement;
+
+        this.tabHeaderElement = add_div(['tab-header','flex'])
+        this.tabContentElement = add_div(['tab_content']);
+
+        this.containerElement.append(this.tabHeaderElement, this.tabContentElement);
+
+    }
+
+    addTab(label) {
+
+        const tabId = this.tabs.length + 1;
+
+        let tab = add_div(['tab', 'flex']);
+        let tabContent = add_div(['tab-content']);
+        let col1 = add_div(['label']);
+        let col2 = add_div(['tab_close']);
+        let closeBtn = document.createElement('i');
+
+        tab.dataset.tabId = tabId;
+
+        if (tabId === 1) {
+            tab.classList.add('active-tab');
+        }
+
+        col1.innerHTML = label;
+        closeBtn.classList.add('bi', 'bi-x');
+
+        // col2.append(closeBtn);
+        tab.append(col1, col2);
+
+        this.tabHeaderElement.append(tab);
+        this.tabContentElement.append(tabContent);
+
+        this.tabs.push(tabId);
+
+        return tabContent;
+
+    }
+
+
 }
 
 // IPC ///////////////////////////////////////////////////////////////////
@@ -136,9 +184,6 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
         alert('Files exists and there is nothing to merge!')
     }
 
-
-    // merge_arr = []
-
 })
 
 // Get folder count
@@ -195,7 +240,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let sidebar_items = sidebar.querySelectorAll('.item');
     sidebar_items.forEach(item => {
         let sidebar_item = item.querySelector('a');
-        // console.log(sidebar_item.href)
         if (sidebar_item) {
             if (sidebar_item.title === source) {
                 item.classList.add('active')
@@ -433,12 +477,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         e.preventDefault();
         e.stopPropagation();
 
-        for (const f of e.dataTransfer.files) {
-
+        if (e.dataTransfer.files.length > 0) {
+            ipcRenderer.send('main', 1);
+            paste(location.value);
         }
-
-        ipcRenderer.send('main', 1);
-        paste(location.value);
 
     })
 
@@ -607,6 +649,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
                     }
                 }
             }
+            clearHighlight();
         });
 
     })
@@ -788,10 +831,10 @@ ipcRenderer.on('theme_changed', (e) => {
 // Properties
 ipcRenderer.on('properties', (e, properties_arr) => {
 
-    clearViews();
-    let sidebar = document.querySelector('.sidebar');
+    // clearViews();
+    // let sidebar = document.querySelector('.sidebar');
     getProperties(properties_arr, properties_view => {
-        sidebar.append(properties_view);
+    //     // sidebar.append(properties_view);
     })
 })
 
@@ -1025,9 +1068,40 @@ ipcRenderer.on('get_card_gio', (e, file) => {
     if (!exists) {
         let card = getCardGio(file);
         if (file.is_dir) {
+
             folder_grid.prepend(card);
             getFolderCount(file.href);
             getFolderSize(file.href);
+
+            // Edit Mode
+            // let header = card.querySelector('a');
+            // header.classList.add('hidden');
+
+            // let input = card.querySelector('.input');
+            // input.classList.remove('hidden');
+            // input.focus();
+            // input.select();
+
+            // let location = document.querySelector('.location')
+            // let source = `${location.value}/${input.value}`;
+            // input.addEventListener('keydown', (e) => {
+            //     if (e.key === 'Enter') {
+
+            //         let destination = `${location.value}/${input.value}`;
+
+            //         header.innerText = input.value
+            //         header.classList.remove('hidden')
+            //         input.classList.add('hidden')
+
+            //         if (file.is_new_folder) {
+            //             ipcRenderer.send('rename', source, destination);
+            //         }
+
+
+            //     }
+            // })
+
+
         } else {
             file_grid.prepend(card);
         }
@@ -2198,6 +2272,7 @@ function add_tab(href) {
             current_tab_content[i].classList.add('hidden');
         }
     })
+
     tab.classList.add('active-tab');
     tab_content.classList.remove('hidden');
     tab_content.classList.add('active-tab-content');
@@ -2244,61 +2319,6 @@ function add_tab(href) {
             }
         }
     })
-
-    // tab.draggable = true
-    // let draggingTab = null;
-    // let tab_items = document.querySelectorAll('.tab')
-    // tab_items.forEach(tab => {
-
-    //     tab.addEventListener("dragstart", (event) => {
-    //         if (event.target.classList.contains("tab")) {
-    //           draggingTab = event.target;
-    //           event.dataTransfer.setData("text/plain", ""); // Required for Firefox
-    //           event.target.style.opacity = 0.5;
-    //         }
-    //     });
-
-    //     tab.addEventListener("dragend", (event) => {
-    //         if (draggingTab) {
-    //           draggingTab.style.opacity = 1;
-    //           draggingTab = null;
-    //         }
-    //     });
-
-    //     tab.addEventListener("dragover", (event) => {
-    //         event.preventDefault();
-    //         tab.classList.add('highlight')
-    //     });
-
-    //     tab.addEventListener("drop", (event) => {
-    //         event.preventDefault();
-
-    //         if (draggingTab) {
-    //           const targetTab = event.target.closest(".tab");
-    //           if (targetTab) {
-    //             const container = document.querySelector(".tabs");
-    //             const targetIndex = Array.from(container.children).indexOf(targetTab);
-    //             const draggingIndex = Array.from(container.children).indexOf(draggingTab);
-
-    //             if (draggingIndex !== targetIndex) {
-    //               container.insertBefore(draggingTab, targetTab);
-    //             }
-    //           }
-    //         }
-    //     });
-
-    // })
-
-    // tabs.addEventListener('dragover', (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    // })
-
-    // tabs.addEventListener('drop', (e) => {
-    //     e.preventDefault();
-    //     e.stopPropagation();
-    //     // console.log(e.target)
-    // })
 
     return tab_content;
 
@@ -2447,6 +2467,7 @@ function edit() {
                 })
             }
         })
+
     })
 
     // selected_files_arr.forEach(href => {
@@ -2484,113 +2505,368 @@ function edit() {
 
 }
 
+function getMappedPermissions(permissionValue) {
+    const symbolicMap = {
+        0: '---',
+        1: '--x',
+        2: '-w-',
+        3: '-wx',
+        4: 'r--',
+        5: 'Access Files', //r-x
+        6: 'rw-',
+        7: 'Create and Delete Files' //'rwx'
+    };
+    return symbolicMap[permissionValue];
+}
+
+
+function getPermissions(unixMode) {
+
+    // const special = unixMode & 0xF000;
+    const user = (unixMode >> 6) & 0x7;
+    const group = (unixMode >> 3) & 0x7;
+    const other = unixMode & 0x7;
+
+    // let p_arr = []
+    // p_arr.push(user)
+    // p_arr.push(group)
+    // p_arr.push(other)
+
+    // return p_arr;
+
+    return {
+        // special: special.toString(8),
+        owner: user.toString(8),
+        group: group.toString(8),
+        other: other.toString(8)
+    };
+}
+
 // Sidebar Functions /////////////////////////////////////////////////////////////
 
 // Get Properties View
 function getProperties(properties_arr) {
 
-    // console.log('running get properties');
-    clearViews();
-
-    let mb = document.getElementById('mb_info');
-    mb.classList.add('active');
-
-    let sidebar = document.querySelector('.sidebar');
-
-    let properties_view = document.querySelector('.properties_view');
-    if (properties_view) {
-        properties_view.classList.remove('hidden');
+    // Check if properties tab exists
+    let tab_exists = 0;
+    let tabs = document.querySelectorAll('.tab')
+    tabs.forEach(tab => {
+        let label = tab.querySelector('.label')
+        if (label.innerText === 'Properties') {
+            tab_exists = 1;
+            return;
+        }
+    })
+    let content
+    if (tab_exists) {
+        content = document.querySelector('.properties_view')
     } else {
-        properties_view = add_div();
-        properties_view.classList.add('sb_properties', 'sb_view', 'properties_view');
-        sidebar.append(properties_view);
+        content = add_tab('Properties')
     }
 
-    properties_arr.forEach(file => {
+    console.log(content)
 
-        let card = add_div();
-        let content = add_div();
+    // properties_arr.forEach(file => {
 
-        card.dataset.properties_href = file.href;
+        let properties_div = add_div();
+        content.append(properties_div);
 
-        let closebtn = add_div();
-        let closeicon = document.createElement('i');
-        closeicon.classList.add('bi', 'bi-x');
-        closebtn.classList.add('float', 'right', 'pointer');
-        closebtn.append(closeicon);
-        card.append(closebtn);
-        closebtn.addEventListener('click', (e) => {
-            card.remove()
+        ipcRenderer.invoke('path:join', __dirname, 'views/properties.html').then(path => {
+            fetch(path).then(res => {
+                return res.text()
+            }).then(html => {
 
-            let cards = document.querySelectorAll('.properties')
-            if (cards.length === 0) {
-                clearViews()
-                sidebarHome();
-            }
+                // let content = add_tab('Properties')
+                // content.innerHTML = html
+                properties_div.innerHTML = html;
 
+                let properties_view = document.querySelector('.properties_view');
+                let properties_content = document.querySelector('.properties_content');
+                // let basic_content = document.querySelector('.basic');
+                let permissions_container = document.querySelector('.permissions_container');
+                // let permissions_content = document.querySelector('.permissions');
+                // let owner = properties_view.querySelector('owner')
+
+                let tabs = properties_view.querySelectorAll('.properties-tab');
+                let tabs_content = properties_view.querySelectorAll('.properties-tab-content');
+                tabs.forEach((tab, idx) => {
+                    tab.addEventListener('click', (e) => {
+
+                        tabs.forEach((tab, idx1) => {
+
+                            if (idx === idx1) {
+                                tabs[idx1].classList.add('active-properties-tab');
+                                tabs_content[idx1].classList.remove('hidden')
+                            } else {
+                                tabs[idx1].classList.remove('active-properties-tab');
+                                tabs_content[idx1].classList.add('hidden')
+                            }
+
+                        })
+
+                    })
+                })
+
+                properties_arr.forEach(file => {
+
+                    let properties_div = add_div();
+                    let basic_content = add_div();
+                    let permissions_content = add_div();
+
+                    properties_div.classList.add('properties', 'grid2');
+                    basic_content.classList.add('basic');
+                    permissions_content.classList.add('permissions');
+
+                    properties_div.append(basic_content, permissions_content);
+                    properties_content.append(properties_div);
+
+                    // Basic Tab
+                    let card = add_div();
+                    let content = add_div();
+
+                    card.dataset.properties_href = file.href;
+
+                    console.log(file)
+
+                    let close_btn = add_div();
+                    let close_icon = document.createElement('i');
+                    close_icon.classList.add('bi', 'bi-x');
+                    close_btn.classList.add('float', 'right', 'pointer');
+                    close_btn.append(close_icon);
+                    // card.append(close_btn);
+                    close_btn.addEventListener('click', (e) => {
+                        card.remove()
+                        let cards = document.querySelectorAll('.properties')
+                        if (cards.length === 0) {
+                            clearViews()
+                            sidebarHome();
+                        }
+                    })
+
+                    content.classList.add('content');
+                    card.classList.add('properties');
+
+                    let icon = add_div();
+                    icon.classList.add('icon');
+                    card.append(icon);
+
+                    content.append(add_item('Name:'), add_item(file.name));
+
+                    let folder_count = add_div();
+                    folder_count.classList.add('item', 'folder_count');
+
+                    let size = add_div();
+                    size.classList.add('size');
+                    size.append('Calculating..');
+
+                    content.append(add_item('Type:'), add_item(file.content_type));
+                    content.append(add_item(`Contents:`), folder_count);
+
+                    let location = add_item(file.location);
+                    location.title = file.location;
+
+                    content.append(add_item('Location:'), location);
+                    if (file.is_dir) {
+                        folder_count.append('Calculating..');
+                        content.append(add_item('Size:'), add_item(size));
+                    } else {
+                        folder_count.append('1');
+                        content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+                    }
+
+                    content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+                    content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+                    content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+
+                    card.append(content);
+                    //properties_view.append(card);
+                    basic_content.append(card)
+
+                    if (file.is_dir) {
+
+                        icon.append(add_img(folder_icon))
+                        ipcRenderer.send('get_folder_count', file.href);
+                        ipcRenderer.send('get_folder_size', file.href);
+
+                    } else {
+                        ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                            icon.append(add_img(res));
+                        })
+                    }
+
+                    // Permissions Tab
+                    let permissions = getPermissions(file.permissions);
+                    let rows = ['Owner', 'Access', 'Group', 'Access', 'Other', 'Access']
+                    let perm_key;
+
+                    if (!file.is_dir) {
+                        rows.push('Execute')
+                    }
+
+                    for (let i = 0; i < rows.length; i++) {
+
+                        let row = add_div(['flex', 'row']);
+                        for (let ii = 0; ii < 2; ii++) {
+                            let col = add_div();
+                            if (ii == 0) {
+                                col.classList.add('td');
+                                col.append(rows[i]);
+                            } else {
+                                if (i % 2 === 0) {
+                                    perm_key = rows[i].toLowerCase();
+                                    if (file[perm_key]) {
+                                        col.append(file[perm_key]);
+                                    }
+                                } else {
+                                    col.append(getMappedPermissions(permissions[perm_key]));
+                                }
+
+                                if (rows[i] === 'Execute' && !file.is_dir) {
+
+                                    let chk_execute = document.createElement('input');
+                                    let label_execute = document.createElement('label');
+
+                                    label_execute.innerText = ' Allow executing file as program';
+                                    label_execute.htmlFor = 'chk_execute';
+
+                                    chk_execute.id = 'chk_execute';
+                                    chk_execute.type = 'checkbox';
+                                    col.append(chk_execute, label_execute);
+
+                                    if (file.is_execute) {
+                                        chk_execute.checked = true;
+                                    }
+
+                                    chk_execute.addEventListener('click', (e) => {
+                                        if (chk_execute.checked) {
+                                            alert('checked')
+                                        } else {
+
+                                        }
+                                    })
+
+                                }
+                            }
+
+                            row.append(col);
+                        }
+
+                        if (i % 2 === 1) {
+                            row.append(document.createElement('br'));
+                        }
+                        permissions_content.append(row);
+                    }
+
+                })
+
+            }).catch(err => {
+                console.log(err)
+            })
         })
 
-        let tab_container = add_div()
-        let tab_header = add_div()
+    // })
 
-        content.classList.add('content')
-        card.classList.add('properties');
-        // content.classList.add('grid2');
+    // console.log('running get properties');
+    // let active_tab_content = add_tab('Properties');
 
-        let icon = add_div();
-        icon.classList.add('icon');
-        card.append(icon);
+    // let properties_view = document.querySelector('.properties_view');
+    // if (properties_view) {
+    //     properties_view.classList.remove('hidden');
+    // } else {
+    //     properties_view = add_div();
+    //     properties_view.classList.add('sb_properties', 'sb_view', 'properties_view');
+    //     // sidebar.append(properties_view);
+    //     active_tab_content.append(properties_view)
+    // }
 
-        content.append(add_item('Name:'), add_item(file.name));
+    // let tabContainer = add_div(['tab-container'])
+    // let tm = new TabManager(tabContainer);
+    // let t1_contents = tm.addTab('Basic');
+    // let t2_contents = tm.addTab('Permissions');
+    // let t3_contents = tm.addTab('Open With');
 
-        let folder_count = add_div();
-        folder_count.classList.add('item', 'folder_count');
 
-        let size = add_div();
-        size.classList.add('size');
-        size.append('Calculating..');
+    // properties_view.append(document.createElement('br'), tabContainer);
 
-        // let file_count = add_div();
-        // file_count.classList.add('item', 'file_count');
-        // content.append(add_item('Foder Count:'), folder_count);
+    // properties_arr.forEach(file => {
 
-        content.append(add_item('Type:'), add_item(file.content_type));
-        content.append(add_item(`Contents:`), folder_count);
+    //     let card = add_div();
+    //     let content = add_div();
 
-        let location = add_item(file.location)
-        location.title = file.location
+    //     card.dataset.properties_href = file.href;
 
-        content.append(add_item('Location:'), location);
-        if (file.is_dir) {
-            folder_count.append('Calculating..');
-            content.append(add_item('Size:'), add_item(size));
-        } else {
-            folder_count.append('1');
-            content.append(add_item('Size:'), add_item(getFileSize(file.size)));
-        }
-        content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
-        content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
-        content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+    //     let close_btn = add_div();
+    //     let close_icon = document.createElement('i');
+    //     close_icon.classList.add('bi', 'bi-x');
+    //     close_btn.classList.add('float', 'right', 'pointer');
+    //     close_btn.append(close_icon);
+    //     // card.append(close_btn);
+    //     close_btn.addEventListener('click', (e) => {
+    //         card.remove()
 
-        card.append(content);
+    //         let cards = document.querySelectorAll('.properties')
+    //         if (cards.length === 0) {
+    //             clearViews()
+    //             sidebarHome();
+    //         }
 
-        properties_view.append(card);
+    //     })
 
-        if (file.is_dir) {
+    //     content.classList.add('content');
+    //     card.classList.add('properties');
+    //     // content.classList.add('grid2');
 
-            icon.append(add_img(folder_icon))
-            ipcRenderer.send('get_folder_count', file.href);
-            ipcRenderer.send('get_folder_size', file.href);
-        } else {
-            ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                icon.append(add_img(res));
-            })
-        }
+    //     let icon = add_div();
+    //     icon.classList.add('icon');
+    //     card.append(icon);
 
-        // note:
-        // ipcRenderer.send('get_file_count', item.href);
+    //     content.append(add_item('Name:'), add_item(file.name));
 
-    })
+    //     let folder_count = add_div();
+    //     folder_count.classList.add('item', 'folder_count');
+
+    //     let size = add_div();
+    //     size.classList.add('size');
+    //     size.append('Calculating..');
+
+    //     content.append(add_item('Type:'), add_item(file.content_type));
+    //     content.append(add_item(`Contents:`), folder_count);
+
+    //     let location = add_item(file.location);
+    //     location.title = file.location;
+
+    //     content.append(add_item('Location:'), location);
+    //     if (file.is_dir) {
+    //         folder_count.append('Calculating..');
+    //         content.append(add_item('Size:'), add_item(size));
+    //     } else {
+    //         folder_count.append('1');
+    //         content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+    //     }
+    //     content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+    //     content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+    //     content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+
+    //     card.append(content);
+    //     // properties_view.append(card);
+
+    //     t1_contents.append(card)
+
+    //     if (file.is_dir) {
+
+    //         icon.append(add_img(folder_icon))
+    //         ipcRenderer.send('get_folder_count', file.href);
+    //         ipcRenderer.send('get_folder_size', file.href);
+    //     } else {
+    //         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+    //             icon.append(add_img(res));
+    //         })
+    //     }
+
+    //     // note:
+    //     // ipcRenderer.send('get_file_count', item.href);
+
+    // })
 
 }
 
@@ -3397,16 +3673,18 @@ function getCardGio(file) {
         e.preventDefault();
         e.stopPropagation();
 
-        ipcRenderer.send('main', 0)
-        if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
-            if (e.ctrlKey) {
-                paste(file.href);
+        if (e.dataTransfer.files.length > 0) {
+            ipcRenderer.send('main', 0);
+            if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
+                if (e.ctrlKey) {
+                    paste(file.href);
+                } else {
+                    // console.log('moving to', file.href);
+                    move(file.href);
+                }
             } else {
-                // console.log('moving to', file.href);
-                move(file.href);
+                // console.log('did not find target')
             }
-        } else {
-            // console.log('did not find target')
         }
     })
 

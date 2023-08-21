@@ -164,13 +164,25 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'mkdir_done') {
+
         if (is_main && watcher_failed) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+            try {
+                let file = gio.get_file(data.destination);
+                file.is_new_folder = 1;
+                win.send('get_card_gio', file);
+            } catch (err) {
+                console.log(err);
+            }
+
         } else if (!is_main && watcher_failed) {
-            let href = path.dirname(data.destination)
-            let file = gio.get_file(href)
-            win.send('replace_card', href, file);
+            try {
+                let href = path.dirname(data.destination)
+                let file = gio.get_file(href)
+                win.send('replace_card', href, file);
+            } catch (err) {
+                console.log(err);
+            }
+
         }
     }
 
@@ -587,11 +599,15 @@ function get_files(source, tab) {
                     win.send('remove_card', watcher.filename);
                 }
                 if (watcher.event === 'created') {
-                    let file = gio.get_file(watcher.filename);
-                    win.send('get_card_gio', file);
-                    if (file.is_dir) {
-                        win.send('get_folder_count', filename);
-                        win.send('get_folder_size', filename);
+                    try {
+                        let file = gio.get_file(watcher.filename);
+                        win.send('get_card_gio', file);
+                        if (file.is_dir) {
+                            win.send('get_folder_count', watcher.filename);
+                            win.send('get_folder_size', watcher.filename);
+                        }
+                    } catch (err) {
+                        console.log(err)
                     }
                 }
                 get_disk_space(source);
@@ -692,7 +708,11 @@ ipcMain.handle('nav_item', (e, dir) => {
 // New Folder
 ipcMain.on('new_folder', (e, destination) => {
     let folder_path = `${path.format({dir: destination, base: 'New Folder'})}`
-    gio.mkdir(folder_path)
+    try{
+        gio.mkdir(folder_path)
+    } catch (err) {
+        console.log(err)
+    }
     // win.send('get_card_gio', folder_path);
 })
 

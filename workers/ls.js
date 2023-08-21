@@ -7,22 +7,26 @@ const gio           = require('../gio/build/Release/obj.target/gio')
 parentPort.on('message', data => {
     // List Files
     if (data.cmd === 'ls') {
-        
-        if (gio.exists(data.source)) {
-            try {
-                gio.ls(data.source, (err, dirents) => {
-                    if (err) {
-                        parentPort.postMessage({cmd: 'ls_err', err: err});
-                        return;
-                    }
-                    parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
-                })
-            } catch (err) {
-                parentPort.postMessage({cmd: 'ls_err', err: err.message});
+        try {
+            if (gio.exists(data.source)) {
+                try {
+                    gio.ls(data.source, (err, dirents) => {
+                        if (err) {
+                            parentPort.postMessage({cmd: 'ls_err', err: err});
+                            return;
+                        }
+                        parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
+                    })
+                } catch (err) {
+                    parentPort.postMessage({cmd: 'ls_err', err: err.message});
+                }
+            } else {
+                parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
             }
-        } else {
-            parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
+        } catch (err) {
+            console.log(err)
         }
+
     }
 
 })
