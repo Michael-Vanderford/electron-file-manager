@@ -110,6 +110,8 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
 
             merge_arr.forEach(item => {
 
+                console.log('item', item)
+
                 const row = table.insertRow();
 
                 const dest_cell = row.insertCell(0);
@@ -122,13 +124,18 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
                     let dest_div = add_div(['flex'])
 
                     let img = document.createElement('img');
-                    img.classList.add('icon', 'icon16');
+                    img.classList.add('icon', 'icon24');
                     img.src = icon;
+
+                    if (item.content_type.indexOf('image/') > -1) {
+                        img.src = item.source;
+                    }
 
                     let href = document.createElement('a');
                     href.preventDefault = true;
                     href.href = "#"
                     href.text = item.destination
+                    href.classList.add('item')
 
                     dest_div.append(img, href);
 
@@ -540,6 +547,11 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
 
     });
+
+    // active_tab_content.addEventListener('mouseover', (e) => {
+    //     console.log('what')
+    //     main.focus()
+    // })
 
     let allowClick = 1;
     document.addEventListener('mousemove', (e) => {
@@ -1054,6 +1066,11 @@ ipcRenderer.on('get_card_gio', (e, file) => {
     let active_tab_content = document.querySelector('.active-tab-content');
     let folder_grid = active_tab_content.querySelector('.folder_grid');
     let file_grid = active_tab_content.querySelector('.file_grid');
+    let empty_msg =  document.querySelector('.empty_msg');
+
+    if (empty_msg) {
+        empty_msg.classList.add('hidden');
+    }
 
     // Check if card already exists
     let exists = 0;
@@ -2174,7 +2191,7 @@ function toggleHidden() {
 // Clear Items
 function clear() {
 
-    // console.log('running clear');
+    console.log('running clear');
     clearHighlight();
     msg('');
 
@@ -3673,7 +3690,7 @@ function getCardGio(file) {
         e.preventDefault();
         e.stopPropagation();
 
-        if (e.dataTransfer.files.length > 0) {
+        // if (e.dataTransfer.files.length > 0) {
             ipcRenderer.send('main', 0);
             if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
                 if (e.ctrlKey) {
@@ -3685,7 +3702,7 @@ function getCardGio(file) {
             } else {
                 // console.log('did not find target')
             }
-        }
+        // }
     })
 
     mtime.append(getDateTime(file.mtime));

@@ -84,7 +84,7 @@ namespace gio {
 
     }
 
-        NAN_METHOD(clear_execute) {
+    NAN_METHOD(clear_execute) {
 
         if (info.Length() < 1) {
             Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");

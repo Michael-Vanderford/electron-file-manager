@@ -48,6 +48,15 @@ parentPort.on('message', data => {
                 let src_file = gio.get_file(item.source);
                 let dest_file = gio.get_file(item.destination);
 
+                let merge_obj = {
+                    source: '',
+                    destination: '',
+                    source_date: '',
+                    destination_date: '',
+                    action: '',
+                    id_dir: 0,
+                    content_type: ''
+                }
 
                 if (src_file.is_dir) {
 
@@ -61,17 +70,20 @@ parentPort.on('message', data => {
                             let src = gio.get_file(f.source);
                             let dest = ''; // gio.get_file(f.destination);
 
-                            let merge_obj = {
-                                source: '',
-                                destination: '',
-                                source_date: '',
-                                destination_date: '',
-                                action: '',
-                                id_dir: 1
-                            }
+                            // let merge_obj = {
+                            //     source: '',
+                            //     destination: '',
+                            //     source_date: '',
+                            //     destination_date: '',
+                            //     action: '',
+                            //     id_dir: 1,
+                            //     content_type: ''
+                            // }
 
                             merge_obj.source = src.href;
                             merge_obj.source_date = src.mtime;
+                            merge_obj.is_dir = 1;
+                            merge_obj.content_type = src_file.content_type;
 
 
                             if (gio.exists(f.destination)) {
@@ -109,14 +121,14 @@ parentPort.on('message', data => {
 
                 } else {
 
-                    let merge_obj = {
-                        source: '',
-                        destination: '',
-                        source_date: '',
-                        destination_date: '',
-                        action: '',
-                        id_dir: 0
-                    }
+                    // let merge_obj = {
+                    //     source: '',
+                    //     destination: '',
+                    //     source_date: '',
+                    //     destination_date: '',
+                    //     action: '',
+                    //     id_dir: 0
+                    // }
 
                     if (src_file.mtime > dest_file.mtime) {
                         merge_obj.action = 1;
@@ -130,6 +142,8 @@ parentPort.on('message', data => {
                     merge_obj.destination = item.destination;
                     merge_obj.source_date = src_file.mtime
                     merge_obj.destination_date = src_file.mtime
+                    merge_obj.is_dir = 0;
+                    merge_obj.content_type = src_file.content_type;
 
                     merge_arr.push(merge_obj);
 

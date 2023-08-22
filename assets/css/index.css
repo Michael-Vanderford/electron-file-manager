@@ -489,6 +489,7 @@ progress::-webkit-progress-bar {
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
     width: 48px;
     height: 48px;
+    padding-right: 5px;
 }
 
 .symlink {
@@ -981,7 +982,7 @@ input[type=text]:focus {
         --text: #C0C0C0;
         --active: #ffffff;
         --tabs: #292929;
-        --button: #2C3E50;
+        --button: #484848;
         --button-active: #1b557c ;
 
         --svg: rgba(155, 155, 155, 0.7);
