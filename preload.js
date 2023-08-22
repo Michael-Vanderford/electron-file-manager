@@ -124,7 +124,7 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
                     let dest_div = add_div(['flex'])
 
                     let img = document.createElement('img');
-                    img.classList.add('icon', 'icon24');
+                    img.classList.add('icon', 'icon16');
                     img.src = icon;
 
                     if (item.content_type.indexOf('image/') > -1) {
