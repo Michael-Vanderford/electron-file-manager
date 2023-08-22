@@ -2739,9 +2739,9 @@ function getProperties(properties_arr) {
 
                                     chk_execute.addEventListener('click', (e) => {
                                         if (chk_execute.checked) {
-                                            alert('checked')
+                                            ipcRenderer.send('set_execute', file.href);
                                         } else {
-
+                                            ipcRenderer.send('clear_execute', file.href);
                                         }
                                     })
 

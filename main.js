@@ -650,6 +650,14 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+ipcMain.on('set_execute', (e, href) => {
+    gio.set_execute(href);
+})
+
+ipcMain.on('clear_execute', (e, href) => {
+    gio.clear_execute(href);
+})
+
 // Get templates path
 ipcMain.handle('get_templates_folder', (e) => {
     return path.join(home, 'Templates');

@@ -27,6 +27,120 @@ namespace gio {
     using v8::String;
     using v8::Value;
 
+    NAN_METHOD(set_execute) {
+
+        if (info.Length() < 1) {
+            Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
+            return;
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Isolate* isolate = info.GetIsolate();
+
+        // Get the current context from the execution context
+        v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+        GFile* src = g_file_new_for_path(*sourceFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+
+        // Get the GFileInfo for the file
+        GFileInfo* file_info = g_file_query_info(src,
+                                                 "*",
+                                                 G_FILE_QUERY_INFO_NONE,
+                                                 NULL,
+                                                 NULL);
+
+        if (file_info) {
+
+            guint32 permissions;
+            permissions = g_file_info_get_attribute_uint32(file_info,
+                                                            G_FILE_ATTRIBUTE_UNIX_MODE);
+
+            // Add the execute bit to the permissions
+            permissions |= S_IXUSR | S_IXGRP | S_IXOTH;
+
+            // Set the modified permissions back to the file
+            g_file_set_attribute (src,
+                                G_FILE_ATTRIBUTE_UNIX_MODE,
+                                G_FILE_ATTRIBUTE_TYPE_UINT32,
+                                &permissions,
+                                G_FILE_QUERY_INFO_NONE,
+                                NULL,
+                                NULL);
+
+
+            // Release the GFileInfo
+            g_object_unref(file_info);
+        }
+
+        // Release the GFile
+        g_object_unref(src);
+
+    }
+
+        NAN_METHOD(clear_execute) {
+
+        if (info.Length() < 1) {
+            Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
+            return;
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Isolate* isolate = info.GetIsolate();
+
+        // Get the current context from the execution context
+        v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+        GFile* src = g_file_new_for_path(*sourceFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+
+        // Get the GFileInfo for the file
+        GFileInfo* file_info = g_file_query_info(src,
+                                                 "*",
+                                                 G_FILE_QUERY_INFO_NONE,
+                                                 NULL,
+                                                 NULL);
+
+        if (file_info) {
+
+            guint32 permissions;
+            permissions = g_file_info_get_attribute_uint32(file_info,
+                                                            G_FILE_ATTRIBUTE_UNIX_MODE);
+
+            // Add the execute bit to the permissions
+            permissions &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
+
+            // Set the modified permissions back to the file
+            g_file_set_attribute (src,
+                                G_FILE_ATTRIBUTE_UNIX_MODE,
+                                G_FILE_ATTRIBUTE_TYPE_UINT32,
+                                &permissions,
+                                G_FILE_QUERY_INFO_NONE,
+                                NULL,
+                                NULL);
+
+
+            // Release the GFileInfo
+            g_object_unref(file_info);
+        }
+
+        // Release the GFile
+        g_object_unref(src);
+
+    }
+
     NAN_METHOD(thumbnail) {
 
         if (info.Length() < 2) {
@@ -1227,6 +1341,8 @@ namespace gio {
     NAN_MODULE_INIT(init) {
         // Nan::Export(target, "get_thumbnail", get_thumbnail);
         // Nan::Export(target, "umount", umount);
+        Nan::Export(target, "set_execute", set_execute);
+        Nan::Export(target, "clear_execute", clear_execute);
         Nan::Export(target, "cpdir", cpdir);
         Nan::Export(target, "thumbnail", thumbnail);
         Nan::Export(target, "open_with", open_with);
