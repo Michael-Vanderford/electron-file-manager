@@ -110,7 +110,7 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
 
             merge_arr.forEach(item => {
 
-                console.log('item', item)
+                // console.log('item', item)
 
                 const row = table.insertRow();
 
