@@ -123,6 +123,11 @@ th {
     /* background: var(--lessdark) */
 }
 
+.not-writable {
+    opacity: 0.4 !important;
+    /* background: red !important; */
+}
+
 .menubar .active .bi {
     color: var(--orange);
 }
@@ -990,6 +995,8 @@ input[type=text]:focus {
         --link: #4183c4;
         --highlight: #364864;
         --highlight-select: #364864;
+
+        --not-writable: #cfcfcf;
 
         --black: #000000;
         --white: #FFFFFF;

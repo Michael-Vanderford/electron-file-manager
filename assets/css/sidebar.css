@@ -51,7 +51,7 @@
 
 .properties_view {
     /* background: var(--dialog); */
-    border:1px solid var(--border);
+    /* border:1px solid var(--border); */
     border-radius: 5px;
     padding: 10px;
     /* overflow: auto; */

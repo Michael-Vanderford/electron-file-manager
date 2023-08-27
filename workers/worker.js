@@ -33,15 +33,13 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
-    // New merge code
+    // New merge code for copies
     if (data.cmd === 'merge_files') {
 
         let idx = 0;
-        let merge_arr = []
+        let merge_arr = [];
 
         data.copy_arr.forEach(item => {
-
-            // console.log(item)
 
             if (gio.exists(item.destination)) {
 
@@ -70,16 +68,6 @@ parentPort.on('message', data => {
                             let src = gio.get_file(f.source);
                             let dest = ''; // gio.get_file(f.destination);
 
-                            // let merge_obj = {
-                            //     source: '',
-                            //     destination: '',
-                            //     source_date: '',
-                            //     destination_date: '',
-                            //     action: '',
-                            //     id_dir: 1,
-                            //     content_type: ''
-                            // }
-
                             merge_obj.source = src.href;
                             merge_obj.source_date = src.mtime;
                             merge_obj.is_dir = 1;
@@ -100,8 +88,7 @@ parentPort.on('message', data => {
                                     merge_obj.action = 0;
                                     merge_arr.push(merge_obj);
                                 } else if (src.mtime === dest.mtime) {
-                                    // merge_obj.action = 0;
-                                    // merge_arr.push(merge_obj);
+
                                 }
 
                             } else {
@@ -113,22 +100,9 @@ parentPort.on('message', data => {
 
                         }
 
-                        // parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
-                        // merge_arr = []
-
-                        // }
                     })
 
                 } else {
-
-                    // let merge_obj = {
-                    //     source: '',
-                    //     destination: '',
-                    //     source_date: '',
-                    //     destination_date: '',
-                    //     action: '',
-                    //     id_dir: 0
-                    // }
 
                     if (src_file.mtime > dest_file.mtime) {
                         merge_obj.action = 1;
@@ -157,9 +131,7 @@ parentPort.on('message', data => {
         })
 
         parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
-        merge_arr = []
-
-        // console.log(merge_arr);
+        merge_arr = [];
 
     }
 
@@ -364,7 +336,7 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'mv') {
-        let merge_arr = []
+        let merge_arr = [];
         let selected_files_arr = data.selected_items;
         for (let i = 0; i < selected_files_arr.length; i++) {
             try {
@@ -379,12 +351,13 @@ parentPort.on('message', data => {
                     source_date: '',
                     destination_date: '',
                     action: '',
-                    id_dir: 1
+                    id_dir: 1,
+                    content_type: ''
                 }
 
                 merge_obj.source = src.href;
                 merge_obj.source_date = src.mtime;
-
+                merge_obj.content_type = src.content_type;
 
                 if (gio.exists(f.destination)) {
 
@@ -419,7 +392,7 @@ parentPort.on('message', data => {
         }
 
         if (merge_arr.length > 0) {
-            parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
+            parentPort.postMessage({cmd:'merge_files_move', merge_arr: merge_arr});
             merge_arr = []
         }
 

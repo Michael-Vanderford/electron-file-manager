@@ -119,9 +119,15 @@ ls.on('message', (data) => {
 let progress_counter = 0;
 worker.on('message', (data) => {
 
+    if (data.cmd === 'merge_files_move') {
+        const is_move = 1;
+        win.send("merge_files", data.merge_arr, is_move);
+        data.merge_arr = [];
+    }
+
     if (data.cmd === 'merge_files') {
         win.send("merge_files", data.merge_arr);
-        data.merge_arr = []
+        data.merge_arr = [];
     }
 
     if (data.cmd === 'folder_size') {
@@ -901,19 +907,25 @@ ipcMain.handle('basename', (e, source) => {
 ////////////////////////////////////////////////////
 /** */
 
-ipcMain.on('merge_files_confirmed', (e, filter_merge_arr) => {
+ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 
     filter_merge_arr.forEach((item, i) => {
-        if (item.action === 1) {
+        if (item.action === '1') {
             gio.cp(item.source, item.destination, 1);
-        } else if (item.action === 2) {
-
+            if (is_move) {
+                gio.rm(item.source);
+            }
+        } else if (item.action === '2') {
             let destination_dir = path.dirname(item.destination);
             if (!gio.exists(destination_dir)) {
                 gio.mkdir(destination_dir);
             }
             gio.cp(item.source, item.destination, 1);
+            if (is_move) {
+                gio.rm(item.source);
+            }
         }
+
         win.send('set_progress', { value: i + 1, max: filter_merge_arr.length, msg: `Copying ${i + 1} of ${filter_merge_arr.length}`});
         if (i == filter_merge_arr.length - 1) {
             progress_counter = 0;
@@ -1278,9 +1290,6 @@ ipcMain.on('paste', (e, destination) => {
 
             let source = selected_files_arr[i];
             let destination = path.format({dir: location, base: path.basename(selected_files_arr[i])});
-
-            // gio.cpdir(source, destination);
-
             let file = gio.get_file(source)
 
             // Directory
@@ -1330,10 +1339,8 @@ ipcMain.on('paste', (e, destination) => {
                 copy_overwrite_arr = [];
                 selected_files_arr = [];
             }
-
             // Reset variables
             overwrite = 0;
-
         }
 
     } else {
@@ -1353,7 +1360,7 @@ ipcMain.on('move', (e, destination) => {
             }
             copy_arr.push(copy_data);
         }
-        worker.postMessage({ cmd: 'mv', selected_items: copy_arr })
+        worker.postMessage({ cmd: 'mv', selected_items: copy_arr });
         selected_files_arr = [];
         copy_arr = [];
     } else {

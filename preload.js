@@ -1,5 +1,5 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
-const { exec, execSync } = require('child_process');
+// const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
 // const path       = require('path');
 // const fs         = require('fs');
@@ -23,6 +23,17 @@ if (localStorage.getItem('view') == null) {
     localStorage.setItem('view', view);
 } else {
     view = localStorage.getItem('view');
+}
+
+class Utilities {
+    constructor() {
+    }
+
+    move (destination) {
+        ipcRenderer.send('move', destination);
+        clear();
+    }
+    
 }
 
 class TabManager {
@@ -91,7 +102,7 @@ ipcRenderer.on('merge_view', (e, source, destination, copy_merge_arr) => {
     merge(source, destination, copy_merge_arr);
 })
 
-ipcRenderer.on('merge_files', (e, merge_arr) => {
+ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
     if (merge_arr.length > 0) {
 
@@ -179,7 +190,7 @@ ipcRenderer.on('merge_files', (e, merge_arr) => {
 
             btn_merge.addEventListener('click', (e) => {
                 let filter_merge_arr = merge_arr.filter(x => x.action != 0)
-                ipcRenderer.send('merge_files_confirmed', filter_merge_arr);
+                ipcRenderer.send('merge_files_confirmed', filter_merge_arr, is_move);
                 // console.log(filter_merge_arr)
             })
 
@@ -462,6 +473,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
                 file_grid.append(card);
             }
 
+        }
+
+        if (!file.is_writable) {
+            card.classList.add('not-writable')
         }
 
         // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
@@ -2524,13 +2539,13 @@ function edit() {
 
 function getMappedPermissions(permissionValue) {
     const symbolicMap = {
-        0: '---',
+        0: 'None', //'---',
         1: '--x',
         2: '-w-',
         3: '-wx',
-        4: 'r--',
+        4: 'Read-Only', // 'r--',
         5: 'Access Files', //r-x
-        6: 'rw-',
+        6: 'Read and Write', //'rw-',
         7: 'Create and Delete Files' //'rwx'
     };
     return symbolicMap[permissionValue];
@@ -3462,10 +3477,8 @@ function paste(destination) {
 }
 
 function move(destination) {
-
     ipcRenderer.send('move', destination);
     selected_files_arr = [];
-
 }
 
 // Get Folder Count
@@ -3690,19 +3703,19 @@ function getCardGio(file) {
         e.preventDefault();
         e.stopPropagation();
 
-        // if (e.dataTransfer.files.length > 0) {
-            ipcRenderer.send('main', 0);
-            if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
-                if (e.ctrlKey) {
-                    paste(file.href);
-                } else {
-                    // console.log('moving to', file.href);
-                    move(file.href);
-                }
+        let utils = new Utilities();
+        ipcRenderer.send('main', 0);
+        if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
+            if (e.ctrlKey) {
+                paste(file.href);
             } else {
-                // console.log('did not find target')
+                // console.log('moving to', file.href);
+                utils.move(file.href);
             }
-        // }
+        } else {
+            // console.log('did not find target')
+        }
+
     })
 
     mtime.append(getDateTime(file.mtime));
@@ -4009,6 +4022,8 @@ function clearViews() {
 window.addEventListener('DOMContentLoaded', (e) => {
 
     try {
+
+        let utils = new Utilities();
 
         // Primary Controls
         let location = document.querySelector('.location');
@@ -4382,7 +4397,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
                     ipcRenderer.send('main', 1);
                     if (cut_flag) {
-                        move(location.value);
+                        utils.move(location.value);
                     } else {
                         paste(location.value);
                     }
