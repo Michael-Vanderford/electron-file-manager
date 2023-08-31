@@ -46,16 +46,6 @@ parentPort.on('message', data => {
                 let src_file = gio.get_file(item.source);
                 let dest_file = gio.get_file(item.destination);
 
-                let merge_obj = {
-                    source: '',
-                    destination: '',
-                    source_date: '',
-                    destination_date: '',
-                    action: '',
-                    id_dir: 0,
-                    content_type: ''
-                }
-
                 if (src_file.is_dir) {
 
                     get_files_arr(item.source, item.destination, dirents => {
@@ -67,6 +57,16 @@ parentPort.on('message', data => {
                             let f = files[i]
                             let src = gio.get_file(f.source);
                             let dest = ''; // gio.get_file(f.destination);
+
+                            let merge_obj = {
+                                source: '',
+                                destination: '',
+                                source_date: '',
+                                destination_date: '',
+                                action: '',
+                                id_dir: 0,
+                                content_type: ''
+                            }
 
                             merge_obj.source = src.href;
                             merge_obj.source_date = src.mtime;
@@ -103,6 +103,16 @@ parentPort.on('message', data => {
                     })
 
                 } else {
+
+                    let merge_obj = {
+                        source: '',
+                        destination: '',
+                        source_date: '',
+                        destination_date: '',
+                        action: '',
+                        id_dir: 0,
+                        content_type: ''
+                    }
 
                     if (src_file.mtime > dest_file.mtime) {
                         merge_obj.action = 1;

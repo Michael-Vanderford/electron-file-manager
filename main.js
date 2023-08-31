@@ -910,12 +910,12 @@ ipcMain.handle('basename', (e, source) => {
 ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 
     filter_merge_arr.forEach((item, i) => {
-        if (item.action === '1') {
+        if (item.action === 1) {
             gio.cp(item.source, item.destination, 1);
             if (is_move) {
                 gio.rm(item.source);
             }
-        } else if (item.action === '2') {
+        } else if (item.action === 2) {
             let destination_dir = path.dirname(item.destination);
             if (!gio.exists(destination_dir)) {
                 gio.mkdir(destination_dir);

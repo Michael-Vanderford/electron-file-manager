@@ -1,5 +1,5 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
-// const { exec, execSync } = require('child_process');
+const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
 // const path       = require('path');
 // const fs         = require('fs');
@@ -16,7 +16,7 @@ let sort = 'date_desc';
 let folder_icon;
 let symlink_icon;
 let thumbnail_dir;
-let isDragging = 0;
+let is_dragging_tab = false;
 
 let view = 'grid';
 if (localStorage.getItem('view') == null) {
@@ -33,56 +33,184 @@ class Utilities {
         ipcRenderer.send('move', destination);
         clear();
     }
-    
+
+    getIcon (href) {
+
+    }
+
 }
 
 class TabManager {
 
-    constructor(containerElement) {
+    constructor() {
 
+        this.main = document.querySelector('.main')
+        this.id = 0;
         this.tabs = [];
-        this.containerElement = containerElement;
-
-        this.tabHeaderElement = add_div(['tab-header','flex'])
-        this.tabContentElement = add_div(['tab_content']);
-
-        this.containerElement.append(this.tabHeaderElement, this.tabContentElement);
+        this.tabHeader = document.querySelector('.tab-header'); //add_div(['tab-header','flex']);
+        this.tabHeader.classList.add('flex')
+        this.main.append(this.tabHeader);
 
     }
 
-    addTab(label) {
+    addTab (label) {
 
-        const tabId = this.tabs.length + 1;
+        console.log('adding new tab');
+        ++this.id;
 
         let tab = add_div(['tab', 'flex']);
-        let tabContent = add_div(['tab-content']);
+        let tab_content = add_div(['tab-content']);
         let col1 = add_div(['label']);
         let col2 = add_div(['tab_close']);
-        let closeBtn = document.createElement('i');
+        let btn_close = document.createElement('i');
 
-        tab.dataset.tabId = tabId;
+        tab.dataset.id = this.id;
+        tab_content.dataset.id = this.id;
 
-        if (tabId === 1) {
-            tab.classList.add('active-tab');
-        }
+        tab.draggable = true;
 
         col1.innerHTML = label;
-        closeBtn.classList.add('bi', 'bi-x');
+        btn_close.classList.add('bi', 'bi-x');
 
-        // col2.append(closeBtn);
+        col2.append(btn_close);
         tab.append(col1, col2);
 
-        this.tabHeaderElement.append(tab);
-        this.tabContentElement.append(tabContent);
+        this.tabHeader.append(tab);
 
-        this.tabs.push(tabId);
+        this.tabs.push(this.id);
+        this.main.append(tab_content)
 
-        return tabContent;
+        this.clearActiveTabs();
+        tab.classList.add('active-tab');
+        tab_content.classList.add('active-tab-content');
+        tab_content.classList.remove('hidden');
+
+        // Close Tab
+        btn_close.addEventListener('click', (e) => {
+            e.stopPropagation()
+            let current_tabs = document.querySelectorAll('.tab')
+            let current_tab_content = document.querySelectorAll('.tab-content');
+            let active_tab = document.querySelector('.active-tab');
+            if (active_tab === tab) {
+
+                if (current_tabs.length > 0) {
+
+                    let tabs = document.querySelectorAll('.tab')
+                    let idx = Array.from(tabs).indexOf(tab) - 1
+
+                    if (idx >= 0) {
+
+                        tab.remove();
+                        tab_content.remove();
+
+                        current_tabs[idx].classList.add('active-tab');
+                        current_tab_content[idx].classList.add('active-tab-content');
+                        current_tab_content[idx].classList.remove('hidden');
+                        location.value = current_tabs[idx].dataset.href;
+
+                    }
+
+                }
+
+            } else {
+                if (current_tabs.length > 0) {
+                    tab.remove();
+                    tab_content.remove();
+                }
+            }
+
+        })
+
+        // Switch Tabs
+        tab.addEventListener('click', (e) => {
+            this.clearActiveTabs();
+            tab.classList.add('active-tab');
+            tab_content.classList.add('active-tab-content');
+            tab_content.classList.remove('hidden');
+        })
+
+        let tabs = document.querySelectorAll('.tab');
+
+        // Handle Tab Dragging ////////////////////////////
+        const selectionRectangle = document.getElementById('selection-rectangle');
+        let draggingTab = null;
+        tabs.forEach(tab => {
+
+            // Drag Start
+            tab.addEventListener("dragstart", (e) => {
+                e.stopPropagation();
+                is_dragging_tab = true;
+                if (e.target.classList.contains("tab")) {
+                    draggingTab = e.target;
+                    e.target.style.opacity = 0.5;
+                }
+            });
+
+            // Drag End
+            tab.addEventListener("dragend", (e) => {
+                if (draggingTab) {
+                    draggingTab.style.opacity = 1;
+                    draggingTab = null;
+                }
+            });
+
+            tab.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                tab.classList.add('highlight')
+            });
+
+            tab.addEventListener('dragleave', (e) => {
+                if (e.target.classList.contains('highlight')) {
+                    e.target.classList.remove('highlight');
+                }
+            })
+
+            tab.addEventListener("drop", (e) => {
+                e.preventDefault();
+                selectionRectangle.style.display = 'none';
+
+                if (draggingTab) {
+                    const targetTab = e.target.closest(".tab");
+                    if (targetTab) {
+                        const container = document.querySelector(".tab-header");
+                        const targetIndex = Array.from(container.children).indexOf(targetTab);
+                        const draggingIndex = Array.from(container.children).indexOf(draggingTab);
+
+                        if (draggingIndex !== targetIndex) {
+                            container.insertBefore(draggingTab, targetTab);
+                        }
+                    }
+                }
+                clearHighlight();
+            });
+
+        })
 
     }
 
+    // Add Tab Content
+    addTabContent (html) {
+        let active_tab_content = document.querySelector('.active-tab-content')
+        active_tab_content.innerHTML = html
+    }
+
+    // Clear Active Tab
+    clearActiveTabs () {
+        let tabs = this.tabHeader.querySelectorAll('.tab');
+        let tab_content = document.querySelectorAll('.tab-content');
+        tabs.forEach((tab, i) => {
+            tab.classList.remove('active-tab')
+            tab_content[i].classList.remove('active-tab-content')
+            tab_content[i].classList.add('hidden');
+        })
+    }
 
 }
+
+let tm = null;
+window.addEventListener('DOMContentLoaded', (e) => {
+    tm = new TabManager();
+})
 
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
@@ -104,6 +232,8 @@ ipcRenderer.on('merge_view', (e, source, destination, copy_merge_arr) => {
 
 ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
+    console.log('merge arr', merge_arr)
+
     if (merge_arr.length > 0) {
 
         const url = './views/merge.html';
@@ -111,13 +241,19 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
             return res.text();
         }).then(data => {
 
-            const main = document.querySelector('.main');
-            let tab_content = add_tab('Merge');
-            let active_tab = document.querySelector('.active-tab');
-            tab_content.innerHTML = data
+            // let tm = new TabManager();
+            // tm.addTabContent(data)
+            tm.addTab('Merge');
+            let active_content = document.querySelector('.active-tab-content');
+            active_content.innerHTML = data;
 
-            const table = document.querySelector('.destination_table');
-            const btn_merge = document.querySelector('.btn_merge');
+            // const main = document.querySelector('.main');
+            // let tab_content = add_tab('Merge');
+            // let active_tab = document.querySelector('.active-tab');
+            // tab_content.innerHTML = data
+
+            const table = active_content.querySelector('.destination_table');
+            const btn_merge = active_content.querySelector('.btn_merge');
 
             merge_arr.forEach(item => {
 
@@ -268,12 +404,15 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     // Add new tab if tab = 1
+    // let tm = new TabManager();
     if (tab) {
-        tab_content = add_tab(source);
+        tm.addTab(source);
+        // tab_content = add_tab(source);
     }
 
     if (tabs.length === 0) {
-        add_tab(source);
+        tm.addTab(source);
+        // add_tab(source);
     }
 
     let active_tab = document.querySelector('.active-tab');
@@ -348,7 +487,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     hidden_file_grid.draggable = false;
     folder_grid.draggable = false;
     hidden_folder_grid.draggable = false;
-    // hidden_folder_grid.style = "border: 1px solid red;"
 
     location.value = source;
     ipcRenderer.invoke('basename', location.value).then(basename => {
@@ -493,6 +631,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     main.addEventListener('dragover', (e) => {
         e.preventDefault();
+        e.stopPropagation();
     })
 
     main.addEventListener('drop', (e) => {
@@ -541,10 +680,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Drag Select for cards
     const cards = document.querySelectorAll('.card');
     main.addEventListener('mousedown', (e) => {
-
-        // console.log('running')
-
-        if (e.button === 2) {
+        if (e.button === 2 || is_dragging_tab) {
+            is_dragging_tab = false;
             return;
         }
 
@@ -560,18 +697,14 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
         cards.forEach(item => item.classList.remove('selected'));
 
-
     });
-
-    // active_tab_content.addEventListener('mouseover', (e) => {
-    //     console.log('what')
-    //     main.focus()
-    // })
 
     let allowClick = 1;
     document.addEventListener('mousemove', (e) => {
 
-        if (!isSelecting) return;
+        if (!isSelecting || is_dragging_tab) {
+            return;
+        }
 
         endPosX = e.clientX;
         endPosY = e.clientY;
@@ -633,53 +766,44 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     // Drag and drop for tabs
-    let draggingTab = null;
-    let tab_items = document.querySelectorAll('.tab')
-    tab_items.forEach(tab => {
-
-        tab.draggable = true
-
-        tab.addEventListener("dragstart", (e) => {
-            if (e.target.classList.contains("tab")) {
-                draggingTab = e.target;
-                e.target.style.opacity = 0.5;
-            }
-        });
-
-        tab.addEventListener("dragend", (e) => {
-            if (draggingTab) {
-                draggingTab.style.opacity = 1;
-                draggingTab = null;
-            }
-        });
-
-        tab.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            tab.classList.add('highlight')
-        });
-
-        tab.addEventListener("drop", (e) => {
-            e.preventDefault();
-
-            isSelecting = false;
-            selectionRectangle.style.display = 'none';
-
-            if (draggingTab) {
-                const targetTab = e.target.closest(".tab");
-                if (targetTab) {
-                    const container = document.querySelector(".tabs");
-                    const targetIndex = Array.from(container.children).indexOf(targetTab);
-                    const draggingIndex = Array.from(container.children).indexOf(draggingTab);
-
-                    if (draggingIndex !== targetIndex) {
-                        container.insertBefore(draggingTab, targetTab);
-                    }
-                }
-            }
-            clearHighlight();
-        });
-
-    })
+    // let draggingTab = null;
+    // let tab_items = document.querySelectorAll('.tab')
+    // tab_items.forEach(tab => {
+    //     tab.draggable = true
+    //     tab.addEventListener("dragstart", (e) => {
+    //         if (e.target.classList.contains("tab")) {
+    //             draggingTab = e.target;
+    //             e.target.style.opacity = 0.5;
+    //         }
+    //     });
+    //     tab.addEventListener("dragend", (e) => {
+    //         if (draggingTab) {
+    //             draggingTab.style.opacity = 1;
+    //             draggingTab = null;
+    //         }
+    //     });
+    //     tab.addEventListener("dragover", (e) => {
+    //         e.preventDefault();
+    //         tab.classList.add('highlight')
+    //     });
+    //     tab.addEventListener("drop", (e) => {
+    //         e.preventDefault();
+    //         isSelecting = false;
+    //         selectionRectangle.style.display = 'none';
+    //         if (draggingTab) {
+    //             const targetTab = e.target.closest(".tab");
+    //             if (targetTab) {
+    //                 const container = document.querySelector(".tabs");
+    //                 const targetIndex = Array.from(container.children).indexOf(targetTab);
+    //                 const draggingIndex = Array.from(container.children).indexOf(draggingTab);
+    //                 if (draggingIndex !== targetIndex) {
+    //                     container.insertBefore(draggingTab, targetTab);
+    //                 }
+    //             }
+    //         }
+    //         clearHighlight();
+    //     });
+    // })
 
 })
 
@@ -727,7 +851,10 @@ ipcRenderer.on('search_results', (e, find_arr) => {
     let file_grid = add_div(['file_grid']);
     let hidden_file_grid = add_div(['hidden_file_grid']);
 
-    let tab_content = add_tab('Search Results');
+    // let tab_content = add_tab('Search Results');
+    // tab_content.append(folder_grid, file_grid);
+    tm.addTab('Search Results');
+    let tab_content = document.querySelector('.active-tab-content');
     tab_content.append(folder_grid, file_grid);
 
     find_arr.forEach(file => {
@@ -1456,14 +1583,16 @@ async function get_disk_summary_view(callback) {
     let main = document.querySelector('.main')
     // main.innerHTML = ''
 
-    let tab_content = add_tab('Disk Usage')
+    // let tab_content = add_tab('Disk Usage')
+    tm.addTab('Disk Usage');
+    let tab_content = document.querySelector('.active-tab-content');
 
     // ADD ARRAY
     let chart_labels = []
     let labels = []
 
     // INFO VIEW
-    let view = add_div(['info_view']) //document.getElementById('info_view')
+    let view = add_div(['info_view']); //document.getElementById('info_view')
     view.innerHTML = ''
     // view.style = 'background: white;'
 
@@ -1627,9 +1756,10 @@ async function get_disk_summary_view(callback) {
     // main.innerHTML = ''
     // main.append(view)
     tab_content.append(view);
-    main.append(tab_content);
-
+    // main.append(tab_content);
     // return callback(view)
+
+
 
 }
 
@@ -2244,117 +2374,91 @@ function add_div(classlist = []) {
 }
 
 // Add Tab
-let tab_id = 0
-function add_tab(href) {
+// let tab_id = 0
+// function add_tab(href) {
+//     ++tab_id;
+//     let main = document.querySelector('.main');
+//     let location = document.querySelector('.location');
+//     let tab_content = add_div(['tab_content']); //document.querySelector('.tab_content');
+//     let tab = add_div(['tab']);
+//     let tab_container = add_div(['tab_container','flex'])
+//     let col1 = add_div(['label']);
+//     let col2 = add_div(['tab_close']);
+//     let close_btn = document.createElement('i')
+//     close_btn.classList.add('bi', 'bi-x')
+//     tab_container.append(col1, col2);
+//     let tabs = document.querySelector('.tabs');
+//     if (!tabs) {
+//         tabs = add_div(['tabs', 'sticky']);
+//         main.append(tabs);
+//     }
+//     tab.dataset.href = href;
+//     tab.dataset.id = tab_id;
+//     tab.title = href;
+//     let current_tab_content = document.querySelectorAll('.tab_content');
+//     let current_tabs = tabs.querySelectorAll('.tab');
+//     col2.append(close_btn);
+//     // Handle tab switching
+//     tab.addEventListener('click', (e) => {
+//         current_tabs = tabs.querySelectorAll('.tab');
+//         current_tab_content = document.querySelectorAll('.tab_content')
+//         current_tabs.forEach((current_tab, i) => {
+//             current_tab.classList.remove('active-tab');
+//             current_tab_content[i].classList.remove('active-tab-content')
+//             current_tab_content[i].classList.add('hidden');
+//         })
 
-    ++tab_id;
-
-    let main = document.querySelector('.main');
-    let location = document.querySelector('.location');
-    let tab_content = add_div(['tab_content']); //document.querySelector('.tab_content');
-    let tab = add_div(['tab']);
-    let tab_container = add_div(['tab_container','flex'])
-
-    let col1 = add_div(['label']);
-    let col2 = add_div(['tab_close']);
-
-    let close_btn = document.createElement('i')
-    close_btn.classList.add('bi', 'bi-x')
-
-    tab_container.append(col1, col2);
-
-    let tabs = document.querySelector('.tabs');
-    if (!tabs) {
-        tabs = add_div(['tabs', 'sticky']);
-        main.append(tabs);
-    }
-
-    tab.dataset.href = href;
-    tab.dataset.id = tab_id;
-    tab.title = href;
-
-    let current_tab_content = document.querySelectorAll('.tab_content');
-    let current_tabs = tabs.querySelectorAll('.tab');
-
-    col2.append(close_btn);
-
-    // Handle tab switching
-    tab.addEventListener('click', (e) => {
-        current_tabs = tabs.querySelectorAll('.tab');
-        current_tab_content = document.querySelectorAll('.tab_content')
-        current_tabs.forEach((current_tab, i) => {
-            current_tab.classList.remove('active-tab');
-            current_tab_content[i].classList.remove('active-tab-content')
-            current_tab_content[i].classList.add('hidden');
-        })
-
-        tab.classList.add('active-tab');
-        tab_content.classList.add('active-tab-content');
-        tab_content.classList.remove('hidden');
-        location.value = tab.dataset.href
-    })
-
-    current_tabs.forEach((current_tab, i) => {
-        let current_label = current_tab.querySelector('.label');
-        if (current_label.dataset.href === href) {
-            label_exist = 1
-        } else {
-            current_tab.classList.remove('active-tab');
-            current_tab_content[i].classList.remove('active-tab-content')
-            current_tab_content[i].classList.add('hidden');
-        }
-    })
-
-    tab.classList.add('active-tab');
-    tab_content.classList.remove('hidden');
-    tab_content.classList.add('active-tab-content');
-
-    ipcRenderer.invoke('basename', href).then(basename => {
-        col1.append(basename);
-    })
-    tab.append(tab_container);
-    tabs.append(tab);
-    main.append(tab_content);
-
-    // Handle closing tabs
-    col2.addEventListener('click', (e) => {
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        let active_tab = document.querySelector('.active-tab');
-        if (active_tab == tab) {
-
-            if (current_tabs.length > 0) {
-
-                let tabs = document.querySelectorAll('.tab')
-                let idx = Array.from(tabs).indexOf(tab) - 1
-
-                if (idx >= 0) {
-
-                    tab.remove();
-                    tab_content.remove();
-
-                    current_tabs[idx].classList.add('active-tab');
-                    current_tab_content[idx].classList.add('active-tab-content');
-                    current_tab_content[idx].classList.remove('hidden');
-                    location.value = current_tabs[idx].dataset.href;
-
-                }
-
-            }
-
-        } else {
-            if (current_tabs.length > 0) {
-                tab.remove();
-                tab_content.remove();
-            }
-        }
-    })
-
-    return tab_content;
-
-}
+//         tab.classList.add('active-tab');
+//         tab_content.classList.add('active-tab-content');
+//         tab_content.classList.remove('hidden');
+//         location.value = tab.dataset.href
+//     })
+//     current_tabs.forEach((current_tab, i) => {
+//         let current_label = current_tab.querySelector('.label');
+//         if (current_label.dataset.href === href) {
+//             label_exist = 1
+//         } else {
+//             current_tab.classList.remove('active-tab');
+//             current_tab_content[i].classList.remove('active-tab-content')
+//             current_tab_content[i].classList.add('hidden');
+//         }
+//     })
+//     tab.classList.add('active-tab');
+//     tab_content.classList.remove('hidden');
+//     tab_content.classList.add('active-tab-content');
+//     ipcRenderer.invoke('basename', href).then(basename => {
+//         col1.append(basename);
+//     })
+//     tab.append(tab_container);
+//     tabs.append(tab);
+//     main.append(tab_content);
+//     // Handle closing tabs
+//     col2.addEventListener('click', (e) => {
+//         e.preventDefault();
+//         e.stopPropagation();
+//         let active_tab = document.querySelector('.active-tab');
+//         if (active_tab == tab) {
+//             if (current_tabs.length > 0) {
+//                 let tabs = document.querySelectorAll('.tab')
+//                 let idx = Array.from(tabs).indexOf(tab) - 1
+//                 if (idx >= 0) {
+//                     tab.remove();
+//                     tab_content.remove();
+//                     current_tabs[idx].classList.add('active-tab');
+//                     current_tab_content[idx].classList.add('active-tab-content');
+//                     current_tab_content[idx].classList.remove('hidden');
+//                     location.value = current_tabs[idx].dataset.href;
+//                 }
+//             }
+//         } else {
+//             if (current_tabs.length > 0) {
+//                 tab.remove();
+//                 tab_content.remove();
+//             }
+//         }
+//     })
+//     return tab_content;
+// }
 
 // Add Link
 function add_link(href, text) {
@@ -2580,325 +2684,221 @@ function getPermissions(unixMode) {
 function getProperties(properties_arr) {
 
     // Check if properties tab exists
-    let tab_exists = 0;
-    let tabs = document.querySelectorAll('.tab')
-    tabs.forEach(tab => {
-        let label = tab.querySelector('.label')
-        if (label.innerText === 'Properties') {
-            tab_exists = 1;
-            return;
-        }
-    })
-    let content
-    if (tab_exists) {
-        content = document.querySelector('.properties_view')
-    } else {
-        content = add_tab('Properties')
-    }
-
-    console.log(content)
-
-    // properties_arr.forEach(file => {
-
-        let properties_div = add_div();
-        content.append(properties_div);
-
-        ipcRenderer.invoke('path:join', __dirname, 'views/properties.html').then(path => {
-            fetch(path).then(res => {
-                return res.text()
-            }).then(html => {
-
-                // let content = add_tab('Properties')
-                // content.innerHTML = html
-                properties_div.innerHTML = html;
-
-                let properties_view = document.querySelector('.properties_view');
-                let properties_content = document.querySelector('.properties_content');
-                // let basic_content = document.querySelector('.basic');
-                let permissions_container = document.querySelector('.permissions_container');
-                // let permissions_content = document.querySelector('.permissions');
-                // let owner = properties_view.querySelector('owner')
-
-                let tabs = properties_view.querySelectorAll('.properties-tab');
-                let tabs_content = properties_view.querySelectorAll('.properties-tab-content');
-                tabs.forEach((tab, idx) => {
-                    tab.addEventListener('click', (e) => {
-
-                        tabs.forEach((tab, idx1) => {
-
-                            if (idx === idx1) {
-                                tabs[idx1].classList.add('active-properties-tab');
-                                tabs_content[idx1].classList.remove('hidden')
-                            } else {
-                                tabs[idx1].classList.remove('active-properties-tab');
-                                tabs_content[idx1].classList.add('hidden')
-                            }
-
-                        })
-
-                    })
-                })
-
-                properties_arr.forEach(file => {
-
-                    let properties_div = add_div();
-                    let basic_content = add_div();
-                    let permissions_content = add_div();
-
-                    properties_div.classList.add('properties', 'grid2');
-                    basic_content.classList.add('basic');
-                    permissions_content.classList.add('permissions');
-
-                    properties_div.append(basic_content, permissions_content);
-                    properties_content.append(properties_div);
-
-                    // Basic Tab
-                    let card = add_div();
-                    let content = add_div();
-
-                    card.dataset.properties_href = file.href;
-
-                    console.log(file)
-
-                    let close_btn = add_div();
-                    let close_icon = document.createElement('i');
-                    close_icon.classList.add('bi', 'bi-x');
-                    close_btn.classList.add('float', 'right', 'pointer');
-                    close_btn.append(close_icon);
-                    // card.append(close_btn);
-                    close_btn.addEventListener('click', (e) => {
-                        card.remove()
-                        let cards = document.querySelectorAll('.properties')
-                        if (cards.length === 0) {
-                            clearViews()
-                            sidebarHome();
-                        }
-                    })
-
-                    content.classList.add('content');
-                    card.classList.add('properties');
-
-                    let icon = add_div();
-                    icon.classList.add('icon');
-                    card.append(icon);
-
-                    content.append(add_item('Name:'), add_item(file.name));
-
-                    let folder_count = add_div();
-                    folder_count.classList.add('item', 'folder_count');
-
-                    let size = add_div();
-                    size.classList.add('size');
-                    size.append('Calculating..');
-
-                    content.append(add_item('Type:'), add_item(file.content_type));
-                    content.append(add_item(`Contents:`), folder_count);
-
-                    let location = add_item(file.location);
-                    location.title = file.location;
-
-                    content.append(add_item('Location:'), location);
-                    if (file.is_dir) {
-                        folder_count.append('Calculating..');
-                        content.append(add_item('Size:'), add_item(size));
-                    } else {
-                        folder_count.append('1');
-                        content.append(add_item('Size:'), add_item(getFileSize(file.size)));
-                    }
-
-                    content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
-                    content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
-                    content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
-
-                    card.append(content);
-                    //properties_view.append(card);
-                    basic_content.append(card)
-
-                    if (file.is_dir) {
-
-                        icon.append(add_img(folder_icon))
-                        ipcRenderer.send('get_folder_count', file.href);
-                        ipcRenderer.send('get_folder_size', file.href);
-
-                    } else {
-                        ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                            icon.append(add_img(res));
-                        })
-                    }
-
-                    // Permissions Tab
-                    let permissions = getPermissions(file.permissions);
-                    let rows = ['Owner', 'Access', 'Group', 'Access', 'Other', 'Access']
-                    let perm_key;
-
-                    if (!file.is_dir) {
-                        rows.push('Execute')
-                    }
-
-                    for (let i = 0; i < rows.length; i++) {
-
-                        let row = add_div(['flex', 'row']);
-                        for (let ii = 0; ii < 2; ii++) {
-                            let col = add_div();
-                            if (ii == 0) {
-                                col.classList.add('td');
-                                col.append(rows[i]);
-                            } else {
-                                if (i % 2 === 0) {
-                                    perm_key = rows[i].toLowerCase();
-                                    if (file[perm_key]) {
-                                        col.append(file[perm_key]);
-                                    }
-                                } else {
-                                    col.append(getMappedPermissions(permissions[perm_key]));
-                                }
-
-                                if (rows[i] === 'Execute' && !file.is_dir) {
-
-                                    let chk_execute = document.createElement('input');
-                                    let label_execute = document.createElement('label');
-
-                                    label_execute.innerText = ' Allow executing file as program';
-                                    label_execute.htmlFor = 'chk_execute';
-
-                                    chk_execute.id = 'chk_execute';
-                                    chk_execute.type = 'checkbox';
-                                    col.append(chk_execute, label_execute);
-
-                                    if (file.is_execute) {
-                                        chk_execute.checked = true;
-                                    }
-
-                                    chk_execute.addEventListener('click', (e) => {
-                                        if (chk_execute.checked) {
-                                            ipcRenderer.send('set_execute', file.href);
-                                        } else {
-                                            ipcRenderer.send('clear_execute', file.href);
-                                        }
-                                    })
-
-                                }
-                            }
-
-                            row.append(col);
-                        }
-
-                        if (i % 2 === 1) {
-                            row.append(document.createElement('br'));
-                        }
-                        permissions_content.append(row);
-                    }
-
-                })
-
-            }).catch(err => {
-                console.log(err)
-            })
-        })
-
+    // let tab_exists = 0;
+    // let tabs = document.querySelectorAll('.tab')
+    // tabs.forEach(tab => {
+    //     let label = tab.querySelector('.label')
+    //     if (label.innerText === 'Properties') {
+    //         tab_exists = 1;
+    //         return;
+    //     }
     // })
 
-    // console.log('running get properties');
-    // let active_tab_content = add_tab('Properties');
-
-    // let properties_view = document.querySelector('.properties_view');
-    // if (properties_view) {
-    //     properties_view.classList.remove('hidden');
-    // } else {
-    //     properties_view = add_div();
-    //     properties_view.classList.add('sb_properties', 'sb_view', 'properties_view');
-    //     // sidebar.append(properties_view);
-    //     active_tab_content.append(properties_view)
+    // if (!tab_exists) {
+        tm.addTab('Properties')
     // }
+    let tab_content = document.querySelector('.active-tab-content');
+    console.log(tab_content)
 
-    // let tabContainer = add_div(['tab-container'])
-    // let tm = new TabManager(tabContainer);
-    // let t1_contents = tm.addTab('Basic');
-    // let t2_contents = tm.addTab('Permissions');
-    // let t3_contents = tm.addTab('Open With');
+    let properties_div = add_div();
+    // tab_content.append(properties_div);
+
+    ipcRenderer.invoke('path:join', __dirname, 'views/properties.html').then(path => {
+        fetch(path).then(res => {
+            return res.text()
+        }).then(html => {
+
+            properties_div.innerHTML = html;
+
+            let properties_view = document.querySelector('.properties_view');
+            let properties_content = document.querySelector('.properties_content');
+            let permissions_container = document.querySelector('.permissions_container');
+
+            // let tabs = properties_view.querySelectorAll('.properties-tab');
+            // let tabs_content = properties_view.querySelectorAll('.properties-tab-content');
+            // tabs.forEach((tab, idx) => {
+            //     tab.addEventListener('click', (e) => {
+
+            //         tabs.forEach((tab, idx1) => {
+
+            //             if (idx === idx1) {
+            //                 tabs[idx1].classList.add('active-properties-tab');
+            //                 tabs_content[idx1].classList.remove('hidden')
+            //             } else {
+            //                 tabs[idx1].classList.remove('active-properties-tab');
+            //                 tabs_content[idx1].classList.add('hidden')
+            //             }
+
+            //         })
+
+            //     })
+            // })
+
+            properties_arr.forEach(file => {
+
+                let properties_div1 = add_div();
+                let basic_content = add_div();
+                let permissions_content = add_div();
+
+                properties_div1.classList.add('properties', 'grid2');
+                basic_content.classList.add('basic');
+                permissions_content.classList.add('permissions');
+
+                properties_div1.append(basic_content, permissions_content);
+                // properties_content.append(properties_div1);
+                tab_content.append(properties_div1);
+
+                // Basic Tab
+                let card = add_div();
+                let content = add_div();
+
+                card.dataset.properties_href = file.href;
+
+                console.log(file)
+
+                let close_btn = add_div();
+                let close_icon = document.createElement('i');
+                close_icon.classList.add('bi', 'bi-x');
+                close_btn.classList.add('float', 'right', 'pointer');
+                close_btn.append(close_icon);
+                // card.append(close_btn);
+                close_btn.addEventListener('click', (e) => {
+                    card.remove()
+                    let cards = document.querySelectorAll('.properties')
+                    if (cards.length === 0) {
+                        clearViews()
+                        sidebarHome();
+                    }
+                })
+
+                content.classList.add('content');
+                card.classList.add('properties');
+
+                let icon = add_div();
+                icon.classList.add('icon');
+                card.append(icon);
+
+                content.append(add_item('Name:'), add_item(file.name));
+
+                let folder_count = add_div();
+                folder_count.classList.add('item', 'folder_count');
+
+                let size = add_div();
+                size.classList.add('size');
+                size.append('Calculating..');
+
+                content.append(add_item('Type:'), add_item(file.content_type));
+                content.append(add_item(`Contents:`), folder_count);
+
+                let location = add_item(file.location);
+                location.title = file.location;
+
+                content.append(add_item('Location:'), location);
+                if (file.is_dir) {
+                    folder_count.append('Calculating..');
+                    content.append(add_item('Size:'), add_item(size));
+                } else {
+                    folder_count.append('1');
+                    content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+                }
+
+                content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+                content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+                content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+
+                card.append(content);
+                //properties_view.append(card);
+                basic_content.append(card)
+
+                if (file.is_dir) {
+
+                    icon.append(add_img(folder_icon))
+                    ipcRenderer.send('get_folder_count', file.href);
+                    ipcRenderer.send('get_folder_size', file.href);
+
+                } else {
+                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+
+                        if (file.content_type.indexOf('image/') > -1) {
+                            // .src = item.source;
+                            icon.append(add_img(file.href));
+                        } else {
+                            icon.append(add_img(res));
+                        }
+                    })
+                }
+
+                // Permissions Tab
+                let permissions = getPermissions(file.permissions);
+                let rows = ['Owner', 'Access', 'Group', 'Access', 'Other', 'Access']
+                let perm_key;
+
+                if (!file.is_dir) {
+                    rows.push('Execute')
+                }
+
+                for (let i = 0; i < rows.length; i++) {
+
+                    let row = add_div(['flex', 'row']);
+                    for (let ii = 0; ii < 2; ii++) {
+                        let col = add_div();
+                        if (ii == 0) {
+                            col.classList.add('td');
+                            col.append(rows[i]);
+                        } else {
+                            if (i % 2 === 0) {
+                                perm_key = rows[i].toLowerCase();
+                                if (file[perm_key]) {
+                                    col.append(file[perm_key]);
+                                }
+                            } else {
+                                col.append(getMappedPermissions(permissions[perm_key]));
+                            }
+
+                            if (rows[i] === 'Execute' && !file.is_dir) {
+
+                                let chk_execute = document.createElement('input');
+                                let label_execute = document.createElement('label');
+
+                                label_execute.innerText = ' Allow executing file as program';
+                                label_execute.htmlFor = 'chk_execute';
+
+                                chk_execute.id = 'chk_execute';
+                                chk_execute.type = 'checkbox';
+                                col.append(chk_execute, label_execute);
+
+                                if (file.is_execute) {
+                                    chk_execute.checked = true;
+                                }
+
+                                chk_execute.addEventListener('click', (e) => {
+                                    if (chk_execute.checked) {
+                                        ipcRenderer.send('set_execute', file.href);
+                                    } else {
+                                        ipcRenderer.send('clear_execute', file.href);
+                                    }
+                                })
+
+                            }
+                        }
+
+                        row.append(col);
+                    }
+
+                    if (i % 2 === 1) {
+                        row.append(document.createElement('br'));
+                    }
+                    permissions_content.append(row);
+                }
+
+            })
+
+        }).catch(err => {
+            console.log(err)
+        })
+    })
 
 
-    // properties_view.append(document.createElement('br'), tabContainer);
-
-    // properties_arr.forEach(file => {
-
-    //     let card = add_div();
-    //     let content = add_div();
-
-    //     card.dataset.properties_href = file.href;
-
-    //     let close_btn = add_div();
-    //     let close_icon = document.createElement('i');
-    //     close_icon.classList.add('bi', 'bi-x');
-    //     close_btn.classList.add('float', 'right', 'pointer');
-    //     close_btn.append(close_icon);
-    //     // card.append(close_btn);
-    //     close_btn.addEventListener('click', (e) => {
-    //         card.remove()
-
-    //         let cards = document.querySelectorAll('.properties')
-    //         if (cards.length === 0) {
-    //             clearViews()
-    //             sidebarHome();
-    //         }
-
-    //     })
-
-    //     content.classList.add('content');
-    //     card.classList.add('properties');
-    //     // content.classList.add('grid2');
-
-    //     let icon = add_div();
-    //     icon.classList.add('icon');
-    //     card.append(icon);
-
-    //     content.append(add_item('Name:'), add_item(file.name));
-
-    //     let folder_count = add_div();
-    //     folder_count.classList.add('item', 'folder_count');
-
-    //     let size = add_div();
-    //     size.classList.add('size');
-    //     size.append('Calculating..');
-
-    //     content.append(add_item('Type:'), add_item(file.content_type));
-    //     content.append(add_item(`Contents:`), folder_count);
-
-    //     let location = add_item(file.location);
-    //     location.title = file.location;
-
-    //     content.append(add_item('Location:'), location);
-    //     if (file.is_dir) {
-    //         folder_count.append('Calculating..');
-    //         content.append(add_item('Size:'), add_item(size));
-    //     } else {
-    //         folder_count.append('1');
-    //         content.append(add_item('Size:'), add_item(getFileSize(file.size)));
-    //     }
-    //     content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
-    //     content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
-    //     content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
-
-    //     card.append(content);
-    //     // properties_view.append(card);
-
-    //     t1_contents.append(card)
-
-    //     if (file.is_dir) {
-
-    //         icon.append(add_img(folder_icon))
-    //         ipcRenderer.send('get_folder_count', file.href);
-    //         ipcRenderer.send('get_folder_size', file.href);
-    //     } else {
-    //         ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-    //             icon.append(add_img(res));
-    //         })
-    //     }
-
-    //     // note:
-    //     // ipcRenderer.send('get_file_count', item.href);
-
-    // })
 
 }
 
@@ -2925,7 +2925,9 @@ function getRecentView(dirents) {
         file_grid.classList.remove('grid1')
     }
 
-    let tab_content = add_tab('Recent')
+    // let tab_content = add_tab('Recent')
+    tm.addTab('Recent');
+    let tab_content = document.querySelector('.active-tab-content');
 
     dirents.sort((a, b) => {
         return b.atime - a.atime
@@ -2982,9 +2984,10 @@ function getRecentView(dirents) {
 // Get Settings View
 function getSettings() {
 
-    let location = document.querySelector('.location');
-    let tab_content = add_tab('Settings');
+    tm.add_tab('Settings');
+    let tab_content = document.querySelector('active-tab-manager');
 
+    let location = document.querySelector('.location');
     ipcRenderer.invoke('path:join', __dirname, 'views/settings.html').then(path => {
 
         fetch(path)

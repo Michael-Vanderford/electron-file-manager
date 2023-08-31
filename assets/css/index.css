@@ -91,7 +91,7 @@ th {
 
 #main {
     position: relative;
-    /* overflow-y: auto; */
+    overflow-y: auto;
     /* overflow-x: hidden; */
     /* border: 1px solid red; */
     background: var(--main);
@@ -310,6 +310,7 @@ th {
 }
 
 .tab {
+    padding-top: 2px;
     height:21px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
@@ -320,7 +321,8 @@ th {
 }
 
 .tab .label {
-    padding-left: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
 }
 
 .tab_close {
@@ -359,6 +361,7 @@ th {
 /* Properties Tab */
 .tab-header {
     /* padding-right: 10px; */
+    position: sticky;
     background: var(--tabs);
     height: 23px;
     top: 0;
