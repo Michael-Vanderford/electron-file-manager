@@ -20,7 +20,7 @@
 .sidebar .item {
     white-space: nowrap;
     color: var(--text);
-    padding: 5px;
+    padding: 8px;
     cursor: pointer;
 }
 
@@ -128,7 +128,7 @@
 #minibar .item.active {
     background: none;
     font-weight: bolder;
-    color: var(--white);
+    color: var(--text);
 }
 
 #minibar .item  {

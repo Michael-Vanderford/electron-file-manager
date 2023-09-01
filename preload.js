@@ -207,6 +207,15 @@ class TabManager {
 
 }
 
+class Progress {
+    constructor () {
+
+    }
+
+
+
+}
+
 let tm = null;
 window.addEventListener('DOMContentLoaded', (e) => {
     tm = new TabManager();
@@ -1310,7 +1319,17 @@ ipcRenderer.on('update_card', (e, href, file) => {
 
 })
 
+// Function to format estimated time as HH:MM:SS
+function formatEstimatedTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
 // Set Progress
+let startTime = null
 ipcRenderer.on('set_progress', (e, data) => {
 
     // // console.log(data)
@@ -1320,6 +1339,9 @@ ipcRenderer.on('set_progress', (e, data) => {
     let progress_bar = document.getElementById('progress_bar');
 
     if (!progress) {
+
+        startTime = new Date(); // Replace data.startTime with the actual start time
+
         progress = add_div(['progress', 'bottom']);
         progress_msg = add_div(['progress_msg']);
         progress_bar = document.createElement('progress');
@@ -1336,13 +1358,27 @@ ipcRenderer.on('set_progress', (e, data) => {
         progress.classList.remove('hidden')
     }
 
-    progress_msg.innerHTML = data.msg;
+    // Get new time
+    const currentTime = new Date();
+
+    // Calculate estimated time remaining
+    const progressValue = data.value;
+    const maxValue = data.max;
+    const elapsedTimeInSeconds = Math.floor((currentTime - startTime) / 1000);
+    const estimatedTimeInSeconds = (elapsedTimeInSeconds / progressValue) * (maxValue - progressValue);
+
+    // Format the estimated time as HH:MM:SS or in a way that suits your needs
+    const formattedEstimatedTime = formatEstimatedTime(estimatedTimeInSeconds);
+
+    progress_msg.innerHTML = `${data.msg} Time Remaining ${formattedEstimatedTime}`;
     progress_bar.value = data.value;
     progress_bar.max = data.max;
 
     if (progress_bar.value == progress_bar.max) {
         progress.classList.add('hidden')
     }
+
+
 
 })
 
@@ -2985,8 +3021,8 @@ function getRecentView(dirents) {
 // Get Settings View
 function getSettings() {
 
-    tm.add_tab('Settings');
-    let tab_content = document.querySelector('active-tab-manager');
+    tm.addTab('Settings');
+    let tab_content = document.querySelector('.active-tab-content');
 
     let location = document.querySelector('.location');
     ipcRenderer.invoke('path:join', __dirname, 'views/settings.html').then(path => {

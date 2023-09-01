@@ -129,7 +129,7 @@ parentPort.on('message', data => {
                     merge_obj.source_date = src_file.mtime
                     merge_obj.destination_date = src_file.mtime
                     merge_obj.is_dir = 0;
-                    merge_obj.content_type = src.content_type;
+                    merge_obj.content_type = src_file.content_type;
 
                     merge_arr.push(merge_obj);
 
@@ -516,7 +516,7 @@ parentPort.on('message', data => {
 
                                 data = {
                                     cmd: 'progress',
-                                    msg: `Deleted Folder ${path.basename(f.source)}`,
+                                    msg: `Deleted Folder ${i} of ${dirents.length}`,
                                     max: dirents.length,
                                     value: cpc
                                 }
