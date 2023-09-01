@@ -258,7 +258,6 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
             merge_arr.forEach(item => {
 
                 // console.log('item', item)
-
                 const row = table.insertRow();
 
                 const dest_cell = row.insertCell(0);
@@ -274,6 +273,7 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     img.classList.add('icon', 'icon16');
                     img.src = icon;
 
+                    console.log('what', item.content_type);
                     if (item.content_type.indexOf('image/') > -1) {
                         img.src = item.source;
                     }
@@ -635,13 +635,14 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     main.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
 
-        if (e.dataTransfer.files.length > 0) {
-            ipcRenderer.send('main', 1);
-            paste(location.value);
-        }
+        // e.preventDefault();
+        // e.stopPropagation();
+
+        // if (e.dataTransfer.files.length > 0) {
+        ipcRenderer.send('main', 1);
+        paste(location.value);
+        // }
 
     })
 

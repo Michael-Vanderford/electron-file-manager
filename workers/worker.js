@@ -46,6 +46,7 @@ parentPort.on('message', data => {
                 let src_file = gio.get_file(item.source);
                 let dest_file = gio.get_file(item.destination);
 
+                // Directory
                 if (src_file.is_dir) {
 
                     get_files_arr(item.source, item.destination, dirents => {
@@ -71,7 +72,7 @@ parentPort.on('message', data => {
                             merge_obj.source = src.href;
                             merge_obj.source_date = src.mtime;
                             merge_obj.is_dir = 1;
-                            merge_obj.content_type = src_file.content_type;
+                            merge_obj.content_type = src.content_type;
 
 
                             if (gio.exists(f.destination)) {
@@ -102,6 +103,7 @@ parentPort.on('message', data => {
 
                     })
 
+                // Files
                 } else {
 
                     let merge_obj = {
@@ -127,7 +129,7 @@ parentPort.on('message', data => {
                     merge_obj.source_date = src_file.mtime
                     merge_obj.destination_date = src_file.mtime
                     merge_obj.is_dir = 0;
-                    merge_obj.content_type = src_file.content_type;
+                    merge_obj.content_type = src.content_type;
 
                     merge_arr.push(merge_obj);
 
