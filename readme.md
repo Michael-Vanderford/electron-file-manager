@@ -10,9 +10,12 @@ Install
 3. npm i --save
 4. npm start
 
-
+Grid View
 ![Screenshot 1](assets/screenshots/screenshot1.png?raw=true)
-
+Properties
+![Screenshot 1](assets/screenshots/Properties.png?raw=true)
+Merge
+![Screenshot 1](assets/screenshots/Merge.png?raw=true)
 <!-- ![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
 
 ![Screenshot 3](/screenshots/screenshot_3.png?raw=true) -->

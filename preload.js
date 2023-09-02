@@ -1352,6 +1352,7 @@ ipcRenderer.on('set_progress', (e, data) => {
 
         progress.append(progress_msg, progress_bar)
         main.append(progress)
+
     }
 
     if (progress.classList.contains('hidden')) {
@@ -1369,8 +1370,14 @@ ipcRenderer.on('set_progress', (e, data) => {
 
     // Format the estimated time as HH:MM:SS or in a way that suits your needs
     const formattedEstimatedTime = formatEstimatedTime(estimatedTimeInSeconds);
+    let msg = `${data.msg}`;
 
-    progress_msg.innerHTML = `${data.msg} Time Remaining ${formattedEstimatedTime}`;
+    console.log(estimatedTimeInSeconds)
+    if (estimatedTimeInSeconds > 3) {
+        msg = `${data.msg}  Time Remaining ${formattedEstimatedTime}`;
+    }
+
+    progress_msg.innerHTML = msg;
     progress_bar.value = data.value;
     progress_bar.max = data.max;
 
