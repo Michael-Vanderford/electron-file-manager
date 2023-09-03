@@ -6,7 +6,7 @@
   "main": "main.js",
   "license": "GPL-2.0+",
   "scripts": {
-    "start": "electron . --no-sandbox"
+    "start": "electron ."
   },
   "build": {
     "appId": "com.stringboardsoftware.stringfilemanager",

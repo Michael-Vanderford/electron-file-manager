@@ -2945,6 +2945,44 @@ ipcMain.on('workspace_menu', (e, file) => {
 
 })
 
+ipcMain.on('sidebar_menu', (e, href) => {
+
+    console.log(href);
+
+    let menu_template = [
+        {
+            label: 'Open',
+            click: () => {
+                win.send('get_view', href)
+            }
+        },
+        {
+            label: 'Open In New Tab',
+            click: () => {
+                ls.postMessage({ cmd: 'ls', source: href, tab: 1 });
+            }
+        },
+        {
+            label: 'Open In New Window',
+            click: () => {
+
+            }
+        },
+        {
+            type: 'separator',
+        },
+        {
+            label: 'Properties',
+            click: () => {
+                e.sender.send('context-menu-command', 'properties')
+            }
+        }
+    ]
+    let menu = Menu.buildFromTemplate(menu_template)
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
 ipcMain.on('recent_menu', (e, file) => {
 
 })
@@ -2968,17 +3006,17 @@ const template = [
 
             //     }
             // },
-            {
-                label: 'Preferences',
-                submenu: [
-                    {
-                        label: 'Settings',
-                        click: () => {
-                            win.send('settings_view');
-                        }
-                    }
-                ]
-            },
+            // {
+            //     label: 'Preferences',
+            //     submenu: [
+            //         {
+            //             label: 'Settings',
+            //             click: () => {
+            //                 win.send('settings_view');
+            //             }
+            //         }
+            //     ]
+            // },
             {type: 'separator'},
             {
                 label: 'Connect to Server',

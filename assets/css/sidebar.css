@@ -20,6 +20,7 @@
 .sidebar .item {
     white-space: nowrap;
     color: var(--text);
+    font-weight: bold;
     padding: 8px;
     cursor: pointer;
 }
@@ -199,6 +200,7 @@
 
 .workspace_item {
     text-overflow: ellipsis;
+    font-weight: normal;
     overflow: hidden;
     width: 100%;
     display: block;

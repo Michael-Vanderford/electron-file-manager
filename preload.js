@@ -1356,7 +1356,7 @@ ipcRenderer.on('set_progress', (e, data) => {
     }
 
     if (progress.classList.contains('hidden')) {
-        progress.classList.remove('hidden')
+        progress.classList.remove('hidden');
     }
 
     // Get new time
@@ -3311,6 +3311,15 @@ function getHome(callback) {
         item.addEventListener('dragover', (e) => {
             e.preventDefault();
             item.classList.add('highlght_select')
+        })
+
+        item.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            item.classList.add('active');
+            ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+                ipcRenderer.send('sidebar_menu', nav_path);
+            })
+
         })
 
     }

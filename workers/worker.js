@@ -309,7 +309,7 @@ parentPort.on('message', data => {
         try {
             // Get Folder Count
             get_files_arr(data.source, '', dirents => {
-                let folder_count = dirents.length;
+                let folder_count = dirents.length - 1;
                 parentPort.postMessage({cmd: 'folder_count',source: data.source, folder_count: folder_count});
             })
         } catch (err) {

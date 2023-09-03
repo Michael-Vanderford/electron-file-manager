@@ -5,9 +5,9 @@ File manager for Linux - Built with Electron
 
 Install
 
-1. git clone https://github.com/Michael-Vanderford/string-file-manager.git
+1. git clone https://github.com/Michael-Vanderford/electron-file-manager.git
 2. cd electron-file-manager
-3. npm i --save
+3. npm i --save-dev
 4. npm start
 
 Grid View
