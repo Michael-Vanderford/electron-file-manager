@@ -224,6 +224,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
 
+ipcRenderer.on('get_settings', (e) => {
+    getSettings();
+})
+
 ipcRenderer.on('done_merging_files', (e) => {
 
     let active_tab = document.querySelector('.active-tab-content');

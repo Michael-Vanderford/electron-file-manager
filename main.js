@@ -1053,10 +1053,6 @@ ipcMain.on('update_settings', (e, key, value) => {
     win.send('msg', 'Settings updated')
 })
 
-ipcMain.on('get_settings', (e) => {
-
-})
-
 ipcMain.on('create_thumbnail', (e, href) => {
 
     // Note: Attempting thumbnail creation at the get_files call
@@ -3006,17 +3002,17 @@ const template = [
 
             //     }
             // },
-            // {
-            //     label: 'Preferences',
-            //     submenu: [
-            //         {
-            //             label: 'Settings',
-            //             click: () => {
-            //                 win.send('settings_view');
-            //             }
-            //         }
-            //     ]
-            // },
+            {
+                label: 'Preferences',
+                submenu: [
+                    {
+                        label: 'Settings',
+                        click: () => {
+                            win.send('get_settings');
+                        }
+                    }
+                ]
+            },
             {type: 'separator'},
             {
                 label: 'Connect to Server',
