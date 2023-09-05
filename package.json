@@ -11,7 +11,7 @@
   "build": {
     "appId": "com.stringboardsoftware.stringfilemanager",
     "linux": {
-        "target": "deb"
+      "target": "deb"
     }
   },
   "keywords": [],
@@ -27,7 +27,6 @@
   "dependencies": {
     "bootstrap-icons": "^1.10.5",
     "chart.js": "^3.9.1",
-    "dragselect": "^2.7.4",
     "mousetrap": "^1.6.5",
     "node-addon-api": "^6.1.0",
     "semantic-ui-icon": "^2.5.0"

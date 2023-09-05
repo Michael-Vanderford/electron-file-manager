@@ -18,10 +18,11 @@
 }
 
 .sidebar .item {
+    position: relative;
     white-space: nowrap;
     color: var(--text);
     font-weight: bold;
-    padding: 8px;
+    padding: 5px;
     cursor: pointer;
 }
 
@@ -82,6 +83,12 @@
 }
 
 .properties .item {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ellipsis {
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
 }

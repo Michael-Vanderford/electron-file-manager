@@ -1,10 +1,6 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
 const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
-// const path       = require('path');
-// const fs         = require('fs');
-// const os         = require('os');
-// const DragSelect = require('dragselect');
 const Chart      = require('chart.js')
 
 // Global Arrays
@@ -388,6 +384,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let isSelecting = false;
     let startPosX, startPosY, endPosX, endPosY;
 
+    // clearHighlight();
+
     // Set active on menu
     menu_items.forEach(item => {
         let menu_item = item.querySelector('a')
@@ -408,10 +406,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     sidebar_items.forEach(item => {
         let sidebar_item = item.querySelector('a');
         if (sidebar_item) {
-            if (sidebar_item.title === source) {
-                item.classList.add('active')
+            if (item.title === source) {
+                // item.classList.add('highlight_select')
             } else {
-                item.classList.remove('active')
+                item.classList.remove('highlight_select')
             }
         }
     })
@@ -688,7 +686,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     lazyload();
     sort_cards();
 
-    clearHighlight();
+    // clearHighlight();
     main.classList.remove('loader');
 
     // Drag Select for cards
@@ -3284,7 +3282,11 @@ function getHome(callback) {
         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link);
         home.append(item);
 
-        item.title = link.href.replace('file://', '');
+        // item.title = link.href.replace('file://', '');
+        ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+            item.title = nav_path;
+            item.dataset.href = nav_path;
+        })
 
         item.addEventListener('click', (e) => {
             let items = home.querySelectorAll('.item');
@@ -3319,7 +3321,7 @@ function getHome(callback) {
 
         item.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            item.classList.add('active');
+            item.classList.add('highlight_select');
             ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
                 ipcRenderer.send('sidebar_menu', nav_path);
             })
@@ -3436,6 +3438,9 @@ function getDevices(callback) {
         devices.classList.add('device_view')
         devices.append(add_header('Devices'));
         ipcRenderer.invoke('get_devices').then(device_arr => {
+
+            let connect_btn = add_link('#', 'Connect to Server')
+
             // console.log('running get devices', device_arr)
             device_arr.sort((a, b) => {
                 return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
@@ -3444,21 +3449,35 @@ function getDevices(callback) {
             device_arr.forEach(device => {
 
                 let item = add_div();
+                let icon_div = add_div();
+                let href_div = add_div();
+                let umount_div = add_div();
+
+                item.classList.add('flex');
+                item.style = 'width: 100%;';
+                href_div.classList.add('ellipsis');
+                href_div.style = 'width: 70%';
+
                 let a = document.createElement('a');
                 a.preventDefault = true;
                 a.href = device.path; //item.href;
                 a.innerHTML = device.name;
 
+                let umount_icon = add_icon('eject-fill');
+                umount_div.title = 'Unmount Drive'
+                umount_icon.style = 'position: absolute; right: -30px;';
                 item.classList.add('item');
 
                 if (item.type == 0) {
-                    item.append(add_icon('usb-symbol'), a);
+                    icon_div.append(add_icon('usb-symbol'), a);
+                    // item.append(add_icon('usb-symbol'), a);
                 } else {
-                    item.append(add_icon('hdd-network'), a);
+                    icon_div.append(add_icon('usb-symbol'), a);
+                    // item.append(add_icon('hdd-network'), a);
                 }
 
                 item.addEventListener('mouseover', (e) => {
-                    item.title = device.path
+                    item.title = device.path;
                 })
 
                 item.addEventListener('click', (e) => {
@@ -3469,13 +3488,29 @@ function getDevices(callback) {
 
                 })
 
+                umount_div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    ipcRenderer.send('umount', device.path);
+                })
+
                 item.addEventListener('contextmenu', (e) => {
                     ipcRenderer.send('device_menu', device.path, device.uuid);
                     item.classList.add('highlight_select');
                 })
 
+                href_div.append(a);
+                umount_div.append(umount_icon);
+
+                item.append(icon_div, href_div, umount_div);
                 devices.append(item);
+
             })
+
+            connect_btn.addEventListener('click', (e) => {
+                ipcRenderer.send('connect_dialog');
+            })
+
+            devices.append(document.createElement('br'), connect_btn)
 
             return callback(devices)
 
@@ -4552,7 +4587,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
                 // Compress Files
                 mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
-                    compress('zip');
+                    compress();
                 })
 
                 // New Tav

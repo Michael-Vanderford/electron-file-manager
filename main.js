@@ -869,7 +869,7 @@ ipcMain.on('compress', (e, location, type) => {
 
     exec(cmd, (err, stdout) => {
         if (err) {
-            // console.log(err);
+            console.log(err);
         } else {
 
             if (watcher_failed) {
@@ -937,8 +937,12 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 
 })
 
-ipcMain.on('umount', (e, uuid) => {
-    gio.umount(uuid)
+// ipcMain.on('umount', (e, uuid) => {
+//     gio.umount(uuid)
+// })
+
+ipcMain.on('umount', (e, href) => {
+    execSync(`gio mount -u ${href}`);
 })
 
 // Search Results
@@ -956,6 +960,10 @@ ipcMain.on('search_results', (e , search_arr) => {
 // Run external command
 ipcMain.on('command', (e, cmd) => {
     exec(cmd, (error, data, getter) => { });
+})
+
+ipcMain.on('connect_dialog', (e) => {
+    connectDialog();
 })
 
 // Connect

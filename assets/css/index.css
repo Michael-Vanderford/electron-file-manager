@@ -1012,10 +1012,6 @@ input[type=text]:focus {
         --yellow: #FFFF00;
         --orange: #FFA500;
 
-        /* --highlight-select: #334c74; */
-        /* --highlight: rgba(0, 128, 255, 0.213); */
-        /* --highlight: linear-gradient(to right, #505050, #252525); */
-
         --grey: #505050;
 
         --light: #C0C0C0;

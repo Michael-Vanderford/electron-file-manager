@@ -151,16 +151,20 @@ namespace gio {
         v8::Isolate* isolate = info.GetIsolate();
         v8::String::Utf8Value sourceFile(isolate, sourceString);
         v8::String::Utf8Value destFile(isolate, destString);
+
         GFile* src = g_file_new_for_path(*sourceFile);
         GFile* dest = g_file_new_for_path(*destFile);
+
         const char *src_scheme = g_uri_parse_scheme(*sourceFile);
         const char *dest_scheme = g_uri_parse_scheme(*destFile);
         if (src_scheme != NULL) {
             src = g_file_new_for_uri(*sourceFile);
         }
+
         if (dest_scheme != NULL) {
             dest = g_file_new_for_uri(*destFile);
         }
+
         GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
         if (inputPixbuf == nullptr) {
             return;
@@ -169,16 +173,27 @@ namespace gio {
         int thumbnailHeight = 75; // Adjust the height as per your requirements
 
         GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
-        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf, thumbnailWidth, thumbnailHeight, GDK_INTERP_BILINEAR);
+        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf,
+                                                            thumbnailWidth,
+                                                            thumbnailHeight,
+                                                            GDK_INTERP_BILINEAR);
+
         if (thumbnailPixbuf == nullptr) {
             return;
         }
+
         GError* error = NULL;
         GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
         if (fileType != NULL) {
             // const char *outputFile = dest; // Adjust the file extension as per your requirements
-            gdk_pixbuf_save(thumbnailPixbuf, g_file_get_path(dest), gdk_pixbuf_format_get_name(fileType), NULL, NULL, &error);
+            gdk_pixbuf_save(thumbnailPixbuf,
+                            g_file_get_path(dest),
+                            gdk_pixbuf_format_get_name(fileType),
+                            NULL,
+                            NULL,
+                            &error);
         }
+
         g_object_unref(oriented_pixbuf);
         g_object_unref(thumbnailPixbuf);
         g_object_unref(inputPixbuf);
@@ -263,14 +278,19 @@ namespace gio {
         GVolumeMonitor* volume_monitor = g_volume_monitor_get();
 
         // Get the GMount instance for the specific drive you want to unmount
-        GMount* mount = g_volume_monitor_get_mount_for_uuid(volume_monitor, uuid);
+        GMount* mount = g_volume_monitor_get_mount_for_uuid(volume_monitor,
+                                                            uuid);
 
         // Create a GMountOperation instance
         GMountOperation* mount_operation = g_mount_operation_new();
 
         // Unmount the drive
         GError* error = NULL;
-        g_mount_unmount(mount, G_MOUNT_UNMOUNT_NONE, NULL, NULL, NULL);
+        g_mount_unmount(mount,
+                        G_MOUNT_UNMOUNT_NONE,
+                        NULL,
+                        NULL,
+                        NULL);
 
         if (error != NULL) {
             g_print("Error unmounting: %s\n", error->message);
@@ -343,7 +363,10 @@ namespace gio {
         }
 
         Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
-        GFileMonitor* fileMonitor = g_file_monitor_directory(src, G_FILE_MONITOR_NONE, NULL, NULL);
+        GFileMonitor* fileMonitor = g_file_monitor_directory(src,
+                                                            G_FILE_MONITOR_NONE,
+                                                            NULL,
+                                                            NULL);
 
         if (fileMonitor0 != NULL) {
             g_file_monitor_cancel(fileMonitor0);
@@ -355,7 +378,10 @@ namespace gio {
             return;
         }
 
-        gboolean connectResult = g_signal_connect(fileMonitor, "changed", G_CALLBACK(directory_changed), new Nan::Callback(info[1].As<v8::Function>()));
+        gboolean connectResult = g_signal_connect(fileMonitor,
+                                                "changed",
+                                                G_CALLBACK(directory_changed),
+                                                new Nan::Callback(info[1].As<v8::Function>()));
 
         if (connectResult == 0) {
             Nan::ThrowError("Failed to connect to the 'changed' signal.");
@@ -427,15 +453,31 @@ namespace gio {
 
         // Start monitoring for device changes
         GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
-        g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
-        g_signal_connect(volumeMonitor, "drive-disconnected", G_CALLBACK(on_device_removed), new Nan::Callback(info[0].As<v8::Function>()));
+        g_signal_connect(volumeMonitor,
+                        "drive-connected",
+                        G_CALLBACK(on_device_added),
+                        callback);
 
-        g_signal_connect(volumeMonitor, "mount-added", G_CALLBACK(on_mount_added), callback);
-        g_signal_connect(volumeMonitor, "mount-changed", G_CALLBACK(on_mount_added), callback);
-        g_signal_connect(volumeMonitor, "mount-removed", G_CALLBACK(on_mount_removed), new Nan::Callback(info[0].As<v8::Function>()));
+        g_signal_connect(volumeMonitor,
+                        "drive-disconnected",
+                        G_CALLBACK(on_device_removed),
+                        new Nan::Callback(info[0].As<v8::Function>()));
 
+        g_signal_connect(volumeMonitor,
+                        "mount-added",
+                        G_CALLBACK(on_mount_added),
+                        callback);
 
-        // Return undefined (no immediate return value)
+        g_signal_connect(volumeMonitor,
+                        "mount-changed",
+                        G_CALLBACK(on_mount_added),
+                        callback);
+
+        g_signal_connect(volumeMonitor,
+                        "mount-removed",
+                        G_CALLBACK(on_mount_removed),
+                        new Nan::Callback(info[0].As<v8::Function>()));
+
         info.GetReturnValue().SetUndefined();
     }
 
@@ -462,7 +504,12 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
         GError* error = NULL;
-        GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
+        GFileInfo* file_info = g_file_query_info(src,
+                                                "*",
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                &error);
+
         const char* mimetype = g_file_info_get_content_type(file_info);
 
         GList* appList = g_app_info_get_all_for_type(mimetype);
@@ -527,11 +574,14 @@ namespace gio {
             return;
         }
 
-        gint64 totalSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
-        gint64 usedSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_USED);
-        gint64 freeSpace = g_file_info_get_attribute_uint64(file_info, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
+        gint64 totalSpace = g_file_info_get_attribute_uint64(file_info,
+                                                            G_FILE_ATTRIBUTE_FILESYSTEM_SIZE);
 
+        gint64 usedSpace = g_file_info_get_attribute_uint64(file_info,
+                                                            G_FILE_ATTRIBUTE_FILESYSTEM_USED);
 
+        gint64 freeSpace = g_file_info_get_attribute_uint64(file_info,
+                                                            G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
 
         g_object_unref(file_info);
         g_object_unref(src);
@@ -569,7 +619,11 @@ namespace gio {
         }
 
         GError* error = NULL;
-        GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
+        GFileInfo* file_info = g_file_query_info(src,
+                                                "*",
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                &error);
 
         if (!file_info) {
             return;
@@ -618,6 +672,7 @@ namespace gio {
             // Check if execution bit is set
             gboolean is_execute = g_file_info_get_attribute_boolean(file_info,
                                                                      G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE);
+
             Nan::Set(fileObj, Nan::New("is_execute").ToLocalChecked(), Nan::New<v8::Boolean>(is_execute));
 
             // // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
@@ -691,12 +746,20 @@ namespace gio {
         GError* error = NULL;
         guint index = 0;
         // GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, &error);
-        GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NONE, NULL, &error);
+        GFileEnumerator* enumerator = g_file_enumerate_children(src,
+                                                                "*",
+                                                                G_FILE_QUERY_INFO_NONE,
+                                                                NULL,
+                                                                &error);
 
         if (enumerator == NULL) {
             GError *enum_err;
-            enum_err = g_error_new_literal(G_FILE_ERROR, G_FILE_ERROR_FAILED, "Failed to get child file");
+            enum_err = g_error_new_literal(G_FILE_ERROR,
+                                            G_FILE_ERROR_FAILED,
+                                            "Failed to get child file");
+
             return Nan::ThrowError(enum_err->message);
+
         }
 
         if (error != NULL) {
@@ -731,7 +794,9 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
             // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
 
-            const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info, G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
+            const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info,
+                                                                                G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
+
             if (thumbnail_path != nullptr) {
                 Nan::Set(fileObj, Nan::New("thumbnail_path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
             }

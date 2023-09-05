@@ -315,6 +315,10 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
  /usr/include/glib-2.0/gio/gtlsinteraction.h \
  /usr/include/glib-2.0/gio/gtlspassword.h \
  /usr/include/glib-2.0/gio/gtlsserverconnection.h \
+ /usr/include/glib-2.0/gio/gunixconnection.h \
+ /usr/include/glib-2.0/gio/gunixcredentialsmessage.h \
+ /usr/include/glib-2.0/gio/gunixfdlist.h \
+ /usr/include/glib-2.0/gio/gunixsocketaddress.h \
  /usr/include/glib-2.0/gio/gvfs.h /usr/include/glib-2.0/gio/gvolume.h \
  /usr/include/glib-2.0/gio/gzlibcompressor.h \
  /usr/include/glib-2.0/gio/gzlibdecompressor.h \
@@ -670,6 +674,10 @@ Release/obj.target/gio/src/gio.o: ../src/gio.cc ../node_modules/nan/nan.h \
 /usr/include/glib-2.0/gio/gtlsinteraction.h:
 /usr/include/glib-2.0/gio/gtlspassword.h:
 /usr/include/glib-2.0/gio/gtlsserverconnection.h:
+/usr/include/glib-2.0/gio/gunixconnection.h:
+/usr/include/glib-2.0/gio/gunixcredentialsmessage.h:
+/usr/include/glib-2.0/gio/gunixfdlist.h:
+/usr/include/glib-2.0/gio/gunixsocketaddress.h:
 /usr/include/glib-2.0/gio/gvfs.h:
 /usr/include/glib-2.0/gio/gvolume.h:
 /usr/include/glib-2.0/gio/gzlibcompressor.h:
