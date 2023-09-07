@@ -656,6 +656,51 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+ipcMain.handle('find', async (e, cmd) => {
+
+    let { stdout, stderr } = await exec(cmd);
+
+    if (stderr) {
+        win.send('msg', stderr);
+        return;
+    }
+
+    let files = stdout.split('\n');
+    if (files.length > 500) {
+
+        return false;
+
+    } else {
+
+        let search_arr =  [];
+        let c = 0;
+        for (let i = 0; i < files.length; i++) {
+
+            if (files[i] != '') {
+                ++c
+                search_arr.push(files[i])
+            }
+
+        }
+
+        return search_arr;
+
+    }
+
+})
+
+
+ipcMain.handle('df', async (e) => {
+    const { stdout, stderr } = await exec('df');
+    if (stdout) {
+        return stdout.toString().split('\n');
+    }
+    if (stderr) {
+        return stderr;
+    }
+    // const {stdout, stderr} = await exec('df').toString().split('\n');
+})
+
 ipcMain.on('set_execute', (e, href) => {
     gio.set_execute(href);
 })
@@ -885,6 +930,11 @@ ipcMain.on('compress', (e, location, type) => {
 // **
 
 // Join
+
+ipcMain.handle('path:extname', (e, href) => {
+    return path.extname(href)
+})
+
 ipcMain.handle('path:join', (e, base, dir) => {
     return path.join(base, dir)
 })
@@ -942,7 +992,11 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 // })
 
 ipcMain.on('umount', (e, href) => {
-    execSync(`gio mount -u ${href}`);
+    exec(`gio mount -u -f ${href}`, (err, stderr, stdout) => {
+        if (err) {
+            win.send('msg', err);
+        }
+    });
 })
 
 // Search Results
@@ -967,14 +1021,15 @@ ipcMain.on('connect_dialog', (e) => {
 })
 
 // Connect
-ipcMain.handle('connect', (e, cmd) => {
-    exec(cmd, (err, stdout, stderr) => {
-        if (!err) {
-            return 1;
-        } else {
-            return err;
-        }
-    })
+ipcMain.handle('connect', async (e, cmd) => {
+
+    try {
+        const { stdout, stderr } = await exec(cmd);
+        return 1;
+    } catch (err) {
+        return err.message;
+    }
+
 })
 
 // Icon Theme
@@ -1512,8 +1567,6 @@ app.on('activate', () => {
         createWindow();
     }
 });
-
-
 
 ipcMain.on('get_files', (e, source, tab) => {
     get_files(source, tab)
@@ -2453,6 +2506,26 @@ ipcMain.on('main_menu', (e, destination) => {
             type: 'separator'
         },
         {
+            label: 'View',
+            submenu: [
+                {
+                    label: 'Grid',
+                    click: () => {
+                        win.send('view', 'grid')
+                    }
+                },
+                {
+                    label: 'List',
+                    click: () => {
+                        win.send('view', 'list')
+                    }
+                },
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
             label: 'Paste',
             accelerator: process.platform === 'darwin' ? workspace.keyboard_shortcuts.Paste : workspace.keyboard_shortcuts.Paste,
             click: () => {
@@ -3072,7 +3145,9 @@ const template = [
                     },
                     {
                         label: 'Name',
-                        click: () => {win.send('sort', 'size')}
+                        click: () => {
+                            win.send('sort', 'size')
+                        }
                     },
                     {
                         label: 'Size',
@@ -3083,6 +3158,30 @@ const template = [
                         click: () => {win.send('sort', 'type')}
                     },
                 ]
+            },
+            {
+                label: 'View',
+                submenu: [
+                    {
+                        label: 'Grid',
+                        click: () => {
+                            win.send('view', 'grid');
+                        }
+                    },
+                    {
+                        label: "List",
+                        click: () => {
+                            win.send('view', 'list');
+                        }
+                    }
+                ]
+            },
+            {
+                label: 'Show Hidden Files',
+                click: () => {
+                    // win.send('show_hidden');
+                    win.send('msg', 'Error: Not yet implemented');
+                }
             },
             {type: 'separator'},
             {

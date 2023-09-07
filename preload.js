@@ -1,5 +1,5 @@
 const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
-const { exec, execSync } = require('child_process');
+// const { exec, execSync } = require('child_process');
 const mt         = require('mousetrap');
 const Chart      = require('chart.js')
 
@@ -224,6 +224,12 @@ ipcRenderer.on('get_settings', (e) => {
     getSettings();
 })
 
+ipcRenderer.on('view', (e, view) => {
+    localStorage.setItem('view', view);
+    switch_view(view);
+})
+
+// Merge done
 ipcRenderer.on('done_merging_files', (e) => {
 
     let active_tab = document.querySelector('.active-tab-content');
@@ -1136,7 +1142,8 @@ ipcRenderer.on('connect', (e) => {
                 }
 
                 ipcRenderer.invoke('connect', cmd).then(res => {
-                    if (res) {
+                    console.log(res)
+                    if (res === 1) {
                         // console.log('connection success')
                         connect_msg.style.color = 'green';
                         connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
@@ -1647,154 +1654,143 @@ async function get_disk_summary_view(callback) {
     grid.classList.add('grid2')
 
     // COMMAND
-    // let disks = execSync('df -l -t ext4').toString().split('\n');
-    let disks = execSync('df').toString().split('\n');
-    // disks.shift()
-    disks_arr = disks.filter(a => { return a !== ''; })
+    // let disks = execSync('df').toString().split('\n');
 
-    // Sort Disks
-    // disks_arr.sort((a, b) => {
-    //     if (a < b) {
-    //         return -1;
-    //     }
-    //     if (a > b) {
-    //         return 1;
-    //     }
-    // })
+    ipcRenderer.invoke('df').then(disks => {
 
-    disks_arr.forEach((disk, i) => {
+        disks_arr = disks.filter(a => { return a !== ''; })
 
-        // console.log(disk)
+        disks_arr.forEach((disk, i) => {
 
-        // GRID FOR DATA
-        let data_grid = add_div()
-        data_grid.classList.add('grid')
+            // console.log(disk)
 
-        let chart_data = []
+            // GRID FOR DATA
+            let data_grid = add_div()
+            data_grid.classList.add('grid')
 
-        // ADD COLUMN TO GRID
-        let col = add_div()
-        // col.classList.add('column', 'eight', 'wide')
+            let chart_data = []
 
-        // ADD CARD
-        let card = add_div()
-        card.classList.add('drive')
-        // card.style = 'border: 1px solid black;'
+            // ADD COLUMN TO GRID
+            let col = add_div()
+            let card = add_div()
+            card.classList.add('drive')
 
-        let image = add_div()
-        image.classList.add('image1')
+            let image = add_div()
+            image.classList.add('image1')
 
-        // ADD CONTENT
-        let content = add_div()
-        content.classList.add('content')
+            // ADD CONTENT
+            let content = add_div()
+            content.classList.add('content')
 
-        // ADD HEADER
-        let header = add_div()
-        header.classList.add('header')
+            // ADD HEADER
+            let header = add_div()
+            header.classList.add('header')
 
-        // CREATE ARRAY OF DISK INFO
-        let data = disk.split(' ');
-        let data_arr = data.filter(a => {
-            return a !== '';
-        })
+            // CREATE ARRAY OF DISK INFO
+            let data = disk.split(' ');
+            let data_arr = data.filter(a => {
+                return a !== '';
+            })
 
-        // LOOP OVER DATA ARRAY
-        data_arr.forEach((item, ii) => {
+            // LOOP OVER DATA ARRAY
+            data_arr.forEach((item, ii) => {
 
-            // GET LABELS
-            if (i == 0) {
-                labels.push(item)
-            }
+                // GET LABELS
+                if (i == 0) {
+                    labels.push(item)
+                }
 
-            // ADD CHART LABELS
-            if (i == 0 && (ii > 0 && ii < 4)) {
+                // ADD CHART LABELS
+                if (i == 0 && (ii > 0 && ii < 4)) {
 
-                chart_labels.push(item)
-                content.append(item)
+                    chart_labels.push(item)
+                    content.append(item)
 
-                // ADD CHART DATA
-            } else if (i > 0 && (ii > 0 && ii < 4)) {
-                chart_data.push(parseInt(item))
-            }
+                    // ADD CHART DATA
+                } else if (i > 0 && (ii > 0 && ii < 4)) {
+                    chart_data.push(parseInt(item))
+                }
 
-            // ADD FIRST ITEM AS HEADER
-            if (ii == 0) {
+                // ADD FIRST ITEM AS HEADER
+                if (ii == 0) {
 
-                header.append(item)
-                content.append(header)
+                    header.append(item)
+                    content.append(header)
 
-                // ADD DATA
-            } else {
-
-                // IF INTEGER THEN GET FILE SIZE
-                if (ii > 0 && ii < 4) {
-
-                    let data_col1 = add_column('three')
-                    data_col1.append(labels[ii])
-                    data_col1.style = 'border: none;'
-
-                    let data_col2 = add_column('twelve')
-                    data_col2.append(getFileSize(parseInt(item) * 1024))
-                    data_col2.style = 'border: none;'
-
-                    data_grid.append(data_col1, data_col2)
-
+                    // ADD DATA
                 } else {
 
-                    let data_col1 = add_column('three')
-                    data_col1.append(labels[ii])
+                    // IF INTEGER THEN GET FILE SIZE
+                    if (ii > 0 && ii < 4) {
 
-                    let data_col2 = add_column('twelve')
+                        let data_col1 = add_column('three')
+                        data_col1.append(labels[ii])
+                        data_col1.style = 'border: none;'
 
-                    // ADD LINK TO MOUNTED
-                    if (ii >= data_arr.length - 1) {
+                        let data_col2 = add_column('twelve')
+                        data_col2.append(getFileSize(parseInt(item) * 1024))
+                        data_col2.style = 'border: none;'
 
-                        let href = add_link(item, item);
-                        href.addEventListener('click', (e) => {
-                            e.preventDefault()
-                            // localStorage.setItem('view', 'grid');
-                            // get_view(item)
-                        })
-                        data_col2.append(href);
+                        data_grid.append(data_col1, data_col2)
+
                     } else {
-                        data_col2.append(item);
-                    }
 
-                    data_grid.append(data_col1, data_col2)
+                        let data_col1 = add_column('three')
+                        data_col1.append(labels[ii])
+
+                        let data_col2 = add_column('twelve')
+
+                        // ADD LINK TO MOUNTED
+                        if (ii >= data_arr.length - 1) {
+
+                            let href = add_link(item, item);
+                            href.addEventListener('click', (e) => {
+                                e.preventDefault()
+                                // localStorage.setItem('view', 'grid');
+                                // get_view(item)
+                            })
+                            data_col2.append(href);
+                        } else {
+                            data_col2.append(item);
+                        }
+
+                        data_grid.append(data_col1, data_col2)
+
+                    }
 
                 }
 
+                // ADD DATA GRID TO CONTENT
+                content.append(data_grid)
+
+                // ADD CONTENT TO CARD
+                card.append(content)
+                card.dataset.label = item
+
+                // ADD CARD TO COLUMN
+                col.append(card)
+
+            })
+
+            // CREATE CHART
+            if (i > 0) {
+
+                let chart = add_chart('doughnut', chart_labels, chart_data)
+                chart.style = 'float:left'
+
+                image.append(chart)
+                content.prepend(image)
+
+                content.style = 'padding-bottom: 20px;'
+
+                // ADD COLUMN TO GRID
+                grid.append(col)
+
             }
 
-            // ADD DATA GRID TO CONTENT
-            content.append(data_grid)
+        });
 
-            // ADD CONTENT TO CARD
-            card.append(content)
-            card.dataset.label = item
-
-            // ADD CARD TO COLUMN
-            col.append(card)
-
-        })
-
-        // CREATE CHART
-        if (i > 0) {
-
-            let chart = add_chart('doughnut', chart_labels, chart_data)
-            chart.style = 'float:left'
-
-            image.append(chart)
-            content.prepend(image)
-
-            content.style = 'padding-bottom: 20px;'
-
-            // ADD COLUMN TO GRID
-            grid.append(col)
-
-        }
-
-    });
+    })
 
     // ADD GRID TO VIEW
     view.append(grid);
@@ -2189,49 +2185,48 @@ function find_files(callback) {
                                 }
                                 let data = 0;
                                 let c = 0
-                                let child = exec(cmd)
-                                // console.log(cmd)
 
-                                let search_arr = [];
-                                child.stdout.on('data', (res) => {
+                                ipcRenderer.invoke('find', cmd).then(search_arr => {
 
-                                    data = 1;
-                                    search_info.innerHTML = ''
-                                    let files = res.split('\n')
-                                    search_progress.value = 0
-                                    search_progress.max = files.length
-
-                                    if (files.length > 500) {
-
-                                        search_info.innerHTML = 'Please narrow your search.'
-                                        search_progress.classList.add('hidden')
-                                        return false;
-
-                                    } else {
-
-                                        for (let i = 0; i < files.length; i++) {
-
-                                            if (files[i] != '') {
-                                                ++c
-                                                search_arr.push(files[i])
-                                            }
-
-                                        }
-
-                                    }
-
-                                })
-
-                                child.stdout.on('end', (res) => {
-                                    if (!data) {
-                                        search_info.innerHTML = '0 matches found';
-                                    } else {
-
-                                        // console.log('ipc send search results');
+                                    if (search_arr.length > 0) {
                                         ipcRenderer.send('search_results', search_arr);
-                                        search_info.innerHTML = c + ' matches found';
+                                        search_info.innerHTML = search_arr.length + ' matches found';
+                                    } else {
+                                        search_info.innerHTML = '0 matches found';
                                     }
-                                    search_progress.classList.add('hidden');
+
+                                    // })
+                                    // let child = exec(cmd)
+                                    // let search_arr = [];
+                                    // child.stdout.on('data', (res) => {
+                                    //     data = 1;
+                                    //     search_info.innerHTML = ''
+                                    //     let files = res.split('\n')
+                                    //     search_progress.value = 0
+                                    //     search_progress.max = files.length
+                                    //     if (files.length > 500) {
+                                    //         search_info.innerHTML = 'Please narrow your search.'
+                                    //         search_progress.classList.add('hidden')
+                                    //         return false;
+                                    //     } else {
+                                    //         for (let i = 0; i < files.length; i++) {
+                                    //             if (files[i] != '') {
+                                    //                 ++c
+                                    //                 search_arr.push(files[i])
+                                    //             }
+                                    //         }
+                                    //     }
+                                    // })
+                                    // child.stdout.on('end', (res) => {
+                                    //     if (!data) {
+                                    //         search_info.innerHTML = '0 matches found';
+                                    //     } else {
+
+                                    // console.log('ipc send search results');
+                                    // ipcRenderer.send('search_results', search_arr);
+                                    // search_info.innerHTML = c + ' matches found';
+                                    // }
+                                    // search_progress.classList.add('hidden');
                                 })
 
                             } else {
@@ -2570,8 +2565,8 @@ function msg(message, has_timeout = 1) {
 
     if (has_timeout) {
         setTimeout(() => {
-            msg.classList.add('hidden')
-        }, 3000);
+            msg.classList.add('hidden');
+        }, 5000);
     }
 
 }
@@ -2625,6 +2620,9 @@ function edit() {
         input.classList.remove('hidden');
 
         input.select();
+        ipcRenderer.invoke('path:extname', href).then(extname => {
+            input.setSelectionRange(0, input.value.length - extname.length)
+        })
         input.focus();
 
         main.removeEventListener('keydown', quickSearch);
@@ -4441,6 +4439,24 @@ window.addEventListener('DOMContentLoaded', (e) => {
         }
 
         // document.addEventListener('keydown', (e) => {
+        //     ipcRenderer.invoke('settings').then(res => {
+        //         shortcut =  res.keyboard_shortcuts;
+        //     }).then(() => {
+        //         switch (e.key) {
+        //             // Reload
+        //             case shortcut.Reload: {
+        //                 getView(location.value);
+        //                 break;
+        //             }
+        //             // Rename
+        //             case shortcut.Rename: {
+        //                 console.log('running edit')
+        //                 edit();
+        //                 break;
+        //             }
+        //         }
+        //     })
+        // })
 
             ipcRenderer.invoke('settings').then(res => {
                 shortcut =  res.keyboard_shortcuts;

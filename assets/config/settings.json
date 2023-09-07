@@ -10,6 +10,9 @@
             "Folder Count": true
         }
     },
+    "Header Menu": {
+        "show": true
+    },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowHome": "Alt+H",
