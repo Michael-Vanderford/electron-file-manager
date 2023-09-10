@@ -5,8 +5,12 @@
   "projectUrl": "https://github.com/Michael-Vanderford/electron-file-manager",
   "main": "main.js",
   "license": "GPL-2.0+",
+  "licensefile": "LICENSE",
+  "maintainer": "Michael Vanderford michael.vanderford@gmail.com",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "build"
   },
   "build": {
     "appId": "com.stringboardsoftware.stringfilemanager",
@@ -22,7 +26,8 @@
   "email": "michael.vanderford@gmail.com",
   "devDependencies": {
     "electron": "^25.3.2",
-    "electron-builder": "^24.4.0"
+    "electron-builder": "^24.6.4",
+    "electron-packager": "^17.1.2"
   },
   "dependencies": {
     "bootstrap-icons": "^1.10.5",

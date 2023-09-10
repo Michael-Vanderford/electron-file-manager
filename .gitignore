@@ -1,4 +1,6 @@
 node_modules
+string-file-manager-darwin-x64
+string-file-manager-linux-x64
 assets/icons/kora-pgrey
 dist/
 node_gio
