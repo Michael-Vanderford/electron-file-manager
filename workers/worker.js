@@ -11,13 +11,23 @@ function get_files_arr (source, destination, callback) {
     file_arr.push({type: 'directory', source: source, destination: destination})
     gio.ls(source, (err, dirents) => {
         for (let i = 0; i < dirents.length; i++) {
+
+            data = {
+                cmd: 'progress',
+                msg: `Getting Files`,
+                max: dirents.length - 1,
+                value: i
+            }
+            parentPort.postMessage(data);
+
             let file = dirents[i]
-            parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
+            // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
                 file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
             }
+
         }
 
         if (--cp_recursive == 0) {
@@ -39,7 +49,7 @@ parentPort.on('message', data => {
         let idx = 0;
         let merge_arr = [];
 
-        data.copy_arr.forEach(item => {
+        data.copy_arr.forEach((item, idx) => {
 
             if (gio.exists(item.destination)) {
 

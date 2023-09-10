@@ -10,7 +10,8 @@ const fs = require('fs')
 const path = require('path');
 const { Worker } = require('worker_threads');
 const gio_utils = require('./utils/gio');
-const gio = require('./gio/build/Release/gio')
+const gio = require('./gio/build/Release/gio');
+const mt = require('mousetrap');
 
 // Workers
 const worker = new Worker(path.join(__dirname, 'workers/worker.js'));
@@ -45,7 +46,6 @@ try {
     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
     workspace = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 }
-
 
 function checkSettings() {
 
@@ -716,12 +716,7 @@ ipcMain.handle('get_templates_folder', (e) => {
 
 // Get Files Array
 ipcMain.on('get_files_arr_merge', (e, source, destination, copy_arr) => {
-
     worker.postMessage({'cmd': 'merge_files', source: source, destination: destination, copy_arr: copy_arr});
-
-    // get_files_arr(source, destination, dirents => {
-    //     win.send('get_files_arr_merge', (e, source, destination, dirents))
-    // })
 })
 
 // Get home directory
@@ -770,7 +765,7 @@ ipcMain.on('new_folder', (e, destination) => {
     try{
         gio.mkdir(folder_path)
     } catch (err) {
-        console.log(err)
+        win.send('msg', err.message);
     }
     // win.send('get_card_gio', folder_path);
 })
@@ -935,8 +930,8 @@ ipcMain.handle('path:extname', (e, href) => {
     return path.extname(href)
 })
 
-ipcMain.handle('path:join', (e, base, dir) => {
-    return path.join(base, dir)
+ipcMain.handle('path:join', (e, dir) => {
+    return path.join(__dirname, dir)
 })
 
 // Path Format
@@ -1229,8 +1224,8 @@ ipcMain.handle('get_subfolders', (e, source) => {
     })
 })
 
-ipcMain.handle('settings', (e) => {
-    let settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+ipcMain.handle('settings', async (e) => {
+    let settings = await JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
     return settings;
 })
 
@@ -1502,7 +1497,7 @@ function createWindow() {
             nodeIntegrationInWorker: true,
             nativeWindowOpen: true,
             preload: path.join(__dirname, 'preload.js'),
-            sandbox: false,
+            sandbox: true,
         },
     }
 

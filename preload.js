@@ -1,7 +1,7 @@
-const {contextBridge, ipcRenderer, shell, clipboard } = require('electron');
+const {contextBridge, ipcRenderer } = require('electron');
 // const { exec, execSync } = require('child_process');
-const mt         = require('mousetrap');
-const Chart      = require('chart.js')
+// const mt         = require('mousetrap');
+// const Chart      = require('chart.js')
 
 // Global Arrays
 let selected_files_arr  = [];
@@ -25,13 +25,54 @@ class Utilities {
     constructor() {
     }
 
-    move (destination) {
-        ipcRenderer.send('move', destination);
-        clear();
-    }
-
     getIcon (href) {
 
+    }
+}
+
+class Navigation {
+
+    constructor () {
+        this.historyArr = [];
+        this.idx = 0;
+        this.location = document.querySelector('.location');
+
+        const left = document.getElementById('left');
+        const right = document.getElementById('right');
+
+        left.addEventListener('click', (e) => {
+            this.left();
+        })
+
+        right.addEventListener('click', (e) => {
+            this.right();
+        })
+
+    }
+
+    addHistory (location) {
+
+        if (!this.historyArr.includes(location)) {
+            this.historyArr.push(location);
+            this.idx = this.historyArr.length - 1;
+        }
+        console.log(this.historyArr);
+    }
+
+    left () {
+        console.log('left', this.idx);
+        if (this.idx > 0) {
+            --this.idx;
+            getView(this.historyArr[this.idx]);
+        }
+    }
+
+    right () {
+        console.log('right', this.idx);
+        if (this.idx < this.historyArr.length) {
+            getView(this.historyArr[this.idx]);
+            ++this.idx
+        }
     }
 
 }
@@ -207,14 +248,188 @@ class Progress {
     constructor () {
 
     }
+}
 
+class FileOperations {
 
+    constructor () {
+        this.location = document.querySelector('.location')
+        this.cut_flag = 0;
+    }
+
+    // Cut
+    cut () {
+        this.cut_flag = 1;
+        getSelectedFiles();
+        selected_files_arr.forEach(item => {
+            let active_tab_content = document.querySelector('.active-tab-content');
+            let card = active_tab_content.querySelector(`[data-href="${item}"]`);
+            card.style = 'opacity: 0.6 !important';
+        })
+    }
+
+    // Copy
+    copy () {
+        getSelectedFiles();
+    }
+
+    // Move Files
+    move (destination) {
+        ipcRenderer.send('move', destination);
+        clear();
+    }
+
+    // Past Files
+    paste(destination) {
+        // console.log('running paste', destination)
+        ipcRenderer.send('paste', destination);
+        clearHighlight();
+    }
+
+    // Run Paste Operation for CTRL+V
+    pasteOperation () {
+        let location = document.querySelector('.location')
+        ipcRenderer.send('main', 1);
+        if (this.cut_flag) {
+            this.move(location.value);
+        } else {
+            this.paste(location.value);
+        }
+        this.cut_flag = 0;
+    }
+
+    // Edit Mode
+    edit () {
+        // console.log('running edit');
+        let main = document.querySelector('.main');
+        let active_tab_content = document.querySelector('.active-tab-content');
+        let cards = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
+
+        cards.forEach(card => {
+            let href = card.dataset.href;
+            let header_link = card.querySelector('a');
+            let input = card.querySelector('input');
+
+            header_link.classList.add('hidden');
+            input.classList.remove('hidden');
+
+            input.select();
+            ipcRenderer.invoke('path:extname', href).then(extname => {
+                input.setSelectionRange(0, input.value.length - extname.length)
+            })
+            input.focus();
+
+            main.removeEventListener('keydown', quickSearch);
+
+            input.addEventListener('change', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                let location = document.getElementById('location');
+                let source = href;
+                ipcRenderer.invoke('path:format', location.value, e.target.value).then(destination => {
+                    ipcRenderer.send('rename', source, destination);
+                })
+            })
+
+            document.addEventListener('keyup', (e) => {
+                if (e.key === 'Escape') {
+                    ipcRenderer.invoke('basename', href).then(basename => {
+                        input.value = basename;
+                        header_link.classList.remove('hidden');
+                        input.classList.add('hidden');
+                    })
+                }
+            })
+
+        })
+    }
+
+    // Delete
+    delete () {
+        getSelectedFiles();
+        if (selected_files_arr.length > 0) {
+            ipcRenderer.send('delete', (selected_files_arr));
+        }
+        clear();
+    }
+
+    // New Folder
+    newFolder () {
+        let location = document.querySelector('.location')
+        ipcRenderer.send('new_folder', location.value);
+    }
+
+    // Call get Properties
+    fileInfo () {
+        getSelectedFiles();
+        ipcRenderer.send('get_properties', selected_files_arr, location.value);
+        clear();
+    }
 
 }
 
+// Get reference to File Operations
+let fo = new FileOperations();
+
 let tm = null;
+let nav = null;
 window.addEventListener('DOMContentLoaded', (e) => {
     tm = new TabManager();
+    nav = new Navigation();
+})
+
+// Get Keyboard shortcuts
+async function getShortcuts() {
+    return await ipcRenderer.invoke('settings').then(settings => {
+        return settings.keyboard_shortcuts
+    })
+}
+
+// Expose Functions to index.js file
+contextBridge.exposeInMainWorld('api', {
+    getShortcuts,
+    getView,
+    getSelectedFiles,
+    cut: () => {
+        fo.cut();
+    },
+    pasteOperation: () => {
+        fo.pasteOperation()
+    },
+    edit: () => {
+        fo.edit();
+    },
+    newFolder: () => {
+        fo.newFolder()
+    },
+    find_files,
+    quickSearch,
+    newWindow: () => {
+        ipcRenderer.send('new_window');
+    },
+    clearViews,
+    sidebarHome,
+    fileInfo: () => {
+        fo.fileInfo();
+    },
+    getSettings,
+    extract,
+    compress,
+    addWorkspace: () => {
+        // Add to Workspace
+        getSelectedFiles()
+        ipcRenderer.send('add_workspace', selected_files_arr);
+        clear()
+    },
+    goBack: () => {
+        let location = document.querySelector('.location')
+        ipcRenderer.invoke('dirname', location.value).then(dir => {
+            getView(dir);
+            localStorage.setItem('location', dir);
+        })
+    }
+
 })
 
 // IPC ///////////////////////////////////////////////////////////////////
@@ -377,6 +592,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     localStorage.setItem('location', source);
     auto_complete_arr = [];
+
+    nav.addHistory(source);
 
     msg('');
     let main = document.querySelector('.main');
@@ -652,15 +869,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     main.addEventListener('drop', (e) => {
-
-        // e.preventDefault();
-        // e.stopPropagation();
-
-        // if (e.dataTransfer.files.length > 0) {
         ipcRenderer.send('main', 1);
-        paste(location.value);
-        // }
-
+        fo.paste(location.value);
     })
 
     main.addEventListener('mouseenter', (e) => {
@@ -1405,26 +1615,23 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
     switch (cmd) {
         case 'rename': {
-            edit();
+            fo.edit();
             break;
         }
         case 'mkdir': {
-            // console.log('running new folder')
-            ipcRenderer.send('new_folder', location.value);
+            fo.newFolder()
             break;
         }
         case 'copy': {
-            getSelectedFiles();
+            fo.copy();
             break
         }
         case 'paste': {
-            paste(location.value);
+            fo.paste(location.value);
             break;
         }
         case 'delete': {
-            getSelectedFiles();
-            ipcRenderer.send('delete', (selected_files_arr));
-            clear()
+            fo.delete();
             break;
         }
         case 'terminal': {
@@ -1477,9 +1684,10 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break;
         }
         case 'properties': {
-            getSelectedFiles();
-            ipcRenderer.send('get_properties', selected_files_arr);
-            clear();
+            // getSelectedFiles();
+            // ipcRenderer.send('get_properties', selected_files_arr);
+            // clear();
+            fo.fileInfo();
             break;
         }
         case 'open_templates': {
@@ -1502,49 +1710,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
 
 // Merge Dialog
 function merge(source, destination, copy_merge_arr) {
-
-    // const url = './views/merge.html';
-    // fetch(url).then(res => {
-    //     return res.text();
-    // }).then(data => {
-
-    //     const main = document.querySelector('.main');
-    //     let tab_content = add_tab('Merge Directory');
-    //     let active_tab = document.querySelector('.active-tab');
-    //     tab_content.innerHTML = data
-
-        // let source = '/home/michael/Downloads/chartjs/'
-        // let destination = '/home/michael/Downloads/testing/chartjs/'
-
-        // let merge_source = document.querySelector('.merge_source');
-        // let merge_destination = document.querySelector('.merge_destination');
-        // let btn_cancel = document.querySelector('.btn_cancel');
-
-        // merge_source.innerText = ` ${source}`;
-        // merge_destination.innerText = ` ${destination}`;
-
-        ipcRenderer.send('get_files_arr_merge', source, destination, copy_merge_arr);
-
-        // btn_cancel.addEventListener('click', (e) => {
-
-        //     tab_content.remove();
-        //     active_tab.remove();
-
-        //     let tabs = document.querySelectorAll('.tabs');
-        //     let content = document.querySelectorAll('.tab_content')
-
-        //     let tab = tabs[0].querySelector('.tab');
-        //     tab.classList.add('active-tab')
-        //     content[0].classList.remove('hidden')
-
-        // })
-
-    //     main.append(tab_content);
-
-    // }).catch(err => {
-    //     console.log(err);
-    // })
-
+    ipcRenderer.send('get_files_arr_merge', source, destination, copy_merge_arr);
 }
 
 // DISK USAGE CHART
@@ -1958,7 +2124,7 @@ function sort_cards() {
 
 }
 
-function find_files(callback) {
+function find_files() {
 
     clearViews();
 
@@ -1981,7 +2147,7 @@ function find_files(callback) {
             search_view.classList.add('search_view');
         }
 
-        ipcRenderer.invoke('path:join', __dirname, 'views/find.html').then(path => {
+        ipcRenderer.invoke('path:join','views/find.html').then(path => {
 
             fetch(path)
             .then(res => {
@@ -2212,6 +2378,7 @@ function find_files(callback) {
                                     //         for (let i = 0; i < files.length; i++) {
                                     //             if (files[i] != '') {
                                     //                 ++c
+
                                     //                 search_arr.push(files[i])
                                     //             }
                                     //         }
@@ -2272,7 +2439,7 @@ function find_files(callback) {
 
     }
 
-    callback(1)
+    // callback(1)
 
 }
 
@@ -2600,91 +2767,6 @@ function getDateTime (date) {
     }
 }
 
-// Edit Mode
-function edit() {
-
-    // console.log('running edit');
-    let main = document.querySelector('.main');
-    let quicksearch = document.querySelector('.quicksearch');
-
-    // getSelectedFiles();
-    let active_tab_content = document.querySelector('.active-tab-content');
-    let cards = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
-
-    cards.forEach(card => {
-        let href = card.dataset.href;
-        let header_link = card.querySelector('a');
-        let input = card.querySelector('input');
-
-        header_link.classList.add('hidden');
-        input.classList.remove('hidden');
-
-        input.select();
-        ipcRenderer.invoke('path:extname', href).then(extname => {
-            input.setSelectionRange(0, input.value.length - extname.length)
-        })
-        input.focus();
-
-        main.removeEventListener('keydown', quickSearch);
-
-        input.addEventListener('change', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            let location = document.getElementById('location');
-            let source = href;
-            ipcRenderer.invoke('path:format', location.value, e.target.value).then(destination => {
-                ipcRenderer.send('rename', source, destination);
-            })
-        })
-
-        document.addEventListener('keyup', (e) => {
-            if (e.key === 'Escape') {
-                ipcRenderer.invoke('basename', href).then(basename => {
-                    input.value = basename;
-                    header_link.classList.remove('hidden');
-                    input.classList.add('hidden');
-                })
-            }
-        })
-
-    })
-
-    // selected_files_arr.forEach(href => {
-    //     let active_tab_content = document.querySelector('.active-tab-content');
-    //     let card = active_tab_content.querySelector(`[data-href="${href}"]`);
-    //     let header = card.querySelector('.header');
-    //     let header_link = card.querySelector('a');
-    //     let input = card.querySelector('input');
-    //     header_link.classList.add('hidden');
-    //     input.classList.remove('hidden');
-    //     input.select();
-    //     input.focus();
-    //     main.removeEventListener('keydown', quickSearch);
-    //     input.addEventListener('change', (e) => {
-    //         e.preventDefault();
-    //         e.stopPropagation();
-
-    //         let location = document.getElementById('location');
-    //         let source = href;
-    //         ipcRenderer.invoke('path:format', location.value, e.target.value).then(destination => {
-    //             ipcRenderer.send('rename', source, destination);
-    //         })
-    //     })
-    //     document.addEventListener('keyup', (e) => {
-    //         if (e.key === 'Escape') {
-    //             ipcRenderer.invoke('basename', href).then(basename => {
-    //                 input.value = basename;
-    //                 header_link.classList.remove('hidden');
-    //                 input.classList.add('hidden');
-    //             })
-    //         }
-    //     })
-    // })
-    // selected_files_arr = [];
-
-}
-
 function getMappedPermissions(permissionValue) {
     const symbolicMap = {
         0: 'None', //'---',
@@ -2698,7 +2780,6 @@ function getMappedPermissions(permissionValue) {
     };
     return symbolicMap[permissionValue];
 }
-
 
 function getPermissions(unixMode) {
 
@@ -2747,7 +2828,7 @@ function getProperties(properties_arr) {
     let properties_div = add_div();
     // tab_content.append(properties_div);
 
-    ipcRenderer.invoke('path:join', __dirname, 'views/properties.html').then(path => {
+    ipcRenderer.invoke('path:join', 'views/properties.html').then(path => {
         fetch(path).then(res => {
             return res.text()
         }).then(html => {
@@ -3030,9 +3111,7 @@ function getSettings() {
 
     tm.addTab('Settings');
     let tab_content = document.querySelector('.active-tab-content');
-
-    let location = document.querySelector('.location');
-    ipcRenderer.invoke('path:join', __dirname, 'views/settings.html').then(path => {
+    ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
 
         fetch(path)
         .then(res => {
@@ -3041,9 +3120,6 @@ function getSettings() {
         .then(settings_html => {
 
             tab_content.innerHTML = settings_html;
-            location.value = 'Settings';
-            // localStorage.setItem('location', 'Settings')
-
             ipcRenderer.invoke('settings')
             .then(res => res)
             .then(settings => settingsForm(settings))
@@ -3563,16 +3639,16 @@ function add_button(text) {
     return button
 }
 
-function paste(destination) {
-    // console.log('running paste', destination)
-    ipcRenderer.send('paste', destination);
-    clearHighlight();
-}
-
-function move(destination) {
-    ipcRenderer.send('move', destination);
-    selected_files_arr = [];
-}
+// todo: this was moved to File operations class delete this once tested
+// function paste(destination) {
+//     // console.log('running paste', destination)
+//     ipcRenderer.send('paste', destination);
+//     clearHighlight();
+// }
+// function move(destination) {
+//     ipcRenderer.send('move', destination);
+//     selected_files_arr = [];
+// }
 
 // Get Folder Count
 function getFolderCount(href) {
@@ -3800,10 +3876,10 @@ function getCardGio(file) {
         ipcRenderer.send('main', 0);
         if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
             if (e.ctrlKey) {
-                paste(file.href);
+                fo.paste(file.href);
             } else {
                 // console.log('moving to', file.href);
-                utils.move(file.href);
+                fo.move(file.href);
             }
         } else {
             // console.log('did not find target')
@@ -4400,18 +4476,16 @@ window.addEventListener('DOMContentLoaded', (e) => {
         })
 
         // Navigate left
-        let left = document.getElementById('left');
-        left.addEventListener('click', (e) => {
-
-            ipcRenderer.invoke('dirname', location.value).then(dir => {
-                getView(dir);
-                localStorage.setItem('location', dir);
-                // location.value = location.value.replace(dir, '');
-                // getView(location.value);
-                // localStorage.setItem('location', location.value);
-            })
-
-        })
+        // let left = document.getElementById('left');
+        // left.addEventListener('click', (e) => {
+        //     ipcRenderer.invoke('dirname', location.value).then(dir => {
+        //         getView(dir);
+        //         localStorage.setItem('location', dir);
+        //         // location.value = location.value.replace(dir, '');
+        //         // getView(location.value);
+        //         // localStorage.setItem('location', location.value);
+        //     })
+        // })
 
         // Settings
         settings.addEventListener('click', (e) => {
@@ -4438,185 +4512,147 @@ window.addEventListener('DOMContentLoaded', (e) => {
             special_view = 1;
         }
 
-        // document.addEventListener('keydown', (e) => {
-        //     ipcRenderer.invoke('settings').then(res => {
-        //         shortcut =  res.keyboard_shortcuts;
-        //     }).then(() => {
-        //         switch (e.key) {
-        //             // Reload
-        //             case shortcut.Reload: {
-        //                 getView(location.value);
-        //                 break;
-        //             }
-        //             // Rename
-        //             case shortcut.Rename: {
-        //                 console.log('running edit')
-        //                 edit();
-        //                 break;
-        //             }
-        //         }
-        //     })
-        // })
+        ipcRenderer.invoke('settings').then(res => {
 
-            ipcRenderer.invoke('settings').then(res => {
-                shortcut =  res.keyboard_shortcuts;
-            }).then(() => {
+            shortcut =  res.keyboard_shortcuts;
 
-                // Delete
-                mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
-                    e.preventDefault();
-                    getSelectedFiles();
-                    if (selected_files_arr.length > 0) {
-                        ipcRenderer.send('delete', (selected_files_arr));
-                    }
-                    clear();
-                })
+        }).then(() => {
 
-                // Escape (Cancel)
-                mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
-                    // Clear Arrays and selected items
-                    clear();
-                })
+            // Delete
+            // mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
+            //     e.preventDefault();
+            //     getSelectedFiles();
+            //     if (selected_files_arr.length > 0) {
+            //         ipcRenderer.send('delete', (selected_files_arr));
+            //     }
+            //     clear();
+            // })
+            // Escape (Cancel)
+            // mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
+            //     // Clear Arrays and selected items
+            //     clear();
+            // })
+            // // Reload
+            // mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
+            //     getView(location.value)
+            // })
+            // // Edit
+            // mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
+            //     edit();
+            // })
+            // // Ctrl+C (Copy)
+            // mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
+            //     getSelectedFiles();
+            // })
+            // Ctrl+X (Cut)
+            // mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
+            //     cut_flag = 1;
+            //     getSelectedFiles();
+            //     selected_files_arr.forEach(item => {
+            //         let active_tab_content = document.querySelector('.active-tab-content');
+            //         let card = active_tab_content.querySelector(`[data-href="${item}"]`);
+            //         card.style = 'opacity: 0.6 !important';
+            //     })
+            // })
+            // Ctrl+V (Paste)
+            // mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
+            //     ipcRenderer.send('main', 1);
+            //     if (cut_flag) {
+            //         utils.move(location.value);
+            //     } else {
+            //         paste(location.value);
+            //     }
+            //     cut_flag = 0;
+            // })
+            // // Show / Hide Sidebar
+            // mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
+            //     if (sidebar.classList.contains('hidden')) {
+            //         sidebar.classList.remove('hidden');
+            //         localStorage.setItem('sidebar', 1);
+            //     } else {
+            //         sidebar.classList.add('hidden');
+            //         localStorage.setItem('sidebar', 0);
+            //     }
+            // })
+            // // Find
+            // mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
+            //     // getSearch();
+            //     find_files(res => {})
+            // })
+            // // Quick Search
+            // mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
+            //     quickSearch(e);
+            // })
+            // // New Window
+            // mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
+            //     ipcRenderer.send('new_window');
+            // })
+            // // Show Home View Sidebar
+            // mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
+            //     clearViews();
+            //     sidebarHome();
+            // })
 
-                // Reload
-                mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
-                    getView(location.value)
-                })
+            // // Get File Info
+            // mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
+            //     getSelectedFiles();
+            //     ipcRenderer.send('get_properties', selected_files_arr, location.value);
+            //     selected_files_arr = [];
+            // })
 
-                // Edit
-                mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
-                    edit();
-                })
+            // // Select All
+            // mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
+            //     e.preventDefault();
+            //     let cards = main.querySelectorAll('.card')
+            //     cards.forEach(item => {
+            //         item.classList.add('highlight');
+            //     })
+            // })
+            // // Go Back
+            // mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
+            //     ipcRenderer.invoke('dirname', location.value).then(dir => {
+            //         // console.log('dir', dir)
+            //         // location.value = location.value.replace(dir, '');
+            //         getView(dir);
+            //         localStorage.setItem('location', dir);
+            //     })
+            //     // ipcRenderer.invoke('basename', location.value).then(basename => {
+            //     //     location.value = basename;
+            //     //     getView(location.value);
+            //     // })
+            //     // localStorage.setItem('location', location.value);
+            // })
+            // // Add to Workspace
+            // mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
+            //     getSelectedFiles()
+            //     ipcRenderer.send('add_workspace', selected_files_arr);
+            //     clear()
+            // })
+            // // New Folder
+            // mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
+            //     ipcRenderer.send('new_folder', location.value);
+            // })
+            // // Show settings
+            // mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
+            //     getSettings();
+            // })
+            // // Extract Compressed Files
+            // mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
+            //     extract();
+            // })
+            // // Compress Files
+            // mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
+            //     compress();
+            // })
+            // // New Tav
+            // mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
+            //     getView(location.value, 1);
+            // })
+            // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+            //     console.log('down')
+            // })
 
-                // Ctrl+C (Copy)
-                mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles();
-                })
-
-                // Ctrl+X (Cut)
-                mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
-                    cut_flag = 1;
-                    getSelectedFiles();
-                    selected_files_arr.forEach(item => {
-                        let active_tab_content = document.querySelector('.active-tab-content');
-                        let card = active_tab_content.querySelector(`[data-href="${item}"]`);
-                        card.style = 'opacity: 0.6 !important';
-                    })
-                })
-
-                // Ctrl+V (Paste)
-                mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('main', 1);
-                    if (cut_flag) {
-                        utils.move(location.value);
-                    } else {
-                        paste(location.value);
-                    }
-                    cut_flag = 0;
-                })
-
-                // Show / Hide Sidebar
-                mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
-                    if (sidebar.classList.contains('hidden')) {
-                        sidebar.classList.remove('hidden');
-                        localStorage.setItem('sidebar', 1);
-                    } else {
-                        sidebar.classList.add('hidden');
-                        localStorage.setItem('sidebar', 0);
-                    }
-                })
-
-                // Find
-                mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
-                    // getSearch();
-                    find_files(res => {})
-                })
-
-                // Quick Search
-                mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
-                    quickSearch(e);
-                })
-
-                // New Window
-                mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('new_window');
-                })
-
-                // Show Home View Sidebar
-                mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
-                    clearViews();
-                    sidebarHome();
-                })
-
-                // Get File Info
-                mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles();
-                    ipcRenderer.send('get_properties', selected_files_arr, location.value);
-                    selected_files_arr = [];
-                })
-
-                // Select All
-                mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
-                    e.preventDefault();
-                    let cards = main.querySelectorAll('.card')
-                    cards.forEach(item => {
-                        item.classList.add('highlight');
-                    })
-                })
-
-                // Go Back
-                mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.invoke('dirname', location.value).then(dir => {
-                        // console.log('dir', dir)
-                        // location.value = location.value.replace(dir, '');
-                        getView(dir);
-                        localStorage.setItem('location', dir);
-                    })
-                    // ipcRenderer.invoke('basename', location.value).then(basename => {
-                    //     location.value = basename;
-                    //     getView(location.value);
-                    // })
-                    // localStorage.setItem('location', location.value);
-                })
-
-                // Add to Workspace
-                mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
-                    getSelectedFiles()
-                    ipcRenderer.send('add_workspace', selected_files_arr);
-                    clear()
-                })
-
-                // New Folder
-                mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
-                    ipcRenderer.send('new_folder', location.value);
-                })
-
-                // Show settings
-                mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
-                    getSettings();
-                })
-
-                // Extract Compressed Files
-                mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
-                    extract();
-                })
-
-                // Compress Files
-                mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
-                    compress();
-                })
-
-                // New Tav
-                mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
-                    getView(location.value, 1);
-                })
-
-
-                mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
-                    console.log('down')
-                })
-
-            })
+        })
 
         // })
 

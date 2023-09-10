@@ -29,7 +29,7 @@
 .sidebar .item:hover {
     background: var(--highlight);
     border-radius: 5px;;
-    text-decoration: none;
+    text-decoration: underline;
 }
 
 .sidebar a {
