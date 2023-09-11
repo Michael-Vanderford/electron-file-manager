@@ -657,6 +657,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     active_tab.dataset.href = source;
     active_tab.title = source;
 
+    active_tab.addEventListener('click', (e) => {
+        location.value = source;
+    })
+
     if (dirents.length === 0) {
         let empty_msg = add_div(['empty_msg']);
         empty_msg.innerHTML = 'Folder is Empty';

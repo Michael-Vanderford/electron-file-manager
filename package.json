@@ -1,39 +1,49 @@
 {
-  "name": "string-file-manager",
-  "version": "1.0.1",
-  "description": "File Manager",
-  "projectUrl": "https://github.com/Michael-Vanderford/electron-file-manager",
-  "main": "main.js",
-  "license": "GPL-2.0+",
-  "licensefile": "LICENSE",
-  "maintainer": "Michael Vanderford michael.vanderford@gmail.com",
-  "scripts": {
-    "start": "electron .",
-    "pack": "electron-builder --dir",
-    "dist": "build"
-  },
-  "build": {
-    "appId": "com.stringboardsoftware.stringfilemanager",
-    "linux": {
-      "target": "deb"
+    "name": "string-file-manager",
+    "version": "1.0.1",
+    "description": "File Manager",
+    "projectUrl": "https://github.com/Michael-Vanderford/electron-file-manager",
+    "main": "main.js",
+    "license": "GPL-2.0+",
+    "maintainer": "Michael Vanderford michael.vanderford@gmail.com",
+    "scripts": {
+        "start": "electron .",
+        "pack": "electron-builder --dir",
+        "dist": "build"
+    },
+    "build": {
+        "appId": "com.stringboardsoftware.stringfilemanager",
+        "linux": {
+        "target": "deb"
+        }
+    },
+    "keywords": [
+        "file manager",
+        "linux file manager",
+        "electron file manager",
+        "electron",
+        "open-source",
+        "file",
+        "explorer",
+        "node",
+        "js"
+    ],
+    "author": {
+        "name": "Michael Vanderford",
+        "email": "michael.vanderford@gmail.com"
+    },
+    "email": "michael.vanderford@gmail.com",
+    "devDependencies": {
+        "electron": "^25.3.2",
+        "electron-builder": "^24.6.4",
+        "electron-installer-debian": "^3.2.0",
+        "electron-packager": "^17.1.2"
+    },
+    "dependencies": {
+        "bootstrap-icons": "^1.10.5",
+        "chart.js": "^3.9.1",
+        "mousetrap": "^1.6.5",
+        "node-addon-api": "^6.1.0",
+        "semantic-ui-icon": "^2.5.0"
     }
-  },
-  "keywords": [],
-  "author": {
-    "name": "Michael Vanderford",
-    "email": "michael.vanderford@gmail.com"
-  },
-  "email": "michael.vanderford@gmail.com",
-  "devDependencies": {
-    "electron": "^25.3.2",
-    "electron-builder": "^24.6.4",
-    "electron-packager": "^17.1.2"
-  },
-  "dependencies": {
-    "bootstrap-icons": "^1.10.5",
-    "chart.js": "^3.9.1",
-    "mousetrap": "^1.6.5",
-    "node-addon-api": "^6.1.0",
-    "semantic-ui-icon": "^2.5.0"
-  }
 }
