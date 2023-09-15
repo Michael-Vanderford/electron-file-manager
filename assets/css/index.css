@@ -36,6 +36,7 @@ th {
 
 .header_menu .active {
     font-weight: bold;
+    text-decoration: underline;
     color: var(--active);
 }
 
@@ -509,6 +510,13 @@ progress::-webkit-progress-bar {
     margin-top: -15px;
 }
 
+.readonly {
+    display: block;
+    height: 12px;
+    position: relative;
+    margin-top: -15px;
+}
+
 .pointer {
     cursor: pointer;
 }
@@ -589,8 +597,8 @@ progress::-webkit-progress-bar {
 }
 
 .list .icon {
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
 }
 
 .list .item:nth-child(1) {
@@ -605,6 +613,15 @@ progress::-webkit-progress-bar {
 
 .header .input {
     width: 95%;
+}
+
+.header.item a {
+    /* font-weight: bold; */
+    text-decoration: none;
+}
+
+.header.item a:hover {
+    text-decoration: underline;
 }
 
 .header_row {

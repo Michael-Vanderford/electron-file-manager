@@ -1061,7 +1061,41 @@ ipcMain.handle('folder_icon', (e) => {
     }
 })
 
-// Icon Theme
+// Get Writable Theme
+ipcMain.handle('writable_icon', (e) => {
+    let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+    let icon_dir = path.join(__dirname, 'assets', 'icons');
+    try {
+        let search_path = [];
+        search_path.push(path.join(home, '.local/share/icons'), path.join(home, '.icons'), '/usr/share/icons');
+        search_path.every(icon_path => {
+            if (fs.existsSync(path.join(icon_path, icon_theme))) {
+                icon_dir = path.join(icon_path, icon_theme);
+
+                return false;
+            } else {
+                icon_dir = path.join(__dirname, 'assets', 'icons');
+                return true;
+            }
+        })
+        let folder_icon_path = ''
+        let icon_dirs = [path.join(icon_dir, 'emblems@2x/16/emblem-readonly.svg'), path.join(icon_dir, '16x16/emblems/emblem-readonly.svg'), path.join(icon_dir, 'emblems/scalable/emblem-readonly.svg'), path.join(icon_dir, 'emblems/16/emblem-readonly.svg')];
+        icon_dirs.every(icon_dir => {
+            if (fs.existsSync(icon_dir)) {
+                folder_icon_path = icon_dir
+                return false;
+            } else {
+                folder_icon_path = path.join(__dirname, 'assets/icons/emblem-readonly.svg')
+                return true;
+            }
+        })
+        return folder_icon_path;
+    } catch (err) {
+        console.log(err);
+    }
+})
+
+// Get Symlink Theme
 ipcMain.handle('symlink_icon', (e) => {
     let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
     let icon_dir = path.join(__dirname, 'assets', 'icons');
@@ -1074,7 +1108,7 @@ ipcMain.handle('symlink_icon', (e) => {
 
                 return false;
             } else {
-                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                icon_dir = path.join(__dirname, 'assets', 'icons');
                 return true;
             }
         })
@@ -1085,7 +1119,7 @@ ipcMain.handle('symlink_icon', (e) => {
                 folder_icon_path = icon_dir
                 return false;
             } else {
-                folder_icon_path = path.join(__dirname, 'emblems/icons/emblem-symbolic-link.svg')
+                folder_icon_path = path.join(__dirname, 'assets/icons/emblem-symbolic-link.svg')
                 return true;
             }
         })

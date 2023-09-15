@@ -11,6 +11,7 @@ let ds;
 let sort = 'date_desc';
 let folder_icon;
 let symlink_icon;
+let readonly_icon;
 let thumbnail_dir;
 let is_dragging_tab = false;
 
@@ -28,6 +29,28 @@ class Utilities {
     getIcon (href) {
 
     }
+}
+
+class IconManager {
+
+    constructor () {
+        this.slider = document.getElementById('slider');
+    }
+
+    resizeIcons(icon_size) {
+
+        let cards = document.querySelectorAll('.card');
+        cards.forEach(card => {
+            if (!card.classList.contains('list')) {
+                let icon = card.querySelector('.icon');
+                icon.style.width = `${icon_size}px`;
+                icon.style.height = `${icon_size}px`;
+            }
+        })
+        this.slider.value = icon_size;
+        localStorage.setItem('icon_size', icon_size);
+    }
+
 }
 
 class Navigation {
@@ -95,6 +118,7 @@ class TabManager {
         console.log('adding new tab');
         ++this.id;
 
+        let location = document.querySelector('.location');
         let tab = add_div(['tab', 'flex']);
         let tab_content = add_div(['tab-content']);
         let col1 = add_div(['label']);
@@ -102,6 +126,7 @@ class TabManager {
         let btn_close = document.createElement('i');
 
         tab.dataset.id = this.id;
+        tab.dataset.href = location.value;
         tab_content.dataset.id = this.id;
 
         tab.draggable = true;
@@ -124,8 +149,8 @@ class TabManager {
 
         // Close Tab
         btn_close.addEventListener('click', (e) => {
-            e.stopPropagation()
-            let current_tabs = document.querySelectorAll('.tab')
+            e.stopPropagation();
+            let current_tabs = document.querySelectorAll('.tab');
             let current_tab_content = document.querySelectorAll('.tab-content');
             let active_tab = document.querySelector('.active-tab');
             if (active_tab === tab) {
@@ -371,10 +396,11 @@ class FileOperations {
 
 // Get reference to File Operations
 let fo = new FileOperations();
-
+let iconManager = null
 let tm = null;
 let nav = null;
 window.addEventListener('DOMContentLoaded', (e) => {
+    iconManager = new IconManager();
     tm = new TabManager();
     nav = new Navigation();
 })
@@ -804,11 +830,11 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     }
 
-    folder_grid.innerHTML = ''
-    file_grid.innerHTML = ''
+    folder_grid.innerHTML = '';
+    file_grid.innerHTML = '';
 
-    hidden_folder_grid.innerHTML = ''
-    hidden_file_grid.innerHTML = ''
+    hidden_folder_grid.innerHTML = '';
+    hidden_file_grid.innerHTML = '';
 
     if (localStorage.getItem('sort') === null) {
         sort = 'date';
@@ -900,7 +926,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     if (localStorage.getItem('icon_size') !== null) {
         let icon_size = localStorage.getItem('icon_size')
         slider.value = icon_size;
-        resizeIcons(icon_size);
+        console.log(icon_size)
+        iconManager.resizeIcons(icon_size);
     }
 
     lazyload();
@@ -1045,6 +1072,11 @@ ipcRenderer.invoke('folder_icon').then(icon => {
     // console.log('folder_icon', folder_icon)
 })
 
+ipcRenderer.invoke('writable_icon').then(icon => {
+    // console.log(icon)
+    readonly_icon = icon;
+})
+
 ipcRenderer.invoke('symlink_icon').then(icon => {
     // console.log(icon)
     symlink_icon = icon;
@@ -1114,7 +1146,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     })
 
-    resizeIcons(localStorage.getItem('icon_size'));
+    iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
     switch_view(localStorage.getItem('view'));
     lazyload();
@@ -3104,7 +3136,7 @@ function getRecentView(dirents) {
     tab_content.append(folder_grid, file_grid)
     localStorage.setItem('location', 'Recent');
 
-    resizeIcons(localStorage.getItem('icon_size'));
+    iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
     lazyload();
 
@@ -3693,7 +3725,6 @@ function getCardGio(file) {
 
     let location = document.getElementById('location');
     let is_dir   = 0;
-    let is_symlink = 0;
 
     let card    = add_div();
     let content = add_div();
@@ -3908,12 +3939,12 @@ function getCardGio(file) {
         img.src = folder_icon;
         card.classList.add('folder_card', 'lazy')
 
-        if (file.is_symlink) {
-            let symlink_img = document.createElement('img');
-            symlink_img.src = symlink_icon;
-            symlink_img.classList.add('symlink');
-            icon.append(symlink_img);
-        }
+        // if (file.is_symlink) {
+        //     let symlink_img = document.createElement('img');
+        //     symlink_img.src = symlink_icon;
+        //     symlink_img.classList.add('symlink');
+        //     icon.append(symlink_img);
+        // }
 
         // Href
         href.addEventListener('click', (e) => {
@@ -3950,13 +3981,6 @@ function getCardGio(file) {
     } else {
         // Get Icon
         try {
-
-            if (file.is_symlink) {
-                let symlink_img = document.createElement('img');
-                symlink_img.src = symlink_icon;
-                symlink_img.classList.add('symlink');
-                icon.append(symlink_img);
-            }
 
             if (file.content_type.indexOf('image/') > -1) {
 
@@ -4026,6 +4050,21 @@ function getCardGio(file) {
             card.classList.add('highlight_select')
             ipcRenderer.send('file_menu', file);
         })
+    }
+
+    if (file.is_symlink) {
+        let symlink_img = document.createElement('img');
+        symlink_img.src = symlink_icon;
+        symlink_img.classList.add('symlink');
+        icon.append(symlink_img);
+    }
+
+    if (!file.is_writable) {
+        let readonly_img = document.createElement('img');
+        readonly_img.src = readonly_icon;
+        readonly_img.classList.add('readonly');
+        readonly_icon.style = 'height: 12px'; // applied style here because there is a little lag time when set in css
+        icon.append(readonly_img);
     }
 
     if (view == 'list') {
@@ -4262,7 +4301,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
             //     getWorkspace(workspace => {
             //         sidebar.append(workspace)
             //     })
-
             // }
         })
 
@@ -4674,14 +4712,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
             if (e.ctrlKey && e.deltaY < 0) {
                 if ((init_size) < 64) {
                     init_size += 16
-                    resizeIcons(init_size);
+                    iconManager.resizeIcons(init_size);
                     // localStorage.setItem('icon_size', init_size);
                     // console.log("scrolling up", init_size)
                 }
             } else if (e.ctrlKey && e.deltaY > 0) {
                 if ((init_size) > 16) {
                     init_size -= 16
-                    resizeIcons(init_size);
+                    iconManager.resizeIcons(init_size);
                     // localStorage.setItem('icon_size', init_size);
                     // console.log("scrolling up", init_size)
                 }
@@ -4690,7 +4728,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         slider.addEventListener('change', (e) => {
             init_size = slider.value;
-            resizeIcons(init_size);
+            iconManager.resizeIcons(init_size);
             // localStorage.setItem('icon_size', init_size);
         })
 
