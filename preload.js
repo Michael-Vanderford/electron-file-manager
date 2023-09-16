@@ -75,7 +75,7 @@ class Navigation {
 
     addHistory (location) {
 
-        if (!this.historyArr.includes(location)) {
+        if (this.historyArr[this.historyArr.length -1] !== location) {
             this.historyArr.push(location);
             this.idx = this.historyArr.length - 1;
         }
@@ -398,11 +398,11 @@ class FileOperations {
 let fo = new FileOperations();
 let iconManager = null
 let tm = null;
-let nav = null;
+let navigation = null;
 window.addEventListener('DOMContentLoaded', (e) => {
     iconManager = new IconManager();
     tm = new TabManager();
-    nav = new Navigation();
+    navigation = new Navigation();
 })
 
 // Get Keyboard shortcuts
@@ -619,7 +619,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     localStorage.setItem('location', source);
     auto_complete_arr = [];
 
-    nav.addHistory(source);
+    // nav.addHistory(source);
 
     msg('');
     let main = document.querySelector('.main');
@@ -1023,6 +1023,11 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             allowClick = 1;
         }
     })
+
+    // Focus first card
+    let href = cards[0].querySelector('.header a');
+    href.focus();
+
 
     // Drag and drop for tabs
     // let draggingTab = null;
@@ -3595,6 +3600,7 @@ function getDevices(callback) {
 
                     // console.log('device path', device.path)
                     getView(`${device.path}`);
+                    navigation.addHistory(device.path);
 
                 })
 
@@ -3950,6 +3956,7 @@ function getCardGio(file) {
         href.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
+            navigation.addHistory(file.href);
             if (e.ctrlKey) {
                 ipcRenderer.send('get_files', file.href, 1);
             } else {
@@ -3962,6 +3969,7 @@ function getCardGio(file) {
         img.addEventListener('click', (e) => {
             e.preventDefault();
             location.value = file.href;
+            navigation.addHistory(file.href);
             if (e.ctrlKey) {
                 ipcRenderer.send('get_files', file.href, 1);
             } else {
@@ -4199,10 +4207,16 @@ function quickSearch (e) {
 
         if (e.key === 'Enter') {
 
+            let c = 0;
             let cards = document.querySelectorAll('.card')
             cards.forEach(card => {
                 if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
                     card.classList.add('highlight');
+                    if (c === 0) {
+                        let href = card.querySelector('.header a');
+                        href.focus();
+                    }
+                    ++c;
                 }
             })
             quicksearch.classList.add('hidden');
@@ -4334,6 +4348,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
                 default: {
                     getView(location.value)
+                    navigation.addHistory(location.value);
                     break;
                 }
             }
@@ -4410,6 +4425,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 ipcRenderer.invoke('nav_item', dir).then(path => {
                     location.value = path;
                     getView(path)
+                    navigation.addHistory(path)
                 })
             })
         })

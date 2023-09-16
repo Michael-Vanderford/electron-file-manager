@@ -14,7 +14,7 @@
     "build": {
         "appId": "com.stringboardsoftware.stringfilemanager",
         "linux": {
-        "target": "deb"
+            "target": "deb"
         }
     },
     "keywords": [
@@ -37,7 +37,8 @@
         "electron": "^25.3.2",
         "electron-builder": "^24.6.4",
         "electron-installer-debian": "^3.2.0",
-        "electron-packager": "^17.1.2"
+        "electron-packager": "^17.1.2",
+        "node-gio": "^1.0.2"
     },
     "dependencies": {
         "bootstrap-icons": "^1.10.5",

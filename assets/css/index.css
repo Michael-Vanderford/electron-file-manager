@@ -507,14 +507,16 @@ progress::-webkit-progress-bar {
     display: block;
     height: 12px;
     position: relative;
-    margin-top: -15px;
+    margin-left: 5px;
+    margin-top: -20px;
 }
 
 .readonly {
     display: block;
     height: 12px;
     position: relative;
-    margin-top: -15px;
+    margin-left: 5px;
+    margin-top: -20px;
 }
 
 .pointer {
@@ -618,6 +620,11 @@ progress::-webkit-progress-bar {
 .header.item a {
     /* font-weight: bold; */
     text-decoration: none;
+}
+
+.header.item a:focus {
+    text-decoration: underline;
+    outline: none;
 }
 
 .header.item a:hover {
