@@ -272,6 +272,10 @@ th {
     border: none;
 }
 
+.split-view {
+    width: 500px;
+}
+
 #selection-rectangle {
     position: absolute;
     border: 1px solid #000;

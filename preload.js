@@ -79,7 +79,6 @@ class Navigation {
             this.historyArr.push(location);
             this.idx = this.historyArr.length - 1;
         }
-        console.log(this.historyArr);
     }
 
     left () {
@@ -91,10 +90,9 @@ class Navigation {
     }
 
     right () {
-        console.log('right', this.idx);
-        if (this.idx < this.historyArr.length) {
-            getView(this.historyArr[this.idx]);
+        if (this.idx < this.historyArr.length - 1) {
             ++this.idx
+            getView(this.historyArr[this.idx]);
         }
     }
 
@@ -115,7 +113,6 @@ class TabManager {
 
     addTab (label) {
 
-        console.log('adding new tab');
         ++this.id;
 
         let location = document.querySelector('.location');
@@ -275,6 +272,20 @@ class Progress {
     }
 }
 
+class ViewManager {
+    constructor () {
+        // this.container = document.querySelector('.container');
+    }
+
+    // Split View
+    splitView () {
+        let container = document.querySelector('.container');
+        let split_view = add_div(['split-view']);
+        container.append(split_view);
+    }
+
+}
+
 class FileOperations {
 
     constructor () {
@@ -396,12 +407,13 @@ class FileOperations {
 
 // Get reference to File Operations
 let fo = new FileOperations();
+let viewManager = new ViewManager();
 let iconManager = null
-let tm = null;
+let tabManager = null;
 let navigation = null;
 window.addEventListener('DOMContentLoaded', (e) => {
     iconManager = new IconManager();
-    tm = new TabManager();
+    tabManager = new TabManager();
     navigation = new Navigation();
 })
 
@@ -499,7 +511,7 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
             // let tm = new TabManager();
             // tm.addTabContent(data)
-            tm.addTab('Merge');
+            tabManager.addTab('Merge');
             let active_content = document.querySelector('.active-tab-content');
             active_content.innerHTML = data;
 
@@ -619,8 +631,6 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     localStorage.setItem('location', source);
     auto_complete_arr = [];
 
-    // nav.addHistory(source);
-
     msg('');
     let main = document.querySelector('.main');
     let tabs = document.querySelectorAll('.tab');
@@ -656,9 +666,9 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         let sidebar_item = item.querySelector('a');
         if (sidebar_item) {
             if (item.title === source) {
-                // item.classList.add('highlight_select')
+                item.classList.add('highlight_select')
             } else {
-                item.classList.remove('highlight_select')
+                item.classList.remove('highlight_select', 'active')
             }
         }
     })
@@ -666,12 +676,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Add new tab if tab = 1
     // let tm = new TabManager();
     if (tab) {
-        tm.addTab(source);
+        tabManager.addTab(source);
         // tab_content = add_tab(source);
     }
 
     if (tabs.length === 0) {
-        tm.addTab(source);
+        tabManager.addTab(source);
         // add_tab(source);
     }
 
@@ -1122,7 +1132,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     // let tab_content = add_tab('Search Results');
     // tab_content.append(folder_grid, file_grid);
-    tm.addTab('Search Results');
+    tabManager.addTab('Search Results');
     let tab_content = document.querySelector('.active-tab-content');
     tab_content.append(folder_grid, file_grid);
 
@@ -1844,7 +1854,7 @@ async function get_disk_summary_view(callback) {
     // main.innerHTML = ''
 
     // let tab_content = add_tab('Disk Usage')
-    tm.addTab('Disk Usage');
+    tabManager.addTab('Disk Usage');
     let tab_content = document.querySelector('.active-tab-content');
 
     // ADD ARRAY
@@ -2861,7 +2871,7 @@ function getProperties(properties_arr) {
     // })
 
     // if (!tab_exists) {
-        tm.addTab('Properties')
+        tabManager.addTab('Properties')
     // }
     let tab_content = document.querySelector('.active-tab-content');
     console.log(tab_content)
@@ -3092,7 +3102,7 @@ function getRecentView(dirents) {
     }
 
     // let tab_content = add_tab('Recent')
-    tm.addTab('Recent');
+    tabManager.addTab('Recent');
     let tab_content = document.querySelector('.active-tab-content');
 
     dirents.sort((a, b) => {
@@ -3150,7 +3160,7 @@ function getRecentView(dirents) {
 // Get Settings View
 function getSettings() {
 
-    tm.addTab('Settings');
+    tabManager.addTab('Settings');
     let tab_content = document.querySelector('.active-tab-content');
     ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
 
@@ -3955,6 +3965,12 @@ function getCardGio(file) {
         // Href
         href.addEventListener('click', (e) => {
             e.preventDefault();
+
+            if (!file.is_readable) {
+                msg('Error: Access Denied');
+                return;
+            }
+
             location.value = file.href;
             navigation.addHistory(file.href);
             if (e.ctrlKey) {
@@ -3963,11 +3979,18 @@ function getCardGio(file) {
                 location.dispatchEvent(new Event('change'));
             }
             ipcRenderer.send('saveRecentFile', file.href);
+
         })
 
         // Img
         img.addEventListener('click', (e) => {
             e.preventDefault();
+
+            if (!file.is_readable) {
+                msg('Error: Access Denied');
+                return;
+            }
+
             location.value = file.href;
             navigation.addHistory(file.href);
             if (e.ctrlKey) {
@@ -3984,6 +4007,8 @@ function getCardGio(file) {
             card.classList.add('highlight_select')
             ipcRenderer.send('folder_menu', file);
         })
+
+        size.append(0);
 
     // Files
     } else {

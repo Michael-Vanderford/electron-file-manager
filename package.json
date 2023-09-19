@@ -37,14 +37,14 @@
         "electron": "^25.3.2",
         "electron-builder": "^24.6.4",
         "electron-installer-debian": "^3.2.0",
-        "electron-packager": "^17.1.2",
-        "node-gio": "^1.0.2"
+        "electron-packager": "^17.1.2"
     },
     "dependencies": {
         "bootstrap-icons": "^1.10.5",
         "chart.js": "^3.9.1",
         "mousetrap": "^1.6.5",
         "node-addon-api": "^6.1.0",
+        "node-gio": "file:../node-gio/node-gio-1.0.2.tgz",
         "semantic-ui-icon": "^2.5.0"
     }
 }
