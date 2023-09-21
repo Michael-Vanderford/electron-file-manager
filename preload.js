@@ -2961,7 +2961,7 @@ function getProperties(properties_arr) {
 
                 let size = add_div();
                 size.classList.add('size');
-                size.append('Calculating..');
+                // size.append('Calculating..');
 
                 content.append(add_item('Type:'), add_item(file.content_type));
                 content.append(add_item(`Contents:`), folder_count);
@@ -2970,12 +2970,41 @@ function getProperties(properties_arr) {
                 location.title = file.location;
 
                 content.append(add_item('Location:'), location);
+
                 if (file.is_dir) {
-                    folder_count.append('Calculating..');
+
+                    icon.append(add_img(folder_icon))
                     content.append(add_item('Size:'), add_item(size));
+
+                    if (file.is_readable) {
+
+                        size.append('Calculating..');
+                        folder_count.append('Calculating..');
+                        ipcRenderer.send('get_folder_count', file.href);
+                        ipcRenderer.send('get_folder_size', file.href);
+
+                    } else {
+
+                        size.append('Unknown')
+                        folder_count.append('Unknown')
+
+                    }
+
+
                 } else {
+
                     folder_count.append('1');
                     content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+
+                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+
+                        if (file.content_type.indexOf('image/') > -1) {
+                            icon.append(add_img(file.href));
+                        } else {
+                            icon.append(add_img(res));
+                        }
+                    })
+
                 }
 
                 content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
@@ -2983,26 +3012,27 @@ function getProperties(properties_arr) {
                 content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
 
                 card.append(content);
-                //properties_view.append(card);
                 basic_content.append(card)
 
-                if (file.is_dir) {
+                // if (file.is_dir) {
 
-                    icon.append(add_img(folder_icon))
-                    ipcRenderer.send('get_folder_count', file.href);
-                    ipcRenderer.send('get_folder_size', file.href);
+                //     icon.append(add_img(folder_icon))
+                //     ipcRenderer.send('get_folder_count', file.href);
+                //     ipcRenderer.send('get_folder_size', file.href);
 
-                } else {
-                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                // } else {
+                //     ipcRenderer.invoke('get_icon', (file.href)).then(res => {
 
-                        if (file.content_type.indexOf('image/') > -1) {
-                            // .src = item.source;
-                            icon.append(add_img(file.href));
-                        } else {
-                            icon.append(add_img(res));
-                        }
-                    })
-                }
+                //         if (file.content_type.indexOf('image/') > -1) {
+                //             // .src = item.source;
+                //             icon.append(add_img(file.href));
+                //         } else {
+                //             icon.append(add_img(res));
+                //         }
+                //     })
+                // }
+
+
 
                 // Permissions Tab
                 let permissions = getPermissions(file.permissions);
@@ -4093,6 +4123,7 @@ function getCardGio(file) {
     }
 
     if (!file.is_writable) {
+        console.log(file)
         let readonly_img = document.createElement('img');
         readonly_img.src = readonly_icon;
         readonly_img.classList.add('readonly');
