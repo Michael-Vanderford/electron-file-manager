@@ -419,7 +419,13 @@ th {
     /* background: var(--dialog) */
 }
 
+.destination_table table {
+    
+}
 
+.destination_table .destination {
+    word-break: break-all;
+}
 
 #chart {
     color: var(--text);

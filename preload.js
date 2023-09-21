@@ -500,7 +500,7 @@ ipcRenderer.on('merge_view', (e, source, destination, copy_merge_arr) => {
 
 ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
-    console.log('merge arr', merge_arr)
+    // console.log('merge arr', merge_arr)
 
     if (merge_arr.length > 0) {
 
@@ -533,6 +533,8 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                 const destination_date_cell = row.insertCell(2);
                 const action_cell = row.insertCell(3);
 
+                dest_cell.classList.add('destination')
+
                 ipcRenderer.invoke('get_icon', item.destination).then(icon => {
 
                     let dest_div = add_div(['flex'])
@@ -541,7 +543,7 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     img.classList.add('icon', 'icon16');
                     img.src = icon;
 
-                    console.log('what', item.content_type);
+                    // console.log('what', item.content_type);
                     if (item.content_type.indexOf('image/') > -1) {
                         img.src = item.source;
                     }
@@ -550,6 +552,7 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     href.preventDefault = true;
                     href.href = "#"
                     href.text = item.destination
+                    href.title = item.destination
                     href.classList.add('item')
 
                     dest_div.append(img, href);
@@ -936,7 +939,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     if (localStorage.getItem('icon_size') !== null) {
         let icon_size = localStorage.getItem('icon_size')
         slider.value = icon_size;
-        console.log(icon_size)
+        // console.log(icon_size)
         iconManager.resizeIcons(icon_size);
     }
 
@@ -1642,7 +1645,7 @@ ipcRenderer.on('set_progress', (e, data) => {
     const formattedEstimatedTime = formatEstimatedTime(estimatedTimeInSeconds);
     let msg = `${data.msg}`;
 
-    console.log(estimatedTimeInSeconds)
+    // console.log(estimatedTimeInSeconds)
     if (estimatedTimeInSeconds > 3) {
         msg = `${data.msg}  Time Remaining ${formattedEstimatedTime}`;
     }
