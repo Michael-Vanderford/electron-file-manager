@@ -2,8 +2,10 @@ const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync, exec } = require('child_process')
 const path = require('path');
 const gio_utils = require('../utils/gio');
-const gio = require('node-gio');
-// const gio = require('../gio/build/Release/obj.target/gio')
+// const gio = require('node-gio');
+const gio = require('../gio/build/Release/obj.target/gio')
+// const gio = require('/home/michael/source/repos/node-gio/build/Release/obj.target/gio');
+
 
 let file_arr = [];
 let cp_recursive = 0;
@@ -424,9 +426,11 @@ parentPort.on('message', data => {
     // Rename
     if (data.cmd === 'rename') {
         try {
+
             gio.mv(data.source, data.destination);
             parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination});
             parentPort.postMessage({cmd: 'msg', msg: `Renamed "${path.basename(data.source)}" to "${path.basename(data.destination)}"`});
+
         } catch (err) {
             console.log('error', err)
             parentPort.postMessage({cmd: 'msg', msg: err});

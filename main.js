@@ -10,8 +10,8 @@ const fs = require('fs')
 const path = require('path');
 const { Worker } = require('worker_threads');
 const gio_utils = require('./utils/gio');
-// const gio = require('./gio/build/Release/gio');
-const gio = require('node-gio');
+// const gio = require('node-gio')
+const gio = require('./gio/build/Release/gio');
 const mt = require('mousetrap');
 
 // Workers

@@ -6,6 +6,7 @@
 */
 
 #include <stdlib.h>
+#include <unistd.h>
 #include <nan.h>
 #include <node.h>
 #include <node_api.h>
@@ -27,6 +28,7 @@ namespace gio {
     using v8::String;
     using v8::Value;
 
+    // Sets the execute bit on a file
     NAN_METHOD(set_execute) {
 
         if (info.Length() < 1) {
@@ -84,6 +86,7 @@ namespace gio {
 
     }
 
+    // Clear execute bit
     NAN_METHOD(clear_execute) {
 
         if (info.Length() < 1) {
@@ -511,9 +514,7 @@ namespace gio {
                                                 &error);
 
         const char* mimetype = g_file_info_get_content_type(file_info);
-
         GList* appList = g_app_info_get_all_for_type(mimetype);
-
 
         v8::Local<v8::Array> result = Nan::New<v8::Array>();
 
@@ -525,7 +526,7 @@ namespace gio {
             const char* app_display_name = g_app_info_get_display_name(app);
             const char* app_exec = g_app_info_get_executable(app);
             const char* cmd = g_app_info_get_commandline(app);
-            // const char* app_desc = g_app_info_get_description(app);
+            const char *app_id = g_app_info_get_id(app);
 
             v8::Local<v8::Object> file_obj = Nan::New<v8::Object>();
             Nan::Set(file_obj, Nan::New("name").ToLocalChecked(), Nan::New(app_name).ToLocalChecked());
@@ -533,7 +534,7 @@ namespace gio {
             Nan::Set(file_obj, Nan::New("exec").ToLocalChecked(), Nan::New(app_exec).ToLocalChecked());
             Nan::Set(file_obj, Nan::New("cmd").ToLocalChecked(), Nan::New(cmd).ToLocalChecked());
             Nan::Set(file_obj, Nan::New("mimetype").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
-            // Nan::Set(file_obj, Nan::New("description").ToLocalChecked(), Nan::New(app_desc).ToLocalChecked());
+            Nan::Set(file_obj, Nan::New("appid").ToLocalChecked(), Nan::New(app_id).ToLocalChecked());
             // Nan::Set(result, i, Nan::New(appName).ToLocalChecked());
             Nan::Set(result, i, file_obj);
             i++;
@@ -643,7 +644,13 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             GFile* parent = g_file_get_parent(src);
             const char* location = g_file_get_path(parent);
-            // // gboolean is_writable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+            gboolean is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+
+            // gboolean is_readable = true;
+            // if (access(location, R_OK) != 0) {
+            //     is_readable = false;
+            // }
+            gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -651,6 +658,9 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
+            Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
+            Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
+
 
             const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
             if (!owner) {
@@ -745,7 +755,6 @@ namespace gio {
 
         GError* error = NULL;
         guint index = 0;
-        // GFileEnumerator* enumerator = g_file_enumerate_children(src, "*", G_FILE_QUERY_INFO_NOFOLLOW_SYMLINKS, NULL, &error);
         GFileEnumerator* enumerator = g_file_enumerate_children(src,
                                                                 "*",
                                                                 G_FILE_QUERY_INFO_NONE,
@@ -782,7 +791,15 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             gboolean is_symlink = g_file_info_get_is_symlink(file_info);
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+
+            gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
             // const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
+
+            // GDesktopAppInfo* desktop_app_info;
+            //  = g_desktop_app_info_new_from_mime_type(mimetype);
+
+            // Get the absolute path to the .desktop file.
+            // gchar *desktop_path = g_desktop_app_info_get_filename(desktop_app_info);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -790,6 +807,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
+            Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
             // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
@@ -867,7 +885,6 @@ namespace gio {
         v8::Local<v8::Context> context = isolate->GetCurrentContext();
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
 
-        // v8::String::Utf8Value sourceFile(isolate, sourceString);
 
         GFile* src = g_file_new_for_path(*sourceFile);
 
@@ -881,12 +898,8 @@ namespace gio {
 
         bool result = exists != FALSE;
 
-        // Create a new Boolean value
-        // v8::Local<v8::Boolean> resultValue = Nan::New<v8::Boolean>(result);
-
         // Create a new Boolean value in the current context
         v8::Local<v8::Boolean> resultValue = v8::Boolean::New(isolate, result);
-
 
         // Return the Boolean value
         info.GetReturnValue().Set(resultValue);
@@ -914,7 +927,11 @@ namespace gio {
         }
 
         GError* error = NULL;
-        GFileEnumerator* enumerator = g_file_enumerate_children(src, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
+        GFileEnumerator* enumerator = g_file_enumerate_children(src,
+                                                                G_FILE_ATTRIBUTE_STANDARD_NAME,
+                                                                G_FILE_QUERY_INFO_NONE,
+                                                                NULL,
+                                                                &error);
 
         if (error) {
             g_error_free(error);
@@ -926,15 +943,13 @@ namespace gio {
         GFileInfo* file_info;
         while (file_info = g_file_enumerator_next_file(enumerator, NULL, &error)) {
 
-            // GFileInfo* file_info = g_file_enumerator_next_file(enumerator, NULL, &error);
-
             if (error) {
                 g_error_free(error);
                 break;
             }
 
             if (file_info == NULL) {
-                break;  // Reached the end of the directory
+                break;
             }
 
             item_count++;
@@ -979,14 +994,7 @@ namespace gio {
         GIcon *icon = g_file_info_get_icon(file_info);
         gchar *icon_name = g_icon_to_string(icon);
 
-        // // Get the filename of the icon
-        // const char* icon_name = g_icon_to_string(icon);
-
-        // // Get the theme icon for the GIcon
-        // GtkIconTheme* theme = gtk_icon_theme_get_default();
-        // GdkPixbuf* pixbuf = gtk_icon_theme_load_icon(theme, icon_name, 16, 0, NULL);
-
-        // // Print the filename of the icon
+        // Print the filename of the icon
         printf("%s\n", icon_name);
 
         // // Cleanup
@@ -1031,34 +1039,23 @@ namespace gio {
         gboolean is_directory = g_file_query_file_type(src, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY;
         if (is_directory) {
 
-            GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
+            GFileInfo* file_info = g_file_query_info(src,
+                                                    "*",
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    NULL,
+                                                    NULL);
+
             GFileType type = g_file_info_get_file_type(file_info);
             gboolean is_symlink = g_file_info_get_is_symlink(file_info);
+            GError *error = NULL;
+            // Create the destination directory if it doesn't exist
+            g_file_make_directory_with_parents(dest, NULL, &error);
 
-            // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
-            // if (is_symlink) {
-            //     cout << "is symlink" << endl;
-            //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
-            //     if (symlink_target) {
-            //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
-            //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
-            //         g_object_unref(destination_symlink);
-            //         g_object_unref(file_info);
-            //     }
+            if (error) {
+                g_print("Error creating destination directory: %s\n", error->message);
+                g_error_free(error);
+            }
 
-            // } else {
-
-                GError *error = NULL;
-                // Create the destination directory if it doesn't exist
-                g_file_make_directory_with_parents(dest, NULL, &error);
-
-                if (error) {
-                    g_print("Error creating destination directory: %s\n", error->message);
-                    g_error_free(error);
-                    // return;
-                }
-
-            // }
 
         } else {
 
@@ -1069,23 +1066,26 @@ namespace gio {
             if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
                 const char *symlink_target = g_file_info_get_symlink_target(file_info);
                 if (symlink_target) {
+
                     GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
-                    gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
+                    gboolean success = g_file_make_symbolic_link(destination_symlink,
+                                                                symlink_target,
+                                                                NULL,
+                                                                NULL);
+
                     g_object_unref(destination_symlink);
                     g_object_unref(file_info);
                 }
             } else {
 
                 GError* error = nullptr;
-                gboolean ret = g_file_copy(
-                    src,
-                    dest,
-                    flags,
-                    nullptr,
-                    nullptr,
-                    nullptr,
-                    &error
-                );
+                gboolean ret = g_file_copy(src,
+                                        dest,
+                                        flags,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        &error);
 
                 g_object_unref(src);
                 g_object_unref(dest);
@@ -1287,11 +1287,15 @@ namespace gio {
         }
 
         // Get the GFileInfo object for the directory
-        GFileInfo* fileInfo = g_file_query_info(src, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
-                                                G_FILE_QUERY_INFO_NONE, NULL, NULL);
+        GFileInfo* fileInfo = g_file_query_info(src,
+                                                G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE,
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                NULL);
 
         // Check if the directory is writable
-        gboolean isWritable = g_file_info_get_attribute_boolean(fileInfo, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+        gboolean isWritable = g_file_info_get_attribute_boolean(fileInfo,
+                                                                G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
         // Free the allocated resources
         g_object_unref(fileInfo);
@@ -1322,37 +1326,15 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
-        // GFileInfo* file_info = g_file_query_info(src, "*", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-        // if (file_info) {
+        GError* error = NULL;
+        gboolean res;
 
-            // This crashes in android ////////////////
-            // GFileType type = g_file_info_get_file_type(file_info);
-            // if (type == G_FILE_TYPE_SYMBOLIC_LINK) {
-            //     cout << "found symlink" << endl;
-            //     const char *symlink_target = g_file_info_get_symlink_target(file_info);
-            //     if (symlink_target) {
-            //         GFile *destination_symlink = g_file_new_for_path(g_file_get_path(dest));
-            //         gboolean success = g_file_make_symbolic_link(destination_symlink, symlink_target, NULL, NULL);
-            //         g_object_unref(destination_symlink);
-            //         g_object_unref(file_info);
-            //     }
-            // } else {
+        res = g_file_make_directory_with_parents(src, NULL, &error);
+        g_object_unref(src);
 
-            // }
-
-            GError* error = NULL;
-            gboolean res;
-            // res = g_file_make_directory(src, NULL, &error);
-            res = g_file_make_directory_with_parents(src, NULL, &error);
-            g_object_unref(src);
-
-            if (res == FALSE) {
-                // g_error_free(error);
-                return Nan::ThrowError(error->message);
-            }
-
-        // }
-        // info.GetReturnValue().Set(Nan::True());
+        if (res == FALSE) {
+            return Nan::ThrowError(error->message);
+        }
 
     }
 
@@ -1404,8 +1386,6 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
-        // Nan::Export(target, "get_thumbnail", get_thumbnail);
-        // Nan::Export(target, "umount", umount);
         Nan::Export(target, "set_execute", set_execute);
         Nan::Export(target, "clear_execute", clear_execute);
         Nan::Export(target, "cpdir", cpdir);
@@ -1425,164 +1405,11 @@ namespace gio {
         Nan::Export(target, "monitor", monitor);
         Nan::Export(target, "watcher", watcher);
         Nan::Export(target, "get_mounts", get_mounts);
-        // Nan::Set(target, Nan::New("watcher").ToLocalChecked(), Nan::GetFunction(Nan::New<FunctionTemplate>(watcher)).ToLocalChecked());
-        // Nan::Set(target, Nan::New("monitor").ToLocalChecked(), Nan::GetFunction(Nan::New<v8::FunctionTemplate>(monitor)).ToLocalChecked());
+
     }
 
-    // NAN_MODULE_WORKER_ENABLED(count, count)
-    // NAN_MODULE_WORKER_ENABLED(ls, init)
     NAN_MODULE_WORKER_ENABLED(gio, init)
     NODE_MODULE(gio, init)
 
 }
 
-// NODE_MODULE_CONTEXT_AWARE_BUILTIN(gio, init)
-// void copy_file_to_clipboard(const char* file_path) {
-//     GFile* file = g_file_new_for_path(file_path);
-//     // Copy the file to the clipboard
-//     gboolean success = g_file_copy(file, "clipboard://");
-//     if (success) {
-//         // Get the default clipboard
-//         GtkClipboard* clipboard = gtk_clipboard_get_default(gdk_display_get_default());
-//         // Set the clipboard contents with the copied file
-//         gtk_clipboard_set_with_data(clipboard, NULL, NULL, NULL);
-//     }
-//     // Cleanup
-//     g_object_unref(file);
-// }
-
-// NAN_METHOD(search) {
-//     Nan::HandleScope scope;
-//     if (info.Length() < 3 || !info[2]->IsFunction()) {
-//         return Nan::ThrowError("Wrong arguments. Expected callback function.");
-//     }
-//     Nan::Callback callback(info[2].As<v8::Function>());
-//     v8::Local<v8::String> searchString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-//     v8::Local<v8::String> searchPath = Nan::To<v8::String>(info[1]).ToLocalChecked();
-//     Nan::Utf8String searchStringUtf8(searchString);
-//     const gchar* searchStringC = g_strdup(*searchStringUtf8);
-//      Nan::Utf8String searchPathUtf8(searchPath);
-//     const gchar* searchPathC = g_strdup(*searchPathUtf8);
-//     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
-//     // Perform the search asynchronously
-//     GError *error = NULL;
-//     // TrackerSparqlConnection *connection = tracker_sparql_connection_new(TRACKER_SPARQL_CONNECTION_FLAGS_NONE, NULL, NULL, NULL, &error);
-//     TrackerSparqlConnection *connection = tracker_sparql_connection_bus_new ("org.freedesktop.Tracker3.Miner.Files", NULL, NULL, &error);
-//     if (error != NULL) {
-//         g_error("Error connecting to Tracker: %s", error->message);
-//         g_error_free(error);
-//         return;
-//     }
-//     gchar *query_string = g_strdup_printf("SELECT ?path WHERE { ?path a nfo:FileDataObject . FILTER(regex(?path, '%s', 'i') && regex(?path, '^%s.*', 'i')) }", *searchStringC, *searchPathC);
-//     TrackerSparqlCursor *cursor = tracker_sparql_connection_query(connection, query_string, NULL, &error);
-//     // g_free(query_string);
-//     if (error != NULL) {
-//         // g_error("Error executing query: %s", error->message);
-//         g_error("Error executing query: %s", query_string);
-//         g_error_free(error);
-//         g_free(query_string);
-//         return;
-//     }
-//     g_free(query_string);
-//     // Create a result array to store the search results
-//     v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-//     guint index = 0;
-//     // Start iterating over the search results
-//     while (tracker_sparql_cursor_next(cursor, NULL, &error)) {
-//         const gchar *path = tracker_sparql_cursor_get_string(cursor, 0, NULL);
-//         v8::Local<v8::String> result = Nan::New<v8::String>(path).ToLocalChecked();
-//         Nan::Set(resultArray, index++, result);
-//     }
-//     // Clean up resources
-//     g_object_unref(cursor);
-//     g_object_unref(connection);
-//     // Call the callback function with the search results
-//     const int argc = 1;
-//     v8::Local<v8::Value> argv[argc] = { resultArray };
-//     Nan::Call(callback, Nan::GetCurrentContext()->Global(), argc, argv);
-//     // Clean up the GMainLoop
-//     g_main_loop_quit(loop);
-//     g_main_loop_unref(loop);
-// }
-
-// NAN_METHOD(monitor) {
-//     GVolumeMonitor* volume_monitor;
-//     // Initialize the GIO library
-//     g_type_init();
-//     // Create the volume monitor
-//     volume_monitor = g_volume_monitor_get();
-//     // Connect signals for device added and removed events
-//     g_signal_connect(volume_monitor, "drive-added", G_CALLBACK(on_device_added), NULL);
-//     // g_signal_connect(volume_monitor, "drive-removed", G_CALLBACK(on_device_removed), NULL);
-// }
-
-// void monitor(const Nan::FunctionCallbackInfo<v8::Value>& info) {
-//     Nan::HandleScope scope;
-//     // Get the JavaScript callback function from the arguments
-//     Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
-//     // Start monitoring for device changes
-//     GVolumeMonitor* volumeMonitor = g_volume_monitor_get();
-//     g_signal_connect(volumeMonitor, "drive-connected", G_CALLBACK(on_device_added), callback);
-//     // Return undefined (no immediate return value)
-//     info.GetReturnValue().SetUndefined();
-// }
-
-// void on_device_added(GVolumeMonitor* monitor, GDrive* drive, gpointer user_data) {
-    //     Nan::HandleScope scope;
-    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-    //     // Get drive information
-    //     const char* driveName = g_drive_get_name(drive);
-    //     //   const char* driveId = g_drive_get_identifier(drive);
-    //     // Create an object to pass the drive information to the JavaScript callback
-    //     v8::Local<v8::Object> driveInfo = Nan::New<v8::Object>();
-    //     Nan::Set(driveInfo, Nan::New("name").ToLocalChecked(), Nan::New(driveName).ToLocalChecked());
-    //     // Nan::Set(driveInfo, Nan::New("id").ToLocalChecked(), Nan::New(driveId).ToLocalChecked());
-    //     // Call the JavaScript callback with the drive information
-    //     v8::Local<v8::Value> argv[] = { driveInfo };
-    //     Nan::AsyncResource resource("on_device_added");
-    //     callback->Call(1, argv);
-    // }
-
-    // guint64 ds(const char* dir) {
-
-    //     GVolumeMonitor *monitor;
-    //     GVolume *root_volume;
-    //     GMount *root_mount;
-    //     GFile *root_file;
-    //     GFileInfo *file_info;
-    //     guint64 available_space;
-
-    //     // Initialize GIO
-    //     g_type_init();
-
-    //     // Create a volume monitor
-    //     monitor = g_volume_monitor_get();
-
-    //     // Get the root volume
-    //     root_volume = g_volume_monitor_get_volumes(monitor);
-
-    //     // Get the root mount
-    //     root_mount = g_volume_get_mount(root_volume);
-
-    //     // Get the root file
-    //     root_file = g_mount_get_root(root_mount);
-
-    //     // Get the file information
-    //     file_info = g_file_query_info(root_file, "standard::allocatable", G_FILE_QUERY_INFO_NONE, NULL, NULL);
-
-    //     // Get the available space
-    //     g_file_info_get_attribute_uint64(file_info, "standard::allocatable", &available_space);
-
-    //     // Print the available space in bytes
-    //     // printf("Available Disk Space: %lu bytes\n", available_space);
-
-    //     // Cleanup
-    //     g_object_unref(file_info);
-    //     g_object_unref(root_file);
-    //     g_object_unref(root_mount);
-    //     g_object_unref(root_volume);
-    //     g_object_unref(monitor);
-
-    //     return available_space;
-
-    // }

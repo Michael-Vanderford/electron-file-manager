@@ -2,8 +2,10 @@ const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync, exec } = require('child_process')
 const path = require('path');
 const gio_utils = require('../utils/gio');
-const gio = require('node-gio');
-// const gio = require('../gio/build/Release/obj.target/gio')
+// const gio = require('node-gio');
+const gio = require('../gio/build/Release/obj.target/gio')
+// const gio = require('/home/michael/source/repos/node-gio/build/Release/obj.target/gio');
+
 
 let sort = 'date_desc'
 function get_images(source, start, offset, callback) {

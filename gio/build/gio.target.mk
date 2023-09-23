@@ -52,13 +52,13 @@ CFLAGS_CC_Debug := \
 	-std=gnu++17
 
 INCS_Debug := \
-	-I/home/michael/.cache/node-gyp/25.3.2/include/node \
-	-I/home/michael/.cache/node-gyp/25.3.2/src \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/zlib \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/include/node \
+	-I/home/michael/.cache/node-gyp/26.2.2/src \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/zlib \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I/usr/include/gdk-pixbuf-2.0 \
 	-I$(srcdir)/node_modules/nan
@@ -110,13 +110,13 @@ CFLAGS_CC_Release := \
 	-std=gnu++17
 
 INCS_Release := \
-	-I/home/michael/.cache/node-gyp/25.3.2/include/node \
-	-I/home/michael/.cache/node-gyp/25.3.2/src \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/openssl/config \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/openssl/openssl/include \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/uv/include \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/zlib \
-	-I/home/michael/.cache/node-gyp/25.3.2/deps/v8/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/include/node \
+	-I/home/michael/.cache/node-gyp/26.2.2/src \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/openssl/config \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/openssl/openssl/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/uv/include \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/zlib \
+	-I/home/michael/.cache/node-gyp/26.2.2/deps/v8/include \
 	-I/usr/include/glib-2.0 \
 	-I/usr/include/gdk-pixbuf-2.0 \
 	-I$(srcdir)/node_modules/nan
@@ -162,8 +162,7 @@ LIBS := \
 	-lgio-2.0 \
 	-lgobject-2.0 \
 	-lglib-2.0 \
-	-lgdk_pixbuf-2.0 \
-	-L/usr/lib/x86_64-linux-gnu
+	-lgdk_pixbuf-2.0
 
 $(obj).target/gio.node: GYP_LDFLAGS := $(LDFLAGS_$(BUILDTYPE))
 $(obj).target/gio.node: LIBS := $(LIBS)
