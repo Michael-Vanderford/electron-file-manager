@@ -18,7 +18,7 @@ th {
 
 #header_menu {
     display: flex;
-    font-weight: bold;
+    /* font-weight: bold; */
     background: var(--menu);
     padding: 5px;
     width: 100%;
@@ -213,6 +213,25 @@ th {
     background: var(--main);
     color: var(--warning);
     padding: 5px;
+}
+
+.columns {
+    padding: 15px;
+}
+
+.columns .item {
+    padding: 2px;
+}
+
+.columns .label {
+    color: var(--text);
+}
+
+.columns_list {
+    background-color: var(--dialog);
+    padding: 10px;
+    border: 1px solid var(--border);
+    height: 100%;
 }
 
 .menus {
@@ -420,7 +439,7 @@ th {
 }
 
 .destination_table table {
-    
+
 }
 
 .destination_table .destination {
@@ -600,6 +619,7 @@ progress::-webkit-progress-bar {
 .list_container {
     display: flex;
     flex-direction: column;
+    border-collapse: collapse;
 }
 
 .list {
@@ -614,13 +634,45 @@ progress::-webkit-progress-bar {
 }
 
 .list .item:nth-child(1) {
-    width: 50%;
+    /* background-color: red; */
+    /* min-width: 350px; */
+    min-width: 30%;
 }
 
 .list .item {
     flex-grow: 1;
-    /* border: 1px solid #ccc; */
+    /* border: 1px solid var(--border); */
     width: 15%;
+
+}
+
+.list .item.size {
+    width: 100px;
+}
+
+.list .item.count {
+    width: 100px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table thead {
+    position: sticky;
+    top: 0;
+}
+
+.table thead td {
+    font-weight: bold;
+    padding-bottom: 5px;
+    /* border-bottom: 1px solid var(--border); */
+}
+
+.table a {
+    width: 100%;
+    display: block;
 }
 
 .header .input {
@@ -646,18 +698,20 @@ progress::-webkit-progress-bar {
     position: sticky;
     top: 0;
     display: flex;
-    width: 100%;
+    width: 98%;
     background: var(--main);
     z-index: 100;
-    /* padding: 4px; */
+    margin-left: 10px;
+    padding-left: 4px;
+    padding-right: 10px;
     border-bottom: 1px solid var(--border);
     /* height: 20px; */
     /* border: 1px solid red; */
 }
 
-.header_row .item:nth-child(1) {
+/* .header_row .item:nth-child(1) {
     width: 50%;
-}
+} */
 
 .header_row .item {
     font-weight: bold;
@@ -682,12 +736,12 @@ progress::-webkit-progress-bar {
 }
 
 .header_row .size {
-    text-align: right;
+    /* text-align: right; */
 }
 
 .header_row .items {
     margin-right: 15px;
-    text-align: right;
+    /* text-align: right; */
 }
 
 .grid1 {
@@ -705,17 +759,17 @@ progress::-webkit-progress-bar {
 
 .grid1 .size {
     /* width: 16%; */
-    text-align: right;
+    /* text-align: right; */
 }
 
 .grid1 .type {
     /* width: 16%; */
-    text-align: right;
+    /* text-align: right; */
 }
 
 .grid1 .count {
     /* width: 16%; */
-    text-align: right;
+    /* text-align: right; */
 }
 
 .grid1 .input {
@@ -977,6 +1031,10 @@ input[type=text]:focus {
     width: 50px;
 }
 
+.inactive {
+    color: var(--inactive) !important;
+}
+
 /* Mobile */
 @media only screen and (max-width: 768px) {
     .grid {
@@ -1025,6 +1083,7 @@ input[type=text]:focus {
         --dialog: #262626;
         --text: #C0C0C0;
         --active: #ffffff;
+        --inactive: #484848;
         --tabs: #292929;
         --button: #484848;
         --button-active: #1b557c ;

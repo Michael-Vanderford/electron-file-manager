@@ -2,13 +2,15 @@
     "Theme": "dark",
     "Terminal": "gnome-terminal --working-directory=%u",
     "Disk Utility": "gnome-disks",
-    "display": {
-        "Icon Captions": {
-            "Name": true,
-            "Size": true,
-            "Date Modified": true,
-            "Folder Count": true
-        }
+    "Captions": {
+        "Name": true,
+        "Location": false,
+        "Modified": true,
+        "Created": true,
+        "Accessed": false,
+        "Size": true,
+        "Type": false,
+        "Count": true
     },
     "Header Menu": {
         "show": true

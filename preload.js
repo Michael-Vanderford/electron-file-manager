@@ -1,14 +1,14 @@
-const {contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer } = require('electron');
 // const { exec, execSync } = require('child_process');
 // const mt         = require('mousetrap');
 // const Chart      = require('chart.js')
 
 // Global Arrays
-let selected_files_arr  = [];
-let auto_complete_arr   = [];
+let selected_files_arr = [];
+let auto_complete_arr = [];
 
 let ds;
-let sort = 'date_desc';
+let sort = 'modified_desc';
 let folder_icon;
 let symlink_icon;
 let readonly_icon;
@@ -22,18 +22,27 @@ if (localStorage.getItem('view') == null) {
     view = localStorage.getItem('view');
 }
 
+class SettingsManager {
+
+    getSettings(callback) {
+        ipcRenderer.invoke('settings').then(settings => {
+            return callback(settings);
+        })
+    }
+}
+
 class Utilities {
     constructor() {
     }
 
-    getIcon (href) {
+    getIcon(href) {
 
     }
 }
 
 class IconManager {
 
-    constructor () {
+    constructor() {
         this.slider = document.getElementById('slider');
     }
 
@@ -55,7 +64,7 @@ class IconManager {
 
 class Navigation {
 
-    constructor () {
+    constructor() {
         this.historyArr = [];
         this.idx = 0;
         this.location = document.querySelector('.location');
@@ -73,15 +82,15 @@ class Navigation {
 
     }
 
-    addHistory (location) {
+    addHistory(location) {
 
-        if (this.historyArr[this.historyArr.length -1] !== location) {
+        if (this.historyArr[this.historyArr.length - 1] !== location) {
             this.historyArr.push(location);
             this.idx = this.historyArr.length - 1;
         }
     }
 
-    left () {
+    left() {
         console.log('left', this.idx);
         if (this.idx > 0) {
             --this.idx;
@@ -89,7 +98,7 @@ class Navigation {
         }
     }
 
-    right () {
+    right() {
         if (this.idx < this.historyArr.length - 1) {
             ++this.idx
             getView(this.historyArr[this.idx]);
@@ -111,7 +120,7 @@ class TabManager {
 
     }
 
-    addTab (label) {
+    addTab(label) {
 
         ++this.id;
 
@@ -248,13 +257,13 @@ class TabManager {
     }
 
     // Add Tab Content
-    addTabContent (html) {
+    addTabContent(html) {
         let active_tab_content = document.querySelector('.active-tab-content')
         active_tab_content.innerHTML = html
     }
 
     // Clear Active Tab
-    clearActiveTabs () {
+    clearActiveTabs() {
         let tabs = this.tabHeader.querySelectorAll('.tab');
         let tab_content = document.querySelectorAll('.tab-content');
         tabs.forEach((tab, i) => {
@@ -267,18 +276,330 @@ class TabManager {
 }
 
 class Progress {
-    constructor () {
+    constructor() {
 
     }
 }
 
 class ViewManager {
-    constructor () {
-        // this.container = document.querySelector('.container');
+
+    constructor() {
+
+        // Register listener for columns
+        ipcRenderer.on('columns', (e) => {
+            ipcRenderer.invoke('settings').then(settings => {
+                let list = document.querySelector('.columns_list');
+                for (const key in settings.Captions) {
+                    const item = add_div(['item']);
+                    const input = document.createElement('input');
+                    input.type = 'checkbox';
+                    const label = document.createElement('label');
+                    label.classList.add('label');
+                    label.innerText = key;
+
+                    if (settings.Captions[key]) {
+                        input.checked = true;
+                    }
+
+                    item.append(input, label)
+                    list.append(item);
+
+                    input.addEventListener('change', (e) => {
+                        if (input.checked) {
+                            settings.Captions[key] = true;
+                        } else {
+                            settings.Captions[key] = false;
+                        }
+
+                        ipcRenderer.send('update_settings_columns', key, settings.Captions[key], localStorage.getItem('location'));
+
+                    })
+
+                }
+
+            })
+
+        })
+    }
+
+    // Sort for list view
+    sort(dirents) {
+
+        // let table = document.querySelector('.table')
+        // const tbody = table.querySelector("tbody");
+        // let rows = Array.from(document.querySelectorAll('tbody > tr'))
+        // rows.sort((row1, row2) => {
+        //     const cell1 = row1.querySelector('td:first-child');
+        //     const cell2 = row2.querySelector('td:first-child');
+        //     // Compare the values of the cells.
+        //     return cell1.textContent.localeCompare(cell2.textContent);
+        // })
+        // rows.forEach((row, index) => {
+        //     tbody.appendChild(row);
+        // });
+        // console.log(rows);
+
+        const dirents_arr = []
+
+        const directories = dirents.filter(x => x.is_dir === true && x.is_hidden !== true);
+        const hidden_directories = dirents.filter(x => x.is_dir === true && x.is_hidden);
+        const files = dirents.filter(x => x.is_dir === false && x.is_hidden !== true);
+        const hidden_files = dirents.filter(x => x.is_dir === false && x.is_hidden);
+
+        const show_hidden = localStorage.getItem('show_hidden');
+        console.log('show hidden', show_hidden)
+        if (show_hidden === '1') {
+            dirents_arr.push(directories, hidden_directories, files, hidden_files)
+        } else {
+            dirents_arr.push(directories, files)
+        }
+
+        dirents_arr.forEach(arr => {
+
+            const sort = localStorage.getItem('sort');
+            console.log(sort);
+            switch (sort) {
+                case 'name_asc': {
+                    arr.sort((a, b) => {
+                        if (a.name.toLocaleLowerCase() < b.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (a.name.toLocaleLowerCase() > b.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
+                }
+                case 'name_desc': {
+                    arr.sort((a, b) => {
+                        if (b.name.toLocaleLowerCase() < a.name.toLocaleLowerCase()) {
+                            return -1;
+                        }
+                        if (b.name.toLocaleLowerCase() > a.name.toLocaleLowerCase()) {
+                            return 1;
+                        }
+                        return 0;
+                    })
+                    break;
+                }
+                case 'modified_desc': {
+                    arr.sort((a, b) => {
+                        return b.mtime - a.mtime
+                    })
+                    break;
+                }
+                case 'modified_asc': {
+                    arr.sort((a, b) => {
+                        return a.mtime - b.mtime
+                    })
+
+                    break;
+                }
+                case 'size': {
+                    arr.sort((a, b) => {
+                        return b.size - a.size
+                    })
+                    break;
+                }
+            }
+
+        })
+
+        if (show_hidden === '1') {
+            return directories.concat(hidden_directories, files, hidden_files);
+        } else {
+            return directories.concat(files);
+        }
+
+    }
+
+    // Create JSON object for the List View
+    getListViewFileObject(file, callback) {
+
+        const header_div = add_div(['flex']);
+        const href = add_link(file.href, file.name);
+        let img = document.createElement('img');
+        header_div.append(img, href)
+
+        img.classList.add('icon', 'icon24');
+
+        const listObject = {
+            Name: header_div,
+            Location: file.location,
+            Modified: getDateTime(file.mtime),
+            Created: getDateTime(file.ctime),
+            Accessed: getDateTime(file.atime),
+            Size: getFileSize(file.size),
+            Type: file.content_type,
+            Count: ''
+        }
+
+        ipcRenderer.invoke('settings').then(settings => {
+            for (const key in settings.Captions) {
+                if (settings.Captions[key] === false) {
+                    console.log('deleting key', key)
+                    delete listObject[key]
+                }
+            }
+
+            // Attach events
+            header_div.addEventListener('click', (e) => {
+                if (file.is_dir) {
+                    getView(file.href);
+                } else {
+                    ipcRenderer.send('open', file.href);
+                }
+            })
+
+            if (file.is_dir) {
+                img.src = folder_icon
+            } else {
+                ipcRenderer.invoke('get_icon', file.href).then(icon => {
+                    img.src = icon
+                })
+            }
+
+            return callback(listObject);
+
+        })
+
+    }
+
+    // List view
+    listView(dirents) {
+
+        const content = document.querySelector('.active-tab-content')
+        const table = document.createElement('table');
+        const thead = table.createTHead();
+        const tbody = table.createTBody();
+        const hr = thead.insertRow(0);
+
+        table.classList.add('table');
+        hr.classList.add('th');
+
+        const dirents_sort = this.sort(dirents);
+        dirents_sort.forEach((file, idx) => {
+
+            // const fileObject = this.getListViewFileObject(file);
+            this.getListViewFileObject(file, fileObject => {
+
+                let i = 0;
+                const tr = tbody.insertRow();
+                tr.dataset.href = file.href;
+
+                if (idx === 0) {
+                    hr.insertCell(0)
+                    hr.addEventListener('click', (e) => {
+                        let target = e.target;
+                        switch (target.innerText) {
+                            case 'Name':
+                                localStorage.setItem('sort', 'name_asc');
+                                break;
+                            case 'Modified':
+                                localStorage.setItem('sort', 'date_desc');
+                                break;
+                            case 'Size':
+                                localStorage.setItem('sort', 'size');
+                                break;
+
+                        }
+                        this.listView(dirents);
+                    })
+                }
+
+                for (const key in fileObject) {
+                    if (idx === 0) {
+                        hr.insertCell(i).append(key);
+                    }
+                    let div = add_div([key.toLowerCase()]);
+                    div.append(fileObject[key])
+                    const td = tr.insertCell(i).append(div);
+                    ++i;
+                }
+
+                // Attach event listeners
+                tr.addEventListener('mouseover', (e) => {
+                    tr.classList.add('highlight');
+                })
+
+                tr.addEventListener('mouseout', (e) => {
+                    tr.classList.remove('highlight');
+                })
+
+                tr.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    tr.classList.add('highlight_select');
+                    ipcRenderer.send('file_menu', file);
+                })
+
+            });
+
+        })
+
+        content.innerHTML = ''
+        content.append(table);
+
+        // this.hideCols();
+
+        hr.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            ipcRenderer.send('columns_menu');
+        })
+
+    }
+
+    hideCols() {
+
+        ipcRenderer.invoke('settings').then(settings => {
+
+            let table = document.querySelector('.table');
+            let ths = table.querySelectorAll('thead tr td');
+            let rows = table.rows;
+
+            ths.forEach((th, idx) => {
+                for (const key in settings.Captions) {
+
+                    if (key === th.innerText && settings.Captions[key] === false) {
+                        // th.classList.add('hidden');
+                        console.log(key, idx);
+                        return;
+                    }
+                }
+
+                for (let i = 0; i < rows.length; i++) {
+
+                    let td = rows[i].querySelector(`td:nth-child(${idx})`);
+                    console.log(idx, td)
+                    if (td != null) {
+                        td.classList.add('hidden')
+                    }
+
+                }
+
+            });
+
+        })
+
+
+
+
+    }
+
+
+    getColumns() {
+
+        ipcRenderer.send('columns');
+        // ipcRenderer.invoke('settings').then(settings => {
+        //     console.log(settings.captions)
+        // })
+        // ipcRenderer.invoke('get')
     }
 
     // Split View
-    splitView () {
+    splitView() {
         let container = document.querySelector('.container');
         let split_view = add_div(['split-view']);
         container.append(split_view);
@@ -288,13 +609,13 @@ class ViewManager {
 
 class FileOperations {
 
-    constructor () {
+    constructor() {
         this.location = document.querySelector('.location')
         this.cut_flag = 0;
     }
 
     // Cut
-    cut () {
+    cut() {
         this.cut_flag = 1;
         getSelectedFiles();
         selected_files_arr.forEach(item => {
@@ -305,12 +626,12 @@ class FileOperations {
     }
 
     // Copy
-    copy () {
+    copy() {
         getSelectedFiles();
     }
 
     // Move Files
-    move (destination) {
+    move(destination) {
         ipcRenderer.send('move', destination);
         clear();
     }
@@ -323,7 +644,7 @@ class FileOperations {
     }
 
     // Run Paste Operation for CTRL+V
-    pasteOperation () {
+    pasteOperation() {
         let location = document.querySelector('.location')
         ipcRenderer.send('main', 1);
         if (this.cut_flag) {
@@ -335,7 +656,7 @@ class FileOperations {
     }
 
     // Edit Mode
-    edit () {
+    edit() {
         // console.log('running edit');
         let main = document.querySelector('.main');
         let active_tab_content = document.querySelector('.active-tab-content');
@@ -382,7 +703,7 @@ class FileOperations {
     }
 
     // Delete
-    delete () {
+    delete() {
         getSelectedFiles();
         if (selected_files_arr.length > 0) {
             ipcRenderer.send('delete', (selected_files_arr));
@@ -391,19 +712,27 @@ class FileOperations {
     }
 
     // New Folder
-    newFolder () {
+    newFolder() {
         let location = document.querySelector('.location')
         ipcRenderer.send('new_folder', location.value);
     }
 
     // Call get Properties
-    fileInfo () {
+    fileInfo() {
         getSelectedFiles();
         ipcRenderer.send('get_properties', selected_files_arr, location.value);
         clear();
     }
 
 }
+
+let settings = null;
+let settingsManager = new SettingsManager();
+settingsManager.getSettings(res => {
+    settings = res;
+    console.log(res)
+})
+
 
 // Get reference to File Operations
 let fo = new FileOperations();
@@ -420,7 +749,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 // Get Keyboard shortcuts
 async function getShortcuts() {
     return await ipcRenderer.invoke('settings').then(settings => {
-        return settings.keyboard_shortcuts
+        return settings.keyboard_shortcuts;
     })
 }
 
@@ -639,7 +968,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     let tabs = document.querySelectorAll('.tab');
     let tabs_content = document.querySelectorAll('.tab_content');
     let tab_content = document.querySelector('.tab_content');
-    let file_menu =document.querySelector('.header_menu');
+    let file_menu = document.querySelector('.header_menu');
     let menu_items = file_menu.querySelectorAll('.item');
 
     const selectionRectangle = document.getElementById('selection-rectangle');
@@ -677,15 +1006,12 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     })
 
     // Add new tab if tab = 1
-    // let tm = new TabManager();
     if (tab) {
         tabManager.addTab(source);
-        // tab_content = add_tab(source);
     }
 
     if (tabs.length === 0) {
         tabManager.addTab(source);
-        // add_tab(source);
     }
 
     let active_tab = document.querySelector('.active-tab');
@@ -776,17 +1102,34 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         header = add_div();
         header.classList.add('header_row', 'content', 'list');
 
-        let colNames = ['Name', 'Date', 'Size', 'Items'];
-        let colClasses = ['name', 'date', 'size', 'items'];
+        header.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation()
+            ipcRenderer.send('columns_menu')
+        })
+
+        let colNames = [];
+        let colClasses = [];
+
+        for (const key in settings.Captions) {
+            if (settings.Captions[key] === true) {
+                colNames.push(key)
+                colClasses.push(key.toLowerCase());
+            }
+        }
+
+        // let colNames = ['Name', 'Modified', 'Size', 'Items'];
+        // let colClasses = ['name', 'date', 'size', 'items'];
         let sort_by = '_desc'
         let headerRow = colNames.map((colName, index) => {
+
             let col = add_div();
             col.classList.add('item', colClasses[index]);
             col.append(colName);
             col.addEventListener('click', (e) => {
 
                 sort = colName.toLocaleLowerCase();
-                if (sort === 'name' || sort === 'date') {
+                if (sort === 'name' || sort === 'modified' || sort === 'created' || sort === 'accessed') {
                     if (sort_by === '_desc') {
                         sort_by = '_asc'
                     } else if (sort_by === '_asc') {
@@ -813,6 +1156,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     if (view == 'list') {
 
+        // viewManager.listView(dirents)
+
         main.classList.replace('grid_container', 'list_container');
         header.classList.remove('hidden');
 
@@ -828,7 +1173,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
             element.classList.add('grid1');
         });
 
-    } else {
+    } else if (view === 'grid') {
 
         main.classList.replace('list_container', 'grid_container');
         header.classList.add('hidden');
@@ -932,8 +1277,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         document.removeEventListener('keyup', quickSearch)
     })
 
+    // if (view === 'grid') {
     active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
     main.append(active_tab_content)
+    // }
 
     // Set Icon Size
     if (localStorage.getItem('icon_size') !== null) {
@@ -952,6 +1299,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
     // Drag Select for cards
     const cards = document.querySelectorAll('.card');
     main.addEventListener('mousedown', (e) => {
+
         if (e.button === 2 || is_dragging_tab) {
             is_dragging_tab = false;
             return;
@@ -994,10 +1342,10 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
             const itemRect = item.getBoundingClientRect();
             const isSelected =
-            ((itemRect.left < endPosX && itemRect.right > startPosX) ||
-            (itemRect.left < startPosX && itemRect.right > endPosX)) &&
-            ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
-            (itemRect.top < startPosY && itemRect.bottom > endPosY));
+                ((itemRect.left < endPosX && itemRect.right > startPosX) ||
+                    (itemRect.left < startPosX && itemRect.right > endPosX)) &&
+                ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
+                    (itemRect.top < startPosY && itemRect.bottom > endPosY));
 
             if (isSelected) {
                 item.classList.add('highlight_select');
@@ -1014,7 +1362,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
                 isSelecting = false;
             })
 
-            item.addEventListener('drop', (e ) => {
+            item.addEventListener('drop', (e) => {
                 isSelecting = false;
             })
 
@@ -1037,50 +1385,9 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         }
     })
 
-    // Focus first card
-    let href = cards[0].querySelector('.header a');
-    href.focus();
-
-
-    // Drag and drop for tabs
-    // let draggingTab = null;
-    // let tab_items = document.querySelectorAll('.tab')
-    // tab_items.forEach(tab => {
-    //     tab.draggable = true
-    //     tab.addEventListener("dragstart", (e) => {
-    //         if (e.target.classList.contains("tab")) {
-    //             draggingTab = e.target;
-    //             e.target.style.opacity = 0.5;
-    //         }
-    //     });
-    //     tab.addEventListener("dragend", (e) => {
-    //         if (draggingTab) {
-    //             draggingTab.style.opacity = 1;
-    //             draggingTab = null;
-    //         }
-    //     });
-    //     tab.addEventListener("dragover", (e) => {
-    //         e.preventDefault();
-    //         tab.classList.add('highlight')
-    //     });
-    //     tab.addEventListener("drop", (e) => {
-    //         e.preventDefault();
-    //         isSelecting = false;
-    //         selectionRectangle.style.display = 'none';
-    //         if (draggingTab) {
-    //             const targetTab = e.target.closest(".tab");
-    //             if (targetTab) {
-    //                 const container = document.querySelector(".tabs");
-    //                 const targetIndex = Array.from(container.children).indexOf(targetTab);
-    //                 const draggingIndex = Array.from(container.children).indexOf(draggingTab);
-    //                 if (draggingIndex !== targetIndex) {
-    //                     container.insertBefore(draggingTab, targetTab);
-    //                 }
-    //             }
-    //         }
-    //         clearHighlight();
-    //     });
-    // })
+    // // Focus first card
+    // let href = cards[0].querySelector('.header a');
+    // href.focus();
 
 })
 
@@ -1270,7 +1577,7 @@ ipcRenderer.on('properties', (e, properties_arr) => {
     // clearViews();
     // let sidebar = document.querySelector('.sidebar');
     getProperties(properties_arr, properties_view => {
-    //     // sidebar.append(properties_view);
+        //     // sidebar.append(properties_view);
     })
 })
 
@@ -1305,12 +1612,17 @@ ipcRenderer.on('unmount_device', (e) => {
 
 // Get View
 ipcRenderer.on('get_view', (e, href) => {
-    getView(href)
+    let settingsManager = new SettingsManager()
+    settingsManager.getSettings(updated_settings => {
+        settings = updated_settings;
+        console.log(settings)
+        getView(href);
+    })
 })
 
 // Get Workspace
 ipcRenderer.on('get_workspace', (e) => {
-    getWorkspace(workspace => {});
+    getWorkspace(workspace => { });
 })
 
 // Remove Workspace
@@ -1398,23 +1710,23 @@ ipcRenderer.on('connect', (e) => {
         // Output
         if (state == 1) {
 
-                if (conntection_type.value == 'ssh') {
-                    // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
-                    cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
-                } else if (conntection_type.value == 'smb') {
-                    cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
-                }
+            if (conntection_type.value == 'ssh') {
+                // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
+                cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+            } else if (conntection_type.value == 'smb') {
+                cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
+            }
 
-                ipcRenderer.invoke('connect', cmd).then(res => {
-                    console.log(res)
-                    if (res === 1) {
-                        // console.log('connection success')
-                        connect_msg.style.color = 'green';
-                        connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
-                    } else {
-                        connect_msg.innerHTML = res;
-                    }
-                })
+            ipcRenderer.invoke('connect', cmd).then(res => {
+                console.log(res)
+                if (res === 1) {
+                    // console.log('connection success')
+                    connect_msg.style.color = 'green';
+                    connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
+                } else {
+                    connect_msg.innerHTML = res;
+                }
+            })
 
             // exec(cmd, (err, stdout, stderr) => {
             //     if (!err) {
@@ -1491,7 +1803,7 @@ ipcRenderer.on('get_card_gio', (e, file) => {
     let active_tab_content = document.querySelector('.active-tab-content');
     let folder_grid = active_tab_content.querySelector('.folder_grid');
     let file_grid = active_tab_content.querySelector('.file_grid');
-    let empty_msg =  document.querySelector('.empty_msg');
+    let empty_msg = document.querySelector('.empty_msg');
 
     if (empty_msg) {
         empty_msg.classList.add('hidden');
@@ -1691,27 +2003,27 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
         case 'terminal': {
 
             ipcRenderer.invoke('settings')
-            .then(settings => {
-                let cmd = settings.Terminal;
-                let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
-                // console.log(cards.length)
-                if (cards.length > 0) {
-                    cards.forEach(card => {
-                        let new_cmd = cmd.replace(/%u/g, `'${card.dataset.href}'`)
-                        ipcRenderer.send('command', (e, new_cmd))
-                        // exec(cmd.replace(/%u/g, `'${card.dataset.href}'`), (error, data, getter) => { });
-                    })
-                } else {
-                    let new_cmd = cmd.replace(/%u/g, `'${location.value}'`);
-                    ipcRenderer.send('command', (e, new_cmd));
-                    // exec(cmd.replace(/%u/g, `'${location.value}'`), (error, data, getter) => { });
-                    // exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
-                }
-                clear();
-            })
-            .catch(err => {
-                msg(err);
-            })
+                .then(settings => {
+                    let cmd = settings.Terminal;
+                    let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+                    // console.log(cards.length)
+                    if (cards.length > 0) {
+                        cards.forEach(card => {
+                            let new_cmd = cmd.replace(/%u/g, `'${card.dataset.href}'`)
+                            ipcRenderer.send('command', (e, new_cmd))
+                            // exec(cmd.replace(/%u/g, `'${card.dataset.href}'`), (error, data, getter) => { });
+                        })
+                    } else {
+                        let new_cmd = cmd.replace(/%u/g, `'${location.value}'`);
+                        ipcRenderer.send('command', (e, new_cmd));
+                        // exec(cmd.replace(/%u/g, `'${location.value}'`), (error, data, getter) => { });
+                        // exec(`gnome-terminal --working-directory="${location.value}"`, (error, data, getter) => { });
+                    }
+                    clear();
+                })
+                .catch(err => {
+                    msg(err);
+                })
 
             break;
         }
@@ -1819,7 +2131,7 @@ function add_chart(chart_type, chart_labels, chart_data) {
                     }
                 },
                 y: {
-                    display:false,
+                    display: false,
                     grid: {
                         display: false
                     },
@@ -2040,65 +2352,71 @@ function switch_view(view) {
     grid_view.classList.remove('active');
 
     folder_grids.forEach(folder_grid => {
-        folder_grid.classList.remove('grid','grid1');
+        folder_grid.classList.remove('grid', 'grid1');
     })
     file_grids.forEach(file_grid => {
-        file_grid.classList.remove('grid','grid1');
+        file_grid.classList.remove('grid', 'grid1');
     })
 
+    let location = document.querySelector('.location');
     switch (view) {
         case 'list': {
 
-            list_view.classList.add('active')
+            // list_view.classList.add('active')
 
-            folder_grids.forEach(folder_grid => {
-                folder_grid.classList.add('grid1');
-            })
-            file_grids.forEach(file_grid => {
-                file_grid.classList.add('grid1');
-            })
-            let headers = document.querySelectorAll('.header_row')
-            headers.forEach(header => {
-                header.classList.remove('hidden')
-            })
-            let cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.classList.add('list');
-                let icon = card.querySelector('.icon')
-                let content = card.querySelector('.content');
+            // folder_grids.forEach(folder_grid => {
+            //     folder_grid.classList.add('grid1');
+            // })
+            // file_grids.forEach(file_grid => {
+            //     file_grid.classList.add('grid1');
+            // })
+            // let headers = document.querySelectorAll('.header_row')
+            // headers.forEach(header => {
+            //     header.classList.remove('hidden')
+            // })
+            // let cards = document.querySelectorAll('.card');
+            // cards.forEach(card => {
+            //     card.classList.add('list');
+            //     let icon = card.querySelector('.icon')
+            //     let content = card.querySelector('.content');
 
-                icon.classList.add('icon16');
-                content.classList.add('list');
+            //     icon.classList.add('icon16');
+            //     content.classList.add('list');
 
-            })
+            // })
+
+            getView(location.value);
             break;
+
+
         }
         case 'grid': {
 
-            grid_view.classList.add('active')
+            // grid_view.classList.add('active')
 
-            folder_grids.forEach(folder_grid => {
-                folder_grid.classList.add('grid');
-            })
-            file_grids.forEach(file_grid => {
-                file_grid.classList.add('grid');
-            })
-            let headers = document.querySelectorAll('.header_row')
-            headers.forEach(header => {
-                header.classList.add('hidden')
-            })
-            let cards = document.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.classList.remove('list');
+            // folder_grids.forEach(folder_grid => {
+            //     folder_grid.classList.add('grid');
+            // })
+            // file_grids.forEach(file_grid => {
+            //     file_grid.classList.add('grid');
+            // })
+            // let headers = document.querySelectorAll('.header_row')
+            // headers.forEach(header => {
+            //     header.classList.add('hidden')
+            // })
+            // let cards = document.querySelectorAll('.card');
+            // cards.forEach(card => {
+            //     card.classList.remove('list');
 
-                let icon = card.querySelector('.icon')
-                let content = card.querySelector('.content');
+            //     let icon = card.querySelector('.icon')
+            //     let content = card.querySelector('.content');
 
-                icon.classList.remove('icon16');
-                content.classList.remove('list');
+            //     icon.classList.remove('icon16');
+            //     content.classList.remove('list');
 
-            })
+            // })
 
+            getView(location.value);
             break;
         }
     }
@@ -2149,13 +2467,39 @@ function sort_cards() {
                     })
                     break;
                 }
-                case 'date_desc': {
+                case 'modified_desc': {
                     grid_cards.sort((a, b) => {
                         return b.dataset.mtime - a.dataset.mtime
                     })
                     break;
                 }
-                case 'date_asc': {
+                case 'modified_asc': {
+                    grid_cards.sort((a, b) => {
+                        return a.dataset.mtime - b.dataset.mtime
+                    })
+
+                    break;
+                }
+                case 'created_desc': {
+                    grid_cards.sort((a, b) => {
+                        return b.dataset.mtime - a.dataset.mtime
+                    })
+                    break;
+                }
+                case 'created_asc': {
+                    grid_cards.sort((a, b) => {
+                        return a.dataset.mtime - b.dataset.mtime
+                    })
+
+                    break;
+                }
+                case 'accessed_desc': {
+                    grid_cards.sort((a, b) => {
+                        return b.dataset.mtime - a.dataset.mtime
+                    })
+                    break;
+                }
+                case 'accessed_asc': {
                     grid_cards.sort((a, b) => {
                         return a.dataset.mtime - b.dataset.mtime
                     })
@@ -2201,293 +2545,293 @@ function find_files() {
             search_view.classList.add('search_view');
         }
 
-        ipcRenderer.invoke('path:join','views/find.html').then(path => {
+        ipcRenderer.invoke('path:join', 'views/find.html').then(path => {
 
             fetch(path)
-            .then(res => {
-                return res.text();
-            })
-            .then(search_html => {
-
-                search_view.innerHTML = search_html;
-                sb_search.innerHTML = search_view.innerHTML;
-                sidebar.append(sb_search);
-
-                let cmd = '';
-                let search_results = document.getElementById('search_results');
-                let find = document.getElementById('find');
-                let find_div = document.getElementById('find_div');
-                let find_options = document.getElementById('find_options');
-                let find_folders = document.getElementById('find_folders')
-                let find_files = document.getElementById('find_files')
-                let btn_find_options = document.getElementById('btn_find_options');
-                let find_size = document.getElementById('find_size');
-                let start_date = document.getElementById('start_date');
-                let end_date = document.getElementById('end_date');
-                let mb_find = document.getElementById('mb_find');
-                let search_progress = document.getElementById('search_progress')
-
-                let options = {
-                    show_folders: 1,
-                    show_files: 1,
-                    case: 0,
-                    depth: 1,
-                    start_date: '',
-                    end_date: '',
-                    size: ''
-                }
-
-                find.focus();
-                find.select();
-
-                if (localStorage.getItem('find_folders') != null) {
-                    options.show_files = parseInt(localStorage.getItem('find_files'));
-                } else {
-                    options.find_files = 1;
-                    options.depth = localStorage.setItem('find_files', options.find_files);
-                }
-
-                if (localStorage.getItem('find_folders')) {
-                    options.show_folders = parseInt(localStorage.getItem('find_folders'));
-                } else {
-                    options.find_folders = 1;
-                    options.depth = localStorage.setItem('find_folders', options.find_folders);
-                }
-
-                if (localStorage.getItem('depth') != null) {
-                    options.depth = parseInt(localStorage.getItem('depth'));
-                } else {
-                    options.depth = 1;
-                    options.depth = localStorage.setItem('depth', options.depth);
-                }
-
-
-                find_folders.checked = options.show_folders;
-                find_files.checked = options.show_files;
-
-                localStorage.setItem('minibar', 'mb_find')
-
-                // FIND FOLDERS
-                find_folders.addEventListener('change', (e) => {
-                    if (find_folders.checked) {
-                        localStorage.setItem('find_folders', 1);
-                        options.show_folders = 1
-                    } else {
-                        localStorage.setItem('find_folders', 0);
-                        options.show_folders = 0
-                    }
+                .then(res => {
+                    return res.text();
                 })
+                .then(search_html => {
 
-                // FIND FILES
-                find_files.addEventListener('change', (e) => {
-                    if (find_files.checked) {
-                        localStorage.setItem('find_files', 1);
-                        options.show_files = 1
-                    } else {
-                        localStorage.setItem('find_files', 0);
-                        options.show_files = 0
+                    search_view.innerHTML = search_html;
+                    sb_search.innerHTML = search_view.innerHTML;
+                    sidebar.append(sb_search);
+
+                    let cmd = '';
+                    let search_results = document.getElementById('search_results');
+                    let find = document.getElementById('find');
+                    let find_div = document.getElementById('find_div');
+                    let find_options = document.getElementById('find_options');
+                    let find_folders = document.getElementById('find_folders')
+                    let find_files = document.getElementById('find_files')
+                    let btn_find_options = document.getElementById('btn_find_options');
+                    let find_size = document.getElementById('find_size');
+                    let start_date = document.getElementById('start_date');
+                    let end_date = document.getElementById('end_date');
+                    let mb_find = document.getElementById('mb_find');
+                    let search_progress = document.getElementById('search_progress')
+
+                    let options = {
+                        show_folders: 1,
+                        show_files: 1,
+                        case: 0,
+                        depth: 1,
+                        start_date: '',
+                        end_date: '',
+                        size: ''
                     }
 
-                })
+                    find.focus();
+                    find.select();
 
-                let inputs = find_div.querySelectorAll('.find_input')
-                inputs.forEach(input => {
-
-                    input.preventDefault = true
-
-                    if (localStorage.getItem(input.id) != null) {
-                        options[input.id] = localStorage.getItem(input.id)
+                    if (localStorage.getItem('find_folders') != null) {
+                        options.show_files = parseInt(localStorage.getItem('find_files'));
                     } else {
-
-                        if (input.id == 'find_files') {
-                            options[input.id] = 1;
-                            localStorage.setItem(options[input.id], 1);
-                        }
-
-                        if (input.id == 'find_folders') {
-                            options[input.id] = 1;
-                            localStorage.setItem(options[input.id], 1);
-                        }
-
+                        options.find_files = 1;
+                        options.depth = localStorage.setItem('find_files', options.find_files);
                     }
 
-                    input.value = localStorage.getItem(input.id)
+                    if (localStorage.getItem('find_folders')) {
+                        options.show_folders = parseInt(localStorage.getItem('find_folders'));
+                    } else {
+                        options.find_folders = 1;
+                        options.depth = localStorage.setItem('find_folders', options.find_folders);
+                    }
 
-                    input.addEventListener('change', (e) => {
-                        localStorage.setItem(input.id, input.value)
-                        options[input.id] = input.value
+                    if (localStorage.getItem('depth') != null) {
+                        options.depth = parseInt(localStorage.getItem('depth'));
+                    } else {
+                        options.depth = 1;
+                        options.depth = localStorage.setItem('depth', options.depth);
+                    }
+
+
+                    find_folders.checked = options.show_folders;
+                    find_files.checked = options.show_files;
+
+                    localStorage.setItem('minibar', 'mb_find')
+
+                    // FIND FOLDERS
+                    find_folders.addEventListener('change', (e) => {
+                        if (find_folders.checked) {
+                            localStorage.setItem('find_folders', 1);
+                            options.show_folders = 1
+                        } else {
+                            localStorage.setItem('find_folders', 0);
+                            options.show_folders = 0
+                        }
                     })
 
-                    input.addEventListener('keyup', (e) => {
+                    // FIND FILES
+                    find_files.addEventListener('change', (e) => {
+                        if (find_files.checked) {
+                            localStorage.setItem('find_files', 1);
+                            options.show_files = 1
+                        } else {
+                            localStorage.setItem('find_files', 0);
+                            options.show_files = 0
+                        }
 
-                        if (e.key === 'Enter') {
+                    })
 
-                            if (find.value != '') {
-                                search_info.innerHTML = 'Searching...';
-                                search_progress.classList.remove('hidden')
-                            } else {
-                                search_info.innerHTML = '';
-                                search_progress.classList.add('hidden')
+                    let inputs = find_div.querySelectorAll('.find_input')
+                    inputs.forEach(input => {
+
+                        input.preventDefault = true
+
+                        if (localStorage.getItem(input.id) != null) {
+                            options[input.id] = localStorage.getItem(input.id)
+                        } else {
+
+                            if (input.id == 'find_files') {
+                                options[input.id] = 1;
+                                localStorage.setItem(options[input.id], 1);
                             }
-                            search_results.innerHTML = '';
-                            if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
-                                // CHECK LOCAL STORAGE
-                                if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
-                                    localStorage.setItem('find_folders', 1)
-                                }
+                            if (input.id == 'find_folders') {
+                                options[input.id] = 1;
+                                localStorage.setItem(options[input.id], 1);
+                            }
 
-                                if (localStorage.getItem('find_files') == '' || localStorage.getItem('find_files') == null) {
-                                    localStorage.setItem('find_files', 1)
-                                }
+                        }
 
-                                let find_folders = localStorage.getItem('find_folders')
-                                let find_files = localStorage.getItem('find_files')
-                                let depth = parseInt(localStorage.getItem('depth'));
+                        input.value = localStorage.getItem(input.id)
 
-                                options.d = find_folders,
-                                options.f = find_files,
-                                options.depth = depth,
-                                options.start_date = start_date.value,
-                                options.end_date = end_date.value,
-                                options.size = find_size.value, //localStorage.getItem('find_by_size'),
-                                options.o = ' -o ',
-                                options.s = '*' + find.value + '*'
+                        input.addEventListener('change', (e) => {
+                            localStorage.setItem(input.id, input.value)
+                            options[input.id] = input.value
+                        })
 
-                                //  SIZE
-                                if (options.size != '') {
-                                    let size_option = document.querySelector('input[name="size_options"]:checked').value
-                                    options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
-                                }
-                                //  DEPTH
-                                if (options.depth != '') {
-                                    options.depth = ' -maxdepth ' + options.depth
+                        input.addEventListener('keyup', (e) => {
+
+                            if (e.key === 'Enter') {
+
+                                if (find.value != '') {
+                                    search_info.innerHTML = 'Searching...';
+                                    search_progress.classList.remove('hidden')
                                 } else {
-                                    options.depth = ''
+                                    search_info.innerHTML = '';
+                                    search_progress.classList.add('hidden')
                                 }
-                                // START DATE
-                                if (options.start_date != '') {
-                                    let start_date = ' -newermt "' + options.start_date + '"'
-                                    options.start_date = start_date
-                                } else {
-                                    options.start_date = ''
-                                }
-                                // END DATE
-                                if (options.end_date != '') {
-                                    let end_date = ' ! -newermt "' + options.end_date + '"'
-                                    options.end_date = end_date
-                                } else {
-                                    options.end_date = ''
-                                }
-                                // DIR
-                                if (options.d == 1 && options.s != '') {
-                                    options.d = ' -type d ' + '-iname "' + options.s + '"'
-                                } else {
-                                    options.d = ''
-                                }
-                                // FILES
-                                if (options.f == 1 && options.s != '') {
-                                    options.f = ' -type f ' + '-iname "' + options.s + '" ' + options.size
-                                } else {
-                                    options.f = ''
-                                }
-                                // OR
-                                if (options.d && options.f && options.s != '') {
-                                    options.o = ' -or '
-                                } else {
-                                    options.o = ''
-                                }
+                                search_results.innerHTML = '';
+                                if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
 
-                                cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}`
-                                if (process.platform === 'Win32') {
-                                    // notification('find is not yet implemented on window');
-                                    // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
-                                }
-                                let data = 0;
-                                let c = 0
-
-                                ipcRenderer.invoke('find', cmd).then(search_arr => {
-
-                                    if (search_arr.length > 0) {
-                                        ipcRenderer.send('search_results', search_arr);
-                                        search_info.innerHTML = search_arr.length + ' matches found';
-                                    } else {
-                                        search_info.innerHTML = '0 matches found';
+                                    // CHECK LOCAL STORAGE
+                                    if (localStorage.getItem('find_folders') == '' || localStorage.getItem('find_folders') == null) {
+                                        localStorage.setItem('find_folders', 1)
                                     }
 
-                                    // })
-                                    // let child = exec(cmd)
-                                    // let search_arr = [];
-                                    // child.stdout.on('data', (res) => {
-                                    //     data = 1;
-                                    //     search_info.innerHTML = ''
-                                    //     let files = res.split('\n')
-                                    //     search_progress.value = 0
-                                    //     search_progress.max = files.length
-                                    //     if (files.length > 500) {
-                                    //         search_info.innerHTML = 'Please narrow your search.'
-                                    //         search_progress.classList.add('hidden')
-                                    //         return false;
-                                    //     } else {
-                                    //         for (let i = 0; i < files.length; i++) {
-                                    //             if (files[i] != '') {
-                                    //                 ++c
+                                    if (localStorage.getItem('find_files') == '' || localStorage.getItem('find_files') == null) {
+                                        localStorage.setItem('find_files', 1)
+                                    }
 
-                                    //                 search_arr.push(files[i])
-                                    //             }
-                                    //         }
-                                    //     }
-                                    // })
-                                    // child.stdout.on('end', (res) => {
-                                    //     if (!data) {
-                                    //         search_info.innerHTML = '0 matches found';
-                                    //     } else {
+                                    let find_folders = localStorage.getItem('find_folders')
+                                    let find_files = localStorage.getItem('find_files')
+                                    let depth = parseInt(localStorage.getItem('depth'));
 
-                                    // console.log('ipc send search results');
-                                    // ipcRenderer.send('search_results', search_arr);
-                                    // search_info.innerHTML = c + ' matches found';
-                                    // }
-                                    // search_progress.classList.add('hidden');
-                                })
+                                    options.d = find_folders,
+                                        options.f = find_files,
+                                        options.depth = depth,
+                                        options.start_date = start_date.value,
+                                        options.end_date = end_date.value,
+                                        options.size = find_size.value, //localStorage.getItem('find_by_size'),
+                                        options.o = ' -o ',
+                                        options.s = '*' + find.value + '*'
 
-                            } else {
-                                search_results.innerHTML = '';
+                                    //  SIZE
+                                    if (options.size != '') {
+                                        let size_option = document.querySelector('input[name="size_options"]:checked').value
+                                        options.size = '-size ' + options.size.replace('>', '+').replace('<', '-').replace(' ', '') + size_option
+                                    }
+                                    //  DEPTH
+                                    if (options.depth != '') {
+                                        options.depth = ' -maxdepth ' + options.depth
+                                    } else {
+                                        options.depth = ''
+                                    }
+                                    // START DATE
+                                    if (options.start_date != '') {
+                                        let start_date = ' -newermt "' + options.start_date + '"'
+                                        options.start_date = start_date
+                                    } else {
+                                        options.start_date = ''
+                                    }
+                                    // END DATE
+                                    if (options.end_date != '') {
+                                        let end_date = ' ! -newermt "' + options.end_date + '"'
+                                        options.end_date = end_date
+                                    } else {
+                                        options.end_date = ''
+                                    }
+                                    // DIR
+                                    if (options.d == 1 && options.s != '') {
+                                        options.d = ' -type d ' + '-iname "' + options.s + '"'
+                                    } else {
+                                        options.d = ''
+                                    }
+                                    // FILES
+                                    if (options.f == 1 && options.s != '') {
+                                        options.f = ' -type f ' + '-iname "' + options.s + '" ' + options.size
+                                    } else {
+                                        options.f = ''
+                                    }
+                                    // OR
+                                    if (options.d && options.f && options.s != '') {
+                                        options.o = ' -or '
+                                    } else {
+                                        options.o = ''
+                                    }
+
+                                    cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}`
+                                    if (process.platform === 'Win32') {
+                                        // notification('find is not yet implemented on window');
+                                        // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
+                                    }
+                                    let data = 0;
+                                    let c = 0
+
+                                    ipcRenderer.invoke('find', cmd).then(search_arr => {
+
+                                        if (search_arr.length > 0) {
+                                            ipcRenderer.send('search_results', search_arr);
+                                            search_info.innerHTML = search_arr.length + ' matches found';
+                                        } else {
+                                            search_info.innerHTML = '0 matches found';
+                                        }
+
+                                        // })
+                                        // let child = exec(cmd)
+                                        // let search_arr = [];
+                                        // child.stdout.on('data', (res) => {
+                                        //     data = 1;
+                                        //     search_info.innerHTML = ''
+                                        //     let files = res.split('\n')
+                                        //     search_progress.value = 0
+                                        //     search_progress.max = files.length
+                                        //     if (files.length > 500) {
+                                        //         search_info.innerHTML = 'Please narrow your search.'
+                                        //         search_progress.classList.add('hidden')
+                                        //         return false;
+                                        //     } else {
+                                        //         for (let i = 0; i < files.length; i++) {
+                                        //             if (files[i] != '') {
+                                        //                 ++c
+
+                                        //                 search_arr.push(files[i])
+                                        //             }
+                                        //         }
+                                        //     }
+                                        // })
+                                        // child.stdout.on('end', (res) => {
+                                        //     if (!data) {
+                                        //         search_info.innerHTML = '0 matches found';
+                                        //     } else {
+
+                                        // console.log('ipc send search results');
+                                        // ipcRenderer.send('search_results', search_arr);
+                                        // search_info.innerHTML = c + ' matches found';
+                                        // }
+                                        // search_progress.classList.add('hidden');
+                                    })
+
+                                } else {
+                                    search_results.innerHTML = '';
+                                }
+
                             }
+
+                        })
+
+                    })
+
+                    // FIND OPTIONS
+                    btn_find_options.addEventListener('click', (e) => {
+
+                        let chevron = btn_find_options.querySelector('i');
+
+                        // Remove Hidden
+                        if (find_options.classList.contains('hidden')) {
+
+                            find_options.classList.remove('hidden')
+                            chevron.classList.add('down')
+                            chevron.classList.remove('right')
+                            localStorage.setItem('find_options', 1);
+
+                        } else {
+
+                            find_options.classList.add('hidden')
+                            chevron.classList.add('right')
+                            chevron.classList.remove('down')
+                            localStorage.setItem('find_options', 0);
 
                         }
 
                     })
 
                 })
-
-                // FIND OPTIONS
-                btn_find_options.addEventListener('click', (e) => {
-
-                    let chevron = btn_find_options.querySelector('i');
-
-                    // Remove Hidden
-                    if (find_options.classList.contains('hidden')) {
-
-                        find_options.classList.remove('hidden')
-                        chevron.classList.add('down')
-                        chevron.classList.remove('right')
-                        localStorage.setItem('find_options', 1);
-
-                    } else {
-
-                        find_options.classList.add('hidden')
-                        chevron.classList.add('right')
-                        chevron.classList.remove('down')
-                        localStorage.setItem('find_options', 0);
-
-                    }
-
+                .catch(err => {
+                    console.log(err)
                 })
-
-            })
-            .catch (err => {
-                console.log(err)
-            })
 
         })
 
@@ -2812,7 +3156,7 @@ function getFileSize(fileSizeInBytes) {
  * @param {*} date
  * @returns Formated Gio Date
  */
-function getDateTime (date) {
+function getDateTime(date) {
     try {
         var d = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date * 1000));
         return d;
@@ -2874,7 +3218,7 @@ function getProperties(properties_arr) {
     // })
 
     // if (!tab_exists) {
-        tabManager.addTab('Properties')
+    tabManager.addTab('Properties')
     // }
     let tab_content = document.querySelector('.active-tab-content');
     console.log(tab_content)
@@ -3198,21 +3542,21 @@ function getSettings() {
     ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
 
         fetch(path)
-        .then(res => {
-            return res.text();
-        })
-        .then(settings_html => {
+            .then(res => {
+                return res.text();
+            })
+            .then(settings_html => {
 
-            tab_content.innerHTML = settings_html;
-            ipcRenderer.invoke('settings')
-            .then(res => res)
-            .then(settings => settingsForm(settings))
-            .catch(error => console.error('Error:', error))
+                tab_content.innerHTML = settings_html;
+                ipcRenderer.invoke('settings')
+                    .then(res => res)
+                    .then(settings => settingsForm(settings))
+                    .catch(error => console.error('Error:', error))
 
-        })
-        .catch (err => {
-            console.log(err)
-        })
+            })
+            .catch(err => {
+                console.log(err)
+            })
 
     })
 
@@ -3512,7 +3856,7 @@ function getWorkspace(callback) {
             workspace.classList.remove('active')
         })
 
-       workspace.addEventListener('dragover', (e) => {
+        workspace.addEventListener('dragover', (e) => {
             e.preventDefault();
             e.stopPropagation();
             workspace.classList.add('active')
@@ -3606,6 +3950,8 @@ function getDevices(callback) {
 
             device_arr.forEach(device => {
 
+                console.log(device)
+
                 let item = add_div();
                 let icon_div = add_div();
                 let href_div = add_div();
@@ -3626,6 +3972,43 @@ function getDevices(callback) {
                 umount_icon.style = 'position: absolute; right: -30px;';
                 item.classList.add('item');
 
+                if (device.path === '') {
+
+                    // Mount
+                    umount_div.classList.add('inactive');
+                    umount_div.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        ipcRenderer.send('mount', device)
+                    })
+
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        let root = device.root;
+                        ipcRenderer.send('mount', device)
+                    })
+
+                } else {
+
+                    // Unmount
+                    umount_div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        ipcRenderer.send('umount', device.path);
+                    })
+
+                    // Get view
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // console.log('device path', device.path)
+                        getView(`${device.path}`);
+                        navigation.addHistory(device.path);
+
+                    })
+
+                }
+
                 if (item.type == 0) {
                     icon_div.append(add_icon('usb-symbol'), a);
                     // item.append(add_icon('usb-symbol'), a);
@@ -3636,20 +4019,6 @@ function getDevices(callback) {
 
                 item.addEventListener('mouseover', (e) => {
                     item.title = device.path;
-                })
-
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-
-                    // console.log('device path', device.path)
-                    getView(`${device.path}`);
-                    navigation.addHistory(device.path);
-
-                })
-
-                umount_div.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    ipcRenderer.send('umount', device.path);
                 })
 
                 item.addEventListener('contextmenu', (e) => {
@@ -3754,8 +4123,8 @@ function getFolderSize(href) {
             // if (href.indexOf('sftp:') > -1) {
             //     size.innerHTML = ''
             // } else {
-                card.dataset.size = res;
-                size.append(getFileSize(res));
+            card.dataset.size = res;
+            size.append(getFileSize(res));
             // }
 
         }
@@ -3773,43 +4142,37 @@ function getCardGio(file) {
     // console.log(file)
 
     let location = document.getElementById('location');
-    let is_dir   = 0;
+    let is_dir = 0;
 
-    let card    = add_div();
-    let content = add_div();
-    let icon    = add_div();
-    let img     = document.createElement('img');
-    let header  = add_div();
-    let href    = document.createElement('a');
-    let mtime   = add_div();
-    let atime   = add_div();
-    let ctime   = add_div();
-    let size    = add_div();
-    let type    = add_div();
-    let count   = add_div();
-    let input   = document.createElement('input');
-    let tooltip = add_div();
+    let card = add_div(['card']);
+    let content = add_div(['content']);
+    let icon = add_div();
+    let img = document.createElement('img');
+    let header = add_div(['header', 'item']);
+    let href = document.createElement('a');
+    let path = add_div(['path', 'item', 'hidden']);
+    let mtime = add_div(['date', 'item']);
+    let atime = add_div(['date', 'item', 'hidden']);
+    let ctime = add_div(['date', 'item', 'hidden']);
+    let size = add_div(['size', 'item']);
+    let type = add_div(['type', 'item', 'hidden']);
+    let count = add_div(['count', 'item']);
+    let input = document.createElement('input');
+    let tooltip = add_div('tooltip', 'hidden');
 
     // todo: pull options so we can control column visibility
-    card.classList.add('card');
-    header.classList.add('header', 'item');
     input.classList.add('input', 'item', 'hidden');
     img.classList.add('icon');
-    mtime.classList.add('date', 'item');
-    atime.classList.add('date', 'item', 'hidden');
-    ctime.classList.add('date', 'item', 'hidden');
-    size.classList.add('size', 'item');
-    type.classList.add('type', 'item', 'hidden');
-    count.classList.add('count', 'item');
-    content.classList.add('content');
-    tooltip.classList.add('tooltip', 'hidden');
+    // tooltip.classList.add('tooltip', 'hidden');
 
     card.style.opacity = 1;
 
+    // Populate values
     href.href = file.href;
     href.innerHTML = file.name;
     input.value = file.name;
     card.dataset.name = file.name;
+
 
     input.spellcheck = false;
     input.type = 'text';
@@ -3847,7 +4210,6 @@ function getCardGio(file) {
             'Type: ' + file.content_type
 
         card.title = title;
-
 
         // main.tabIndex = 0;
         // tooltip_timeout = setTimeout(() => {
@@ -3909,20 +4271,20 @@ function getCardGio(file) {
     card.addEventListener('dragstart', (e) => {
 
         e.stopPropagation();
+        getSelectedFiles();
 
         // clearTimeout(tooltip_timeout);
         // tooltip.classList.add('hidden')
         // clearTimeout(tooltip_timeout)
-        getSelectedFiles();
 
         // const dataTransfer = new DataTransfer();
         // dataTransfer.setData('application/x-electron-file', file.href)
         // // console.log(dataTransfer)
         // ipcRenderer.send('ondragstart', file.href)
         // selected_files_arr.forEach(href => {
-            // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
-            // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
-            // e.target.classList.add('dragged')
+        // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
+        // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
+        // e.target.classList.add('dragged')
         // })
     })
 
@@ -4033,6 +4395,7 @@ function getCardGio(file) {
             }
             ipcRenderer.send('saveRecentFile', file.href);
         })
+
         // Context Menu
         card.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -4041,9 +4404,7 @@ function getCardGio(file) {
             ipcRenderer.send('folder_menu', file);
         })
 
-        size.append(0);
-
-    // Files
+        // Files
     } else {
         // Get Icon
         try {
@@ -4126,28 +4487,74 @@ function getCardGio(file) {
     }
 
     if (!file.is_writable) {
+
         console.log(file)
         let readonly_img = document.createElement('img');
         readonly_img.src = readonly_icon;
         readonly_img.classList.add('readonly');
         readonly_icon.style = 'height: 12px'; // applied style here because there is a little lag time when set in css
         icon.append(readonly_img);
+
     }
 
     if (view == 'list') {
+
         card.classList.add('list');
         content.classList.add('list');
-        content.append(header, mtime, ctime, atime, size, count);
+
+
+
+        for (const key in settings.Captions) {
+
+            if (settings.Captions[key]) {
+
+                switch (key) {
+                    case 'Location':
+                        path.classList.remove('hidden')
+                        path.append(file.location)
+                        break;
+                    case 'Modified':
+                        mtime.classList.remove('hidden')
+                        break;
+                    case 'Created':
+                        ctime.classList.remove('hidden')
+                        break;
+                    case 'Accessed':
+                        atime.classList.remove('hidden')
+                        break;
+                    case 'Type':
+                        type.classList.remove('hidden')
+                        break;
+                    case 'Size':
+                        size.classList.remove('hidden')
+                        break;
+                    case 'Count':
+                        count.classList.remove('hidden')
+                        break;
+                }
+
+            }
+
+        }
+
+        let list_header = add_div(['item', 'list'])
+        list_header.append(icon, header)
+        // header.append(list_header);
+        content.append(list_header, path, mtime, ctime, atime, size, count);
+        card.append(content, tooltip);
     }
 
     if (view === 'grid') {
         card.classList.remove('list');
         content.classList.remove('list');
-        content.append(header, mtime, ctime, atime, size, count);
+        content.append(header, path, mtime, ctime, atime, size, count);
+        card.append(icon, content, tooltip);
     }
 
-    card.append(icon, content, tooltip);
+
     // ds.addSelectables(card);
+
+    // console.log(card)/
 
     return card;
 }
@@ -4244,7 +4651,7 @@ function lazyload() {
     }
 }
 
-function quickSearch (e) {
+function quickSearch(e) {
     let main = document.querySelector('.main');
     let quicksearch = add_div(['quicksearch', 'bottom', 'right']); //document.querySelector('.quicksearch');
     let txt_quicksearch = document.createElement('input'); //document.getElementById('txt_quicksearch');
@@ -4317,7 +4724,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let slider = document.getElementById('slider');
         let header_menu = document.querySelectorAll('.menu_bar');
         let nav_menu = document.querySelector('.nav_menu');
-        let settings  = document.querySelector('.settings');
+        let settings = document.querySelector('.settings');
         // let active_tab_content = document.querySelector('.active-tab-content');
 
         // Flags
@@ -4354,7 +4761,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         // sb_view.classList.remove('hidden');
                         // getSearch();
                         mb_item.classList.add('active')
-                        find_files(res => {})
+                        find_files(res => { })
                         break;
                     }
                     case 'mb_info': {
@@ -4480,7 +4887,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         nav_items.forEach(nav_item => {
             nav_item.addEventListener('click', (e) => {
                 let dir = nav_item.innerText.replace(' ', '');
-                if (dir === 'Home') {dir = ''}
+                if (dir === 'Home') { dir = '' }
                 ipcRenderer.invoke('nav_item', dir).then(path => {
                     location.value = path;
                     getView(path)
@@ -4631,7 +5038,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         ipcRenderer.invoke('settings').then(res => {
 
-            shortcut =  res.keyboard_shortcuts;
+            shortcut = res.keyboard_shortcuts;
 
         }).then(() => {
 

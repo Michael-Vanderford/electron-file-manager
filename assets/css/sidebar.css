@@ -21,7 +21,7 @@
     position: relative;
     white-space: nowrap;
     color: var(--text);
-    font-weight: bold;
+    /* font-weight: bold; */
     padding: 5px;
     cursor: pointer;
 }
