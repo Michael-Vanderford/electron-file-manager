@@ -682,7 +682,7 @@ function get_files(source, tab) {
             }
         })
     } catch (err) {
-        console.log('watcher err', err.message);
+        // console.log('watcher err', err.message);
         win.send('msg', err);
         watcher_failed = 1;
     }

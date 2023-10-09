@@ -293,9 +293,11 @@ class ViewManager {
                     const item = add_div(['item']);
                     const input = document.createElement('input');
                     input.type = 'checkbox';
+                    input.id = key;
                     const label = document.createElement('label');
                     label.classList.add('label');
                     label.innerText = key;
+                    label.htmlFor = key;
 
                     if (settings.Captions[key]) {
                         input.checked = true;
@@ -1473,7 +1475,8 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
-    switch_view(localStorage.getItem('view'));
+    // switch_view(localStorage.getItem('view'));
+    sort_cards()
     lazyload();
 
 })
@@ -2437,7 +2440,7 @@ function sort_cards() {
     let active_tab_content = document.querySelector('.active-tab-content')
     let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
 
-    grids.forEach(grid => {
+    grids.forEach((grid, idx) => {
         let grid_items = document.querySelectorAll(`.${grid}`);
         grid_items.forEach(grid_item => {
 
@@ -2513,9 +2516,17 @@ function sort_cards() {
                     break;
                 }
             }
-            grid_cards.forEach(card => {
+
+            grid_cards.forEach((card, idx1) => {
                 grid_item.appendChild(card);
+                if (idx ===0 && idx1 === 0) {
+                    let href = card.querySelector('a');
+                    console.log(href)
+                    href.focus();
+
+                }
             })
+
         })
 
     })
@@ -4151,12 +4162,12 @@ function getCardGio(file) {
     let header = add_div(['header', 'item']);
     let href = document.createElement('a');
     let path = add_div(['path', 'item', 'hidden']);
-    let mtime = add_div(['date', 'item']);
+    let mtime = add_div(['date', 'item', 'hidden']);
     let atime = add_div(['date', 'item', 'hidden']);
     let ctime = add_div(['date', 'item', 'hidden']);
-    let size = add_div(['size', 'item']);
+    let size = add_div(['size', 'item', 'hidden']);
     let type = add_div(['type', 'item', 'hidden']);
-    let count = add_div(['count', 'item']);
+    let count = add_div(['count', 'item', 'hidden']);
     let input = document.createElement('input');
     let tooltip = add_div('tooltip', 'hidden');
 
@@ -4547,6 +4558,8 @@ function getCardGio(file) {
     if (view === 'grid') {
         card.classList.remove('list');
         content.classList.remove('list');
+        mtime.classList.remove('hidden')
+        size.classList.remove('hidden')
         content.append(header, path, mtime, ctime, atime, size, count);
         card.append(icon, content, tooltip);
     }

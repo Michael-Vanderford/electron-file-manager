@@ -268,7 +268,7 @@ function get_files_arr (source, destination, callback) {
     gio.ls(source, (err, dirents) => {
         for (let i = 0; i < dirents.length; i++) {
 
-            parentPort.postMessage({cmd: 'msg', msg: 'getting files..'})
+            parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
 
             // data = {
             //     cmd: 'progress',
