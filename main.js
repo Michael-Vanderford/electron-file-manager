@@ -2129,11 +2129,11 @@ function add_launcher_menu(menu, e, file) {
                 label: launchers[i].name,
                 click: () => {
 
-                    console.log(launchers[i]);
+                    // console.log(launchers[i]);
 
                     // Set Default Application
                     let set_default_launcher_cmd = `xdg-mime default ${path.basename(launchers[i].appid)} ${launchers[i].mimetype}`;
-                    console.log(set_default_launcher_cmd)
+                    // console.log(set_default_launcher_cmd)
                     execSync(set_default_launcher_cmd);
 
                     let cmd = launchers[i].cmd.toLocaleLowerCase().replace(/%u|%f/g, `'${file.href}'`);
