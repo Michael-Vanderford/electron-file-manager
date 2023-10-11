@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     overflow: hidden;
     font-family: Arial, Helvetica, sans-serif;
     font-size: 12px;
@@ -7,7 +8,8 @@ html, body {
     height: 100%;
 }
 
-html, body {
+html,
+body {
     background: var(--main);
     color: var(--text);
 }
@@ -64,15 +66,16 @@ th {
     /* height: 16px; */
 }
 
-#navigation_menu input[type=text] {
+#navigation_menu input[type=text].location {
     border-radius: 5px;
-    border: none;
     color: var(--text);
-    background: var(--input);
-    border: 1px solid var(--border);
+    padding-left: 10px;
+    margin-right: 15px;
+    background: var(--location);
+    border: 1px solid var(--location-border);
     font-size: 12px;
-    height: 20px;
-    width: 100%;
+    height: 23px;
+    width: 95%;
     font-weight: bold;
 }
 
@@ -117,8 +120,6 @@ th {
 #main a {
     color: var(--text);
 }
-
-
 
 .active {
     border-radius: 5px;
@@ -190,7 +191,7 @@ th {
 }
 
 .connect .label {
-    display:block;
+    display: block;
     margin-bottom: 2px;
 }
 
@@ -234,6 +235,12 @@ th {
     height: 100%;
 }
 
+.columns input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 5px !important;
+}
+
 .menus {
     position: relative;
     height: 56px;
@@ -241,11 +248,11 @@ th {
 }
 
 .autocomplete {
-    position:fixed;
+    position: fixed;
     height: 150px;
     min-width: 350px;
     background: var(--dialog);
-    border:1px solid var(--border);
+    border: 1px solid var(--border);
     z-index: 10000;
     overflow: auto;
     border-radius: 5px;
@@ -266,7 +273,7 @@ th {
     box-sizing: border-box;
     /* border:1px solid green; */
     height: 100% !important;
-    background:var(--lessdark);
+    background: var(--lessdark);
 }
 
 .container {
@@ -337,7 +344,7 @@ th {
 
 .tab {
     padding-top: 2px;
-    height:21px;
+    height: 21px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--text);
@@ -369,7 +376,7 @@ th {
 }
 
 .tab_container {
-    padding:4px;
+    padding: 4px;
     width: 100%;
     height: 20px;
 }
@@ -390,7 +397,7 @@ th {
     position: sticky;
     background: var(--tabs);
     height: 23px;
-    top: 0;
+    top: 0 !important;
     display: flex;
     width: 100%;
     border-bottom: 1px solid var(--border);
@@ -403,7 +410,7 @@ th {
 .properties-tab {
     padding-left: 10px;
     padding-right: 10px;
-    height:21px;
+    height: 21px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--text);
@@ -438,9 +445,7 @@ th {
     /* background: var(--dialog) */
 }
 
-.destination_table table {
-
-}
+.destination_table table {}
 
 .destination_table .destination {
     word-break: break-all;
@@ -460,6 +465,7 @@ progress {
 progress::-webkit-progress-value {
     background-color: #007acc;
 }
+
 progress::-webkit-progress-bar {
     background-color: #e6e6e6;
 }
@@ -469,6 +475,7 @@ progress::-webkit-progress-bar {
     /* padding: 5px; */
     width: 100%;
 }
+
 .file_grid {
     /* box-sizing: border-box; */
     /* padding: 5px; */
@@ -480,6 +487,7 @@ progress::-webkit-progress-bar {
     /* padding: 5px; if this is turned on then it will drag the entire file grid if the cursor passed over it. */
     width: 100%;
 }
+
 .hidden_file_grid {
     /* box-sizing: border-box; */
     /* padding: 5px; */
@@ -497,7 +505,7 @@ progress::-webkit-progress-bar {
     padding: 2px;
     width: 95%;
     border-radius: 5px;
-    border:none;
+    border: none;
     background: transparent;
     color: var(--text);
     opacity: 0;
@@ -520,7 +528,7 @@ progress::-webkit-progress-bar {
     opacity: 0.95;
     border: 0px solid #069;
     /* transform: scale(2); */
-    position:relative;
+    position: relative;
     z-index: 2 !important;
 }
 
@@ -561,10 +569,12 @@ progress::-webkit-progress-bar {
     height: 16px !important;
     width: 16px !important;
 }
+
 .icon24 {
     height: 24px !important;
     width: 24px !important;
 }
+
 .icon32 {
     height: 32px !important;
     width: 32px !important;
@@ -574,6 +584,7 @@ progress::-webkit-progress-bar {
     height: 48px !important;
     width: 48px !important;
 }
+
 .icon64 {
     height: 64px !important;
     width: 64px !important;
@@ -587,7 +598,8 @@ progress::-webkit-progress-bar {
     background: var(--svg);
     filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
 }
-.card .content{
+
+.card .content {
     padding: 1px;
     margin-left: 10px;
     width: 100%;
@@ -599,15 +611,29 @@ progress::-webkit-progress-bar {
     word-break: break-all;
     color: var(--text);
 }
+
 .card a:hover {
     cursor: pointer;
 }
+
 .card .icon:hover {
     cursor: pointer;
 }
+
+.card .content .header {
+    overflow-wrap: break-word;
+    padding-right: 10px;
+}
+
+.card .content .path {
+    overflow-wrap: break-word;
+    padding-right: 10px;
+}
+
 .card .content .date {
     word-break: none;
 }
+
 .card .content .type {
     white-space: nowrap;
     overflow: hidden;
@@ -822,7 +848,7 @@ input[type=text]:focus {
 }
 
 .title {
-    position:absolute;
+    position: absolute;
     display: block;
     /* top: 0; */
     /* left: 100%; */
@@ -895,7 +921,7 @@ input[type=text]:focus {
 }
 
 .float.right {
-    float:right;
+    float: right;
     padding: 5px;
 }
 
@@ -908,7 +934,8 @@ input[type=text]:focus {
     left: -50%;
     right: auto;
 }
-.right  {
+
+.right {
     margin-left: auto;
     /* margin-right: 25px; */
     /* right: 25px; */
@@ -1012,11 +1039,12 @@ input[type=text]:focus {
 }
 
 .basic .content {
-    line-height: 24px;;
+    line-height: 24px;
+    ;
 }
 
 .permissions {
-    padding-top:30px;
+    padding-top: 30px;
 }
 
 .permissions .row {
@@ -1087,7 +1115,9 @@ input[type=text]:focus {
         --inactive: #484848;
         --tabs: #292929;
         --button: #484848;
-        --button-active: #1b557c ;
+        --button-active: #1b557c;
+        --location: #2c2c2c;
+        /* --location-border: #424242; */
 
         --svg: rgba(155, 155, 155, 0.7);
 

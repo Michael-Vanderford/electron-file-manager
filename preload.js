@@ -3118,6 +3118,8 @@ function add_header(text) {
  */
 function msg(message, has_timeout = 1) {
 
+    console.log(message, has_timeout)
+
     let main = document.querySelector('.main');
     let msg = document.querySelector('.msg');
     if (!msg) {
@@ -3139,7 +3141,8 @@ function msg(message, has_timeout = 1) {
 
     msg.innerHTML = message;
 
-    if (has_timeout) {
+    if (parseInt(has_timeout)) {
+        console.log('running timeout')
         setTimeout(() => {
             msg.classList.add('hidden');
         }, 5000);
@@ -3605,11 +3608,11 @@ function settingsForm(settings) {
             let input;
             if (typeof value === 'boolean') {
                 // For boolean values, create a checkbox
-                // input = document.createElement('input');
-                // input.type = 'checkbox';
-                // input.name = key;
-                // input.checked = value;
-                // settings_item.append(label, input);
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.name = key;
+                input.checked = value;
+                settings_item.append(label, input);
             } else {
                 // For other types (string, number), create a text input
                 if (key === 'Description') {
@@ -4224,25 +4227,20 @@ function getCardGio(file) {
 
         // main.tabIndex = 0;
         // tooltip_timeout = setTimeout(() => {
-
         //     // Calculate the position
         //     const rect = card.getBoundingClientRect();
         //     const top = rect.top + rect.height;
         //     const left = rect.left;
-
         //     // const main_rect = main.getBoundingClientRect();
-
         //     // Set the position of the popup
         //     tooltip.style.top = top + 'px';
         //     tooltip.style.left = left + 'px';
-
         //     tooltip.classList.remove('hidden')
         //     tooltip.innerText = title;
-
         //     const tooltip_rect = tooltip.height;
-
-
         // }, 1000);
+
+        href.focus()
 
     })
 
@@ -4348,6 +4346,8 @@ function getCardGio(file) {
     ctime.append(getDateTime(file.ctime));
     atime.append(getDateTime(file.atime));
     type.append(file.content_type);
+
+    console.log(file.content_type)
 
     icon.append(img);
     header.append(href, input);
@@ -4551,7 +4551,7 @@ function getCardGio(file) {
         let list_header = add_div(['item', 'list'])
         list_header.append(icon, header)
         // header.append(list_header);
-        content.append(list_header, path, mtime, ctime, atime, size, count);
+        content.append(list_header, path, mtime, ctime, atime, type, size, count);
         card.append(content, tooltip);
     }
 
@@ -4560,7 +4560,7 @@ function getCardGio(file) {
         content.classList.remove('list');
         mtime.classList.remove('hidden')
         size.classList.remove('hidden')
-        content.append(header, path, mtime, ctime, atime, size, count);
+        content.append(header, path, mtime, ctime, atime, type, size, count);
         card.append(icon, content, tooltip);
     }
 

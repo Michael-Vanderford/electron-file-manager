@@ -8,8 +8,8 @@
         "Modified": true,
         "Created": true,
         "Accessed": false,
-        "Size": true,
         "Type": false,
+        "Size": true,
         "Count": true
     },
     "Header Menu": {

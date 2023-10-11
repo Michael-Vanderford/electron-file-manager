@@ -973,14 +973,17 @@ ipcMain.on('compress', (e, location, type) => {
         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
     }
 
+    win.send('msg', 'Compressing Files.', 0);
     exec(cmd, (err, stdout) => {
         if (err) {
             console.log(err);
+            win.send('msg', err);
         } else {
-
+            win.send('msg', 'Done Compressing Files.');
             if (watcher_failed) {
                 win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
             }
+
             // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
         }
     })
