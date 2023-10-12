@@ -299,6 +299,10 @@ class ViewManager {
                     label.innerText = key;
                     label.htmlFor = key;
 
+                    if (key === 'Name') {
+                        input.disabled = true;
+                    }
+
                     if (settings.Captions[key]) {
                         input.checked = true;
                     }
@@ -3712,13 +3716,13 @@ function sidebarHome() {
 
         // Workspace
         getWorkspace(workspace => {
-            sb_home.append(document.createElement('br'));
+            // sb_home.append(document.createElement('br'));
             sb_home.append(workspace)
         })
 
         // Get Device
         getDevices(devices => {
-            sb_home.append(document.createElement('br'));
+            // sb_home.append(document.createElement('br'));
             sb_home.append(devices)
         })
 
@@ -3784,7 +3788,8 @@ function getHome(callback) {
 
     let home = add_div();
     home.innerHTML = ''
-    home.append(add_header('Home'))
+    // home.append(add_header('Home'))
+    // home.append(document.createElement('hr'))
 
     // Get home
     for (let i = 0; i < my_computer_arr.length; i++) {
@@ -3860,7 +3865,8 @@ function getWorkspace(callback) {
             workspace.classList.add('workspace')
         }
         workspace.innerHTML = ''
-        workspace.append(add_header('Workspace'));
+        // workspace.append(add_header('Workspace'));
+        workspace.append(document.createElement('hr'))
 
         if (res.length == 0) {
             workspace.append('Drop a file or folder');
@@ -3952,7 +3958,8 @@ function getDevices(callback) {
     if (!devices) {
         devices = add_div()
         devices.classList.add('device_view')
-        devices.append(add_header('Devices'));
+        // devices.append(add_header('Devices'));
+        devices.append(document.createElement('hr'))
         ipcRenderer.invoke('get_devices').then(device_arr => {
 
             let connect_btn = add_link('#', 'Connect to Server')

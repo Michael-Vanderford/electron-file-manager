@@ -705,6 +705,16 @@ progress::-webkit-progress-bar {
     width: 95%;
 }
 
+.header.item {
+    display: flex;
+    align-items: center;
+}
+
+.content.list {
+    display: flex;
+    align-items: center;
+}
+
 .header.item a {
     /* font-weight: bold; */
     text-decoration: none;

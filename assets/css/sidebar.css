@@ -22,7 +22,7 @@
     white-space: nowrap;
     color: var(--text);
     /* font-weight: bold; */
-    padding: 5px;
+    padding: 6px;
     cursor: pointer;
 }
 
