@@ -2522,15 +2522,15 @@ function sort_cards() {
                 }
             }
 
-            grid_cards.forEach((card, idx1) => {
-                grid_item.appendChild(card);
-                if (idx ===0 && idx1 === 0) {
-                    let href = card.querySelector('a');
-                    console.log(href)
-                    href.focus();
+            // grid_cards.forEach((card, idx1) => {
+            //     grid_item.appendChild(card);
+            //     if (idx ===0 && idx1 === 0) {
+            //         let href = card.querySelector('a');
+            //         console.log(href)
+            //         // href.focus();
 
-                }
-            })
+            //     }
+            // })
 
         })
 
