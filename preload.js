@@ -761,6 +761,7 @@ async function getShortcuts() {
 
 // Expose Functions to index.js file
 contextBridge.exposeInMainWorld('api', {
+    clear,
     getShortcuts,
     getView,
     getSelectedFiles,

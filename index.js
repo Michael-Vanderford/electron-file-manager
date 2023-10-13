@@ -14,6 +14,12 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.getView(location.value)
         })
 
+        // Escape (Cancel)
+        mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
+            // Clear Arrays and selected items
+            window.api.clear();
+        })
+
         // Edit
         mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
             window.api.edit();
@@ -81,7 +87,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
             e.preventDefault();
             let cards = main.querySelectorAll('.card')
             cards.forEach(item => {
-                item.classList.add('highlight');
+                item.classList.add('highlight_select');
             })
         })
 

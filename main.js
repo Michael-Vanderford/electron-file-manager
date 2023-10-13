@@ -96,7 +96,7 @@ const dialogs = new Dialogs();
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
 let settings = {};
 try {
-    checkSettings();
+    // checkSettings();
     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
 } catch (err) {
     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
