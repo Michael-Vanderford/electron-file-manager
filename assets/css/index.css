@@ -717,6 +717,8 @@ progress::-webkit-progress-bar {
 
 .header.item a {
     /* font-weight: bold; */
+    display: block;
+    width: 100%;
     text-decoration: none;
 }
 
@@ -1168,6 +1170,7 @@ input[type=text]:focus {
         --active: #252525;
         --tabs: #ffffff;
         --button: #cfcfcf;
+        --location: #e8e8e8;
 
         --link: #4183c4;
         --highlight: rgba(0, 0, 0, 0.1);
