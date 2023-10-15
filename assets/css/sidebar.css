@@ -4,6 +4,7 @@
     position: relative;
     box-sizing: border-box;
     background-color: var(--sidebar);
+    /* background: linear-gradient(to right, var(--sidebar), var(--main)); */
     color: var(--text);
     padding-left: 5px;
     padding-right: 5px;

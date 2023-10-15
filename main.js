@@ -91,7 +91,43 @@ class Dialogs {
 
 }
 
+class SettingsManager {
+
+    constructor () {
+        this.window_file = path.join(app.getPath('userData'), 'window.json');
+        this.window_settings = {
+            window: {
+                width: 1024,
+                height: 600,
+                x: 0,
+                y: 0
+            }
+        };
+
+        // this.getWindowSetting();
+
+    }
+
+
+    getWindowSetting () {
+        try {
+            this.window_settings = JSON.parse(fs.readFileSync(this.window_file, 'utf-8'));
+        } catch (err) {
+            fs.writeFileSync(this.window_file, JSON.stringify(this.window_settings, null, 4));
+        }
+        return this.window_settings;
+    }
+
+    updateWindowSettings (window_settings) {
+        this.window_settings = window_settings;
+        fs.writeFileSync(this.window_file, JSON.stringify(this.window_settings, null, 4));
+    }
+
+}
+
 const dialogs = new Dialogs();
+const settingsManger = new SettingsManager();
+let window_settings = settingsManger.getWindowSetting();
 
 let settings_file = path.join(app.getPath('userData'), 'settings.json');
 let settings = {};
@@ -724,37 +760,38 @@ ipcMain.on('columns', (e) => {
 
 ipcMain.handle('find', async (e, cmd) => {
 
-    let { stdout, stderr } = await exec(cmd);
+    try {
+        let { stdout, stderr } = await exec(cmd);
 
-    if (stderr) {
-        win.send('msg', stderr);
-        return;
-    }
-
-    let files = stdout.split('\n');
-    if (files.length > 500) {
-
-        return false;
-
-    } else {
-
-        let search_arr =  [];
-        let c = 0;
-        for (let i = 0; i < files.length; i++) {
-
-            if (files[i] != '') {
-                ++c
-                search_arr.push(files[i])
-            }
-
+        if (stderr) {
+            win.send('msg', stderr);
+            return;
         }
 
-        return search_arr;
+        let files = stdout.split('\n');
+        if (files.length > 500) {
+            return false;
+        } else {
+            let search_arr =  [];
+            let c = 0;
+            for (let i = 0; i < files.length; i++) {
 
+                if (files[i] != '') {
+                    ++c
+                    search_arr.push(files[i])
+                }
+
+            }
+            return search_arr;
+        }
+
+    } catch (err) {
+        win.send('msg', err);
+        return err;
     }
 
-})
 
+})
 
 ipcMain.handle('df', async (e) => {
     const { stdout, stderr } = await exec('df');
@@ -1236,10 +1273,18 @@ ipcMain.on('saveRecentFile', (e, href) => {
     saveRecentFile(href);
 })
 
-ipcMain.on('update_settings', (e, key, value) => {
-    settings[key] = value;
+ipcMain.on('update_settings', (e, keys = [], value) => {
+
+    let path = ''
+    if (keys.length == 0) {
+        settings[keys[0]]
+    } else {
+        settings[keys[0]][keys[1]] = value;
+    }
+
     fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
     win.send('msg', 'Settings updated')
+
 })
 
 ipcMain.on('update_settings_columns', (e, key, value, location) => {
@@ -1457,6 +1502,7 @@ ipcMain.on('mkdir', (e, href) => {
 // Open File in Native Application
 ipcMain.on('open', (e, href) => {
     shell.openPath(href);
+    win.send('clear');
 })
 
 // Get File Icon
@@ -1612,23 +1658,23 @@ function createWindow() {
         }
     }
 
-    if (settings.window.x == 0) {
-        settings.window.x = displayToUse.bounds.x + 50
+    if (window_settings.window.x == 0) {
+        window_settings.window.x = displayToUse.bounds.x + 50
     }
 
-    if (settings.window.y == 0) {
-        settings.window.y = displayToUse.bounds.y + 50
+    if (window_settings.window.y == 0) {
+        window_settings.window.y = displayToUse.bounds.y + 50
     }
 
     // WINDOW OPTIONS
     let options = {
         minWidth: 400,
         minHeight: 600,
-        width: settings.window.width,
-        height: settings.window.height,
+        width: window_settings.window.width,
+        height: window_settings.window.height,
         backgroundColor: '#2e2c29',
-        x: settings.window.x,
-        y: settings.window.y,
+        x: window_settings.window.x,
+        y: window_settings.window.y,
         frame: true,
         autoHideMenuBar: true,
         icon: path.join(__dirname, '/assets/icons/folder.png'),
@@ -1666,18 +1712,20 @@ function createWindow() {
 
     win.on('resize', (e) => {
         let intervalid = setInterval(() => {
-            settings.window.width = win.getBounds().width;
-            settings.window.height = win.getBounds().height;
+            window_settings.window.width = win.getBounds().width;
+            window_settings.window.height = win.getBounds().height;
             // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-            fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+            // fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+            settingsManger.updateWindowSettings(window_settings);
         }, 1000);
     })
 
     win.on('move', (e) => {
-        settings.window.x = win.getBounds().x;
-        settings.window.y = win.getBounds().y;
+        window_settings.window.x = win.getBounds().x;
+        window_settings.window.y = win.getBounds().y;
         // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-        fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+        // fs.writeFileSync(settings_file, JSON.stringify(window_settings, null, 4));
+        settingsManger.updateWindowSettings(window_settings);
     })
     windows.add(win);
 

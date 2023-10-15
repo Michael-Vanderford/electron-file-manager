@@ -24,7 +24,7 @@ th {
     background: var(--menu);
     padding: 5px;
     width: 100%;
-    /* height: 16px; */
+    z-index: 100;
 }
 
 #header_menu .slider {
@@ -101,6 +101,8 @@ th {
     /* overflow-x: hidden; */
     /* border: 1px solid red; */
     background: var(--main);
+    background: linear-gradient(to right, var(--main), var(--menu));
+
     border-radius: 5px;
     /* padding: 10px; */
     width: 100%;
@@ -904,7 +906,7 @@ input[type=text]:focus {
     position: absolute;
     justify-content: center;
     align-items: center;
-    height: 90%;
+    height: 80%;
     width: 100%;
     font-size: 24px;
     font-weight: bold;
@@ -1075,6 +1077,13 @@ input[type=text]:focus {
 
 .inactive {
     color: var(--inactive) !important;
+}
+
+.sticky {
+    position: fixed;
+    top: 90px;
+    width: 80%;
+    z-index: 10000;
 }
 
 /* Mobile */

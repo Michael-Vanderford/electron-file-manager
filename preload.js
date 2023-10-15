@@ -24,11 +24,315 @@ if (localStorage.getItem('view') == null) {
 
 class SettingsManager {
 
+    constructor () {
+        this.settings = '';
+        this.showHeaderMenu();
+    }
+
     getSettings(callback) {
         ipcRenderer.invoke('settings').then(settings => {
+            this.settings = settings;
+            // console.log('settings', settings)
             return callback(settings);
         })
     }
+
+    showHeaderMenu () {
+        const header_menu = document.querySelector('.header_menu');
+        // console.log(header_menu)
+        this.getSettings(settings => {
+            if (settings['Header Menu'].show) {
+                header_menu.classList.remove('hidden')
+            } else {
+                header_menu.classList.add('hidden')
+            }
+        })
+
+    }
+
+    // Get Settings View
+    settingsView() {
+
+        tabManager.addTab('Settings');
+        let tab_content = document.querySelector('.active-tab-content');
+        ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
+
+            fetch(path)
+                .then(res => {
+                    return res.text();
+                })
+                .then(settings_html => {
+
+                    tab_content.innerHTML = settings_html;
+                    ipcRenderer.invoke('settings')
+                        .then(res => res)
+                        .then(settings => this.settingsForm(settings))
+                        .catch(error => console.error('Error:', error))
+
+                })
+                .catch(err => {
+                    console.log(err)
+                })
+
+        })
+
+    }
+
+    settingsForm(settings) {
+
+        const form = document.querySelector('.settings_view');
+
+        Object.keys(settings).forEach((key, idx) => {
+
+            const value = settings[key];
+
+            if (typeof value === 'string') {
+
+                //     let settings_item = add_div(['settings_item']);
+                //     let input = document.createElement('input');
+                //     input.value = settings[key];
+                //     settings_item.append(key, input);
+                //     form.append(settings_item);
+                // }
+
+                let input = document.createElement('input');
+                let settings_item = add_div(['settings_item']);
+                let label = document.createElement('label');
+                label.innerText = key;
+                switch (key.toLocaleLowerCase()) {
+                    case 'theme': {
+                        // console.log('running theme')
+                        input = document.createElement('select');
+                        let options = ['Light', 'Dark']
+                        options.forEach((option, i) => {
+                            let option_select = document.createElement('option');
+                            option_select.text = option
+                            option_select.value = option
+                            input.append(option_select);
+
+                            if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
+                                option_select.selected = true
+                            }
+                        })
+
+                        input.addEventListener('change', (e) => {
+                            ipcRenderer.send('change_theme', input.value);
+                            ipcRenderer.send('update_settings', key, input.value)
+                        })
+
+                        settings_item.append(label, input)
+                        break;
+                    }
+                    case 'terminal': {
+                        input.addEventListener('change', (e) => {
+                            ipcRenderer.send('update_settings', key, input.value)
+                        })
+                        settings_item.append(label, input);
+                        break;
+                    }
+                    case 'disk utility': {
+                        input.addEventListener('change', (e) => {
+                            ipcRenderer.send('update_settings', key, input.value)
+                        })
+                        settings_item.append(label, input);
+                        break;
+                    }
+                }
+
+                input.value = settings[key];
+                form.append(settings_item);
+
+            }
+
+
+            if (typeof value === 'object') {
+
+                let header = document.createElement('h4');
+                let hr = document.createElement('hr');
+
+                header.classList.add('header');
+
+                header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
+                form.append(hr, header);
+                this.settingsForm(value);
+
+                for (let sub_key in settings[key]) {
+
+                    let input;
+                    let settings_item = add_div(['settings_item']);
+
+                    let sub_value = settings[`${key}`][`${sub_key}`];
+                    let type = typeof sub_value;
+
+                    // Create input field for non-nested properties
+                    switch (type) {
+                        case 'boolean': {
+                            input = document.createElement('input');
+                            input.type = 'checkbox';
+                            input.checked = sub_value;
+
+                            input.addEventListener('click', (e) => {
+                                if (input.checked) {
+                                    ipcRenderer.send('update_settings', [key,sub_key], true);
+                                } else {
+                                    ipcRenderer.send('update_settings', [key,sub_key], false);
+                                }
+
+                                if (key === 'Header Menu') {
+                                    this.showHeaderMenu();
+                                }
+
+                            })
+
+                            if (sub_key === 'Name') {
+                                input.disabled = true;
+                            }
+
+                            break;
+                        }
+                        case 'string': {
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = sub_value
+
+                            if (key === 'keyboard_shortcuts') {
+                                input.disabled = true;
+                            }
+
+                            break;
+                        }
+                        case 'number': {
+                            input = document.createElement('input');
+                            input.type = 'number';
+                            input.value = sub_value;
+                            break;
+                        }
+                        default: {
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.value = sub_value;
+                            break;
+                        }
+
+                    }
+
+                    let label = document.createElement('label');
+                    label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
+                    settings_item.append(label, input);
+                    form.append(settings_item);
+
+                }
+
+
+
+            // } else {
+
+            //     // console.log(typeof value)
+            //     let settings_item = add_div(['settings_item']);
+
+            //     // Create input field for non-nested properties
+            //     const label = document.createElement('label');
+            //     label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
+            //     let input;
+            //     if (typeof value === 'boolean') {
+            //         // For boolean values, create a checkbox
+            //         input = document.createElement('input');
+            //         input.type = 'checkbox';
+            //         input.name = key;
+            //         input.checked = value;
+            //         settings_item.append(label, input);
+
+            //         if ()
+            //         input.addEventListener('click', (e) => {
+            //             // console.log(key)
+            //         })
+
+            //         console.log(value)
+            //         console.log('chk', idx, key)
+
+            //     } else {
+            //         // For other types (string, number), create a text input
+            //         if (key === 'Description') {
+            //             input = add_div();
+            //             input.innerHTML = value
+            //         } else {
+            //             input = document.createElement('input');
+            //             input.type = 'text';
+            //             input.name = key;
+            //             input.id = key;
+            //             input.value = value;
+
+            //             switch (key.toLocaleLowerCase()) {
+            //                 case 'theme': {
+            //                     // console.log('running theme')
+            //                     input = document.createElement('select');
+            //                     let options = ['Light', 'Dark']
+            //                     options.forEach((option, i) => {
+            //                         let option_select = document.createElement('option');
+            //                         option_select.text = option
+            //                         option_select.value = option
+            //                         input.append(option_select);
+
+            //                         if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
+            //                             option_select.selected = true
+            //                         }
+            //                     })
+
+            //                     // console.log('selecting ', value)
+
+
+            //                     input.addEventListener('change', (e) => {
+            //                         ipcRenderer.send('change_theme', input.value);
+            //                         ipcRenderer.send('update_settings', key, input.value)
+            //                     })
+
+            //                     settings_item.append(label, input)
+            //                     break;
+            //                 }
+            //                 case 'terminal': {
+            //                     input.addEventListener('change', (e) => {
+            //                         ipcRenderer.send('update_settings', key, input.value)
+            //                     })
+            //                     settings_item.append(label, input);
+            //                     break;
+            //                 }
+            //                 case 'disk utility': {
+            //                     input.addEventListener('change', (e) => {
+            //                         ipcRenderer.send('update_settings', key, input.value)
+            //                     })
+            //                     settings_item.append(label, input);
+            //                     break;
+            //                 }
+            //                 default: {
+            //                     settings_item.append(label, input);
+            //                     input.disabled = true;
+            //                     break;
+            //                 }
+
+            //             }
+            //         }
+            //     }
+
+            //     // settings_item.append(label, input);
+            //     form.appendChild(settings_item);
+
+            }
+
+        });
+
+
+
+        // for (let setting in settings.keyboard_shortcuts) {
+        //     let input = document.getElementById(`${setting}`)
+        //     input.addEventListener('change', (e) => {
+        //         // Need some Input validation
+        //         ipcRenderer.send('update_settings', setting, input.value)
+        //     })
+
+        // };
+
+    }
+
 }
 
 class Utilities {
@@ -589,9 +893,6 @@ class ViewManager {
 
         })
 
-
-
-
     }
 
 
@@ -732,85 +1033,224 @@ class FileOperations {
 
 }
 
-let settings = null;
-let settingsManager = new SettingsManager();
-settingsManager.getSettings(res => {
-    settings = res;
-    console.log(res)
-})
+class DeviceManager {
+
+    get_type (path) {
+        let type = '';
+        if (path.match('mtp://')) {
+            type = 'phone'
+        } else if (path.match('sftp://')) {
+            type = 'network'
+        }
+        return type;
+    }
+
+    getDevices(callback) {
+
+        let location = document.getElementById('location');
+        let devices = document.querySelector('device_view')
+        if (!devices) {
+            devices = add_div()
+            devices.classList.add('device_view')
+            // devices.append(add_header('Devices'));
+            devices.append(document.createElement('hr'))
+            ipcRenderer.invoke('get_devices').then(device_arr => {
+
+                let connect_btn = add_link('#', 'Connect to Server')
+
+                // console.log('running get devices', device_arr)
+                device_arr.sort((a, b) => {
+                    return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+                })
+
+                device_arr.forEach(device => {
+
+                    // console.log(device)
+
+                    let item = add_div();
+                    let icon_div = add_div();
+                    let href_div = add_div();
+                    let umount_div = add_div();
+
+                    item.classList.add('flex');
+                    item.style = 'width: 100%;';
+                    href_div.classList.add('ellipsis');
+                    href_div.style = 'width: 70%';
+
+                    let a = document.createElement('a');
+                    a.preventDefault = true;
+                    a.href = device.path; //item.href;
+                    a.innerHTML = device.name;
+
+                    let umount_icon = add_icon('eject-fill');
+                    umount_div.title = 'Unmount Drive'
+                    umount_icon.style = 'position: absolute; right: -30px;';
+                    item.classList.add('item');
+
+                    if (device.path === '') {
+
+                        // Mount
+                        umount_div.classList.add('inactive');
+                        umount_div.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ipcRenderer.send('mount', device)
+                        })
+
+                        item.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            let root = device.root;
+                            ipcRenderer.send('mount', device)
+                        })
+
+                    } else {
+
+                        // Unmount
+                        umount_div.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            ipcRenderer.send('umount', device.path);
+                        })
+
+                        // Get view
+                        item.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // console.log('device path', device.path)
+                            getView(`${device.path}`);
+                            navigation.addHistory(device.path);
+
+                        })
+
+                    }
+
+                    let type = this.get_type(device.path);
+                    if (type === 'phone') {
+                        icon_div.append(add_icon('phone'), a);
+                    } else if (type === 'network') {
+                        icon_div.append(add_icon('hdd-network'), a);
+                    } else {
+                        icon_div.append(add_icon('usb-symbol'), a);
+                    }
+
+                    item.addEventListener('mouseover', (e) => {
+                        item.title = device.path;
+                    })
+
+                    item.addEventListener('contextmenu', (e) => {
+                        ipcRenderer.send('device_menu', device.path, device.uuid);
+                        item.classList.add('highlight_select');
+                    })
+
+                    href_div.append(a);
+                    umount_div.append(umount_icon);
+
+                    item.append(icon_div, href_div, umount_div);
+                    devices.append(item);
+
+                })
+
+                connect_btn.addEventListener('click', (e) => {
+                    ipcRenderer.send('connect_dialog');
+                })
+
+                devices.append(document.createElement('br'), connect_btn)
+
+                return callback(devices)
+
+            }).catch(err => {
+                console.log(err);
+            })
+        }
+    }
+
+}
 
 
 // Get reference to File Operations
 let fo = new FileOperations();
 let viewManager = new ViewManager();
+let settings = null;
+let settingsManager = null;
 let iconManager = null
 let tabManager = null;
 let navigation = null;
+
 window.addEventListener('DOMContentLoaded', (e) => {
+    settingsManager = new SettingsManager();
     iconManager = new IconManager();
     tabManager = new TabManager();
     navigation = new Navigation();
+
+    settingsManager.getSettings(res => {
+        settings = res;
+    })
+
 })
 
-// Get Keyboard shortcuts
-async function getShortcuts() {
-    return await ipcRenderer.invoke('settings').then(settings => {
-        return settings.keyboard_shortcuts;
-    })
-}
-
-// Expose Functions to index.js file
-contextBridge.exposeInMainWorld('api', {
-    clear,
-    getShortcuts,
-    getView,
-    getSelectedFiles,
-    cut: () => {
-        fo.cut();
-    },
-    pasteOperation: () => {
-        fo.pasteOperation()
-    },
-    edit: () => {
-        fo.edit();
-    },
-    newFolder: () => {
-        fo.newFolder()
-    },
-    find_files,
-    quickSearch,
-    newWindow: () => {
-        ipcRenderer.send('new_window');
-    },
-    clearViews,
-    sidebarHome,
-    fileInfo: () => {
-        fo.fileInfo();
-    },
-    getSettings,
-    extract,
-    compress,
-    addWorkspace: () => {
-        // Add to Workspace
-        getSelectedFiles()
-        ipcRenderer.send('add_workspace', selected_files_arr);
-        clear()
-    },
-    goBack: () => {
-        let location = document.querySelector('.location')
-        ipcRenderer.invoke('dirname', location.value).then(dir => {
-            getView(dir);
-            localStorage.setItem('location', dir);
+    // Get Keyboard shortcuts
+    async function getShortcuts() {
+        return await ipcRenderer.invoke('settings').then(settings => {
+            return settings.keyboard_shortcuts;
         })
     }
 
-})
+    // Expose Functions to index.js file
+    contextBridge.exposeInMainWorld('api', {
+        getShortcuts,
+        clear,
+        getView,
+        getSelectedFiles,
+        cut: () => {
+            fo.cut();
+        },
+        pasteOperation: () => {
+            fo.pasteOperation()
+        },
+        edit: () => {
+            fo.edit();
+        },
+        newFolder: () => {
+            fo.newFolder()
+        },
+        find_files,
+        quickSearch,
+        newWindow: () => {
+            ipcRenderer.send('new_window');
+        },
+        clearViews,
+        sidebarHome,
+        fileInfo: () => {
+            fo.fileInfo();
+        },
+        settingsView: () => {
+            settingsManager.settingsView();
+        },
+        extract,
+        compress,
+        addWorkspace: () => {
+            // Add to Workspace
+            getSelectedFiles()
+            ipcRenderer.send('add_workspace', selected_files_arr);
+            clear()
+        },
+        goBack: () => {
+            let location = document.querySelector('.location')
+            ipcRenderer.invoke('dirname', location.value).then(dir => {
+                getView(dir);
+                localStorage.setItem('location', dir);
+            })
+        }
+
+    })
+
+// })
 
 // IPC ///////////////////////////////////////////////////////////////////
 /**/
 
 ipcRenderer.on('get_settings', (e) => {
-    getSettings();
+    settingsManager.settingsView();
 })
 
 ipcRenderer.on('view', (e, view) => {
@@ -1105,6 +1545,8 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
 
     let header = active_tab_content.querySelector('.header_row')
     if (!header) {
+
+
 
         header = add_div();
         header.classList.add('header_row', 'content', 'list');
@@ -1427,8 +1869,9 @@ ipcRenderer.invoke('get_thumbnails_directory').then(res => {
 // Get Devices
 ipcRenderer.on('get_devices', (e) => {
     // console.log('getting devices');
+    const deviceManager = new DeviceManager();
     let device_view = document.querySelector('.device_view');
-    getDevices(devices => {
+    deviceManager.getDevices(devices => {
         device_view.innerHTML = '';
         device_view.append(devices);
     })
@@ -1613,8 +2056,9 @@ ipcRenderer.on('count', (e, source, item_count) => {
 
 // Unmount Device
 ipcRenderer.on('unmount_device', (e) => {
+    const deviceManager = new DeviceManager();
     let devices = document.getElementById('devices');
-    let device_arr = getDevices();
+    let device_arr = deviceManager.getDevices();
     devices.innerHTML = device_arr;
 })
 
@@ -2526,7 +2970,7 @@ function sort_cards() {
                 grid_item.appendChild(card);
                 if (idx ===0 && idx1 === 0) {
                     let href = card.querySelector('a');
-                    console.log(href)
+                    // console.log(href)
                     // href.focus();
 
                 }
@@ -3123,7 +3567,7 @@ function add_header(text) {
  */
 function msg(message, has_timeout = 1) {
 
-    console.log(message, has_timeout)
+    // console.log(message, has_timeout)
 
     let main = document.querySelector('.main');
     let msg = document.querySelector('.msg');
@@ -3147,7 +3591,7 @@ function msg(message, has_timeout = 1) {
     msg.innerHTML = message;
 
     if (parseInt(has_timeout)) {
-        console.log('running timeout')
+        // console.log('running timeout')
         setTimeout(() => {
             msg.classList.add('hidden');
         }, 5000);
@@ -3161,6 +3605,7 @@ function msg(message, has_timeout = 1) {
  * @returns
  */
 function getFileSize(fileSizeInBytes) {
+    // console.log(fileSizeInBytes);
     var i = -1;
     var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
     do {
@@ -3553,156 +3998,158 @@ function getRecentView(dirents) {
 
 }
 
-// Get Settings View
-function getSettings() {
+// // Get Settings View
+// function getSettings() {
 
-    tabManager.addTab('Settings');
-    let tab_content = document.querySelector('.active-tab-content');
-    ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
+//     tabManager.addTab('Settings');
+//     let tab_content = document.querySelector('.active-tab-content');
+//     ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
 
-        fetch(path)
-            .then(res => {
-                return res.text();
-            })
-            .then(settings_html => {
+//         fetch(path)
+//             .then(res => {
+//                 return res.text();
+//             })
+//             .then(settings_html => {
 
-                tab_content.innerHTML = settings_html;
-                ipcRenderer.invoke('settings')
-                    .then(res => res)
-                    .then(settings => settingsForm(settings))
-                    .catch(error => console.error('Error:', error))
+//                 tab_content.innerHTML = settings_html;
+//                 ipcRenderer.invoke('settings')
+//                     .then(res => res)
+//                     .then(settings => settingsForm(settings))
+//                     .catch(error => console.error('Error:', error))
 
-            })
-            .catch(err => {
-                console.log(err)
-            })
+//             })
+//             .catch(err => {
+//                 console.log(err)
+//             })
 
-    })
+//     })
 
-}
+// }
 
-let obj_key;
-function settingsForm(settings) {
+// let obj_key;
+// function settingsForm(settings) {
 
-    const form = document.querySelector('.settings_view');
+//     const form = document.querySelector('.settings_view');
 
-    // Object.keys(settings.Terminal).forEach(key => {
-    //     console.log(settings)
-    // })
+//     // Object.keys(settings.Terminal).forEach(key => {
+//     //     console.log(settings)
+//     // })
 
-    Object.keys(settings).forEach(key => {
+//     Object.keys(settings).forEach(key => {
 
-        const value = settings[key];
-        if (typeof value === 'object') {
-            let header = document.createElement('h4');
-            let hr = document.createElement('hr')
+//         const value = settings[key];
+//         if (typeof value === 'object') {
+//             let header = document.createElement('h4');
+//             let hr = document.createElement('hr')
 
-            header.classList.add('header');
+//             header.classList.add('header');
 
-            header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
-            form.append(hr, header);
-            settingsForm(value);
-        } else {
+//             header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
+//             form.append(hr, header);
+//             settingsForm(value);
+//         } else {
 
-            // console.log(typeof value)
-            let settings_item = add_div(['settings_item']);
+//             // console.log(typeof value)
+//             let settings_item = add_div(['settings_item']);
 
-            // Create input field for non-nested properties
-            const label = document.createElement('label');
-            label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
-            let input;
-            if (typeof value === 'boolean') {
-                // For boolean values, create a checkbox
-                input = document.createElement('input');
-                input.type = 'checkbox';
-                input.name = key;
-                input.checked = value;
-                settings_item.append(label, input);
-            } else {
-                // For other types (string, number), create a text input
-                if (key === 'Description') {
-                    input = add_div();
-                    input.innerHTML = value
-                } else {
-                    input = document.createElement('input');
-                    input.type = 'text';
-                    input.name = key;
-                    input.id = key;
-                    input.value = value;
+//             // Create input field for non-nested properties
+//             const label = document.createElement('label');
+//             label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
+//             let input;
+//             if (typeof value === 'boolean') {
+//                 // For boolean values, create a checkbox
+//                 input = document.createElement('input');
+//                 input.type = 'checkbox';
+//                 input.name = key;
+//                 input.checked = value;
+//                 settings_item.append(label, input);
+//             } else {
+//                 // For other types (string, number), create a text input
+//                 if (key === 'Description') {
+//                     input = add_div();
+//                     input.innerHTML = value
+//                 } else {
+//                     input = document.createElement('input');
+//                     input.type = 'text';
+//                     input.name = key;
+//                     input.id = key;
+//                     input.value = value;
 
-                    switch (key.toLocaleLowerCase()) {
-                        case 'theme': {
-                            // console.log('running theme')
-                            input = document.createElement('select');
-                            let options = ['Light', 'Dark']
-                            options.forEach((option, i) => {
-                                let option_select = document.createElement('option');
-                                option_select.text = option
-                                option_select.value = option
-                                input.append(option_select);
+//                     switch (key.toLocaleLowerCase()) {
+//                         case 'theme': {
+//                             // console.log('running theme')
+//                             input = document.createElement('select');
+//                             let options = ['Light', 'Dark']
+//                             options.forEach((option, i) => {
+//                                 let option_select = document.createElement('option');
+//                                 option_select.text = option
+//                                 option_select.value = option
+//                                 input.append(option_select);
 
-                                if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
-                                    option_select.selected = true
-                                }
-                            })
+//                                 if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
+//                                     option_select.selected = true
+//                                 }
+//                             })
 
-                            // console.log('selecting ', value)
+//                             // console.log('selecting ', value)
 
 
-                            input.addEventListener('change', (e) => {
-                                ipcRenderer.send('change_theme', input.value);
-                                ipcRenderer.send('update_settings', key, input.value)
-                            })
+//                             input.addEventListener('change', (e) => {
+//                                 ipcRenderer.send('change_theme', input.value);
+//                                 ipcRenderer.send('update_settings', key, input.value)
+//                             })
 
-                            settings_item.append(label, input)
-                            break;
-                        }
-                        case 'terminal': {
-                            input.addEventListener('change', (e) => {
-                                ipcRenderer.send('update_settings', key, input.value)
-                            })
-                            settings_item.append(label, input);
-                            break;
-                        }
-                        case 'disk utility': {
-                            input.addEventListener('change', (e) => {
-                                ipcRenderer.send('update_settings', key, input.value)
-                            })
-                            settings_item.append(label, input);
-                            break;
-                        }
-                        default: {
-                            settings_item.append(label, input);
-                            input.disabled = true;
-                            break;
-                        }
+//                             settings_item.append(label, input)
+//                             break;
+//                         }
+//                         case 'terminal': {
+//                             input.addEventListener('change', (e) => {
+//                                 ipcRenderer.send('update_settings', key, input.value)
+//                             })
+//                             settings_item.append(label, input);
+//                             break;
+//                         }
+//                         case 'disk utility': {
+//                             input.addEventListener('change', (e) => {
+//                                 ipcRenderer.send('update_settings', key, input.value)
+//                             })
+//                             settings_item.append(label, input);
+//                             break;
+//                         }
+//                         default: {
+//                             settings_item.append(label, input);
+//                             input.disabled = true;
+//                             break;
+//                         }
 
-                    }
-                }
-            }
+//                     }
+//                 }
+//             }
 
-            // settings_item.append(label, input);
-            form.appendChild(settings_item);
+//             // settings_item.append(label, input);
+//             form.appendChild(settings_item);
 
-        }
+//         }
 
-    });
+//     });
 
-    for (let setting in settings.keyboard_shortcuts) {
-        let input = document.getElementById(`${setting}`)
+//     for (let setting in settings.keyboard_shortcuts) {
+//         let input = document.getElementById(`${setting}`)
 
-        input.addEventListener('change', (e) => {
-            // Need some Input validation
-            ipcRenderer.send('update_settings', setting, input.value)
-        })
-    };
+//         input.addEventListener('change', (e) => {
+//             // Need some Input validation
+//             ipcRenderer.send('update_settings', setting, input.value)
+//         })
+//     };
 
-}
+// }
 
 function sidebarHome() {
 
     let mb = document.getElementById('mb_home');
     mb.classList.add('active');
+
+    const deviceManager = new DeviceManager();
 
     let sb_home = document.querySelector('.sb_home')
     if (sb_home) {
@@ -3722,7 +4169,7 @@ function sidebarHome() {
         })
 
         // Get Device
-        getDevices(devices => {
+        deviceManager.getDevices(devices => {
             // sb_home.append(document.createElement('br'));
             sb_home.append(devices)
         })
@@ -3952,123 +4399,123 @@ function getWorkspace(callback) {
 }
 
 // Get Devices
-function getDevices(callback) {
+// function getDevices(callback) {
 
-    let location = document.getElementById('location');
-    let devices = document.querySelector('device_view')
-    if (!devices) {
-        devices = add_div()
-        devices.classList.add('device_view')
-        // devices.append(add_header('Devices'));
-        devices.append(document.createElement('hr'))
-        ipcRenderer.invoke('get_devices').then(device_arr => {
+//     let location = document.getElementById('location');
+//     let devices = document.querySelector('device_view')
+//     if (!devices) {
+//         devices = add_div()
+//         devices.classList.add('device_view')
+//         // devices.append(add_header('Devices'));
+//         devices.append(document.createElement('hr'))
+//         ipcRenderer.invoke('get_devices').then(device_arr => {
 
-            let connect_btn = add_link('#', 'Connect to Server')
+//             let connect_btn = add_link('#', 'Connect to Server')
 
-            // console.log('running get devices', device_arr)
-            device_arr.sort((a, b) => {
-                return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
-            })
+//             // console.log('running get devices', device_arr)
+//             device_arr.sort((a, b) => {
+//                 return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+//             })
 
-            device_arr.forEach(device => {
+//             device_arr.forEach(device => {
 
-                console.log(device)
+//                 console.log(device)
 
-                let item = add_div();
-                let icon_div = add_div();
-                let href_div = add_div();
-                let umount_div = add_div();
+//                 let item = add_div();
+//                 let icon_div = add_div();
+//                 let href_div = add_div();
+//                 let umount_div = add_div();
 
-                item.classList.add('flex');
-                item.style = 'width: 100%;';
-                href_div.classList.add('ellipsis');
-                href_div.style = 'width: 70%';
+//                 item.classList.add('flex');
+//                 item.style = 'width: 100%;';
+//                 href_div.classList.add('ellipsis');
+//                 href_div.style = 'width: 70%';
 
-                let a = document.createElement('a');
-                a.preventDefault = true;
-                a.href = device.path; //item.href;
-                a.innerHTML = device.name;
+//                 let a = document.createElement('a');
+//                 a.preventDefault = true;
+//                 a.href = device.path; //item.href;
+//                 a.innerHTML = device.name;
 
-                let umount_icon = add_icon('eject-fill');
-                umount_div.title = 'Unmount Drive'
-                umount_icon.style = 'position: absolute; right: -30px;';
-                item.classList.add('item');
+//                 let umount_icon = add_icon('eject-fill');
+//                 umount_div.title = 'Unmount Drive'
+//                 umount_icon.style = 'position: absolute; right: -30px;';
+//                 item.classList.add('item');
 
-                if (device.path === '') {
+//                 if (device.path === '') {
 
-                    // Mount
-                    umount_div.classList.add('inactive');
-                    umount_div.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        ipcRenderer.send('mount', device)
-                    })
+//                     // Mount
+//                     umount_div.classList.add('inactive');
+//                     umount_div.addEventListener('click', (e) => {
+//                         e.preventDefault();
+//                         e.stopPropagation();
+//                         ipcRenderer.send('mount', device)
+//                     })
 
-                    item.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        let root = device.root;
-                        ipcRenderer.send('mount', device)
-                    })
+//                     item.addEventListener('click', (e) => {
+//                         e.preventDefault();
+//                         e.stopPropagation();
+//                         let root = device.root;
+//                         ipcRenderer.send('mount', device)
+//                     })
 
-                } else {
+//                 } else {
 
-                    // Unmount
-                    umount_div.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        ipcRenderer.send('umount', device.path);
-                    })
+//                     // Unmount
+//                     umount_div.addEventListener('click', (e) => {
+//                         e.stopPropagation();
+//                         ipcRenderer.send('umount', device.path);
+//                     })
 
-                    // Get view
-                    item.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        // console.log('device path', device.path)
-                        getView(`${device.path}`);
-                        navigation.addHistory(device.path);
+//                     // Get view
+//                     item.addEventListener('click', (e) => {
+//                         e.preventDefault();
+//                         e.stopPropagation();
+//                         // console.log('device path', device.path)
+//                         getView(`${device.path}`);
+//                         navigation.addHistory(device.path);
 
-                    })
+//                     })
 
-                }
+//                 }
 
-                if (item.type == 0) {
-                    icon_div.append(add_icon('usb-symbol'), a);
-                    // item.append(add_icon('usb-symbol'), a);
-                } else {
-                    icon_div.append(add_icon('usb-symbol'), a);
-                    // item.append(add_icon('hdd-network'), a);
-                }
+//                 if (item.type == 0) {
+//                     icon_div.append(add_icon('usb-symbol'), a);
+//                     // item.append(add_icon('usb-symbol'), a);
+//                 } else {
+//                     icon_div.append(add_icon('usb-symbol'), a);
+//                     // item.append(add_icon('hdd-network'), a);
+//                 }
 
-                item.addEventListener('mouseover', (e) => {
-                    item.title = device.path;
-                })
+//                 item.addEventListener('mouseover', (e) => {
+//                     item.title = device.path;
+//                 })
 
-                item.addEventListener('contextmenu', (e) => {
-                    ipcRenderer.send('device_menu', device.path, device.uuid);
-                    item.classList.add('highlight_select');
-                })
+//                 item.addEventListener('contextmenu', (e) => {
+//                     ipcRenderer.send('device_menu', device.path, device.uuid);
+//                     item.classList.add('highlight_select');
+//                 })
 
-                href_div.append(a);
-                umount_div.append(umount_icon);
+//                 href_div.append(a);
+//                 umount_div.append(umount_icon);
 
-                item.append(icon_div, href_div, umount_div);
-                devices.append(item);
+//                 item.append(icon_div, href_div, umount_div);
+//                 devices.append(item);
 
-            })
+//             })
 
-            connect_btn.addEventListener('click', (e) => {
-                ipcRenderer.send('connect_dialog');
-            })
+//             connect_btn.addEventListener('click', (e) => {
+//                 ipcRenderer.send('connect_dialog');
+//             })
 
-            devices.append(document.createElement('br'), connect_btn)
+//             devices.append(document.createElement('br'), connect_btn)
 
-            return callback(devices)
+//             return callback(devices)
 
-        }).catch(err => {
-            console.log(err);
-        })
-    }
-}
+//         }).catch(err => {
+//             console.log(err);
+//         })
+//     }
+// }
 
 // Main Functions ////////////////////////////////////////////////////////////////
 
@@ -4145,8 +4592,13 @@ function getFolderSize(href) {
             // if (href.indexOf('sftp:') > -1) {
             //     size.innerHTML = ''
             // } else {
-            card.dataset.size = res;
-            size.append(getFileSize(res));
+            if (res === 4096) {
+                card.dataset.size = res;
+                size.append('0 kB');
+            } else {
+                card.dataset.size = res;
+                size.append(getFileSize(res));
+            }
             // }
 
         }
@@ -4276,13 +4728,13 @@ function getCardGio(file) {
     card.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (e.ctrlKey) {
-            if (card.classList.contains('ds-selected')) {
+        // if (e.ctrlKey) {
+            if (card.classList.contains('highlight_select')) {
                 card.classList.remove('highlight_select')
             } else {
                 card.classList.add('highlight_select')
             }
-        }
+        // }
     })
 
     card.addEventListener('dragstart', (e) => {
@@ -4355,7 +4807,7 @@ function getCardGio(file) {
     atime.append(getDateTime(file.atime));
     type.append(file.content_type);
 
-    console.log(file.content_type)
+    // console.log(file.content_type)
 
     icon.append(img);
     header.append(href, input);
@@ -4830,6 +5282,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     break;
                 }
                 case 'Settings': {
+                    // todo: review this is de funked
                     getSettings();
                     break;
                 }
@@ -4910,6 +5363,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 let dir = nav_item.innerText.replace(' ', '');
                 if (dir === 'Home') { dir = '' }
                 ipcRenderer.invoke('nav_item', dir).then(path => {
+
                     location.value = path;
                     getView(path)
                     navigation.addHistory(path)
@@ -5034,7 +5488,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         // Settings
         settings.addEventListener('click', (e) => {
-            getSettings();
+            const settingsManager = new SettingsManager();
+            settingsManager.settingsView();
         })
 
         /////////////////////////////////////////////////////////////////

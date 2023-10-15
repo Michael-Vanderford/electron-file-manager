@@ -268,6 +268,7 @@ namespace gio {
 
             GMount* mount = G_MOUNT(iter->data);
             const char* name = "";
+            const char* fs = "";
             const char* path = "";
             const char* uuid = "";
             const char* root = "";
@@ -277,40 +278,38 @@ namespace gio {
                 GVolume* volume = g_mount_get_volume(mount);
                 GFile *mount_path = g_mount_get_root(mount);
 
+                name = g_mount_get_name(mount);
+                if (mount_path != NULL) {
+                    path = g_file_get_uri(mount_path);
+                }
 
+                if (volume != NULL) {
+                    GFile *activation_root = g_volume_get_activation_root(volume);
+                    uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
 
-                    name = g_mount_get_name(mount);
-                    if (mount_path != NULL) {
-                        path = g_file_get_uri(mount_path);
+                    if (uuid == NULL) {
+                        uuid = "";
                     }
 
-                    if (volume != NULL) {
-                        GFile *activation_root = g_volume_get_activation_root(volume);
-                        uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
-
-                        if (uuid == NULL) {
-                            uuid = "";
-                        }
-
-                        if (activation_root != NULL) {
-                            root = g_file_get_uri(activation_root);
-                        }
-                    }
-
-                    // If uuid and root = "" then assume its a netowrk mount
-                    if (uuid == "" && root == "") {
-                        v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
-                        Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
-                        Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
-                        Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
-                        Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
-                        Nan::Set(resultArray, c, deviceObj);
-
-                        ++c;
+                    if (activation_root != NULL) {
+                        root = g_file_get_uri(activation_root);
                     }
 
 
 
+                }
+
+                // If uuid and root = "" then assume its a netowrk mount
+                if (uuid == "" && root == "") {
+                    v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
+                    Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+                    Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
+                    Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
+                    Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
+                    Nan::Set(resultArray, c, deviceObj);
+
+                    ++c;
+                }
 
             }
 

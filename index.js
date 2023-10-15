@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
     window.api.getShortcuts().then(shortcut => {
 
+
+
         const mt = Mousetrap
 
         // F5 Reload page
@@ -98,7 +100,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
         // Show settings
         mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
-            window.api.getSettings();
+            window.api.settingsView();
         })
 
         // Extract Compressed Files
