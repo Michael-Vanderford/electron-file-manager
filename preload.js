@@ -27,6 +27,7 @@ class SettingsManager {
     constructor () {
         this.settings = '';
         this.showHeaderMenu();
+        this.moveNavMenu();
     }
 
     getSettings(callback) {
@@ -47,11 +48,47 @@ class SettingsManager {
                 header_menu.classList.add('hidden')
             }
         })
+    }
 
+    moveNavMenu () {
+        const nav_menu = document.querySelector('.nav_menu');
+        this.getSettings(settings => {
+            if (settings['Navigation Menu']['Move to Bottom']) {
+                nav_menu.classList.add('bottom')
+            } else {
+                nav_menu.classList.remove('bottom')
+            }
+        })
     }
 
     // Get Settings View
     settingsView() {
+
+        let tab_exists = 0;
+        let tabs = document.querySelectorAll('.tab');
+        let content_tabs =document.querySelectorAll('.tab-content');
+        tabs.forEach((tab, idx) => {
+            if (tab.innerText.match('Settings')) {
+                tab_exists = 1;
+            }
+        })
+
+        if (tab_exists) {
+            tabs.forEach((tab, idx) => {
+                let tab_content = content_tabs[idx];
+                if (tab.innerText.match('Settings')) {
+                    tab.classList.add('active-tab');
+                    tab_content.classList.add('active-tab-content');
+                    tab_content.classList.remove('hidden');
+                } else {
+                    tab.classList.remove('active-tab');
+                    tab_content.classList.remove('active-tab-content');
+                    tab_content.classList.add('hidden');
+                }
+
+            })
+            return;
+        }
 
         tabManager.addTab('Settings');
         let tab_content = document.querySelector('.active-tab-content');
@@ -88,13 +125,6 @@ class SettingsManager {
 
             if (typeof value === 'string') {
 
-                //     let settings_item = add_div(['settings_item']);
-                //     let input = document.createElement('input');
-                //     input.value = settings[key];
-                //     settings_item.append(key, input);
-                //     form.append(settings_item);
-                // }
-
                 let input = document.createElement('input');
                 let settings_item = add_div(['settings_item']);
                 let label = document.createElement('label');
@@ -117,28 +147,29 @@ class SettingsManager {
 
                         input.addEventListener('change', (e) => {
                             ipcRenderer.send('change_theme', input.value);
-                            ipcRenderer.send('update_settings', key, input.value)
+                            ipcRenderer.send('update_settings', [key], input.value)
                         })
 
-                        settings_item.append(label, input)
+                        // settings_item.append(label, input)
                         break;
                     }
                     case 'terminal': {
                         input.addEventListener('change', (e) => {
-                            ipcRenderer.send('update_settings', key, input.value)
+                            ipcRenderer.send('update_settings', [key], input.value)
                         })
-                        settings_item.append(label, input);
+                        // settings_item.append(label, input);
                         break;
                     }
                     case 'disk utility': {
                         input.addEventListener('change', (e) => {
-                            ipcRenderer.send('update_settings', key, input.value)
+                            ipcRenderer.send('update_settings', [key], input.value)
                         })
-                        settings_item.append(label, input);
+                        // settings_item.append(label, input);
                         break;
                     }
                 }
 
+                settings_item.append(label, input);
                 input.value = settings[key];
                 form.append(settings_item);
 
@@ -178,8 +209,15 @@ class SettingsManager {
                                     ipcRenderer.send('update_settings', [key,sub_key], false);
                                 }
 
-                                if (key === 'Header Menu') {
-                                    this.showHeaderMenu();
+                                switch (key) {
+                                    case 'Header Menu': {
+                                        this.showHeaderMenu();
+                                        break;
+                                    }
+                                    case 'Navigation Menu': {
+                                        this.moveNavMenu();
+                                        break;
+                                    }
                                 }
 
                             })
@@ -398,14 +436,14 @@ class Navigation {
         console.log('left', this.idx);
         if (this.idx > 0) {
             --this.idx;
-            getView(this.historyArr[this.idx]);
+            viewManager.getView(this.historyArr[this.idx]);
         }
     }
 
     right() {
         if (this.idx < this.historyArr.length - 1) {
             ++this.idx
-            getView(this.historyArr[this.idx]);
+            viewManager.getView(this.historyArr[this.idx]);
         }
     }
 
@@ -632,6 +670,95 @@ class ViewManager {
         })
     }
 
+    // Get View
+    getView(dir, tab = 0) {
+        // getSubFolders(dir, () => {});
+        ipcRenderer.send('get_files', dir, tab);
+        clearHighlight();
+    }
+
+    // Switch View
+    switch_view(view) {
+
+        let list_view = document.querySelector('.list_view');
+        let grid_view = document.querySelector('.grid_view');
+        let folder_grids = document.querySelectorAll('.folder_grid');
+        let file_grids = document.querySelectorAll('.file_grid');
+
+        // let folders = Array.from(folder_grid.querySelectorAll('.card'));
+        // let files = Array.from(file_grid.querySelectorAll('.card'));
+
+        list_view.classList.remove('active');
+        grid_view.classList.remove('active');
+
+        folder_grids.forEach(folder_grid => {
+            folder_grid.classList.remove('grid', 'grid1');
+        })
+        file_grids.forEach(file_grid => {
+            file_grid.classList.remove('grid', 'grid1');
+        })
+
+        let location = document.querySelector('.location');
+        switch (view) {
+            case 'list': {
+
+                // list_view.classList.add('active')
+                // folder_grids.forEach(folder_grid => {
+                //     folder_grid.classList.add('grid1');
+                // })
+                // file_grids.forEach(file_grid => {
+                //     file_grid.classList.add('grid1');
+                // })
+                // let headers = document.querySelectorAll('.header_row')
+                // headers.forEach(header => {
+                //     header.classList.remove('hidden')
+                // })
+                // let cards = document.querySelectorAll('.card');
+                // cards.forEach(card => {
+                //     card.classList.add('list');
+                //     let icon = card.querySelector('.icon')
+                //     let content = card.querySelector('.content');
+                //     icon.classList.add('icon16');
+                //     content.classList.add('list');
+
+                // })
+
+                this.getView(location.value);
+                break;
+
+
+            }
+            case 'grid': {
+
+                // grid_view.classList.add('active')
+                // folder_grids.forEach(folder_grid => {
+                //     folder_grid.classList.add('grid');
+                // })
+                // file_grids.forEach(file_grid => {
+                //     file_grid.classList.add('grid');
+                // })
+                // let headers = document.querySelectorAll('.header_row')
+                // headers.forEach(header => {
+                //     header.classList.add('hidden')
+                // })
+                // let cards = document.querySelectorAll('.card');
+                // cards.forEach(card => {
+                //     card.classList.remove('list');
+                //     let icon = card.querySelector('.icon')
+                //     let content = card.querySelector('.content');
+                //     icon.classList.remove('icon16');
+                //     content.classList.remove('list');
+                // })
+
+                this.getView(location.value);
+                break;
+            }
+        }
+
+        lazyload();
+
+    }
+
     // Sort for list view
     sort(dirents) {
 
@@ -756,7 +883,7 @@ class ViewManager {
             // Attach events
             header_div.addEventListener('click', (e) => {
                 if (file.is_dir) {
-                    getView(file.href);
+                    this.getView(file.href);
                 } else {
                     ipcRenderer.send('open', file.href);
                 }
@@ -1117,7 +1244,7 @@ class DeviceManager {
                             e.preventDefault();
                             e.stopPropagation();
                             // console.log('device path', device.path)
-                            getView(`${device.path}`);
+                            viewManager.getView(`${device.path}`);
                             navigation.addHistory(device.path);
 
                         })
@@ -1199,7 +1326,9 @@ window.addEventListener('DOMContentLoaded', (e) => {
     contextBridge.exposeInMainWorld('api', {
         getShortcuts,
         clear,
-        getView,
+        getView: () => {
+            viewManager.getView
+        },
         getSelectedFiles,
         cut: () => {
             fo.cut();
@@ -1237,7 +1366,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         goBack: () => {
             let location = document.querySelector('.location')
             ipcRenderer.invoke('dirname', location.value).then(dir => {
-                getView(dir);
+                viewManager.getView(dir);
                 localStorage.setItem('location', dir);
             })
         }
@@ -1255,7 +1384,7 @@ ipcRenderer.on('get_settings', (e) => {
 
 ipcRenderer.on('view', (e, view) => {
     localStorage.setItem('view', view);
-    switch_view(view);
+    viewManager.switch_view(view);
 })
 
 // Merge done
@@ -2018,7 +2147,7 @@ ipcRenderer.on('open_with', (e, file, exe_arr) => {
 // Refresh on theme change
 ipcRenderer.on('theme_changed', (e) => {
     if (localStorage.getItem('location' !== null)) {
-        getView(localStorage.getItem('location'))
+        viewManager.getView(localStorage.getItem('location'))
     }
 })
 
@@ -2068,7 +2197,7 @@ ipcRenderer.on('get_view', (e, href) => {
     settingsManager.getSettings(updated_settings => {
         settings = updated_settings;
         console.log(settings)
-        getView(href);
+        viewManager.getView(href);
     })
 })
 
@@ -2096,7 +2225,7 @@ ipcRenderer.on('sort', (e, sort_by) => {
     if (sort_by == 'type') {
         sort = 'type'
     }
-    getView(location.value);
+    viewManager.getView(location.value);
 })
 
 // Connect to Network
@@ -2510,7 +2639,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
         }
         case 'open_templates': {
             ipcRenderer.invoke('get_templates_folder').then(path => {
-                getView(path, 1)
+                viewManager.getView(path, 1)
             })
             break;
         }
@@ -2789,93 +2918,7 @@ async function get_disk_summary_view(callback) {
 
 }
 
-// Switch View
-function switch_view(view) {
 
-    let list_view = document.querySelector('.list_view');
-    let grid_view = document.querySelector('.grid_view');
-    let folder_grids = document.querySelectorAll('.folder_grid');
-    let file_grids = document.querySelectorAll('.file_grid');
-
-    // let folders = Array.from(folder_grid.querySelectorAll('.card'));
-    // let files = Array.from(file_grid.querySelectorAll('.card'));
-
-    list_view.classList.remove('active');
-    grid_view.classList.remove('active');
-
-    folder_grids.forEach(folder_grid => {
-        folder_grid.classList.remove('grid', 'grid1');
-    })
-    file_grids.forEach(file_grid => {
-        file_grid.classList.remove('grid', 'grid1');
-    })
-
-    let location = document.querySelector('.location');
-    switch (view) {
-        case 'list': {
-
-            // list_view.classList.add('active')
-
-            // folder_grids.forEach(folder_grid => {
-            //     folder_grid.classList.add('grid1');
-            // })
-            // file_grids.forEach(file_grid => {
-            //     file_grid.classList.add('grid1');
-            // })
-            // let headers = document.querySelectorAll('.header_row')
-            // headers.forEach(header => {
-            //     header.classList.remove('hidden')
-            // })
-            // let cards = document.querySelectorAll('.card');
-            // cards.forEach(card => {
-            //     card.classList.add('list');
-            //     let icon = card.querySelector('.icon')
-            //     let content = card.querySelector('.content');
-
-            //     icon.classList.add('icon16');
-            //     content.classList.add('list');
-
-            // })
-
-            getView(location.value);
-            break;
-
-
-        }
-        case 'grid': {
-
-            // grid_view.classList.add('active')
-
-            // folder_grids.forEach(folder_grid => {
-            //     folder_grid.classList.add('grid');
-            // })
-            // file_grids.forEach(file_grid => {
-            //     file_grid.classList.add('grid');
-            // })
-            // let headers = document.querySelectorAll('.header_row')
-            // headers.forEach(header => {
-            //     header.classList.add('hidden')
-            // })
-            // let cards = document.querySelectorAll('.card');
-            // cards.forEach(card => {
-            //     card.classList.remove('list');
-
-            //     let icon = card.querySelector('.icon')
-            //     let content = card.querySelector('.content');
-
-            //     icon.classList.remove('icon16');
-            //     content.classList.remove('list');
-
-            // })
-
-            getView(location.value);
-            break;
-        }
-    }
-
-    lazyload();
-
-}
 
 // Sort Cards
 function sort_cards() {
@@ -4269,9 +4312,9 @@ function getHome(callback) {
             } else {
                 ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
                     if (e.ctrlKey) {
-                        getView(nav_path, 1);
+                        viewManager.getView(nav_path, 1);
                     } else {
-                        getView(nav_path);
+                        viewManager.getView(nav_path);
                     }
                 })
             }
@@ -4382,7 +4425,7 @@ function getWorkspace(callback) {
             workspace_div.addEventListener('click', (e) => {
                 e.preventDefault();
                 if (file.is_dir) {
-                    getView(file.href);
+                    viewManager.getView(file.href);
                 } else {
                     ipcRenderer.send('open', file.href);
                 }
@@ -4562,17 +4605,6 @@ function add_button(text) {
     return button
 }
 
-// todo: this was moved to File operations class delete this once tested
-// function paste(destination) {
-//     // console.log('running paste', destination)
-//     ipcRenderer.send('paste', destination);
-//     clearHighlight();
-// }
-// function move(destination) {
-//     ipcRenderer.send('move', destination);
-//     selected_files_arr = [];
-// }
-
 // Get Folder Count
 function getFolderCount(href) {
     // console.log('running get folder count', href)
@@ -4589,9 +4621,6 @@ function getFolderSize(href) {
             let size = card.querySelector('.size');
             size.innerHTML = '';
 
-            // if (href.indexOf('sftp:') > -1) {
-            //     size.innerHTML = ''
-            // } else {
             if (res === 4096) {
                 card.dataset.size = res;
                 size.append('0 kB');
@@ -4599,7 +4628,6 @@ function getFolderSize(href) {
                 card.dataset.size = res;
                 size.append(getFileSize(res));
             }
-            // }
 
         }
 
@@ -4634,11 +4662,9 @@ function getCardGio(file) {
     let input = document.createElement('input');
     let tooltip = add_div('tooltip', 'hidden');
 
-    // todo: pull options so we can control column visibility
     input.classList.add('input', 'item', 'hidden');
     img.classList.add('icon');
-    // tooltip.classList.add('tooltip', 'hidden');
-
+    
     card.style.opacity = 1;
 
     // Populate values
@@ -5037,17 +5063,6 @@ function getCardGio(file) {
  * @param {*} dir
  * @param {*} callback
  */
-function getView(dir, tab = 0) {
-
-    let main = document.querySelector('.main');
-    main.classList.add('loader')
-    // Moved code
-    // reference: ipcRenderer.on('ls', (e, dirents)
-    // getSubFolders(dir, () => {});
-    ipcRenderer.send('get_files', dir, tab);
-    clearHighlight();
-
-}
 
 function clearContextMenu(e) {
     const isInsideContextMenu = e.target.closest('.context-menu');
@@ -5197,8 +5212,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let slider = document.getElementById('slider');
         let header_menu = document.querySelectorAll('.menu_bar');
         let nav_menu = document.querySelector('.nav_menu');
-        let settings = document.querySelector('.settings');
-        // let active_tab_content = document.querySelector('.active-tab-content');
+        let settings = document.querySelectorAll('.settings');
 
         // Flags
         let cut_flag = 0;
@@ -5230,16 +5244,11 @@ window.addEventListener('DOMContentLoaded', (e) => {
                         break;
                     }
                     case 'mb_find': {
-                        // sb_view = document.querySelector('.sb_search');
-                        // sb_view.classList.remove('hidden');
-                        // getSearch();
                         mb_item.classList.add('active')
                         find_files(res => { })
                         break;
                     }
                     case 'mb_info': {
-                        // sb_view = document.querySelector('.sb_search');
-                        // sb_view.classList.remove('hidden');
                         let properties_view = document.querySelector('.properties_view');
                         properties_view.classList.remove('hidden')
                         mb_item.classList.add('active')
@@ -5248,13 +5257,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 }
                 sidebar.classList.remove('hidden');
             })
-
-            // if (mb_item.id === 'mb_workspace') {
-            //     sidebar.innerHTML = ''
-            //     getWorkspace(workspace => {
-            //         sidebar.append(workspace)
-            //     })
-            // }
         })
 
         ipcRenderer.send('get_settings');
@@ -5267,11 +5269,10 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
             ipcRenderer.invoke('home').then(home => {
                 location.value = home;
-                getView(location.value);
+                viewManager.getView(location.value);
                 localStorage.setItem('location', location.value);
             })
-            // location.value = os.homedir();
-            // localStorage.setItem('location', location.value);
+
         }
 
         // Load view on reload
@@ -5287,7 +5288,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                     break;
                 }
                 default: {
-                    getView(location.value)
+                    viewManager.getView(location.value)
                     navigation.addHistory(location.value);
                     break;
                 }
@@ -5297,7 +5298,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // Change Location on change
         location.onchange = () => {
             if (location.value != "") {
-                getView(location.value)
+                viewManager.getView(location.value)
             }
         }
 
@@ -5348,7 +5349,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
         ///////////////////////////////////////////////////////////////
 
         // Menu Items
-
         header_menu.forEach(item => {
             let menu_items = item.querySelectorAll('.item')
             menu_items.forEach(menu_item => {
@@ -5363,74 +5363,12 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 let dir = nav_item.innerText.replace(' ', '');
                 if (dir === 'Home') { dir = '' }
                 ipcRenderer.invoke('nav_item', dir).then(path => {
-
                     location.value = path;
-                    getView(path)
+                    viewManager.getView(path)
                     navigation.addHistory(path)
                 })
             })
         })
-
-        // // Home
-        // let home = document.querySelectorAll('.home');
-        // home.forEach(item => {
-
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = os.homedir();
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
-
-        // // Documents
-        // let documents = document.querySelectorAll('.documents');
-        // documents.forEach(item => {
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = path.join(os.homedir(), 'Documents');
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
-
-        // // Downloads
-        // let downloads = document.querySelectorAll('.downloads');
-        // downloads.forEach(item => {
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = path.join(os.homedir(), 'Downloads');
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
-
-        // // Music
-        // let music = document.querySelectorAll('.music');
-        // music.forEach(item => {
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = path.join(os.homedir(), 'Music');
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
-
-        // // Pictures
-        // let pictures = document.querySelectorAll('.pictures');
-        // pictures.forEach(item => {
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = path.join(os.homedir(), 'Pictures');
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
-
-        // // videos
-        // let videos = document.querySelectorAll('.videos');
-        // videos.forEach(item => {
-        //     item.onclick = (e) => {
-        //         e.preventDefault();
-        //         location.value = path.join(os.homedir(), 'Videos');
-        //         location.dispatchEvent(new Event('change'));
-        //     }
-        // });
 
         // List view
         let list_view = document.querySelectorAll('.list_view');
@@ -5439,8 +5377,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 e.preventDefault();
                 view = 'list';
                 localStorage.setItem('view', view);
-                switch_view(view);
-                // getView(location.value);
+                viewManager.switch_view(view);
             })
         })
 
@@ -5451,8 +5388,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 e.preventDefault();
                 view = 'grid';
                 localStorage.setItem('view', view);
-                switch_view(view);
-                // getView(location.value);
+                viewManager.switch_view(view);
             })
         })
 
@@ -5487,10 +5423,13 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // })
 
         // Settings
-        settings.addEventListener('click', (e) => {
-            const settingsManager = new SettingsManager();
-            settingsManager.settingsView();
+        settings.forEach(btn_settings => {
+            btn_settings.addEventListener('click', (e) => {
+                const settingsManager = new SettingsManager();
+                settingsManager.settingsView();
+            })
         })
+
 
         /////////////////////////////////////////////////////////////////
 

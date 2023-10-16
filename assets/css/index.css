@@ -930,9 +930,16 @@ input[type=text]:focus {
 }
 
 .bottom {
-    position: fixed;
+    position: absolute;
     bottom: 0px;
+    z-index: 1000;
     /* margin-bottom: 5px; */
+    /* display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: absolute;
+    bottom: 0; */
+    /* width: 100%; */
 }
 
 .float.right {

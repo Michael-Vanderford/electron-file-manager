@@ -15,6 +15,9 @@
     "Header Menu": {
         "show": true
     },
+    "Navigation Menu": {
+        "Move to Bottom": false
+    },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowHome": "Alt+H",
@@ -42,12 +45,5 @@
         "NewWindow": "Ctrl+N",
         "Reload": "F5",
         "NewTab": "Ctrl+T"
-    },
-    "window": {
-        "length": 1400,
-        "width": 1459,
-        "x": 2194,
-        "y": 247,
-        "height": 696
     }
 }

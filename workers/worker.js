@@ -839,7 +839,6 @@ parentPort.on('message', data => {
     }
 
     // Past Files
-    // todo: this needs file conflict handling added
     if (data.cmd === 'paste') {
 
         let idx = 0;

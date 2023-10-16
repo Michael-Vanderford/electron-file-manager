@@ -94,6 +94,10 @@ class Dialogs {
 class SettingsManager {
 
     constructor () {
+
+        this.settings = {};
+        this.settings_file = path.join(app.getPath('userData'), 'settings.json');
+
         this.window_file = path.join(app.getPath('userData'), 'window.json');
         this.window_settings = {
             window: {
@@ -103,11 +107,57 @@ class SettingsManager {
                 y: 0
             }
         };
-
         // this.getWindowSetting();
-
     }
 
+    // Get Settings
+    getSettings () {
+        try {
+            setTimeout(() => {
+                this.checkSettings();
+            }, 500);
+            this.settings = JSON.parse(fs.readFileSync(this.settings_file), 'utf-8');
+        } catch (err) {
+            fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), this.settings_file);
+            this.settings = JSON.parse(fs.readFileSync(this.settings_file), 'utf-8');
+        }
+        return this.settings;
+    }
+
+    // Check if old settings
+    checkSettings() {
+        // Read the content of the first JSON file
+        const file1 = fs.readFileSync(this.settings_file);
+        const json1 = JSON.parse(file1);
+
+        let f2 = gio.get_file(path.join(__dirname, '/assets/config/settings.json'));
+        let f1 = gio.get_file(this.settings_file);
+
+        if (f2.mtime > f1.mtime) {
+
+            // Read the content of the second JSON file
+            const file2 = fs.readFileSync(path.join(__dirname, '/assets/config/settings.json'));
+            const json2 = JSON.parse(file2);
+
+            // Update json1 with changes from json2
+            Object.assign(json1, json2);
+
+            // Write the updated JSON to the first file
+            // fs.writeFileSync(this.settings_file, JSON.stringify(json2, null, 4));
+            this.updateSettings(json2);
+
+        }
+    }
+
+    // Update settings
+    updateSettings (settings) {
+        try {
+            fs.writeFileSync(this.settings_file, JSON.stringify(settings, null, 4));
+        } catch (err) {
+            console.log(err)
+        }
+        this.settings = settings;
+    }
 
     getWindowSetting () {
         try {
@@ -128,41 +178,41 @@ class SettingsManager {
 const dialogs = new Dialogs();
 const settingsManger = new SettingsManager();
 let window_settings = settingsManger.getWindowSetting();
+let settings = settingsManger.getSettings();
+// let settings_file = path.join(app.getPath('userData'), 'settings.json');
+// let settings = {};
+// try {
+//     checkSettings();
+//     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+// } catch (err) {
+//     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
+//     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+// }
 
-let settings_file = path.join(app.getPath('userData'), 'settings.json');
-let settings = {};
-try {
-    // checkSettings();
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
-} catch (err) {
-    fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
-    settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
-}
+// function checkSettings() {
 
-function checkSettings() {
+//     // Read the content of the first JSON file
+//     const file1 = fs.readFileSync(settings_file, 'utf8');
+//     const json1 = JSON.parse(file1);
 
-    // Read the content of the first JSON file
-    const file1 = fs.readFileSync(settings_file, 'utf8');
-    const json1 = JSON.parse(file1);
+//     // Read the content of the second JSON file
+//     const file2 = fs.readFileSync(__dirname, './assets/config/settings.json', 'utf8');
+//     const json2 = JSON.parse(file2);
 
-    // Read the content of the second JSON file
-    const file2 = fs.readFileSync('./assets/config/settings.json', 'utf8');
-    const json2 = JSON.parse(file2);
+//     let f2 = gio.get_file(__dirname, './assets/config/settings.json');
+//     let f1 = gio.get_file(settings_file);
 
-    let f2 = gio.get_file('./assets/config/settings.json');
-    let f1 = gio.get_file(settings_file);
+//     if (f2.mtime > f1.mtime) {
 
-    if (f2.mtime > f1.mtime) {
+//         // Update json1 with changes from json2
+//         Object.assign(json1, json2);
 
-        // Update json1 with changes from json2
-        Object.assign(json1, json2);
+//         // Write the updated JSON to the first file
+//         fs.writeFileSync(settings_file, JSON.stringify(json2, null, 4));
 
-        // Write the updated JSON to the first file
-        fs.writeFileSync(settings_file, JSON.stringify(json2, null, 4));
+//     }
 
-    }
-
-}
+// }
 
 worker.postMessage({ cmd: 'monitor' });
 
@@ -1276,20 +1326,22 @@ ipcMain.on('saveRecentFile', (e, href) => {
 ipcMain.on('update_settings', (e, keys = [], value) => {
 
     let path = ''
-    if (keys.length == 0) {
-        settings[keys[0]]
+    if (keys.length == 1) {
+        settings[keys[0]] = value;
     } else {
         settings[keys[0]][keys[1]] = value;
     }
 
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    // fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    settingsManger.updateSettings(settings);
     win.send('msg', 'Settings updated')
 
 })
 
 ipcMain.on('update_settings_columns', (e, key, value, location) => {
     settings.Captions[key] = value;
-    fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    // fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+    settingsManger.updateSettings(settings);
     win.send('msg', 'Settings updated')
     win.send('get_view', location)
 })
@@ -1408,7 +1460,7 @@ ipcMain.handle('get_subfolders', (e, source) => {
 })
 
 ipcMain.handle('settings', async (e) => {
-    let settings = await JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
+    let settings = settingsManger.getSettings() //await JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
     return settings;
 })
 
