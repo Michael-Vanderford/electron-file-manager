@@ -115,6 +115,7 @@ class SettingsManager {
 
     }
 
+    // Setting View
     settingsForm(settings) {
 
         const form = document.querySelector('.settings_view');
@@ -210,6 +211,10 @@ class SettingsManager {
                                 }
 
                                 switch (key) {
+                                    case 'File Menu': {
+                                        ipcRenderer.send('show_menubar')
+                                        break;
+                                    }
                                     case 'Header Menu': {
                                         this.showHeaderMenu();
                                         break;
@@ -680,83 +685,37 @@ class ViewManager {
     // Switch View
     switch_view(view) {
 
-        let list_view = document.querySelector('.list_view');
-        let grid_view = document.querySelector('.grid_view');
-        let folder_grids = document.querySelectorAll('.folder_grid');
-        let file_grids = document.querySelectorAll('.file_grid');
-
-        // let folders = Array.from(folder_grid.querySelectorAll('.card'));
-        // let files = Array.from(file_grid.querySelectorAll('.card'));
-
-        list_view.classList.remove('active');
-        grid_view.classList.remove('active');
-
-        folder_grids.forEach(folder_grid => {
-            folder_grid.classList.remove('grid', 'grid1');
-        })
-        file_grids.forEach(file_grid => {
-            file_grid.classList.remove('grid', 'grid1');
-        })
-
         let location = document.querySelector('.location');
-        switch (view) {
-            case 'list': {
+        localStorage.setItem('view', view);
+        this.getView(location.value)
+        // this.lazyload();
 
-                // list_view.classList.add('active')
-                // folder_grids.forEach(folder_grid => {
-                //     folder_grid.classList.add('grid1');
-                // })
-                // file_grids.forEach(file_grid => {
-                //     file_grid.classList.add('grid1');
-                // })
-                // let headers = document.querySelectorAll('.header_row')
-                // headers.forEach(header => {
-                //     header.classList.remove('hidden')
-                // })
-                // let cards = document.querySelectorAll('.card');
-                // cards.forEach(card => {
-                //     card.classList.add('list');
-                //     let icon = card.querySelector('.icon')
-                //     let content = card.querySelector('.content');
-                //     icon.classList.add('icon16');
-                //     content.classList.add('list');
+    }
 
-                // })
+    // Lazy load images
+    lazyload() {
+        // Lazy load images
+        let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
+        // CHECK IF WINDOW
+        if ("IntersectionObserver" in window) {
+            // GET REFERENCE TO LAZY IMAGE
+            let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
+                // console.log('entries', entries.length)
+                entries.forEach((e, idx) => {
+                    if (e.isIntersecting) {
 
-                this.getView(location.value);
-                break;
-
-
-            }
-            case 'grid': {
-
-                // grid_view.classList.add('active')
-                // folder_grids.forEach(folder_grid => {
-                //     folder_grid.classList.add('grid');
-                // })
-                // file_grids.forEach(file_grid => {
-                //     file_grid.classList.add('grid');
-                // })
-                // let headers = document.querySelectorAll('.header_row')
-                // headers.forEach(header => {
-                //     header.classList.add('hidden')
-                // })
-                // let cards = document.querySelectorAll('.card');
-                // cards.forEach(card => {
-                //     card.classList.remove('list');
-                //     let icon = card.querySelector('.icon')
-                //     let content = card.querySelector('.content');
-                //     icon.classList.remove('icon16');
-                //     content.classList.remove('list');
-                // })
-
-                this.getView(location.value);
-                break;
+                        let img = e.target;
+                        img.src = img.dataset.src;
+                        img.classList.remove("lazy");
+                        lazyImageObserver.unobserve(img);
+                    }
+                })
+            })
+            // THIS RUNS ON INITIAL LOAD
+            for (let i = 0; i < lazyImages.length; i++) {
+                lazyImageObserver.observe(lazyImages[i])
             }
         }
-
-        lazyload();
-
     }
 
     // Sort for list view
@@ -1021,7 +980,6 @@ class ViewManager {
         })
 
     }
-
 
     getColumns() {
 
@@ -1315,63 +1273,63 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
 })
 
-    // Get Keyboard shortcuts
-    async function getShortcuts() {
-        return await ipcRenderer.invoke('settings').then(settings => {
-            return settings.keyboard_shortcuts;
+// Get Keyboard shortcuts
+async function getShortcuts() {
+    return await ipcRenderer.invoke('settings').then(settings => {
+        return settings.keyboard_shortcuts;
+    })
+}
+
+// Expose Functions to index.js file
+contextBridge.exposeInMainWorld('api', {
+    getShortcuts,
+    clear,
+    getView: (location) => {
+        viewManager.getView(location);
+    },
+    getSelectedFiles,
+    cut: () => {
+        fo.cut();
+    },
+    pasteOperation: () => {
+        fo.pasteOperation()
+    },
+    edit: () => {
+        fo.edit();
+    },
+    newFolder: () => {
+        fo.newFolder()
+    },
+    find_files,
+    quickSearch,
+    newWindow: () => {
+        ipcRenderer.send('new_window');
+    },
+    clearViews,
+    sidebarHome,
+    fileInfo: () => {
+        fo.fileInfo();
+    },
+    settingsView: () => {
+        settingsManager.settingsView();
+    },
+    extract,
+    compress,
+    addWorkspace: () => {
+        // Add to Workspace
+        getSelectedFiles()
+        ipcRenderer.send('add_workspace', selected_files_arr);
+        clear()
+    },
+    goBack: () => {
+        let location = document.querySelector('.location')
+        ipcRenderer.invoke('dirname', location.value).then(dir => {
+            viewManager.getView(dir);
+            localStorage.setItem('location', dir);
         })
     }
 
-    // Expose Functions to index.js file
-    contextBridge.exposeInMainWorld('api', {
-        getShortcuts,
-        clear,
-        getView: () => {
-            viewManager.getView
-        },
-        getSelectedFiles,
-        cut: () => {
-            fo.cut();
-        },
-        pasteOperation: () => {
-            fo.pasteOperation()
-        },
-        edit: () => {
-            fo.edit();
-        },
-        newFolder: () => {
-            fo.newFolder()
-        },
-        find_files,
-        quickSearch,
-        newWindow: () => {
-            ipcRenderer.send('new_window');
-        },
-        clearViews,
-        sidebarHome,
-        fileInfo: () => {
-            fo.fileInfo();
-        },
-        settingsView: () => {
-            settingsManager.settingsView();
-        },
-        extract,
-        compress,
-        addWorkspace: () => {
-            // Add to Workspace
-            getSelectedFiles()
-            ipcRenderer.send('add_workspace', selected_files_arr);
-            clear()
-        },
-        goBack: () => {
-            let location = document.querySelector('.location')
-            ipcRenderer.invoke('dirname', location.value).then(dir => {
-                viewManager.getView(dir);
-                localStorage.setItem('location', dir);
-            })
-        }
-
-    })
+})
 
 // })
 
@@ -1868,7 +1826,7 @@ ipcRenderer.on('ls', (e, dirents, source, tab) => {
         iconManager.resizeIcons(icon_size);
     }
 
-    lazyload();
+    viewManager.lazyload();
     sort_cards();
 
     // clearHighlight();
@@ -1986,7 +1944,7 @@ ipcRenderer.invoke('symlink_icon').then(icon => {
 })
 
 ipcRenderer.on('lazyload', (e) => {
-    lazyload();
+    viewManager.lazyload();
 })
 
 // Get Thumbnil directory
@@ -2054,7 +2012,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     // switch_view(localStorage.getItem('view'));
     sort_cards()
-    lazyload();
+    viewManager.lazyload();
 
 })
 
@@ -2440,7 +2398,7 @@ ipcRenderer.on('get_card_gio', (e, file) => {
         } else {
             file_grid.prepend(card);
         }
-        lazyload();
+        viewManager.lazyload();
     }
 
 })
@@ -4037,7 +3995,7 @@ function getRecentView(dirents) {
 
     iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
-    lazyload();
+    viewManager.lazyload();
 
 }
 
@@ -4664,7 +4622,7 @@ function getCardGio(file) {
 
     input.classList.add('input', 'item', 'hidden');
     img.classList.add('icon');
-    
+
     card.style.opacity = 1;
 
     // Populate values
@@ -5105,39 +5063,39 @@ function clearContextMenu(e) {
 //     }
 // }
 
-function lazyload() {
-    // Lazy load images
-    let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
-    // CHECK IF WINDOW
-    if ("IntersectionObserver" in window) {
-        // GET REFERENCE TO LAZY IMAGE
-        let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
-            // console.log('entries', entries.length)
-            entries.forEach((e, idx) => {
-                if (e.isIntersecting) {
+// function lazyload() {
+//     // Lazy load images
+//     let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
+//     // CHECK IF WINDOW
+//     if ("IntersectionObserver" in window) {
+//         // GET REFERENCE TO LAZY IMAGE
+//         let lazyImageObserver = new IntersectionObserver(function (entries, observer) {
+//             // console.log('entries', entries.length)
+//             entries.forEach((e, idx) => {
+//                 if (e.isIntersecting) {
 
-                    let img = e.target;
-                    img.src = img.dataset.src;
-                    // let exists = fs.existsSync(thumbnail);
-                    // if (exists) {
-                    //     console.log(thumbnail)
-                    //     img.src = thumbnail;
-                    // } else {
-                    //     // ipcRenderer.send('create_thumbnail', img.dataset.src, thumbnail);
-                    //     img.src = img.dataset.src;
-                    // }
+//                     let img = e.target;
+//                     img.src = img.dataset.src;
+//                     // let exists = fs.existsSync(thumbnail);
+//                     // if (exists) {
+//                     //     console.log(thumbnail)
+//                     //     img.src = thumbnail;
+//                     // } else {
+//                     //     // ipcRenderer.send('create_thumbnail', img.dataset.src, thumbnail);
+//                     //     img.src = img.dataset.src;
+//                     // }
 
-                    img.classList.remove("lazy");
-                    lazyImageObserver.unobserve(img);
-                }
-            })
-        })
-        // THIS RUNS ON INITIAL LOAD
-        for (let i = 0; i < lazyImages.length; i++) {
-            lazyImageObserver.observe(lazyImages[i])
-        }
-    }
-}
+//                     img.classList.remove("lazy");
+//                     lazyImageObserver.unobserve(img);
+//                 }
+//             })
+//         })
+//         // THIS RUNS ON INITIAL LOAD
+//         for (let i = 0; i < lazyImages.length; i++) {
+//             lazyImageObserver.observe(lazyImages[i])
+//         }
+//     }
+// }
 
 function quickSearch(e) {
     let main = document.querySelector('.main');

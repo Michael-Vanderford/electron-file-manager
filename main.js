@@ -107,7 +107,12 @@ class SettingsManager {
                 y: 0
             }
         };
-        // this.getWindowSetting();
+
+        ipcMain.on('show_menubar', (e) => {
+            this.getSettings();
+            this.showMenubar();
+        })
+
     }
 
     // Get Settings
@@ -157,6 +162,17 @@ class SettingsManager {
             console.log(err)
         }
         this.settings = settings;
+    }
+
+    // Toggle Menubar
+    showMenubar () {
+        let showMenubar = this.settings['File Menu']['show'];
+        console.log(showMenubar);
+        if (showMenubar) {
+            win.setMenuBarVisibility(true);
+        } else {
+            win.setMenuBarVisibility(false);
+        }
     }
 
     getWindowSetting () {
@@ -1743,6 +1759,8 @@ function createWindow() {
 
     win = new BrowserWindow(options);
     win.loadFile('index.html');
+
+    settingsManger.showMenubar();
 
     win.once('ready-to-show', () => {
         win.show();

@@ -29,6 +29,7 @@ th {
 
 #header_menu .slider {
     height: 12px;
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
 }
 
 #header_menu .item {
@@ -101,7 +102,7 @@ th {
     /* overflow-x: hidden; */
     /* border: 1px solid red; */
     background: var(--main);
-    background: linear-gradient(to right, var(--main), var(--menu));
+    /* background: linear-gradient(to right, var(--main), var(--menu)); */
 
     border-radius: 5px;
     /* padding: 10px; */
@@ -535,7 +536,7 @@ progress::-webkit-progress-bar {
 }
 
 .icon {
-    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.4));
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.7));
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
     width: 48px;
     height: 48px;
@@ -874,7 +875,7 @@ input[type=text]:focus {
 }
 
 .highlight {
-    background: var(--highlight);
+    background: linear-gradient(to right, var(--highlight), var(--main));
 }
 
 .highlight_select {
@@ -930,7 +931,7 @@ input[type=text]:focus {
 }
 
 .bottom {
-    position: absolute;
+    position: fixed;
     bottom: 0px;
     z-index: 1000;
     /* margin-bottom: 5px; */
@@ -1170,6 +1171,11 @@ input[type=text]:focus {
         --light: #C0C0C0;
         --lighter: #cfcfcf;
         --lightest: #cacaca;
+
+        --blur: blur(5px);
+        --brightness: brightness(0.8);
+        --contrast: contrast(1.2);
+
     }
 }
 

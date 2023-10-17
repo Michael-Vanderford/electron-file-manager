@@ -7,8 +7,6 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
     window.api.getShortcuts().then(shortcut => {
 
-
-
         const mt = Mousetrap
 
         // F5 Reload page

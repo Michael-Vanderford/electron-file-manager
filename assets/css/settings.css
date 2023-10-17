@@ -27,12 +27,11 @@ hr {
 
 .settings_view .settings_item {
     /* margin-left: 20px; */
+    /* display: flex; */
+    /* align-items: center; */
 }
 
 .settings_view fieldset {
     height: 150px;
 }
 
-label {
-    /* font-weight: bold; */
-}

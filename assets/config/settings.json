@@ -12,6 +12,9 @@
         "Size": true,
         "Count": true
     },
+    "File Menu": {
+        "show": true
+    },
     "Header Menu": {
         "show": true
     },
