@@ -856,13 +856,9 @@ namespace gio {
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
 
             gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
-            // const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
 
-            // GDesktopAppInfo* desktop_app_info;
-            //  = g_desktop_app_info_new_from_mime_type(mimetype);
-
-            // Get the absolute path to the .desktop file.
-            // gchar *desktop_path = g_desktop_app_info_get_filename(desktop_app_info);
+            GIcon *icon = g_file_info_get_symbolic_icon(file_info);
+            gchar *icon_name = g_icon_to_string(icon);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -873,14 +869,15 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
+            Nan::Set(fileObj, Nan::New("icon_name").ToLocalChecked(), Nan::New(icon_name).ToLocalChecked());
             // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
 
-            const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info,
-                                                                                G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
-
-            if (thumbnail_path != nullptr) {
-                Nan::Set(fileObj, Nan::New("thumbnail_path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
-            }
+            // const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info,
+            //                                                                     G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
+            // if (thumbnail_path == NULL) {
+            //     thumbnail_path = "";
+            // }
+            // Nan::Set(fileObj, Nan::New("thumbnail_path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
 
             if (mimetype != nullptr) {
                 Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
@@ -1449,6 +1446,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        Nan::Export(target, "get_icon", icon);
         Nan::Export(target, "set_execute", set_execute);
         Nan::Export(target, "clear_execute", clear_execute);
         Nan::Export(target, "cpdir", cpdir);

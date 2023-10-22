@@ -1233,11 +1233,14 @@ ipcMain.handle('folder_icon', (e) => {
     let icon_dir = path.join(__dirname, 'assets', 'icons');
     try {
         let search_path = [];
-        search_path.push(path.join(home, '.local/share/icons'), path.join(home, '.icons'), '/usr/share/icons');
+        search_path.push(path.join(home, '.local/share/icons'),
+                         path.join(home, '.icons'),
+                         '/usr/share/icons')
+
         search_path.every(icon_path => {
             if (fs.existsSync(path.join(icon_path, icon_theme))) {
-                icon_dir = path.join(icon_path, icon_theme);
 
+                icon_dir = path.join(icon_path, icon_theme);
                 return false;
             } else {
                 icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
@@ -1245,7 +1248,12 @@ ipcMain.handle('folder_icon', (e) => {
             }
         })
         let folder_icon_path = ''
-        let icon_dirs = [path.join(icon_dir, 'places@2x/48/folder.svg'), path.join(icon_dir, '32x32/places/folder.png'), path.join(icon_dir, 'places/scalable/folder.svg'), path.join(icon_dir, 'places/64/folder.svg')];
+        let icon_dirs = [
+                        path.join(icon_dir, 'places@2x/48/folder.svg'),
+                        path.join(icon_dir, '32x32/places/folder.png'),
+                        path.join(icon_dir, 'places/scalable/folder.svg'),
+                        path.join(icon_dir, 'scalable@2x/places/folder.svg')
+                    ];
         icon_dirs.every(icon_dir => {
             if (fs.existsSync(icon_dir)) {
                 folder_icon_path = icon_dir
@@ -2506,14 +2514,16 @@ ipcMain.on('main_menu', (e, destination) => {
             submenu: [
                 {
                     label: 'Grid',
-                    click: () => {
-                        win.send('view', 'grid')
+                    click: (e) => {
+                        win.send('switch_view', 'grid')
+                        // win.webContents.reloadIgnoringCache();
                     }
                 },
                 {
                     label: 'List',
                     click: () => {
-                        win.send('view', 'list')
+                        win.send('switch_view', 'list')
+                        // win.webContents.reloadIgnoringCache();
                     }
                 },
             ]
@@ -3019,8 +3029,6 @@ ipcMain.on('workspace_menu', (e, file) => {
 
     // ADD LAUNCHER MENU
     // add_launcher_menu(menu, e, args.apps)
-
-
     menu.popup(BrowserWindow.fromWebContents(e.sender))
 
     menu.on('menu-will-close', () => {
