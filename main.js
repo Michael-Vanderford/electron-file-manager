@@ -312,19 +312,16 @@ worker.on('message', (data) => {
             let file = gio.get_file(data.destination);
             win.send('get_card_gio', file);
         } else {
+            win.send('get_folder_size', path.dirname(data.destination));
             win.send('remove_card', data.source);
         }
 
         win.send('lazyload');
-        // win.send('sort_cards');
         win.send('clear');
     }
 
     if (data.cmd === 'rename_done') {
         console.log('rename_done');
-        // gio_utils.get_file(data.destination, file => {
-        //     win.send('replace_card', data.source, file);
-        // })
     }
 
     if (data.cmd === 'mkdir_done') {
@@ -351,9 +348,11 @@ worker.on('message', (data) => {
     }
 
     if (data.cmd === 'copy_done') {
-        if (is_main && watcher_failed) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+        if (is_main) {
+            if (watcher_failed) {
+                let file = gio.get_file(data.destination);
+                win.send('get_card_gio', file);
+            }
         } else {
             if (!is_main) {
                 win.send('get_folder_count', path.dirname(data.destination));
@@ -363,6 +362,7 @@ worker.on('message', (data) => {
             // let file = gio.get_file(href)
             // win.send('replace_card', href, file);
         }
+
         win.send('lazyload');
         win.send('clear');
     }
@@ -770,6 +770,7 @@ function get_files(source, tab) {
                 }
                 if (watcher.event === 'created') {
                     try {
+                        console.log(watcher.event, watcher.filename);
                         let file = gio.get_file(watcher.filename);
                         win.send('get_card_gio', file);
                         if (file.is_dir) {
@@ -780,6 +781,8 @@ function get_files(source, tab) {
                         console.log(err)
                     }
                 }
+
+                win.send('clear_folder_size', path.dirname(watcher.filename));
                 get_disk_space(source);
             }
         })
@@ -819,6 +822,25 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 /** */
+
+ipcMain.handle('autocomplete', async (e, directory) => {
+
+    let autocomplete_arr = [];
+    let dir = path.dirname(directory);
+    let search = path.basename(directory);
+    await gio.ls(dir, (err, dirents) => {
+        dirents.forEach(item => {
+            if (item.is_dir && item.name.startsWith(search)) {
+                autocomplete_arr.push(item.href + '/');
+            } else {
+                // autocomplete_arr.push(item.name);
+            }
+        })
+    })
+    // console.log(autocomplete_arr);
+    return autocomplete_arr;
+
+})
 
 ipcMain.on('columns', (e) => {
     dialogs.Columns();
@@ -1025,31 +1047,56 @@ ipcMain.on('extract', (e, location) => {
         }
 
         // GET UNCOMPRESSED SIZE
-        let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
+        // let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
+        win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
 
-        win.send('msg', `Extracting ${source}`);
-
-        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-        exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
-
+        exec(us_cmd, (err, stdout, stderr) => {
             if (err) {
-                // console.log('error ' + err)
-                win.send('msg', err);
+                console.log(err);
+                // win.send('msg', err);
             } else {
-                try {
-                    // GET REFERENCE TO FOLDER GRID
-                    if (watcher_failed) {
-                        win.send('get_card_gio', gio.get_file(filename));
+
+                win.send('msg', '');
+
+                var size = parseInt(stdout.toString().replaceAll(',', ''));
+                // Show progress for compressing files
+                let setinterval_id = setInterval(() => {
+
+                    // let current_size = gio.du(filename).total;
+                    let current_size = parseInt(execSync(`du -s ${filename} | awk '{print $1}'`).toString().replaceAll(',', ''))
+                    // console.log(current_size, size);
+                    win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}`});
+
+                }, 1000);
+
+                // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+                exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
+
+                    if (err) {
+                        // console.log('error ' + err)
+                        win.send('msg', err);
+                    } else {
+                        try {
+                            // GET REFERENCE TO FOLDER GRID
+                            if (watcher_failed) {
+                                win.send('get_card_gio', gio.get_file(filename));
+                            }
+                            win.send('get_folder_count', filename);
+                            win.send('get_folder_size', filename);
+
+                            clearInterval(setinterval_id);
+                            win.send('set_progress', { value: size, max: size, msg: ''});
+
+                        } catch (err) {
+                            // console.log(err)
+                            win.send('msg', err);
+                        }
+                        win.send('msg', `Extracted ${source}`);
                     }
-                    win.send('get_folder_count', filename);
-                    win.send('get_folder_size', filename);
-                } catch (err) {
-                    // console.log(err)
-                    win.send('msg', err);
-                }
-                win.send('msg', `Extracted ${source}`);
+                })
+
             }
-        })
+        });
     })
 
     selected_files_arr = [];
@@ -1057,8 +1104,9 @@ ipcMain.on('extract', (e, location) => {
 })
 
 // Compress
-ipcMain.on('compress', (e, location, type) => {
+ipcMain.on('compress', (e, location, type, size) => {
 
+    let c = 0;
     let file_list = [];
     selected_files_arr.forEach((item, idx) => {
         file_list += "'" + path.basename(item) + "' ";
@@ -1076,19 +1124,37 @@ ipcMain.on('compress', (e, location, type) => {
         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
     }
 
-    win.send('msg', 'Compressing Files.', 0);
+    win.send('msg', 'Compressing Files.');
+
+    let file_path = path.format({dir: location, base: destination});
+    // Show progress for compressing files
+    let setinterval_id = setInterval(() => {
+
+        if (++c === 1)  {
+            win.send('msg', 'Compressing Files.');
+        }
+
+        let file = gio.get_file(file_path);
+        // console.log(file.size);
+        win.send('set_progress', { value: file.size, max: (size / 2), msg: `Compressing ${path.basename(file_path)}`});
+    }, 1000);
+
     exec(cmd, (err, stdout) => {
         if (err) {
             console.log(err);
             win.send('msg', err);
-        } else {
-            win.send('msg', 'Done Compressing Files.');
-            if (watcher_failed) {
-                win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
-            }
-
-            // ipcRenderer.send('get_card_gio',path.format({dir: location.value, base: destination}))
         }
+
+        if (watcher_failed) {
+            win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
+        }
+        clearInterval(setinterval_id);
+        win.send('set_progress', { value: size, max: size, msg: ''});
+        win.send('msg', 'Done Compressing Files.');
+
+        size = 0;
+        c = 0;
+
     })
     selected_files_arr = [];
 })
@@ -1217,7 +1283,6 @@ ipcMain.on('connect_dialog', (e) => {
 
 // Connect
 ipcMain.handle('connect', async (e, cmd) => {
-
     try {
         const { stdout, stderr } = await exec(cmd);
         return 1;
@@ -1436,6 +1501,7 @@ ipcMain.on('get_recent_files', (e, dir) => {
 
 // On Get Folder Size
 ipcMain.on('get_folder_size', (e, href) => {
+    // console.log('get folder size', href);
     worker.postMessage({cmd: 'folder_size', source: href});
 })
 
@@ -1687,17 +1753,31 @@ ipcMain.on('move', (e, destination) => {
 })
 
 // Get Folder Size
-ipcMain.handle('get_folder_size', async (e, href) => {
-    try {
-        let cmd = "cd '" + href.replace("'", "''") + "'; du -Hs";
-        const { err, stdout, stderr } = await exec(cmd);
-        let size = parseFloat(stdout.replace('.', ''));
-        size = size * 1024
-        return size;
-    } catch (err) {
-        return 0
-    }
-})
+// ipcMain.handle('get_folder_size', async (e, href) => {
+//     console.log('get folder size', href);
+//     try {
+
+//         let st = new Date().getTime();
+
+//         let cmd = `cd '${href.replace("'", "''")}'; du -Hs`;
+//         const { err, stdout, stderr } = await exec(cmd);
+
+//         if (err) {
+//             console.error(stderr);
+//             return 0;
+//         }
+
+//         let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
+//         size = size * 1024;
+
+//         console.log('get folder size', size, (new Date().getTime() - st) / 1000);
+
+//         return size;
+//     } catch (error) {
+//         console.error(error);
+//         return 0;
+//     }
+// });
 
 // Dont use this - maybe handle in cpp using gio
 // ipcMain.on('get_folder_size', (e, href) => {
@@ -1745,7 +1825,7 @@ function createWindow() {
     // WINDOW OPTIONS
     let options = {
         minWidth: 400,
-        minHeight: 600,
+        minHeight: 400,
         width: window_settings.window.width,
         height: window_settings.window.height,
         backgroundColor: '#2e2c29',

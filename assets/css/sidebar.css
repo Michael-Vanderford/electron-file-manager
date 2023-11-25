@@ -1,6 +1,6 @@
 
 .sidebar {
-    overflow: hidden;
+    /* overflow-y: auto; */
     position: relative;
     box-sizing: border-box;
     background-color: var(--sidebar);
@@ -43,7 +43,6 @@
 }
 
 .sb_view {
-    /* background: #3794ff; */
     margin-top: 5px;
     height: 100%;
 }

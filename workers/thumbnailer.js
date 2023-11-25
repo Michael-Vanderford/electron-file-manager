@@ -106,18 +106,17 @@ parentPort.on('message', data => {
                 start = start + 1;
                 offset = offset + 1;
                 get_next_images(source, start, offset);
+
             })
         }
 
         get_next_images(data.source, start, offset)
 
-
-
-
         // if (!gio.exists(thumbnail)) {
         //     console.log('creating thumbnail', thumbnail);
         //     gio.thumbnail(data.href, thumbnail);
         // }
+
     }
 
     // if (data.cmd === 'create_thumbnail') {

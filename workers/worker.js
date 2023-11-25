@@ -269,15 +269,6 @@ function get_files_arr (source, destination, callback) {
         for (let i = 0; i < dirents.length; i++) {
 
             parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
-
-            // data = {
-            //     cmd: 'progress',
-            //     msg: `Getting Files`,
-            //     max: dirents.length - 1,
-            //     value: i
-            // }
-            // parentPort.postMessage(data);
-
             let file = dirents[i]
             // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
             if (file.is_dir) {
@@ -559,17 +550,35 @@ parentPort.on('message', data => {
     // Folder Size
     if (data.cmd === 'folder_size') {
         try {
-            get_files_arr(data.source, '', dirents => {
-                dirents.reduce((c, x) => x.type !== 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
-                let size = 0;
-                for (let i = 0; i < dirents.length; i++) {
-                    if (dirents[i].type !== 'directory')
-                    size += dirents[i].size
+            // let ts = Date.now();
+            // let cmd = `cd '${data.source.replace("'", "''")}'; du -s`;
+            let cmd = `du -s '${data.source.replace("'", "''")}'`;
+            exec(cmd, (err, stdout, stderr) => {
+                if (err) {
+                    // console.error(stderr, cmd);
+                    // return 0;
                 }
-                parentPort.postMessage({cmd: 'folder_size', source: data.source, size: size});
+                let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
+                size = size * 1024;
+                parentPort.postMessage({cmd: 'folder_size', source: data.source ,size: size});
+                // console.log(`Folder Size: ${data.source} ${size} bytes ${Date.now() - ts}ms`);
             })
-        } catch (err) {
+        } catch (error) {
+            console.error(error);
+            return 0;
         }
+        // try {
+        //     get_files_arr(data.source, '', dirents => {
+        //         dirents.reduce((c, x) => x.type !== 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
+        //         let size = 0;
+        //         for (let i = 0; i < dirents.length; i++) {
+        //             if (dirents[i].type !== 'directory')
+        //             size += dirents[i].size
+        //         }
+        //         parentPort.postMessage({cmd: 'folder_size', source: data.source, size: size});
+        //     })
+        // } catch (err) {
+        // }
     }
 
     // Folder Count
@@ -745,9 +754,11 @@ parentPort.on('message', data => {
             let del_item = del_arr[idx];
             idx++
 
-            gio_utils.get_file(del_item, file => {
+            let is_dir = gio.is_dir(del_item);
 
-                if (file.type === 'directory') {
+            // gio_utils.get_file(del_item, file => {
+                // if (file.type === 'directory') {
+                if (is_dir) {
 
                     get_files_arr(del_item, del_item, dirents => {
 
@@ -831,7 +842,7 @@ parentPort.on('message', data => {
                     delete_next();
 
                 }
-            })
+            // })
 
         }
         delete_next();

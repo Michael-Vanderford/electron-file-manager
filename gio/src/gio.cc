@@ -195,6 +195,8 @@ namespace gio {
                             NULL,
                             NULL,
                             &error);
+
+            g_object_unref(thumbnailPixbuf);
         }
 
         g_object_unref(oriented_pixbuf);
@@ -312,7 +314,6 @@ namespace gio {
                 }
 
             }
-
 
         }
 
@@ -440,7 +441,7 @@ namespace gio {
         fileMonitor0 = fileMonitor;
 
         if (fileMonitor == NULL) {
-            Nan::ThrowError("Failed to create file monitor for the directory.");
+            // Nan::ThrowError("Failed to create file monitor for the directory.");
             return;
         }
 
@@ -857,8 +858,8 @@ namespace gio {
 
             gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
 
-            GIcon *icon = g_file_info_get_symbolic_icon(file_info);
-            gchar *icon_name = g_icon_to_string(icon);
+            // GIcon *icon = g_file_info_get_symbolic_icon(file_info);
+            // gchar *icon_name = g_icon_to_string(icon);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -869,7 +870,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
-            Nan::Set(fileObj, Nan::New("icon_name").ToLocalChecked(), Nan::New(icon_name).ToLocalChecked());
+            // Nan::Set(fileObj, Nan::New("icon_name").ToLocalChecked(), Nan::New(icon_name).ToLocalChecked());
             // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
 
             // const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info,
@@ -913,6 +914,9 @@ namespace gio {
             }
 
             Nan::Set(resultArray, index++, fileObj);
+
+            g_object_unref(file);
+            g_object_unref(parent);
             g_object_unref(file_info);
 
         }
@@ -929,6 +933,8 @@ namespace gio {
         callback.Call(2, argv);
 
     }
+
+
 
     NAN_METHOD(exists) {
 
@@ -957,6 +963,7 @@ namespace gio {
         exists = g_file_query_exists (src, NULL);
 
         bool result = exists != FALSE;
+        g_object_unref(src);
 
         // Create a new Boolean value in the current context
         v8::Local<v8::Boolean> resultValue = v8::Boolean::New(isolate, result);
@@ -1060,6 +1067,38 @@ namespace gio {
         // // Cleanup
         g_object_unref(icon);
         g_object_unref(src);
+
+    }
+
+    NAN_METHOD(is_dir) {
+
+        Nan:: HandleScope scope;
+
+        if (info.Length() < 1) {
+            return Nan::ThrowError("Wrong number of arguments");
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+
+        v8::Isolate* isolate = info.GetIsolate();
+        v8::String::Utf8Value sourceFile(isolate, sourceString);
+
+        GFile* src = g_file_new_for_path(*sourceFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+
+        gboolean is_directory = g_file_query_file_type(src, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY;
+
+        bool result = is_directory != FALSE;
+
+        // Create a new Boolean value in the current context
+        v8::Local<v8::Boolean> resultValue = v8::Boolean::New(isolate, result);
+
+        // Return the Boolean value
+        info.GetReturnValue().Set(resultValue);
 
     }
 
@@ -1446,6 +1485,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        Nan::Export(target, "is_dir", is_dir);
         Nan::Export(target, "get_icon", icon);
         Nan::Export(target, "set_execute", set_execute);
         Nan::Export(target, "clear_execute", clear_execute);

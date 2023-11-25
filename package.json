@@ -1,6 +1,6 @@
 {
     "name": "string-file-manager",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "description": "File Manager",
     "projectUrl": "https://github.com/Michael-Vanderford/electron-file-manager",
     "main": "main.js",

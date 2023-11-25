@@ -144,6 +144,7 @@ th {
     color: var(--text);
     background-color: var(--dialog);
     border: 1px solid var(--border);
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.9));
     border-radius: 5px;
     padding: 10px;
     z-index: 100;
@@ -153,6 +154,7 @@ th {
     color: var(--text);
     background-color: var(--dialog);
     border: 1px solid var(--border);
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.9));
     border-radius: 5px;
     padding: 10px;
     width: 450px;
@@ -161,7 +163,8 @@ th {
 }
 
 #progress_bar {
-    height: 12px;
+    columns: var(--green);
+    height: 20px;
 }
 
 #progress_msg {
@@ -252,14 +255,18 @@ th {
 }
 
 .autocomplete {
-    position: fixed;
+    position: absolute;
+    top: 60px;
+    left: 110px;
     height: 150px;
-    min-width: 350px;
-    background: var(--dialog);
-    border: 1px solid var(--border);
+    min-width: 450px;
+    background: var(--main);
+    border: 2px solid var(--border);
+    filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.9));
     z-index: 10000;
     overflow: auto;
     border-radius: 5px;
+    display: block;
 }
 
 .suggestion {
@@ -348,7 +355,7 @@ th {
 
 .tab {
     padding-top: 2px;
-    height: 21px;
+    height: 19px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--text);
@@ -376,6 +383,7 @@ th {
     color: var(--text);
     border-top: 2px solid var(--blue);
     border-bottom: none;
+    filter: drop-shadow(1px 0px 0px rgb(0 0 0 / 0.9));
     font-weight: bold;
 }
 
