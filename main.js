@@ -1579,6 +1579,23 @@ ipcMain.on('get_folder_size', (e, href) => {
     worker.postMessage({cmd: 'folder_size', source: href});
 })
 
+ipcMain.handle('get_folder_size_properties', async (e, href) => {
+    try {
+        let cmd = `cd '${href.replace("'", "''")}'; du -Hs`;
+        const { err, stdout, stderr } = await exec(cmd);
+        if (err) {
+            console.error(stderr);
+            return 0;
+        }
+        let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
+        size = size * 1024;
+        return size;
+    } catch (error) {
+        console.error(error);
+        return 0;
+    }
+})
+
 // On Get Folder Count
 ipcMain.on('get_folder_count', (e, href) => {
     worker.postMessage({cmd: 'folder_count', source: href});

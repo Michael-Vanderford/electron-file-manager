@@ -703,7 +703,7 @@ class Utilities {
 
         if (!file.is_writable) {
 
-            console.log(file)
+            // console.log(file)
             let readonly_img = document.createElement('img');
             readonly_img.src = readonly_icon;
             readonly_img.classList.add('readonly');
@@ -1006,6 +1006,7 @@ class Utilities {
             let cards = folder_grid.querySelectorAll('.card');
             cards.forEach(card => {
                 let href = card.dataset.href;
+                this.clearFolderSize(href);
                 if (localStorage.getItem(href) !== null) {
                     let size = localStorage.getItem(href);
                     let size_div = card.querySelector('.size');
@@ -3239,7 +3240,7 @@ ipcRenderer.on('properties', (e, properties_arr) => {
     // clearViews();
     // let sidebar = document.querySelector('.sidebar');
     getProperties(properties_arr, properties_view => {
-        //     // sidebar.append(properties_view);
+        // sidebar.append(properties_view);
     })
 })
 
@@ -4932,7 +4933,9 @@ function getProperties(properties_arr) {
                         size.append('Calculating..');
                         folder_count.append('Calculating..');
                         ipcRenderer.send('get_folder_count', file.href);
-                        ipcRenderer.send('get_folder_size', file.href);
+                        ipcRenderer.invoke('get_folder_size_properties', file.href).then(res => {
+                            size.innerHTML = getFileSize(res);
+                        })
 
                     } else {
 

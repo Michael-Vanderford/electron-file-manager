@@ -550,14 +550,15 @@ parentPort.on('message', data => {
     // Folder Size
     if (data.cmd === 'folder_size') {
         try {
-            let cmd = `du -s '${data.source.replace("'", "''")}'`;
+            // let cmd = `du -s '${data.source.replace("'", "''")}'`;
+            cmd = 'cd "' + data.source + '"; du -s';
             exec(cmd, (err, stdout, stderr) => {
                 if (err) {
                     // console.error(stderr, cmd);
                     // return 0;
                 }
                 let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
-                size = size;
+                size = (size * 1024);
                 parentPort.postMessage({cmd: 'folder_size', source: data.source ,size: size});
                 // console.log(`Folder Size: ${data.source} ${size} bytes ${Date.now() - ts}ms`);
             })
