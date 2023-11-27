@@ -292,6 +292,15 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
+    /**
+     * Watch for theme changes
+     */
+    if (data.cmd === 'watch_for_theme_change') {
+
+        
+
+    }
+
     // New merge code for copies
     if (data.cmd === 'merge_files') {
 

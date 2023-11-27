@@ -898,7 +898,9 @@ input[type=text]:focus {
 }
 
 .highlight {
+    /* box-sizing: border-box; */
     background: linear-gradient(to right, var(--highlight), var(--main));
+    /* border: 1px solid var(--green) */
 }
 
 .highlight_select {
@@ -908,10 +910,11 @@ input[type=text]:focus {
 }
 
 .highlight_target {
-    box-sizing: border-box;
+    /* box-sizing: border-box; */
     /* border: 1px solid var(--orange); */
     border-radius: 5px;
     background: var(--highlight-select);
+    box-shadow: 0 0 3px var(--orange);
 }
 
 .dragging {
@@ -1076,6 +1079,7 @@ input[type=text]:focus {
 }
 
 .tab-content {
+    /* box-sizing: border-box; */
     /* border: 1px solid gray; */
     padding: 10px;
 }

@@ -397,8 +397,6 @@ class Utilities {
      */
     getCard(file) {
 
-        // console.log(file)
-
         let location = document.getElementById('location');
         let is_dir = 0;
 
@@ -1001,18 +999,23 @@ class Utilities {
      * Call get folder size
      */
     getFolderSizes() {
-        let folder_grid = document.querySelector('.folder_grid', '.hidden_folder_grid');
-        let cards = folder_grid.querySelectorAll('.card');
-        cards.forEach(card => {
-            let href = card.dataset.href;
-            if (localStorage.getItem(href) !== null) {
-                let size = localStorage.getItem(href);
-                let size_div = card.querySelector('.size');
-                size_div.innerHTML = getFileSize(size);
-            } else {
-                ipcRenderer.send('get_folder_size', href);
-            }
+
+        let tabs_content = document.querySelectorAll('.tab-content');
+        tabs_content.forEach(tab_content => {
+            let folder_grid = tab_content.querySelector('.folder_grid', '.hidden_folder_grid');
+            let cards = folder_grid.querySelectorAll('.card');
+            cards.forEach(card => {
+                let href = card.dataset.href;
+                if (localStorage.getItem(href) !== null) {
+                    let size = localStorage.getItem(href);
+                    let size_div = card.querySelector('.size');
+                    size_div.innerHTML = getFileSize(size);
+                } else {
+                    ipcRenderer.send('get_folder_size', href);
+                }
+            })
         })
+
     }
 
     /**
@@ -1350,7 +1353,6 @@ class ViewManager {
      * Valid parameters are 'grid' or 'list'
      */
     switchView(s_view) {
-        console.log('running switch view')
         view = s_view;
         localStorage.setItem('view', view);
         // this.getView(this.location.value);
@@ -1371,44 +1373,47 @@ class ViewManager {
      */
     gridView() {
 
-        let tab_content = document.querySelector('.tab-content');
+        let tabs_content = document.querySelectorAll('.tab-content');
+        tabs_content.forEach((tab_content, idx) => {
 
-        let header_row = tab_content.querySelector('.header_row');
-        if (header_row) {
-            header_row.classList.add('hidden');
-        }
+            let header_row = tab_content.querySelector('.header_row');
+            if (header_row) {
+                header_row.classList.add('hidden');
+            }
 
-        let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
-        grids.forEach(grid => {
+            let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
+            grids.forEach(grid => {
 
-            let grid_view = document.querySelector(grid);
-            grid_view.classList.add('grid');
-            grid_view.classList.remove('grid1');
+                let grid_view = tab_content.querySelector(grid);
+                grid_view.classList.add('grid');
+                grid_view.classList.remove('grid1');
 
-            let cards = grid_view.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.classList.remove('list');
+                let cards = grid_view.querySelectorAll('.card');
+                cards.forEach(card => {
+                    card.classList.remove('list');
 
-                let content = card.querySelector('.content');
-                content.classList.remove('list');
+                    let content = card.querySelector('.content');
+                    content.classList.remove('list');
 
-                let item = content.querySelector('.item');
-                item.classList.add('header');
-                item.classList.remove('list', 'list_header');
+                    let item = content.querySelector('.item');
+                    item.classList.add('header');
+                    item.classList.remove('list', 'list_header');
 
-                let icon_div = card.querySelector('.icon_div');
-                icon_div.remove();
-                card.prepend(icon_div);
+                    let icon_div = card.querySelector('.icon_div');
+                    icon_div.remove();
+                    card.prepend(icon_div);
 
-                let atime = card.querySelector('.atime');
-                atime.classList.add('hidden');
+                    let atime = card.querySelector('.atime');
+                    atime.classList.add('hidden');
 
-                let ctime = card.querySelector('.ctime');
-                ctime.classList.add('hidden');
+                    let ctime = card.querySelector('.ctime');
+                    ctime.classList.add('hidden');
+
+                })
 
             })
 
-        })
+        });
 
     }
 
@@ -1418,41 +1423,44 @@ class ViewManager {
      */
     listView() {
 
-        let tab_content = document.querySelector('.tab-content');
+        let tabs_content = document.querySelectorAll('.tab-content');
+        tabs_content.forEach(tab_content => {
 
-        let header_row = tab_content.querySelector('.header_row');
-        if (header_row) {
-            header_row.classList.remove('hidden');
-        }
+            let header_row = tab_content.querySelector('.header_row');
+            if (header_row) {
+                header_row.classList.remove('hidden');
+            }
 
-        let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
-        grids.forEach(grid => {
+            let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
+            grids.forEach(grid => {
 
-            let grid_view = document.querySelector(grid);
-            grid_view.classList.remove('grid');
-            grid_view.classList.add('grid1');
+                let grid_view = document.querySelector(grid);
+                grid_view.classList.remove('grid');
+                grid_view.classList.add('grid1');
 
-            let cards = grid_view.querySelectorAll('.card');
-            cards.forEach(card => {
-                card.classList.add('list');
+                let cards = grid_view.querySelectorAll('.card');
+                cards.forEach(card => {
+                    card.classList.add('list');
 
-                let content = card.querySelector('.content');
-                content.classList.add('list');
+                    let content = card.querySelector('.content');
+                    content.classList.add('list');
 
-                let item = content.querySelector('.item');
-                item.classList.remove('header');
-                item.classList.add('list', 'list_header');
+                    let item = content.querySelector('.item');
+                    item.classList.remove('header');
+                    item.classList.add('list', 'list_header');
 
-                let icon_div = card.querySelector('.icon_div');
-                icon_div.remove();
-                content.prepend(icon_div);
+                    let icon_div = card.querySelector('.icon_div');
+                    icon_div.remove();
+                    content.prepend(icon_div);
 
-                let atime = card.querySelector('.atime');
-                atime.classList.remove('hidden');
+                    let atime = card.querySelector('.atime');
+                    atime.classList.remove('hidden');
 
-                let ctime = card.querySelector('.ctime');
-                ctime.classList.remove('hidden');
+                    let ctime = card.querySelector('.ctime');
+                    ctime.classList.remove('hidden');
 
+
+                })
 
             })
 
@@ -3084,10 +3092,10 @@ ipcRenderer.on('search_results', (e, find_arr) => {
     let location = document.querySelector('.location');
     // location.value = 'Search Results';
 
-    let folder_grid = add_div(['folder_grid']);
-    let hidden_folder_grid = add_div(['hidden_folder_grid']);
-    let file_grid = add_div(['file_grid']);
-    let hidden_file_grid = add_div(['hidden_file_grid']);
+    let folder_grid = add_div(['folder_grid','grid']);
+    let hidden_folder_grid = add_div(['hidden_folder_grid', 'grid']);
+    let file_grid = add_div(['file_grid', 'grid']);
+    let hidden_file_grid = add_div(['hidden_file_grid', 'grid']);
 
     // let tab_content = add_tab('Search Results');
     // tab_content.append(folder_grid, file_grid);
@@ -3125,6 +3133,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
     // switch_view(localStorage.getItem('view'));
     sort_cards()
     viewManager.lazyload();
+
 
 })
 
@@ -5685,452 +5694,6 @@ function getFolderCount(href) {
     // console.log('running get folder count', href)
     ipcRenderer.send('count', href);
 }
-
-// // Load Folder Size Seperatley
-// function getFolderSize(href) {
-//     ipcRenderer.send('get_folder_size', href);
-// }
-
-/**
- * Get Card for Grid View
- * @param {File} file
- * @returns File Card
- */
-// function getCardGio(file) {
-
-//     // console.log(file)
-
-//     let location = document.getElementById('location');
-//     let is_dir = 0;
-
-//     let card = add_div(['card']);
-//     let content = add_div(['content']);
-//     let icon = add_div(['icon_div']);
-//     let img = document.createElement('img');
-//     let header = add_div(['header', 'item']);
-//     let href = document.createElement('a');
-//     let path = add_div(['path', 'item', 'hidden']);
-//     let mtime = add_div(['date', 'item', 'hidden']);
-//     let atime = add_div(['date', 'item', 'hidden']);
-//     let ctime = add_div(['date', 'item', 'hidden']);
-//     let size = add_div(['size', 'item', 'hidden']);
-//     let type = add_div(['type', 'item', 'hidden']);
-//     let count = add_div(['count', 'item', 'hidden']);
-//     let input = document.createElement('input');
-//     let tooltip = add_div('tooltip', 'hidden');
-
-//     input.classList.add('input', 'item', 'hidden');
-//     img.classList.add('icon');
-
-//     card.style.opacity = 1;
-
-//     // Populate values
-//     href.href = file.href;
-//     href.innerHTML = file.name;
-//     input.value = file.name;
-//     card.dataset.name = file.name;
-
-
-//     input.spellcheck = false;
-//     input.type = 'text';
-//     input.dataset.href = file.href;
-
-//     href.draggable = false;
-//     img.draggable = false;
-//     icon.draggable = false;
-//     card.draggable = true;
-
-//     card.dataset.href = file.href;
-//     card.dataset.mtime = file.mtime;
-//     card.dataset.size = file.size;
-
-//     // tooltip.append(`Name: ${path.basename(file.href)}`);
-//     let tooltip_timeout;
-
-//     header.addEventListener('mouseover', (e) => {
-//         title =
-//         'Name: ' + file.name +
-//         '\n' +
-//         'Location: ' + file.location +
-//         '\n' +
-//         'Size: ' + getFileSize(file.size) +
-//         '\n' +
-//         'Accessed: ' + getDateTime(file.atime) +
-//         '\n' +
-//         'Modified: ' + getDateTime(file.mtime) +
-//         // '\n' +
-//         // 'Created: ' + getDateTime(file.ctime) +
-//         '\n' +
-//         'Type: ' + file.content_type
-
-//         header.title = title;
-//     })
-
-//     // Mouse Over
-//     card.addEventListener('mouseover', (e) => {
-
-//         card.classList.add('highlight');
-//         // title =
-//         //     'Name: ' + file.name +
-//         //     '\n' +
-//         //     'Location: ' + file.location +
-//         //     '\n' +
-//         //     'Size: ' + getFileSize(file.size) +
-//         //     '\n' +
-//         //     'Accessed: ' + getDateTime(file.atime) +
-//         //     '\n' +
-//         //     'Modified: ' + getDateTime(file.mtime) +
-//         //     // '\n' +
-//         //     // 'Created: ' + getDateTime(file.ctime) +
-//         //     '\n' +
-//         //     'Type: ' + file.content_type
-
-//         // card.title = title;
-
-//         // main.tabIndex = 0;
-//         // tooltip_timeout = setTimeout(() => {
-//         //     // Calculate the position
-//         //     const rect = card.getBoundingClientRect();
-//         //     const top = rect.top + rect.height;
-//         //     const left = rect.left;
-//         //     // const main_rect = main.getBoundingClientRect();
-//         //     // Set the position of the popup
-//         //     tooltip.style.top = top + 'px';
-//         //     tooltip.style.left = left + 'px';
-//         //     tooltip.classList.remove('hidden')
-//         //     tooltip.innerText = title;
-//         //     const tooltip_rect = tooltip.height;
-//         // }, 1000);
-
-//         // href.focus()
-
-//     })
-
-//     tooltip.addEventListener('mouseout', (e) => {
-//         tooltip.classList.add('hidden')
-//     })
-
-//     card.addEventListener('mouseout', (e) => {
-//         clearTimeout(tooltip_timeout);
-//         tooltip.classList.add('hidden');
-//         card.classList.remove('highlight');
-//     })
-
-//     card.addEventListener('mouseenter', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//     })
-
-//     // Mouse Leave
-//     card.addEventListener('mouseleave', (e) => {
-
-//     })
-
-//     // Card ctrl onclick
-//     card.addEventListener('click', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-//         // if (e.ctrlKey) {
-//             if (card.classList.contains('highlight_select')) {
-//                 card.classList.remove('highlight_select')
-//             } else {
-//                 card.classList.add('highlight_select')
-//             }
-//         // }
-//     })
-
-//     card.addEventListener('dragstart', (e) => {
-
-//         e.stopPropagation();
-//         getSelectedFiles();
-
-//         // clearTimeout(tooltip_timeout);
-//         // tooltip.classList.add('hidden')
-//         // clearTimeout(tooltip_timeout)
-
-//         // const dataTransfer = new DataTransfer();
-//         // dataTransfer.setData('application/x-electron-file', file.href)
-//         // // console.log(dataTransfer)
-//         // ipcRenderer.send('ondragstart', file.href)
-//         // selected_files_arr.forEach(href => {
-//         // e.dataTransfer.setData('application/x-electron-file', JSON.stringify([{ path: href }]));
-//         // ipcRenderer.send('ondragstart', path.join(process.cwd(), href))
-//         // e.target.classList.add('dragged')
-//         // })
-//     })
-
-//     card.addEventListener('dragenter', (e) => {
-//         // e.preventDefault();
-//         // e.stopPropagation();
-//     })
-
-//     card.addEventListener('dragover', (e) => {
-//         e.preventDefault();
-
-//         if (is_dir && !card.classList.contains('highlight')) {
-//             card.classList.add('highlight_target');
-//             if (e.ctrlKey) {
-//                 e.dataTransfer.dropEffect = "copy";
-//                 // msg(`Copy Item to "${file.href}"`, 0);
-//             } else {
-//                 e.dataTransfer.dropEffect = "move";
-//                 // msg(`Move Item to "${file.href}"`, 0);
-//             }
-
-//         }
-//     })
-
-//     card.addEventListener('dragleave', (e) => {
-//         card.classList.remove('highlight_target');
-//         utilities.msg('');
-//     })
-
-//     card.addEventListener('drop', (e) => {
-//         e.preventDefault();
-//         e.stopPropagation();
-
-//         // let utils = new Utilities();
-//         ipcRenderer.send('main', 0);
-//         if (!card.classList.contains('highlight') && card.classList.contains('highlight_target')) {
-//             if (e.ctrlKey) {
-//                 fileOperation.paste(file.href);
-//             } else {
-//                 // console.log('moving to', file.href);
-//                 fileOperation.move(file.href);
-//             }
-//         } else {
-//             // console.log('did not find target')
-//         }
-
-//     })
-
-//     mtime.append(getDateTime(file.mtime));
-//     ctime.append(getDateTime(file.ctime));
-//     atime.append(getDateTime(file.atime));
-//     type.append(file.content_type);
-
-//     // console.log(file.content_type)
-
-//     icon.append(img);
-//     header.append(href, input);
-
-//     // console.log(file)
-
-//     // Directory
-//     if (file.is_dir || file.type === 'inode/directory') {
-
-//         is_dir = 1;
-//         img.src = folder_icon;
-//         card.classList.add('folder_card', 'lazy')
-
-//         // if (file.is_symlink) {
-//         //     let symlink_img = document.createElement('img');
-//         //     symlink_img.src = symlink_icon;
-//         //     symlink_img.classList.add('symlink');
-//         //     icon.append(symlink_img);
-//         // }
-
-//         // Href
-//         href.addEventListener('click', (e) => {
-//             e.preventDefault();
-
-//             if (!file.is_readable) {
-//                 utilities.msg('Error: Access Denied');
-//                 return;
-//             }
-
-//             location.value = file.href;
-//             navigation.addHistory(file.href);
-//             if (e.ctrlKey) {
-//                 ipcRenderer.send('get_files', file.href, 1);
-//             } else {
-//                 location.dispatchEvent(new Event('change'));
-//             }
-//             ipcRenderer.send('saveRecentFile', file.href);
-
-//         })
-
-//         // Img
-//         img.addEventListener('click', (e) => {
-//             e.preventDefault();
-
-//             if (!file.is_readable) {
-//                 utilities.msg('Error: Access Denied');
-//                 return;
-//             }
-
-//             location.value = file.href;
-//             navigation.addHistory(file.href);
-//             if (e.ctrlKey) {
-//                 ipcRenderer.send('get_files', file.href, 1);
-//             } else {
-//                 location.dispatchEvent(new Event('change'));
-//             }
-//             ipcRenderer.send('saveRecentFile', file.href);
-//         })
-
-//         // Context Menu
-//         card.addEventListener('contextmenu', (e) => {
-//             e.preventDefault();
-//             e.stopPropagation();
-//             card.classList.add('highlight_select')
-//             ipcRenderer.send('folder_menu', file);
-//         })
-
-//     // Files
-//     } else {
-//         // Get Icon
-//         try {
-
-//             if (file.content_type.indexOf('image/') > -1) {
-
-//                 // Load generic icon
-//                 img.src = './assets/icons/image-generic.svg';
-
-//                 if (file.content_type === 'image/x-xcf') {
-//                     img.classList.remove('lazy')
-//                     ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                         img.src = res;
-//                     })
-//                 } else if (file.content_type === 'image/svg+xml') {
-//                     img.classList.add('lazy')
-//                     img.dataset.src = file.href;
-//                     img.classList.add('svg')
-//                 } else if (file.content_type === 'image/webp') {
-//                     img.src = file.href;
-//                 } else if (file.content_type === 'image/gif') {
-//                     img.src = file.href;
-//                 } else {
-//                     img.src = './assets/icons/image-generic.svg';
-
-//                     if (file.href.indexOf('thumbnails') > 1) {
-//                         img.src = file.href
-//                     } else if (file.href.indexOf('mtp') > -1) {
-//                         ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
-//                             img.src = thumbnail;
-//                         })
-//                     } else {
-//                         ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
-//                             img.src = thumbnail;
-//                         })
-//                     }
-
-//                 }
-//             } else if (file.content_type.indexOf('video/') > -1) {
-//                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                     img.src = res;
-//                 })
-//             } else {
-//                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                     img.src = res;
-//                 })
-//             }
-//         } catch (err) {
-//             ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-//                 img.src = res;
-//             })
-//         }
-//         // Open href in default application
-//         href.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             ipcRenderer.send('open', file.href);
-//             ipcRenderer.send('saveRecentFile', file.href);
-
-//         })
-//         img.addEventListener('click', (e) => {
-//             e.preventDefault();
-//             ipcRenderer.send('open', file.href);
-//             ipcRenderer.send('saveRecentFile', file.href);
-//         })
-//         size.append(getFileSize(file["size"]));
-//         // Context Menu
-//         card.addEventListener('contextmenu', (e) => {
-//             e.preventDefault();
-//             e.stopPropagation();
-//             card.classList.add('highlight_select')
-//             ipcRenderer.send('file_menu', file);
-//         })
-//     }
-
-//     if (file.is_symlink) {
-//         let symlink_img = document.createElement('img');
-//         symlink_img.src = symlink_icon;
-//         symlink_img.classList.add('symlink');
-//         icon.append(symlink_img);
-//     }
-
-//     if (!file.is_writable) {
-
-//         console.log(file)
-//         let readonly_img = document.createElement('img');
-//         readonly_img.src = readonly_icon;
-//         readonly_img.classList.add('readonly');
-//         readonly_icon.style = 'height: 12px'; // applied style here because there is a little lag time when set in css
-//         icon.append(readonly_img);
-
-//     }
-
-//     if (view == 'list') {
-
-//         card.classList.add('list');
-//         content.classList.add('list');
-
-//         for (const key in settings.Captions) {
-
-//             if (settings.Captions[key]) {
-
-//                 switch (key) {
-//                     case 'Location':
-//                         path.classList.remove('hidden')
-//                         path.append(file.location)
-//                         break;
-//                     case 'Modified':
-//                         mtime.classList.remove('hidden')
-//                         break;
-//                     case 'Created':
-//                         ctime.classList.remove('hidden')
-//                         break;
-//                     case 'Accessed':
-//                         atime.classList.remove('hidden')
-//                         break;
-//                     case 'Type':
-//                         type.classList.remove('hidden')
-//                         break;
-//                     case 'Size':
-//                         size.classList.remove('hidden')
-//                         break;
-//                     case 'Count':
-//                         count.classList.remove('hidden')
-//                         break;
-//                 }
-
-//             }
-
-//         }
-
-//         let list_header = add_div(['item', 'list', 'list_header'])
-//         list_header.append(icon, header)
-//         // header.append(list_header);
-//         content.append(list_header, path, mtime, ctime, atime, type, size, count);
-//         card.append(content, tooltip);
-//     }
-
-//     if (view === 'grid') {
-//         card.classList.remove('list');
-//         content.classList.remove('list');
-//         mtime.classList.remove('hidden')
-//         size.classList.remove('hidden')
-//         content.append(header, path, mtime, ctime, atime, type, size, count);
-//         card.append(icon, content, tooltip);
-//     }
-
-
-//     // ds.addSelectables(card);
-
-//     // console.log(card)/
-
-//     return card;
-// }
 
 /**
  * Get Grid View

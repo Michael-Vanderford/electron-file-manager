@@ -38,6 +38,22 @@ let watcher_failed = 0;
 
 let selected_files_arr = []
 
+class watcher {
+
+    constructor () {
+
+        /**
+         * Watch for theme changes
+         */
+        gio.on_theme_change(() => {
+            win.webContents.reloadIgnoringCache();
+            win.reload();
+        })
+
+    }
+
+};
+
 class Dialogs {
 
     constructor () {
@@ -191,8 +207,63 @@ class SettingsManager {
 
 }
 
+class IconManager {
+
+    constructor () {
+    }
+
+    /**
+     *
+     * @returns {string} folder_icon_path
+     */
+    getFolderIcon () {
+        let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+        let icon_dir = path.join(__dirname, 'assets', 'icons');
+        try {
+            let search_path = [];
+            search_path.push(path.join(home, '.local/share/icons'),
+                            path.join(home, '.icons'),
+                            '/usr/share/icons')
+
+            search_path.every(icon_path => {
+                if (fs.existsSync(path.join(icon_path, icon_theme))) {
+                    icon_dir = path.join(icon_path, icon_theme);
+                    return false;
+                } else {
+                    icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+                    return true;
+                }
+            })
+            let folder_icon_path = ''
+            let icon_dirs = [
+                path.join(icon_dir, 'places@2x/48/folder.svg'),
+                path.join(icon_dir, '32x32/places/folder.png'),
+                path.join(icon_dir, 'places/scalable/folder.svg'),
+                path.join(icon_dir, 'scalable@2x/places/folder.svg')
+            ];
+            icon_dirs.every(icon_dir => {
+                if (fs.existsSync(icon_dir)) {
+                    folder_icon_path = icon_dir
+                    return false;
+                } else {
+                    folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
+                    return true;
+                }
+            })
+            // console.log(folder_icon_path);
+            return folder_icon_path;
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+}
+
+const theme_watcher = new watcher();
 const dialogs = new Dialogs();
 const settingsManger = new SettingsManager();
+const iconManager = new IconManager();
+
 let window_settings = settingsManger.getWindowSetting();
 let settings = settingsManger.getSettings();
 // let settings_file = path.join(app.getPath('userData'), 'settings.json');
@@ -681,24 +752,24 @@ function new_folder(destination) {
 
 }
 
-function watch_for_theme_change() {
-    let watch_dir = path.join(path.dirname(app.getPath('userData')), 'dconf')
-    if (gio.exists(watch_dir)) {
-        let file = gio.get_file(watch_dir)
-        let fsTimeout
-        fs.watchFile(watch_dir, (e) => {
-            let file0 = gio.get_file(watch_dir)
-            if (file0.mtime > file.mtime) {
-                win.webContents.reloadIgnoringCache();
-                fsTimeout = setTimeout(function () {
-                    fsTimeout = null
-                }, 5000)
-            }
-        })
-    } else {
-        // console.log('error getting gnome settings directory')
-    }
-}
+// function watch_for_theme_change() {
+//     let watch_dir = path.join(path.dirname(app.getPath('userData')), 'dconf')
+//     if (gio.exists(watch_dir)) {
+//         let file = gio.get_file(watch_dir)
+//         let fsTimeout
+//         fs.watchFile(watch_dir, (e) => {
+//             let file0 = gio.get_file(watch_dir)
+//             if (file0.mtime > file.mtime) {
+//                 win.webContents.reloadIgnoringCache();
+//                 fsTimeout = setTimeout(function () {
+//                     fsTimeout = null
+//                 }, 5000)
+//             }
+//         })
+//     } else {
+//         // console.log('error getting gnome settings directory')
+//     }
+// }
 
 function getFileSize(fileSizeInBytes) {
     var i = -1;
@@ -1149,7 +1220,7 @@ ipcMain.on('compress', (e, location, type, size) => {
             win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
         }
         clearInterval(setinterval_id);
-        win.send('set_progress', { value: size, max: size, msg: ''});
+        win.send('set_progress', { value: 1, max: 1, msg: ''});
         win.send('msg', 'Done Compressing Files.');
 
         size = 0;
@@ -1294,44 +1365,47 @@ ipcMain.handle('connect', async (e, cmd) => {
 
 // Icon Theme
 ipcMain.handle('folder_icon', (e) => {
-    let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
-    let icon_dir = path.join(__dirname, 'assets', 'icons');
-    try {
-        let search_path = [];
-        search_path.push(path.join(home, '.local/share/icons'),
-                         path.join(home, '.icons'),
-                         '/usr/share/icons')
 
-        search_path.every(icon_path => {
-            if (fs.existsSync(path.join(icon_path, icon_theme))) {
+    return iconManager.getFolderIcon();
 
-                icon_dir = path.join(icon_path, icon_theme);
-                return false;
-            } else {
-                icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
-                return true;
-            }
-        })
-        let folder_icon_path = ''
-        let icon_dirs = [
-                        path.join(icon_dir, 'places@2x/48/folder.svg'),
-                        path.join(icon_dir, '32x32/places/folder.png'),
-                        path.join(icon_dir, 'places/scalable/folder.svg'),
-                        path.join(icon_dir, 'scalable@2x/places/folder.svg')
-                    ];
-        icon_dirs.every(icon_dir => {
-            if (fs.existsSync(icon_dir)) {
-                folder_icon_path = icon_dir
-                return false;
-            } else {
-                folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
-                return true;
-            }
-        })
-        return folder_icon_path;
-    } catch (err) {
-        console.log(err);
-    }
+    // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+    // let icon_dir = path.join(__dirname, 'assets', 'icons');
+    // try {
+    //     let search_path = [];
+    //     search_path.push(path.join(home, '.local/share/icons'),
+    //                      path.join(home, '.icons'),
+    //                      '/usr/share/icons')
+
+    //     search_path.every(icon_path => {
+    //         if (fs.existsSync(path.join(icon_path, icon_theme))) {
+    //             icon_dir = path.join(icon_path, icon_theme);
+    //             return false;
+    //         } else {
+    //             icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
+    //             return true;
+    //         }
+    //     })
+    //     let folder_icon_path = ''
+    //     let icon_dirs = [
+    //         path.join(icon_dir, 'places@2x/48/folder.svg'),
+    //         path.join(icon_dir, '32x32/places/folder.png'),
+    //         path.join(icon_dir, 'places/scalable/folder.svg'),
+    //         path.join(icon_dir, 'scalable@2x/places/folder.svg')
+    //     ];
+    //     icon_dirs.every(icon_dir => {
+    //         if (fs.existsSync(icon_dir)) {
+    //             folder_icon_path = icon_dir
+    //             return false;
+    //         } else {
+    //             folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
+    //             return true;
+    //         }
+    //     })
+    //     console.log(folder_icon_path);
+    //     return folder_icon_path;
+    // } catch (err) {
+    //     console.log(err);
+    // }
 })
 
 // Get Writable Theme

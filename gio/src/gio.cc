@@ -548,6 +548,38 @@ namespace gio {
         info.GetReturnValue().SetUndefined();
     }
 
+    void on_theme_changed (GSettings *settings, gchar *key, gpointer user_data) {
+        Nan::HandleScope scope;
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        Nan::TryCatch tryCatch;
+        const unsigned argc = 1;
+        v8::Local<v8::Value> argv[argc] = { Nan::New("theme").ToLocalChecked() };
+        callback->Call(argc, argv);
+        if (tryCatch.HasCaught()) {
+            Nan::FatalException(tryCatch); // Handle the exception if occurred
+        }
+    }
+
+    NAN_METHOD(on_theme_change) {
+
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsFunction()) {
+            Nan::ThrowTypeError("Invalid arguments. Expected a function.");
+            return;
+        }
+
+        Nan::Callback* callback = new Nan::Callback(info[0].As<v8::Function>());
+
+        GSettings* settings = g_settings_new("org.gnome.desktop.interface");
+        g_signal_connect(settings,
+                        "changed",
+                        G_CALLBACK(on_theme_changed),
+                        callback);
+
+        info.GetReturnValue().SetUndefined();
+    }
+
+
     NAN_METHOD(open_with) {
 
         Nan::HandleScope scope;
@@ -1485,6 +1517,7 @@ namespace gio {
     }
 
     NAN_MODULE_INIT(init) {
+        Nan::Export(target, "on_theme_change", on_theme_change);
         Nan::Export(target, "is_dir", is_dir);
         Nan::Export(target, "get_icon", icon);
         Nan::Export(target, "set_execute", set_execute);
