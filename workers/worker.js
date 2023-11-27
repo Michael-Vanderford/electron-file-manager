@@ -292,15 +292,6 @@ function get_files_arr (source, destination, callback) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
-    /**
-     * Watch for theme changes
-     */
-    if (data.cmd === 'watch_for_theme_change') {
-
-        
-
-    }
-
     // New merge code for copies
     if (data.cmd === 'merge_files') {
 
@@ -559,8 +550,6 @@ parentPort.on('message', data => {
     // Folder Size
     if (data.cmd === 'folder_size') {
         try {
-            // let ts = Date.now();
-            // let cmd = `cd '${data.source.replace("'", "''")}'; du -s`;
             let cmd = `du -s '${data.source.replace("'", "''")}'`;
             exec(cmd, (err, stdout, stderr) => {
                 if (err) {
@@ -568,7 +557,7 @@ parentPort.on('message', data => {
                     // return 0;
                 }
                 let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
-                size = size * 1024;
+                size = size;
                 parentPort.postMessage({cmd: 'folder_size', source: data.source ,size: size});
                 // console.log(`Folder Size: ${data.source} ${size} bytes ${Date.now() - ts}ms`);
             })
@@ -576,18 +565,7 @@ parentPort.on('message', data => {
             console.error(error);
             return 0;
         }
-        // try {
-        //     get_files_arr(data.source, '', dirents => {
-        //         dirents.reduce((c, x) => x.type !== 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
-        //         let size = 0;
-        //         for (let i = 0; i < dirents.length; i++) {
-        //             if (dirents[i].type !== 'directory')
-        //             size += dirents[i].size
-        //         }
-        //         parentPort.postMessage({cmd: 'folder_size', source: data.source, size: size});
-        //     })
-        // } catch (err) {
-        // }
+
     }
 
     // Folder Count
