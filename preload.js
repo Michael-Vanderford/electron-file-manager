@@ -441,6 +441,10 @@ class Utilities {
         card.dataset.mtime = file.mtime;
         card.dataset.size = file.size;
 
+        card.querySelectorAll('.item').forEach(item => {
+            item.draggable = false;
+        })
+
         // tooltip.append(`Name: ${path.basename(file.href)}`);
         let tooltip_timeout;
 
@@ -502,10 +506,8 @@ class Utilities {
         })
 
         card.addEventListener('dragstart', (e) => {
-
-            e.stopPropagation();
-            getSelectedFiles();
-
+            // e.stopPropagation();
+            // getSelectedFiles();
         })
 
         card.addEventListener('dragenter', (e) => {
@@ -517,19 +519,21 @@ class Utilities {
             e.preventDefault();
 
             if (is_dir && !card.classList.contains('highlight')) {
+
                 card.classList.add('highlight_target');
+
                 if (e.ctrlKey) {
                     e.dataTransfer.dropEffect = "copy";
-                    // msg(`Copy Item to "${file.href}"`, 0);
                 } else {
                     e.dataTransfer.dropEffect = "move";
-                    // msg(`Move Item to "${file.href}"`, 0);
                 }
 
             }
         })
 
         card.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             card.classList.remove('highlight_target');
             utilities.msg('');
         })
@@ -958,13 +962,12 @@ class Utilities {
      */
     msg(message, has_timeout = 1) {
 
-        // console.log(message, has_timeout)
-
         let main = document.querySelector('.main');
+        let content = document.querySelector('.active-tab-content');
         let msg = document.querySelector('.msg');
         if (!msg) {
             msg = add_div(['msg', 'bottom']);
-            main.append(msg);
+            content.append(msg);
         }
 
         msg.innerHTML = '';
@@ -982,12 +985,10 @@ class Utilities {
         msg.innerHTML = message;
         clearTimeout(this.msg_timeout_id);
         if (has_timeout === 1) {
-            // console.log('msg timeout', has_timeout)
             this.msg_timeout_id = setTimeout(() => {
                 msg.classList.add('hidden');
             }, 5000);
         } else {
-            // console.log('no timeout');
             clearTimeout(this.msg_timeout_id);
         }
 
@@ -1006,7 +1007,7 @@ class Utilities {
             let cards = folder_grid.querySelectorAll('.card');
             cards.forEach(card => {
                 let href = card.dataset.href;
-                this.clearFolderSize(href);
+                // this.clearFolderSize(href);
                 if (localStorage.getItem(href) !== null) {
                     let size = localStorage.getItem(href);
                     let size_div = card.querySelector('.size');
@@ -1919,19 +1920,14 @@ class FileOperation {
                     card.classList.add('not-writable')
                 }
 
-                // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
-                //     console.log('down')
-                // })
-
-                // mt.bind(shortcut.Up.toLocaleLowerCase(), (e) => {
-                //     active_tab_content.tabIndex = 0
-                //     active_tab_content.scrollTop -= 10;
-                //     console.log('up')
-                // })
-
             }
 
             main.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            })
+
+            main.addEventListener('dragenter', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
             })
@@ -1953,7 +1949,6 @@ class FileOperation {
             })
 
             main.addEventListener('mouseleave', (e) => {
-                // console.log('running mouse leave')
                 document.removeEventListener('keyup', quickSearch)
             })
 
