@@ -196,7 +196,7 @@ namespace gio {
                             NULL,
                             &error);
 
-            g_object_unref(thumbnailPixbuf);
+            // g_object_unref(thumbnailPixbuf);
         }
 
         g_object_unref(oriented_pixbuf);
