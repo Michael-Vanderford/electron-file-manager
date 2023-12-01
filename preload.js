@@ -1453,7 +1453,7 @@ class ViewManager {
 
                     let icon_div = card.querySelector('.icon_div');
                     icon_div.remove();
-                    content.prepend(icon_div);
+                    item.prepend(icon_div);
 
                     let atime = card.querySelector('.atime');
                     atime.classList.remove('hidden');
@@ -5982,8 +5982,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
                 location = document.querySelector('.location');
 
-                viewManager.getView(location.value);
-                // viewManager.switchView('list');
+                // viewManager.getView(location.value);
+                viewManager.switchView('list');
 
             })
         })
