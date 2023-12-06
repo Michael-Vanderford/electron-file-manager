@@ -507,7 +507,7 @@ class Utilities {
 
         card.addEventListener('dragstart', (e) => {
             // e.stopPropagation();
-            // getSelectedFiles();
+            getSelectedFiles();
         })
 
         card.addEventListener('dragenter', (e) => {
@@ -548,7 +548,7 @@ class Utilities {
                 if (e.ctrlKey) {
                     fileOperation.paste(file.href);
                 } else {
-                    // console.log('moving to', file.href);
+                    console.log('moving to', file.href);
                     fileOperation.move(file.href);
                 }
             } else {
@@ -5114,8 +5114,9 @@ function getRecentView(dirents) {
     localStorage.setItem('location', 'Recent');
 
     iconManager.resizeIcons(localStorage.getItem('icon_size'));
-
     viewManager.lazyload();
+
+    viewManager.switchView(localStorage.getItem('view'));
 
 }
 

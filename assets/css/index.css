@@ -442,10 +442,11 @@ th {
     font-weight: bold;
 }
 
-.active_tab_content {
+.active-tab-content {
     box-sizing: border-box;
     border: none;
     outline: none;
+    /* height: 100%; */
 }
 
 .merge_file_container {
