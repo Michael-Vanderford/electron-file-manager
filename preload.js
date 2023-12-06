@@ -1774,6 +1774,7 @@ class FileOperation {
             hidden_folder_grid.classList.add('hidden_folder_grid');
             hidden_file_grid.classList.add('hidden_file_grid');
 
+
             file_grid.draggable = false;
             hidden_file_grid.draggable = false;
             folder_grid.draggable = false;
@@ -1973,7 +1974,7 @@ class FileOperation {
 
             // Drag Select for cards
             const cards = document.querySelectorAll('.card');
-            main.addEventListener('mousedown', (e) => {
+            active_tab_content.addEventListener('mousedown', (e) => {
 
                 if (e.button === 2 || is_dragging_tab) {
                     is_dragging_tab = false;
@@ -1995,7 +1996,7 @@ class FileOperation {
             });
 
             let allowClick = 1;
-            document.addEventListener('mousemove', (e) => {
+            active_tab_content.addEventListener('mousemove', (e) => {
 
                 if (!isSelecting || is_dragging_tab) {
                     return;
@@ -2053,7 +2054,7 @@ class FileOperation {
 
             });
 
-            document.addEventListener('mouseup', (e) => {
+            active_tab_content.addEventListener('mouseup', (e) => {
                 isSelecting = false;
                 selectionRectangle.style.display = 'none';
             });
