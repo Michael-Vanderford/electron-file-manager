@@ -1039,11 +1039,11 @@ class IconManager {
 
         let cards = document.querySelectorAll('.card');
         cards.forEach(card => {
-            if (!card.classList.contains('list')) {
+            // if (!card.classList.contains('list')) {
                 let icon = card.querySelector('.icon');
                 icon.style.width = `${icon_size}px`;
                 icon.style.height = `${icon_size}px`;
-            }
+            // }
         })
         this.slider.value = icon_size;
         localStorage.setItem('icon_size', icon_size);
@@ -1453,7 +1453,7 @@ class ViewManager {
 
                     let icon_div = card.querySelector('.icon_div');
                     icon_div.remove();
-                    item.prepend(icon_div);
+                    content.prepend(icon_div);
 
                     let atime = card.querySelector('.atime');
                     atime.classList.remove('hidden');
@@ -1467,6 +1467,8 @@ class ViewManager {
             })
 
         })
+
+        iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
     }
 
@@ -2355,7 +2357,7 @@ let fileOperation = new FileOperation();
 let viewManager = new ViewManager();
 let settings = null;
 let settingsManager = null;
-let iconManager = null
+let iconManager = null;
 let tabManager = null;
 let navigation = null;
 let utilities = new Utilities();
@@ -3487,36 +3489,8 @@ ipcRenderer.on('get_card_gio', (e, file) => {
             getFolderCount(file.href);
             utilities.getFolderSize(file.href);
 
-            // Edit Mode
-            // let header = card.querySelector('a');
-            // header.classList.add('hidden');
-
-            // let input = card.querySelector('.input');
-            // input.classList.remove('hidden');
-            // input.focus();
-            // input.select();
-
-            // let location = document.querySelector('.location')
-            // let source = `${location.value}/${input.value}`;
-            // input.addEventListener('keydown', (e) => {
-            //     if (e.key === 'Enter') {
-
-            //         let destination = `${location.value}/${input.value}`;
-
-            //         header.innerText = input.value
-            //         header.classList.remove('hidden')
-            //         input.classList.add('hidden')
-
-            //         if (file.is_new_folder) {
-            //             ipcRenderer.send('rename', source, destination);
-            //         }
-
-
-            //     }
-            // })
-
-
         } else {
+            console.log('adding file');
             file_grid.prepend(card);
         }
         // viewManager.lazyload();
@@ -4449,19 +4423,19 @@ function add_img(src) {
 //     clear();
 // }
 
-function resizeIcons(icon_size) {
-    let slider = document.getElementById('slider');
-    let cards = document.querySelectorAll('.card');
-    cards.forEach(card => {
-        if (!card.classList.contains('list')) {
-            let icon = card.querySelector('.icon');
-            icon.style.width = `${icon_size}px`;
-            icon.style.height = `${icon_size}px`;
-        }
-    })
-    slider.value = icon_size;
-    localStorage.setItem('icon_size', icon_size);
-}
+// function resizeIcons(icon_size) {
+//     let slider = document.getElementById('slider');
+//     let cards = document.querySelectorAll('.card');
+//     cards.forEach(card => {
+//         if (!card.classList.contains('list')) {
+//             let icon = card.querySelector('.icon');
+//             icon.style.width = `${icon_size}px`;
+//             icon.style.height = `${icon_size}px`;
+//         }
+//     })
+//     slider.value = icon_size;
+//     localStorage.setItem('icon_size', icon_size);
+// }
 
 function show_loader() {
 

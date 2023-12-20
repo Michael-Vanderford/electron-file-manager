@@ -51,6 +51,16 @@
     background: var(--highlight)
 }
 
+.sb_home {
+    height: 85%;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sb_home::-webkit-scrollbar {
+    width: 0px;
+}
+
 .properties_view {
     /* background: var(--dialog); */
     /* border:1px solid var(--border); */

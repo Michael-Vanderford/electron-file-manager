@@ -841,7 +841,7 @@ function get_files(source, tab) {
                 }
                 if (watcher.event === 'created') {
                     try {
-                        console.log(watcher.event, watcher.filename);
+                        // console.log(watcher.event, watcher.filename);
                         let file = gio.get_file(watcher.filename);
                         win.send('get_card_gio', file);
                         if (file.is_dir) {
