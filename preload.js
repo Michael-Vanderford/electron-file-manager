@@ -3460,7 +3460,7 @@ ipcRenderer.on('confirm_delete', (e, delete_arr) => {
 // Get Card Gio
 ipcRenderer.on('get_card_gio', (e, file) => {
 
-    // console.log('running get card gio');
+    console.log('running get card gio');
 
     let active_tab_content = document.querySelector('.active-tab-content');
     let folder_grid = active_tab_content.querySelector('.folder_grid');

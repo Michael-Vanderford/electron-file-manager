@@ -832,9 +832,10 @@ function get_files_arr(source, destination, callback) {
 // Get files array
 function get_files(source, tab) {
 
+    watcher_failed = 1;
     try {
-        watcher_failed = 0;
         gio.watcher(source, (watcher) => {
+            watcher_failed = 0;
             if (watcher.event !== 'unknown') {
                 if (watcher.event === 'deleted') {
                     win.send('remove_card', watcher.filename);
