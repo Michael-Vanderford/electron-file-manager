@@ -1,3 +1,8 @@
+/**
+ * @name Linux File Manager
+ * @version 1.004 - 
+ */
+
 // Import the required modules
 const { app, BrowserWindow, ipcMain, nativeImage, shell, screen, Menu, MenuItem, systemPreferences, dialog, clipboard} = require('electron');
 const util = require('util')
@@ -2779,6 +2784,7 @@ ipcMain.on('folder_menu', (e, file) => {
             label: 'Open with Code',
             click: () => {
                 exec(`cd "${file.href}"; code .`, (err) => {
+                    win.send('clear');
                     if (err) {
                         return;
                     }

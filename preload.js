@@ -1386,31 +1386,33 @@ class ViewManager {
             let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
             grids.forEach(grid => {
 
-                let grid_view = tab_content.querySelector(grid);
-                grid_view.classList.add('grid');
-                grid_view.classList.remove('grid1');
+                let grid_views = tab_content.querySelectorAll(grid);
+                grid_views.forEach(grid_view => {
+                    grid_view.classList.add('grid');
+                    grid_view.classList.remove('grid1');
 
-                let cards = grid_view.querySelectorAll('.card');
-                cards.forEach(card => {
-                    card.classList.remove('list');
+                    let cards = grid_view.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        card.classList.remove('list');
 
-                    let content = card.querySelector('.content');
-                    content.classList.remove('list');
+                        let content = card.querySelector('.content');
+                        content.classList.remove('list');
 
-                    let item = content.querySelector('.item');
-                    item.classList.add('header');
-                    item.classList.remove('list', 'list_header');
+                        let item = content.querySelector('.item');
+                        item.classList.add('header');
+                        item.classList.remove('list', 'list_header');
 
-                    let icon_div = card.querySelector('.icon_div');
-                    icon_div.remove();
-                    card.prepend(icon_div);
+                        let icon_div = card.querySelector('.icon_div');
+                        icon_div.remove();
+                        card.prepend(icon_div);
 
-                    let atime = card.querySelector('.atime');
-                    atime.classList.add('hidden');
+                        let atime = card.querySelector('.atime');
+                        atime.classList.add('hidden');
 
-                    let ctime = card.querySelector('.ctime');
-                    ctime.classList.add('hidden');
+                        let ctime = card.querySelector('.ctime');
+                        ctime.classList.add('hidden');
 
+                    })
                 })
 
             })
@@ -1425,6 +1427,8 @@ class ViewManager {
      */
     listView() {
 
+        console.log('running list view')
+
         let tabs_content = document.querySelectorAll('.tab-content');
         tabs_content.forEach(tab_content => {
 
@@ -1436,32 +1440,45 @@ class ViewManager {
             let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
             grids.forEach(grid => {
 
-                let grid_view = document.querySelector(grid);
-                grid_view.classList.remove('grid');
-                grid_view.classList.add('grid1');
+                console.log(grid)
 
-                let cards = grid_view.querySelectorAll('.card');
-                cards.forEach(card => {
-                    card.classList.add('list');
+                let grid_views = document.querySelectorAll(grid);
+                grid_views.forEach(grid_view => {
 
-                    let content = card.querySelector('.content');
-                    content.classList.add('list');
+                    grid_view.classList.remove('grid');
+                    grid_view.classList.add('grid1');
 
-                    let item = content.querySelector('.item');
-                    item.classList.remove('header');
-                    item.classList.add('list', 'list_header');
+                    let cards = grid_view.querySelectorAll('.card');
+                    cards.forEach(card => {
+                        card.classList.add('list');
 
-                    let icon_div = card.querySelector('.icon_div');
-                    icon_div.remove();
-                    content.prepend(icon_div);
+                        let content = card.querySelector('.content');
+                        content.classList.add('list');
 
-                    let atime = card.querySelector('.atime');
-                    atime.classList.remove('hidden');
+                        let item = content.querySelector('.item');
+                        item.classList.remove('header');
+                        item.classList.add('list', 'list_header');
 
-                    let ctime = card.querySelector('.ctime');
-                    ctime.classList.remove('hidden');
+                        let icon_div = card.querySelector('.icon_div');
+                        icon_div.remove();
+                        item.prepend(icon_div);
 
+                        let href = card.querySelector('a');
 
+                        let header = card.querySelector('.header');
+                        if (!header) {
+                            header = add_div(['header', 'item']);
+                        }
+                        header.append(href);
+                        item.append(header);
+
+                        let atime = card.querySelector('.atime');
+                        atime.classList.remove('hidden');
+
+                        let ctime = card.querySelector('.ctime');
+                        ctime.classList.remove('hidden');
+
+                    })
                 })
 
             })
@@ -2233,11 +2250,10 @@ class DeviceManager {
         if (!devices) {
             devices = add_div()
             devices.classList.add('device_view')
-            // devices.append(add_header('Devices'));
             devices.append(document.createElement('hr'))
             ipcRenderer.invoke('get_devices').then(device_arr => {
 
-                let connect_btn = add_link('#', 'Connect to Server')
+                let connect_btn = add_link('', 'Connect to Server')
 
                 // console.log('running get devices', device_arr)
                 device_arr.sort((a, b) => {
@@ -3113,7 +3129,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
                     folder_grid.append(card);
                 }
 
-                utilities.getFolderSize(file.href)
+                // utilities.getFolderSize(file.href)
                 getFolderCount(file.href)
 
             } else {
@@ -3128,8 +3144,7 @@ ipcRenderer.on('search_results', (e, find_arr) => {
     })
 
     iconManager.resizeIcons(localStorage.getItem('icon_size'));
-
-    // switch_view(localStorage.getItem('view'));
+    viewManager.switchView(localStorage.getItem('view'));
     sort_cards()
     viewManager.lazyload();
 
@@ -3151,7 +3166,7 @@ ipcRenderer.on('recent_files', (e, dirents) => {
 ipcRenderer.on('folder_size', (e, source, folder_size) => {
     let folders = document.querySelector('.folder_grid, .hidden_folder_grid');
     let card = folders.querySelector(`[data-href="${source}"]`)
-    let size = card.querySelector('.size')
+    let size = card.querySelectorAll('.size')
     card = null;
     size.innerHTML = ''
     size.innerHTML = getFileSize(folder_size);
@@ -3495,6 +3510,8 @@ ipcRenderer.on('get_card_gio', (e, file) => {
         }
         // viewManager.lazyload();
     }
+
+    iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
 })
 

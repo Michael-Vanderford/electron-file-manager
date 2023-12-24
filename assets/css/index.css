@@ -99,7 +99,7 @@ th {
 
 #main {
     position: relative;
-    overflow-y: auto;
+    /* overflow-y: auto; */
     /* overflow-x: hidden; */
     /* border: 1px solid red; */
     background: var(--main);
@@ -110,15 +110,6 @@ th {
     width: 100%;
     height: 92%;
     /* flex: 1; */
-}
-
-#main::-webkit-scrollbar {
-    background: var(--input);
-    width: 0px;
-}
-
-#main::-webkit-scrollbar-track {
-    background: var(--location);
 }
 
 #main a {
@@ -442,11 +433,21 @@ th {
     font-weight: bold;
 }
 
-.active-tab-content {
+.tab-content {
     box-sizing: border-box;
     border: none;
     outline: none;
-    height: 100%;
+    height: 95%;
+    overflow-y: auto;
+}
+
+.tab-content::-webkit-scrollbar {
+    /* background: var(--scrollbar); */
+    width: 8px;
+}
+
+.tab-content::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
 }
 
 .merge_file_container {
@@ -656,14 +657,16 @@ progress::-webkit-progress-bar {
 }
 
 .list_container {
+    margin-top: 15px;
     display: flex;
     flex-direction: column;
     border-collapse: collapse;
 }
 
 .list {
+
     display: flex;
-    padding: 2px;
+    padding: 0px;
     width: 98%;
 }
 
@@ -1197,6 +1200,8 @@ input[type=text]:focus {
         --button-active: #1b557c;
         --location: #2c2c2c;
         --location-border: #3b3a3a;
+        --scrollbar: #484848;
+        --scrollbar-track: #2c2c2c;
 
         --svg: rgba(155, 155, 155, 0.7);
 
@@ -1244,6 +1249,8 @@ input[type=text]:focus {
         --button: #cfcfcf;
         --location: #e8e8e8;
         --location-border: #cfcfcf;
+        --scrollbar: #222222;
+        --scrollbar-track: #cfcfcf;
 
         --link: #4183c4;
         --highlight: rgba(0, 0, 0, 0.1);

@@ -1,7 +1,7 @@
 
 SFM - Beta
 
-File manager for Linux - Built with Electron
+Linux File Manager - Built with Electron
 
 Install
 
