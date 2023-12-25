@@ -23,31 +23,31 @@
 
 ## Features
 
-    * QuickSearch search
-    * Collapsible minibar
-    * Icon scaling
-    * Tabbed Views
-    * Audio or Video to Audio conversion - Requires ffmpeg
-    * Templates Folder for new file creation
-    * Native icon support
+* QuickSearch search
+* Collapsible minibar
+* Icon scaling
+* Tabbed Views
+* Audio or Video to Audio conversion - Requires ffmpeg
+* Templates Folder for new file creation
+* Native icon support
 
 
 ## Keyboard Shortcuts
 
-    * Go Back: Backspace
-    * ShowSidebar: Ctrl+B
-    * Find: Ctrl+Shift+F
-    * Rename: F2
-    * Cut: Ctrl+X
-    * Copy: Ctrl+C
-    * Paste: Ctrl+V
-    * SelectAll: Ctrl+A
-    * Delete: Del
-    * Compress: Shift+C
-    * Extract: Shift+E
-    * Properties: Ctrl+I
-    * NewFolder: Ctrl+Shift+N
-    * AddWorkspace: Ctrl+D
+* Go Back: Backspace
+* ShowSidebar: Ctrl+B
+* Find: Ctrl+Shift+F
+* Rename: F2
+* Cut: Ctrl+X
+* Copy: Ctrl+C
+* Paste: Ctrl+V
+* SelectAll: Ctrl+A
+* Delete: Del
+* Compress: Shift+C
+* Extract: Shift+E
+* Properties: Ctrl+I
+* NewFolder: Ctrl+Shift+N
+* AddWorkspace: Ctrl+D
 
 
 
