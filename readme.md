@@ -1,59 +1,54 @@
 
-SFM - Beta
+## SFM - Beta
 
-Linux File Manager - Built with Electron
+# Linux File Manager - Built with Electron
 
-Install
+### Install
 
 1. git clone https://github.com/Michael-Vanderford/electron-file-manager.git
 2. cd electron-file-manager
 3. npm i --save-dev
 4. npm start
 
-Grid View
+### Grid View
 ![Screenshot 1](assets/screenshots/screenshot1.png?raw=true)
-Properties
-![Screenshot 1](assets/screenshots/Properties.png?raw=true)
-Merge
-![Screenshot 1](assets/screenshots/Merge.png?raw=true)
+### Properties
+![Screenshot 2](assets/screenshots/Properties.png?raw=true)
+### Merge
+![Screenshot 3](assets/screenshots/Merge.png?raw=true)
 <!-- ![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
 
 ![Screenshot 3](/screenshots/screenshot_3.png?raw=true) -->
 
 
-<h4>Features</h4>
+## Features
 
-<ul>
-    <li>QuickSearch search</li>
-    <li>Collapsable minibar</li>
-    <li>Icon scaling</li>
-    <li>Tabbed Views</li>
-    <!-- <li>Audio playback</li> -->
-    <!-- <li>Audio or Video to Audio conversion - Requires ffmpeg</li> -->
-    <li>Templates Folder for new file creation</li>
-    <li>Native icon support</li>
-    <li>Diskspace Summary view</li>
-</ul>
+    QuickSearch search
+    Collapsible minibar
+    Icon scaling
+    Tabbed Views
+    Audio or Video to Audio conversion - Requires ffmpeg
+    Templates Folder for new file creation
+    Native icon support
 
-<h4>Keboard Shortcuts</h4>
 
-<ul>
-    <li>Go Back: Backspace</li>
-    <!-- <li>ShowWorkspace: Alt+W</li> -->
-    <li>ShowSidebar: Ctrl+B</li>
-    <li>Find: Ctrl+Shift+F</li>
-    <li>Rename: F2</li>
-    <li>Cut: Ctrl+X</li>
-    <li>Copy: Ctrl+C</li>
-    <li>Paste: Ctrl+V</li>
-    <li>SelectAll: Ctrl+A</li>
-    <li>Delete: Del</li>
-    <li>Compress: Shift+C</li>
-    <li>Extract: Shift+E</li>
-    <li>Properties: Ctrl+I</li>
-    <li>NewFolder: Ctrl+Shift+N</li>
-    <li>AddWorkspace: Ctrl+D</li>
-</ul>
+## Keyboard Shortcuts
+
+    Go Back: Backspace
+    ShowSidebar: Ctrl+B
+    Find: Ctrl+Shift+F
+    Rename: F2
+    Cut: Ctrl+X
+    Copy: Ctrl+C
+    Paste: Ctrl+V
+    SelectAll: Ctrl+A
+    Delete: Del
+    Compress: Shift+C
+    Extract: Shift+E
+    Properties: Ctrl+I
+    NewFolder: Ctrl+Shift+N
+    AddWorkspace: Ctrl+D
+
 
 
 
