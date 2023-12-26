@@ -886,7 +886,7 @@ class Utilities {
                     // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
                     // folder_count.innerText = viewManager.getFolderCount()
                     // disk_space.prepend(`Folder Count`, folder_count);
-                    utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected`);
+                    utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected (${getFileSize(viewManager.getTotalSize())})`);
 
                 }
 
@@ -914,6 +914,7 @@ class Utilities {
         active_tab_content.addEventListener('mouseup', (e) => {
             isSelecting = false;
             selectionRectangle.style.display = 'none';
+            // utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected (${getFileSize(viewManager.getTotalSize())})`);
         });
 
         active_tab_content.addEventListener('click', (e) => {
@@ -1172,6 +1173,7 @@ class Utilities {
                     let size = localStorage.getItem(href);
                     let size_div = card.querySelector('.size');
                     size_div.innerHTML = getFileSize(size);
+                    card.dataset.size = parseInt(size);
                 } else {
                     ipcRenderer.send('get_folder_size', href);
                 }
@@ -1817,6 +1819,15 @@ class ViewManager {
         return file_count.length;
     }
 
+    getTotalSize () {
+        let size = 0;
+        let cards = document.querySelectorAll('.highlight_select');
+        cards.forEach(card => {
+            size += parseInt(card.dataset.size);
+        })
+        return size;
+    }
+
 }
 
 class FileOperation {
@@ -2082,7 +2093,7 @@ class FileOperation {
                     } else {
                         // Call Get Folder Size
                         // getFolderSize(file.href);
-                        // getFolderCount(file.href);
+                        getFolderCount(file.href);
                     }
 
                     auto_complete_arr.push(file.href);
