@@ -19,6 +19,49 @@ if (localStorage.getItem('view') == null) {
     view = localStorage.getItem('view');
 }
 
+class ProgressBar {
+
+    constructor(containerId, options = {}) {
+        this.container = document.getElementById(containerId);
+        console.log(this.container)
+        this.progressElement = document.createElement('div');
+        this.progressElement.className = 'progress-bar';
+        this.container.appendChild(this.progressElement);
+
+        this.options = Object.assign({
+            minValue: 0,
+            maxValue: 100,
+            currentValue: 0,
+            showText: true,
+        }, options);
+
+        this.setValue(this.options.currentValue);
+    }
+
+    setValue(value) {
+        const percentage = this.calculatePercentage(value);
+        this.progressElement.style.width = `${percentage}%`;
+
+        if (this.options.showText) {
+            this.progressElement.innerHTML = `${percentage.toFixed(2)}%`;
+        }
+    }
+
+    calculatePercentage(value) {
+        const { minValue, maxValue } = this.options;
+        return Math.max(0, Math.min(100, ((value - minValue) / (maxValue - minValue)) * 100));
+    }
+
+    increment(step = 1) {
+         this.setValue(this.options.currentValue + step);
+    }
+
+    decrement(step = 1) {
+        this.setValue(this.options.currentValue - step);
+    }
+
+  }
+
 class SettingsManager {
 
     constructor () {
@@ -774,6 +817,123 @@ class Utilities {
     }
 
     /**
+     * Drag Select
+     */
+    dragSelect () {
+
+        const selectionRectangle = document.getElementById('selection-rectangle');
+        console.log(selectionRectangle)
+        let isSelecting = false;
+        let startPosX = 0;
+        let startPosY = 0;
+        let endPosX = 0;
+        let endPosY = 0;
+
+        const cards = document.querySelectorAll('.card');
+        const active_tab_content = document.querySelector('.active-tab-content');
+        active_tab_content.addEventListener('mousedown', (e) => {
+
+            if (e.button === 2 || is_dragging_tab) {
+                is_dragging_tab = false;
+                return;
+            }
+
+            isSelecting = true;
+            startPosX = e.clientX;
+            startPosY = e.clientY;
+
+            selectionRectangle.style.left = startPosX + 'px';
+            selectionRectangle.style.top = startPosY + 'px';
+            selectionRectangle.style.width = '0';
+            selectionRectangle.style.height = '0';
+            selectionRectangle.style.display = 'block';
+
+            cards.forEach(item => item.classList.remove('selected'));
+
+        });
+
+        let allowClick = 1;
+        active_tab_content.addEventListener('mousemove', (e) => {
+
+            if (!isSelecting || is_dragging_tab) {
+                return;
+            }
+
+            endPosX = e.clientX;
+            endPosY = e.clientY;
+
+            const rectWidth = endPosX - startPosX;
+            const rectHeight = endPosY - startPosY;
+
+            selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
+            selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
+            selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
+            selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
+
+            // Highlight selectable items within the selection area
+            cards.forEach(item => {
+
+                const itemRect = item.getBoundingClientRect();
+                const isSelected =
+                    ((itemRect.left < endPosX && itemRect.right > startPosX) ||
+                    (itemRect.left < startPosX && itemRect.right > endPosX)) &&
+                    ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
+                    (itemRect.top < startPosY && itemRect.bottom > endPosY));
+
+                if (isSelected) {
+                    item.classList.add('highlight_select');
+
+                    // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
+                    // folder_count.innerText = viewManager.getFolderCount()
+                    // disk_space.prepend(`Folder Count`, folder_count);
+                    utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected`);
+
+                }
+
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', item.textContent);
+                    isSelecting = false;
+                    selectionRectangle.style.display = 'none';
+                    item.classList.add('dragging')
+                })
+
+                item.addEventListener('dragover', (e) => {
+                    isSelecting = false;
+                })
+
+                item.addEventListener('drop', (e) => {
+                    isSelecting = false;
+                })
+
+            });
+
+            allowClick = 0;
+
+        });
+
+        active_tab_content.addEventListener('mouseup', (e) => {
+            isSelecting = false;
+            selectionRectangle.style.display = 'none';
+        });
+
+        active_tab_content.addEventListener('click', (e) => {
+            if (allowClick) {
+                clearHighlight()
+            } else {
+                allowClick = 1;
+            }
+        })
+
+        // utilities.getFolderSizes();
+        // utilities.autoComplete();
+        // Focus first card
+        // let href = cards[0].querySelector('.header a');
+        // href.focus();
+
+    }
+
+
+    /**
      * Clear Folder Size
      */
     clearFolderSize(href) {
@@ -1234,8 +1394,9 @@ class TabManager {
 
             tab.addEventListener("drop", (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 selectionRectangle.style.display = 'none';
-
+                clearHighlight();
                 if (draggingTab) {
                     const targetTab = e.target.closest(".tab");
                     if (targetTab) {
@@ -1248,7 +1409,7 @@ class TabManager {
                         }
                     }
                 }
-                clearHighlight();
+
             });
 
         })
@@ -1992,99 +2153,100 @@ class FileOperation {
             main.classList.remove('loader');
 
             // Drag Select for cards
-            const cards = document.querySelectorAll('.card');
-            active_tab_content.addEventListener('mousedown', (e) => {
+            utilities.dragSelect();
+            // const cards = document.querySelectorAll('.card');
+            // active_tab_content.addEventListener('mousedown', (e) => {
 
-                if (e.button === 2 || is_dragging_tab) {
-                    is_dragging_tab = false;
-                    return;
-                }
+            //     if (e.button === 2 || is_dragging_tab) {
+            //         is_dragging_tab = false;
+            //         return;
+            //     }
 
-                isSelecting = true;
-                startPosX = e.clientX;
-                startPosY = e.clientY;
+            //     isSelecting = true;
+            //     startPosX = e.clientX;
+            //     startPosY = e.clientY;
 
-                selectionRectangle.style.left = startPosX + 'px';
-                selectionRectangle.style.top = startPosY + 'px';
-                selectionRectangle.style.width = '0';
-                selectionRectangle.style.height = '0';
-                selectionRectangle.style.display = 'block';
+            //     selectionRectangle.style.left = startPosX + 'px';
+            //     selectionRectangle.style.top = startPosY + 'px';
+            //     selectionRectangle.style.width = '0';
+            //     selectionRectangle.style.height = '0';
+            //     selectionRectangle.style.display = 'block';
 
-                cards.forEach(item => item.classList.remove('selected'));
+            //     cards.forEach(item => item.classList.remove('selected'));
 
-            });
+            // });
 
-            let allowClick = 1;
-            active_tab_content.addEventListener('mousemove', (e) => {
+            // let allowClick = 1;
+            // active_tab_content.addEventListener('mousemove', (e) => {
 
-                if (!isSelecting || is_dragging_tab) {
-                    return;
-                }
+            //     if (!isSelecting || is_dragging_tab) {
+            //         return;
+            //     }
 
-                endPosX = e.clientX;
-                endPosY = e.clientY;
+            //     endPosX = e.clientX;
+            //     endPosY = e.clientY;
 
-                const rectWidth = endPosX - startPosX;
-                const rectHeight = endPosY - startPosY;
+            //     const rectWidth = endPosX - startPosX;
+            //     const rectHeight = endPosY - startPosY;
 
-                selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
-                selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
-                selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
-                selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
+            //     selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
+            //     selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
+            //     selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
+            //     selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
 
-                // Highlight selectable items within the selection area
-                cards.forEach(item => {
+            //     // Highlight selectable items within the selection area
+            //     cards.forEach(item => {
 
-                    const itemRect = item.getBoundingClientRect();
-                    const isSelected =
-                        ((itemRect.left < endPosX && itemRect.right > startPosX) ||
-                        (itemRect.left < startPosX && itemRect.right > endPosX)) &&
-                        ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
-                        (itemRect.top < startPosY && itemRect.bottom > endPosY));
+            //         const itemRect = item.getBoundingClientRect();
+            //         const isSelected =
+            //             ((itemRect.left < endPosX && itemRect.right > startPosX) ||
+            //             (itemRect.left < startPosX && itemRect.right > endPosX)) &&
+            //             ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
+            //             (itemRect.top < startPosY && itemRect.bottom > endPosY));
 
-                    if (isSelected) {
-                        item.classList.add('highlight_select');
+            //         if (isSelected) {
+            //             item.classList.add('highlight_select');
 
-                        // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
-                        // folder_count.innerText = viewManager.getFolderCount()
-                        // disk_space.prepend(`Folder Count`, folder_count);
-                        utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected`);
+            //             // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
+            //             // folder_count.innerText = viewManager.getFolderCount()
+            //             // disk_space.prepend(`Folder Count`, folder_count);
+            //             utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected`);
 
-                    }
+            //         }
 
-                    item.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.setData('text/plain', item.textContent);
-                        isSelecting = false;
-                        selectionRectangle.style.display = 'none';
-                        item.classList.add('dragging')
-                    })
+            //         item.addEventListener('dragstart', (e) => {
+            //             e.dataTransfer.setData('text/plain', item.textContent);
+            //             isSelecting = false;
+            //             selectionRectangle.style.display = 'none';
+            //             item.classList.add('dragging')
+            //         })
 
-                    item.addEventListener('dragover', (e) => {
-                        isSelecting = false;
-                    })
+            //         item.addEventListener('dragover', (e) => {
+            //             isSelecting = false;
+            //         })
 
-                    item.addEventListener('drop', (e) => {
-                        isSelecting = false;
-                    })
+            //         item.addEventListener('drop', (e) => {
+            //             isSelecting = false;
+            //         })
 
-                });
+            //     });
 
-                allowClick = 0;
+            //     allowClick = 0;
 
-            });
+            // });
 
-            active_tab_content.addEventListener('mouseup', (e) => {
-                isSelecting = false;
-                selectionRectangle.style.display = 'none';
-            });
+            // active_tab_content.addEventListener('mouseup', (e) => {
+            //     isSelecting = false;
+            //     selectionRectangle.style.display = 'none';
+            // });
 
-            document.addEventListener('click', (e) => {
-                if (allowClick) {
-                    clearHighlight()
-                } else {
-                    allowClick = 1;
-                }
-            })
+            // active_tab_content.addEventListener('click', (e) => {
+            //     if (allowClick) {
+            //         clearHighlight()
+            //     } else {
+            //         allowClick = 1;
+            //     }
+            // })
 
             utilities.getFolderSizes();
 
@@ -3511,6 +3673,7 @@ ipcRenderer.on('get_card_gio', (e, file) => {
         // viewManager.lazyload();
     }
 
+    utilities.dragSelect();
     iconManager.resizeIcons(localStorage.getItem('icon_size'));
 
 })
@@ -3570,9 +3733,13 @@ function formatEstimatedTime(seconds) {
     // return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+
+
 // Set Progress
 let startTime = null
 ipcRenderer.on('set_progress', (e, data) => {
+
+
 
     // // console.log(data)
     let main = document.querySelector('.main')

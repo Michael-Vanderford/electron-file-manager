@@ -5,10 +5,10 @@
 
 ### Install
 
-1. git clone https://github.com/Michael-Vanderford/electron-file-manager.git
-2. cd electron-file-manager
-3. npm i --save-dev
-4. npm start
+    git clone https://github.com/Michael-Vanderford/electron-file-manager.git
+    cd electron-file-manager
+    npm i --save-dev
+    npm start
 
 ### Grid View
 ![Screenshot 1](assets/screenshots/screenshot1.png?raw=true)
