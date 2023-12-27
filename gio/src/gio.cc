@@ -11,6 +11,7 @@
 #include <node.h>
 #include <node_api.h>
 #include <gio/gio.h>
+#include <glib-object.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 #include <iostream>
@@ -1088,16 +1089,29 @@ namespace gio {
             src = g_file_new_for_uri(*sourceFile);
         }
 
-        GFileInfo* file_info = g_file_query_info(src, G_FILE_ATTRIBUTE_STANDARD_ICON, G_FILE_QUERY_INFO_NONE, NULL, NULL);
+        GFileInfo* file_info = g_file_query_info(src,
+                                                G_FILE_ATTRIBUTE_STANDARD_ICON,
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                NULL);
 
+
+        // if (file_info) {
+        //     const gchar *icon_name = g_file_info_get_attribute_string(file_info, G_FILE_ATTRIBUTE_STANDARD_ICON);
+        //     g_object_unref(file_info);
+
+        //     // Print the filename of the icon
+        //     printf("%s\n", icon_name);
+
+        // }
         GIcon *icon = g_file_info_get_icon(file_info);
         gchar *icon_name = g_icon_to_string(icon);
 
-        // Print the filename of the icon
-        printf("%s\n", icon_name);
+        // // Print the filename of the icon
+        printf("%s", icon_name);
 
         // // Cleanup
-        g_object_unref(icon);
+        // g_object_unref(icon);
         g_object_unref(src);
 
     }

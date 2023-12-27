@@ -1,6 +1,6 @@
 /**
  * @name Linux File Manager
- * @version 1.004 - 
+ * @version 1.004 -
  */
 
 // Import the required modules
@@ -231,7 +231,9 @@ class IconManager {
                             '/usr/share/icons')
 
             search_path.every(icon_path => {
-                if (fs.existsSync(path.join(icon_path, icon_theme))) {
+                let theme_path = path.join(icon_path, icon_theme);
+                console.log(theme_path)
+                if (fs.existsSync(theme_path)) {
                     icon_dir = path.join(icon_path, icon_theme);
                     return false;
                 } else {
@@ -241,25 +243,38 @@ class IconManager {
             })
             let folder_icon_path = ''
             let icon_dirs = [
-                path.join(icon_dir, 'places@2x/48/folder.svg'),
-                path.join(icon_dir, '32x32/places/folder.png'),
-                path.join(icon_dir, 'places/scalable/folder.svg'),
-                path.join(icon_dir, 'scalable@2x/places/folder.svg')
+                path.join(icon_dir, 'places@2x/48/'),
+                path.join(icon_dir, '32x32/places/'),
+                path.join(icon_dir, '64x64/places/'),
+                path.join(icon_dir, 'places/scalable/'),
+                path.join(icon_dir, 'scalable@2x/places/'),
+                path.join(icon_dir, 'places/32/'),
+                path.join(icon_dir, 'places/48/'),
+                path.join(icon_dir, 'places/64/'),
+                path.join(icon_dir, 'places/128/'),
+                path.join(icon_dir, 'places/symbolic/')
             ];
             icon_dirs.every(icon_dir => {
                 if (fs.existsSync(icon_dir)) {
                     folder_icon_path = icon_dir
                     return false;
                 } else {
-                    folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
+                    folder_icon_path = path.join(__dirname, 'assets/icons/')
                     return true;
                 }
             })
-            // console.log(folder_icon_path);
+            console.log(folder_icon_path);
             return folder_icon_path;
         } catch (err) {
             console.log(err);
         }
+    }
+
+    getIcon(folder_path) {
+
+        let icon = gio.get_icon(folder_path);
+        return icon;
+
     }
 
 }
@@ -900,6 +915,10 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+ipcMain.handle('file_exists', (e, href) => {
+    return fs.existsSync(href);
+})
+
 ipcMain.handle('autocomplete', async (e, directory) => {
 
     let autocomplete_arr = [];
@@ -1369,49 +1388,15 @@ ipcMain.handle('connect', async (e, cmd) => {
 
 })
 
+// Get folder icon
+ipcMain.on('get_folder_icon', (e, folder_path) => {
+    let icon = gio.get_icon(folder_path);
+    console.log(icon);
+})
+
 // Icon Theme
 ipcMain.handle('folder_icon', (e) => {
-
     return iconManager.getFolderIcon();
-
-    // let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
-    // let icon_dir = path.join(__dirname, 'assets', 'icons');
-    // try {
-    //     let search_path = [];
-    //     search_path.push(path.join(home, '.local/share/icons'),
-    //                      path.join(home, '.icons'),
-    //                      '/usr/share/icons')
-
-    //     search_path.every(icon_path => {
-    //         if (fs.existsSync(path.join(icon_path, icon_theme))) {
-    //             icon_dir = path.join(icon_path, icon_theme);
-    //             return false;
-    //         } else {
-    //             icon_dir = path.join(__dirname, 'assets', 'icons', 'kora');
-    //             return true;
-    //         }
-    //     })
-    //     let folder_icon_path = ''
-    //     let icon_dirs = [
-    //         path.join(icon_dir, 'places@2x/48/folder.svg'),
-    //         path.join(icon_dir, '32x32/places/folder.png'),
-    //         path.join(icon_dir, 'places/scalable/folder.svg'),
-    //         path.join(icon_dir, 'scalable@2x/places/folder.svg')
-    //     ];
-    //     icon_dirs.every(icon_dir => {
-    //         if (fs.existsSync(icon_dir)) {
-    //             folder_icon_path = icon_dir
-    //             return false;
-    //         } else {
-    //             folder_icon_path = path.join(__dirname, 'assets/icons/folder.svg')
-    //             return true;
-    //         }
-    //     })
-    //     console.log(folder_icon_path);
-    //     return folder_icon_path;
-    // } catch (err) {
-    //     console.log(err);
-    // }
 })
 
 // Get Writable Theme

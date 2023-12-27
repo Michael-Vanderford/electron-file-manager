@@ -610,13 +610,56 @@ class Utilities {
         icon.append(img);
         header.append(href, input);
 
-        // console.log(file)
-
         // Directory
         if (file.is_dir || file.type === 'inode/directory') {
 
+            // ipcRenderer.send('get_folder_icon', file.href);
+
             is_dir = 1;
-            img.src = folder_icon;
+
+            let folder_icon_path = folder_icon + `folder.svg`;
+            console.log(folder_icon)
+            ipcRenderer.invoke('file_exists', folder_icon_path).then(res => {
+
+                let ext = '.svg';
+                if (!res) {
+                    ext = '.png';
+                }
+
+                if (file.href.endsWith('Documents')) {
+                    folder_icon_path = folder_icon + `folder-documents${ext}`;
+                } else if (file.href.endsWith('Downloads')) {
+                    folder_icon_path = folder_icon + `folder-downloads${ext}`;
+                } else if (file.href.endsWith('Music')) {
+                    folder_icon_path = folder_icon + `folder-music${ext}`;
+                } else if (file.href.endsWith('Pictures')) {
+                    folder_icon_path = folder_icon + `folder-pictures${ext}`;
+                } else if (file.href.endsWith('Videos')) {
+                    folder_icon_path = folder_icon + `folder-videos${ext}`;
+                } else {
+                    folder_icon_path = folder_icon + `folder${ext}`;
+                }
+
+                img.src = folder_icon_path;
+
+            })
+            // img.src = folder_icon;
+
+            // if (file.href.endsWith('Documents')) {
+            //     img.src = folder_icon + 'folder-documents.svg';
+            // } else if (file.href.endsWith('Downloads')) {
+            //     img.src = folder_icon + 'folder-downloads.svg';
+            // } else if (file.href.endsWith('Music')) {
+            //     img.src = folder_icon + 'folder-music.svg';
+            // } else if (file.href.endsWith('Pictures')) {
+            //     img.src = folder_icon + 'folder-pictures.svg';
+            // } else if (file.href.endsWith('Videos')) {
+            //     img.src = folder_icon + 'folder-videos.svg';
+            // } else {
+            //     img.src = folder_icon + 'folder.svg';
+            // }
+            // console.log(img.src)
+
             card.classList.add('folder_card', 'lazy')
 
             // Href
@@ -5090,7 +5133,7 @@ function getProperties(properties_arr) {
 
                 if (file.is_dir) {
 
-                    icon.append(add_img(folder_icon))
+                    icon.append(add_img(folder_icon + `folder.svg`))
                     content.append(add_item('Size:'), add_item(size));
 
                     if (file.is_readable) {
@@ -5647,7 +5690,7 @@ function getWorkspace(callback) {
             a.preventDefault = true;
 
             if (file.content_type === 'inode/directory') {
-                img.src = folder_icon;
+                img.src = folder_icon + 'folder.svg';
                 workspace_item.append(a);
                 workspace_div.append(img, workspace_item);
             } else {
