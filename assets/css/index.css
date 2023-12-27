@@ -99,7 +99,7 @@ th {
 
 #main {
     position: relative;
-    overflow-y: auto;
+    /* overflow-y: auto; */
     /* overflow-x: hidden; */
     /* border: 1px solid red; */
     background: var(--main);
@@ -112,12 +112,12 @@ th {
     /* flex: 1; */
 }
 
-#main::-webkit-scrollbar {
+.active-tab-content::-webkit-scrollbar {
     background: var(--input);
-    width: 0px;
+    width: 8px;
 }
 
-#main::-webkit-scrollbar-track {
+.active-tab-content::-webkit-scrollbar-track {
     background: var(--location);
 }
 
@@ -443,11 +443,13 @@ th {
 }
 
 .active-tab-content {
+    overflow-x: hidden;
+    overflow-y: auto;
     /* border:1px solid red !important; */
     box-sizing: border-box;
     border: none;
     outline: none;
-    height: 100%;
+    height: 95%;
 }
 
 .merge_file_container {
