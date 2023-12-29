@@ -616,20 +616,24 @@ class Utilities {
             // ipcRenderer.send('get_folder_icon', file.href);
 
             is_dir = 1;
-
             let folder_icon_path = folder_icon + `folder.svg`;
-            console.log(folder_icon)
-            ipcRenderer.invoke('file_exists', folder_icon_path).then(res => {
-
+            ipcRenderer.invoke('file_exists', folder_icon_path)
+            .then(res => {
                 let ext = '.svg';
+
                 if (!res) {
                     ext = '.png';
                 }
 
-                if (file.href.endsWith('Documents')) {
+                if (file.href.endsWith('Document')) {
                     folder_icon_path = folder_icon + `folder-documents${ext}`;
                 } else if (file.href.endsWith('Downloads')) {
-                    folder_icon_path = folder_icon + `folder-downloads${ext}`;
+                    const downloadsPath = folder_icon + `folder-downloads${ext}`;
+                    ipcRenderer.invoke('file_exists', downloadsPath).then(res => {
+                        folder_icon_path = res ? downloadsPath : folder_icon + `folder-download${ext}`;
+                        img.src = folder_icon_path;
+                    });
+                    return;
                 } else if (file.href.endsWith('Music')) {
                     folder_icon_path = folder_icon + `folder-music${ext}`;
                 } else if (file.href.endsWith('Pictures')) {
@@ -641,8 +645,7 @@ class Utilities {
                 }
 
                 img.src = folder_icon_path;
-
-            })
+            });
             // img.src = folder_icon;
 
             // if (file.href.endsWith('Documents')) {
@@ -3920,7 +3923,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             break;
         }
         case 'compress_zip': {
-            compress('zip');
+            fileOperation.compress('zip');
             break;
         }
         case 'extract': {

@@ -1220,7 +1220,7 @@ ipcMain.on('compress', (e, location, type, size) => {
         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
     }
 
-    win.send('msg', 'Compressing Files.');
+    win.send('msg', 'Compressing Files.', 0);
 
     let file_path = path.format({dir: location, base: destination});
     // Show progress for compressing files
@@ -1247,6 +1247,9 @@ ipcMain.on('compress', (e, location, type, size) => {
         clearInterval(setinterval_id);
         win.send('set_progress', { value: 1, max: 1, msg: ''});
         win.send('msg', 'Done Compressing Files.');
+
+        win.send('remove_card', file_path);
+        win.send('get_card_gio', gio.get_file(file_path));
 
         size = 0;
         c = 0;
@@ -2676,6 +2679,7 @@ ipcMain.on('main_menu', (e, destination) => {
             submenu: [
                 {
                     label: 'Grid',
+                    // accelerator: process.platform === 'darwin' ? 'Shift+G' : 'Shift+G',
                     click: (e) => {
                         win.send('switch_view', 'grid')
                         // win.webContents.reloadIgnoringCache();
@@ -2683,6 +2687,7 @@ ipcMain.on('main_menu', (e, destination) => {
                 },
                 {
                     label: 'List',
+                    // accelerator: process.platform === 'darwin' ? 'CmdOrCtrl+L' : 'CmdOrCtrl+L',
                     click: () => {
                         win.send('switch_view', 'list')
                         // win.webContents.reloadIgnoringCache();
