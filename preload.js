@@ -6469,14 +6469,14 @@ window.addEventListener('DOMContentLoaded', (e) => {
         document.addEventListener('wheel', (e) => {
             if (e.ctrlKey && e.deltaY < 0) {
                 if ((init_size) < 64) {
-                    init_size += 16
+                    init_size += 8
                     iconManager.resizeIcons(init_size);
                     // localStorage.setItem('icon_size', init_size);
                     // console.log("scrolling up", init_size)
                 }
             } else if (e.ctrlKey && e.deltaY > 0) {
                 if ((init_size) > 16) {
-                    init_size -= 16
+                    init_size -= 8
                     iconManager.resizeIcons(init_size);
                     // localStorage.setItem('icon_size', init_size);
                     // console.log("scrolling up", init_size)
