@@ -1243,8 +1243,28 @@ class IconManager {
         this.slider = document.getElementById('slider');
     }
 
-    resizeIcons(icon_size) {
+    getIconSize() {
+        let icon_size = "";
+        if (view === 'grid') {
+            if (localStorage.getItem('icon_size') === null) {
+                localStorage.setItem('icon_size', 48);
+                icon_size = 48;
+            } else {
+                icon_size = localStorage.getItem('icon_size');
+            }
+        } else if (view === 'list') {
+            if (localStorage.getItem('list_icon_size') === null) {
+                localStorage.setItem('list_icon_size', 24);
+                icon_size = 24;
+            }
+        }
+        if (icon_size === null) {
+            icon_size = 48;
+        }
+        return icon_size;
+    }
 
+    resizeIcons(icon_size) {
         let cards = document.querySelectorAll('.card');
         cards.forEach(card => {
             // if (!card.classList.contains('list')) {
@@ -1253,8 +1273,13 @@ class IconManager {
                 icon.style.height = `${icon_size}px`;
             // }
         })
+        if (view === 'grid') {
+            localStorage.setItem('icon_size', icon_size);
+        } else if (view === 'list') {
+            localStorage.setItem('list_icon_size', icon_size);
+        }
         this.slider.value = icon_size;
-        localStorage.setItem('icon_size', icon_size);
+        console.log(view)
     }
 
 }
@@ -1628,6 +1653,8 @@ class ViewManager {
 
         });
 
+        iconManager.resizeIcons(localStorage.getItem('icon_size'));
+
     }
 
     /**
@@ -1694,7 +1721,7 @@ class ViewManager {
 
         })
 
-        iconManager.resizeIcons(localStorage.getItem('icon_size'));
+        iconManager.resizeIcons(localStorage.getItem('list_icon_size'));
 
     }
 
@@ -2196,12 +2223,15 @@ class FileOperation {
             // }
 
             // Set Icon Size
-            if (localStorage.getItem('icon_size') !== null) {
-                let icon_size = localStorage.getItem('icon_size')
-                slider.value = icon_size;
-                // console.log(icon_size)
-                iconManager.resizeIcons(icon_size);
+            let icon_size = "";
+            if (view === 'grid') {
+                icon_size = localStorage.getItem('icon_size')
+            } else if (view === 'list') {
+                icon_size = localStorage.getItem('list_icon_size')
             }
+            iconManager.resizeIcons(icon_size);
+            slider.value = icon_size;
+
 
             viewManager.lazyload();
             sort_cards();
@@ -3362,7 +3392,12 @@ ipcRenderer.on('search_results', (e, find_arr) => {
 
     })
 
-    iconManager.resizeIcons(localStorage.getItem('icon_size'));
+    if (view === 'grid') {
+        iconManager.resizeIcons(localStorage.getItem('icon_size'));
+    } else if (view === 'list') {
+        iconManager.resizeIcons(localStorage.getItem('list_icon_size'));
+    }
+
     viewManager.switchView(localStorage.getItem('view'));
     sort_cards()
     viewManager.lazyload();
@@ -3731,7 +3766,12 @@ ipcRenderer.on('get_card_gio', (e, file) => {
     }
 
     utilities.dragSelect();
-    iconManager.resizeIcons(localStorage.getItem('icon_size'));
+
+    if (view === 'grid') {
+        iconManager.resizeIcons(localStorage.getItem('icon_size'));
+    } else if (view === 'list') {
+        iconManager.resizeIcons(localStorage.getItem('list_icon_size'));
+    }
 
 })
 
@@ -5329,7 +5369,11 @@ function getRecentView(dirents) {
     tab_content.append(folder_grid, file_grid)
     localStorage.setItem('location', 'Recent');
 
-    iconManager.resizeIcons(localStorage.getItem('icon_size'));
+    if (view === 'grid') {
+        iconManager.resizeIcons(localStorage.getItem('icon_size'));
+    } else if (view === 'list') {
+        listManager.resizeIcons(localStorage.getItem('list_icon_size'));
+    }
     viewManager.lazyload();
 
     viewManager.switchView(localStorage.getItem('view'));

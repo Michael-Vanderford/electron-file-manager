@@ -3,6 +3,7 @@
     "version": "1.0.4",
     "description": "File Manager",
     "projectUrl": "https://github.com/Michael-Vanderford/electron-file-manager",
+    "homepage": "https://github.com/Michael-Vanderford/electron-file-manager",
     "main": "main.js",
     "license": "GPL-2.0+",
     "maintainer": "Michael Vanderford michael.vanderford@gmail.com",
