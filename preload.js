@@ -1006,11 +1006,11 @@ class Utilities {
      * @returns Returns the selected files cumulative size
      */
     getSelectedSize() {
-        // let cards = document.querySelectorAll('.highlight, .highlight_select');
+        let cards = document.querySelectorAll('.highlight, .highlight_select');
         let size = 0;
-        // cards.forEach(card => {
-        //     size += parseInt(card.dataset.size);
-        // })
+        cards.forEach(card => {
+            size += parseInt(card.dataset.size);
+        })
         // this.msg(`Selected Size: ${getFileSize(size)}`);
         return size;
     }
@@ -3830,13 +3830,9 @@ function formatEstimatedTime(seconds) {
     // return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-
-
 // Set Progress
 let startTime = null
 ipcRenderer.on('set_progress', (e, data) => {
-
-
 
     // // console.log(data)
     let main = document.querySelector('.main')
@@ -3880,7 +3876,7 @@ ipcRenderer.on('set_progress', (e, data) => {
 
     // console.log(estimatedTimeInSeconds)
     if (estimatedTimeInSeconds > 3) {
-        msg = `${data.msg}  Time Remaining ${formattedEstimatedTime}`;
+        msg = `${data.msg} (${formattedEstimatedTime})`;
     }
 
     progress_msg.innerHTML = msg;

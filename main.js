@@ -1220,19 +1220,20 @@ ipcMain.on('compress', (e, location, type, size) => {
         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
     }
 
-    win.send('msg', 'Compressing Files.', 0);
+    // win.send('msg', 'Compressing Files.', 0);
 
     let file_path = path.format({dir: location, base: destination});
     // Show progress for compressing files
     let setinterval_id = setInterval(() => {
 
         if (++c === 1)  {
-            win.send('msg', 'Compressing Files.');
+            // win.send('msg', 'Compressing Files.');
         }
 
         let file = gio.get_file(file_path);
         // console.log(file.size);
         win.send('set_progress', { value: file.size, max: (size / 2), msg: `Compressing ${path.basename(file_path)}`});
+
     }, 1000);
 
     exec(cmd, (err, stdout) => {
