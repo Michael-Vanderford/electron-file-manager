@@ -4,7 +4,7 @@
  */
 
 // Import the required modules
-const { app, BrowserWindow, ipcMain, nativeImage, shell, screen, Menu, MenuItem, systemPreferences, dialog, clipboard} = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage, shell, screen, Menu, MenuItem, systemPreferences, dialog, clipboard } = require('electron');
 const util = require('util')
 const nativeTheme = require('electron').nativeTheme
 const exec = util.promisify(require('child_process').exec)
@@ -40,12 +40,13 @@ let window_id = 0;
 let window_id0 = 0;
 let is_main = 1;
 let watcher_failed = 0;
+let progress_id = 0;
 
 let selected_files_arr = []
 
 class watcher {
 
-    constructor () {
+    constructor() {
 
         /**
          * Watch for theme changes
@@ -61,7 +62,7 @@ class watcher {
 
 class Dialogs {
 
-    constructor () {
+    constructor() {
 
         ipcMain.on('columns_menu', (e) => {
             const menu_template = [
@@ -80,7 +81,7 @@ class Dialogs {
 
     }
 
-    Columns () {
+    Columns() {
         let bounds = win.getBounds()
 
         let x = bounds.x + parseInt((bounds.width - 400) / 2);
@@ -100,7 +101,7 @@ class Dialogs {
             },
         })
 
-        dialog.loadFile(path.join(__dirname,'dialogs', 'columns.html'))
+        dialog.loadFile(path.join(__dirname, 'dialogs', 'columns.html'))
         // dialog.webContents.openDevTools()
 
         // SHOW DIALG
@@ -114,7 +115,7 @@ class Dialogs {
 
 class SettingsManager {
 
-    constructor () {
+    constructor() {
 
         this.settings = {};
         this.settings_file = path.join(app.getPath('userData'), 'settings.json');
@@ -137,7 +138,7 @@ class SettingsManager {
     }
 
     // Get Settings
-    getSettings () {
+    getSettings() {
         try {
             setTimeout(() => {
                 this.checkSettings();
@@ -176,7 +177,7 @@ class SettingsManager {
     }
 
     // Update settings
-    updateSettings (settings) {
+    updateSettings(settings) {
         try {
             fs.writeFileSync(this.settings_file, JSON.stringify(settings, null, 4));
         } catch (err) {
@@ -186,7 +187,7 @@ class SettingsManager {
     }
 
     // Toggle Menubar
-    showMenubar () {
+    showMenubar() {
         let showMenubar = this.settings['File Menu']['show'];
         console.log(showMenubar);
         if (showMenubar) {
@@ -196,7 +197,7 @@ class SettingsManager {
         }
     }
 
-    getWindowSetting () {
+    getWindowSetting() {
         try {
             this.window_settings = JSON.parse(fs.readFileSync(this.window_file, 'utf-8'));
         } catch (err) {
@@ -205,7 +206,7 @@ class SettingsManager {
         return this.window_settings;
     }
 
-    updateWindowSettings (window_settings) {
+    updateWindowSettings(window_settings) {
         this.window_settings = window_settings;
         fs.writeFileSync(this.window_file, JSON.stringify(this.window_settings, null, 4));
     }
@@ -214,21 +215,21 @@ class SettingsManager {
 
 class IconManager {
 
-    constructor () {
+    constructor() {
     }
 
     /**
      *
      * @returns {string} folder_icon_path
      */
-    getFolderIcon () {
+    getFolderIcon() {
         let icon_theme = execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
         let icon_dir = path.join(__dirname, 'assets', 'icons');
         try {
             let search_path = [];
             search_path.push(path.join(home, '.local/share/icons'),
-                            path.join(home, '.icons'),
-                            '/usr/share/icons')
+                path.join(home, '.icons'),
+                '/usr/share/icons')
 
             search_path.every(icon_path => {
                 let theme_path = path.join(icon_path, icon_theme);
@@ -278,6 +279,76 @@ class IconManager {
     }
 
 }
+
+// class CompressionManager {
+
+
+// compress (location, type, size) {
+
+//     let c = 0;
+//     let cmd = '';
+//     let file_list = [];
+//     selected_files_arr.forEach((item, idx) => {
+//         file_list += "'" + path.basename(item) + "' ";
+//     })
+
+//     // Create command for compressed file
+//     let destination = path.basename(selected_files_arr[0]);
+//     selected_files_arr = [];
+
+//     if (type === 'zip') {
+//         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
+//         cmd = `cd '${location}'; zip -r '${destination}' ${file_list}`;
+//     } else {
+//         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
+//         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
+//     }
+
+//     let file_path = path.format({dir: location, base: destination});
+
+//     progress_id = progress_id + 1;
+//     let setinterval_id = setInterval(() => {
+
+//         let file = gio.get_file(file_path);
+
+//         let progress_opts = {
+//             id: progress_id,
+//             value: file.size,
+//             max: (size / 2),
+//             msg: `Compressing ${path.basename(file_path)}`
+//         }
+//         win.send('set_progress', progress_opts);
+
+//     }, 1000);
+
+//     exec(cmd, (err, stdout) => {
+//         if (err) {
+//             console.log(err);
+//             win.send('msg', err);
+//         }
+
+//         if (watcher_failed) {
+//             win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
+//         }
+//         clearInterval(setinterval_id);
+//         let progress_opts1 = {
+//             id: progress_id,
+//             value: 1,
+//             max: 1,
+//             msg: ''
+//         }
+//         win.send('set_progress', progress_opts1);
+//         win.send('remove_card', file_path);
+//         win.send('get_card_gio', gio.get_file(file_path));
+
+//         size = 0;
+//         c = 0;
+
+//     })
+//     selected_files_arr = [];
+// }
+
+// }
 
 const theme_watcher = new watcher();
 const dialogs = new Dialogs();
@@ -465,11 +536,12 @@ worker.on('message', (data) => {
 
     if (data.cmd === 'progress') {
         // progress_counter++
-        let msg = data.msg;
-        let max = data.max;
-        let value = data.value;
-        win.send('set_progress', { value: value, max: max, msg: msg })
-        if (value == max) {
+        // let msg = data.msg;
+        // let max = data.max;
+        // let value = data.value;
+        // win.send('set_progress', { value: value, max: max, msg: msg })
+        win.send('set_progress', data)
+        if (data.value == data.max) {
             progress_counter = 0;
         }
     }
@@ -487,7 +559,7 @@ worker.on('message', (data) => {
 // Functions //////////////////////////////////////////////
 
 // Save Recent File
-function saveRecentFile (href) {
+function saveRecentFile(href) {
 
     // Check if the file exists
     const fileExists = fs.existsSync(recent_files_path);
@@ -524,7 +596,7 @@ function saveRecentFile (href) {
 }
 
 // Get Recent Files
-function getRecentFiles (callback) {
+function getRecentFiles(callback) {
     fs.readFile(recent_files_path, 'utf-8', (err, data) => {
         if (err) {
             console.log(err);
@@ -575,7 +647,7 @@ function getFolderSize(source, callback) {
             let size = 0;
             for (let i = 0; i < dirents.length; i++) {
                 if (dirents[i].type !== 'directory')
-                size += dirents[i].size
+                    size += dirents[i].size
             }
 
             // dirents.reduce((c, x) => x.type === 'directory' ? c + 1 : c, 0); //dirents.filter(x => x.is_dir === true).length;
@@ -616,9 +688,6 @@ function getFileCount(source, callback) {
 // Get Disk Space
 function get_disk_space(href) {
 
-    // console.log("Disk Space", getFileSize(parseInt(gio.du(source).totalSpace)));
-    // console.log("Free Space", getFileSize(parseInt(gio.du(source).freeSpace)));
-
     try {
 
         let options = {
@@ -633,76 +702,6 @@ function get_disk_space(href) {
     } catch (err) {
 
     }
-
-    // df = [];
-    // try {
-
-    //     let cmd = 'df "' + href + '"';
-    //     let data = execSync(cmd).toString();
-    //     let data_arr = data.split('\n');
-
-    //     // CREATE OPTIONS OBJECT
-    //     let options = {
-    //         disksize: 0,
-    //         usedspace: 0,
-    //         availablespace: 0,
-    //         foldersize: 0,
-    //         foldercount: 0,
-    //         filecount: 0
-    //     }
-
-    //     if (data_arr.length > 0) {
-
-    //         let res1 = data_arr[1].split(' ');
-
-    //         let c = 0;
-    //         res1.forEach((size, i) => {
-
-    //             if (size != '') {
-
-    //                 // 0 DISK
-    //                 // 6 SIZE OF DISK
-    //                 // 7 USED SPACE
-    //                 // 8 AVAILABLE SPACE
-    //                 // 10 PERCENTAGE USED
-    //                 // 11 CURRENT DIR
-
-    //                 switch (c) {
-    //                     case 1:
-    //                         options.disksize = getFileSize(parseFloat(size) * 1024)
-    //                         break;
-    //                     case 2:
-    //                         options.usedspace = getFileSize(parseFloat(size) * 1024)
-    //                         break;
-    //                     case 3:
-    //                         options.availablespace = getFileSize(parseFloat(size) * 1024)
-    //                         break;
-    //                 }
-
-    //                 ++c;
-
-    //             }
-    //         })
-
-    //         // options.foldercount = href.folder_count
-    //         // options.filecount = href.file_count
-    //         df.push(options);
-    //         // SEND DISK SPACE
-    //         win.send('disk_space', df);
-    //         cmd = 'cd "' + href.href + '"; du -s';
-    //         du = exec(cmd);
-
-    //         du.stdout.on('data', function (res) {
-    //             let size = parseInt(res.replace('.', '') * 1024)
-    //             size = get_file_size(size)
-    //             win.send('du_folder_size', size)
-    //         })
-
-    //     }
-
-    // } catch {
-    //     win.send('disk_space', df)
-    // }
 
 }
 
@@ -887,9 +886,9 @@ function get_files(source, tab) {
     // Call create thumbnails
     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
-        thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
+        thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
     } else {
-        thumb.postMessage({cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort});
+        thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
     }
 
     // Call ls worker to get file data
@@ -956,7 +955,7 @@ ipcMain.handle('find', async (e, cmd) => {
         if (files.length > 500) {
             return false;
         } else {
-            let search_arr =  [];
+            let search_arr = [];
             let c = 0;
             for (let i = 0; i < files.length; i++) {
 
@@ -1003,7 +1002,7 @@ ipcMain.handle('get_templates_folder', (e) => {
 
 // Get Files Array
 ipcMain.on('get_files_arr_merge', (e, source, destination, copy_arr) => {
-    worker.postMessage({'cmd': 'merge_files', source: source, destination: destination, copy_arr: copy_arr});
+    worker.postMessage({ 'cmd': 'merge_files', source: source, destination: destination, copy_arr: copy_arr });
 })
 
 // Get home directory
@@ -1048,8 +1047,8 @@ ipcMain.handle('nav_item', (e, dir) => {
 
 // New Folder
 ipcMain.on('new_folder', (e, destination) => {
-    let folder_path = `${path.format({dir: destination, base: 'New Folder'})}`
-    try{
+    let folder_path = `${path.format({ dir: destination, base: 'New Folder' })}`
+    try {
         gio.mkdir(folder_path)
     } catch (err) {
         win.send('msg', err.message);
@@ -1161,7 +1160,7 @@ ipcMain.on('extract', (e, location) => {
                     // let current_size = gio.du(filename).total;
                     let current_size = parseInt(execSync(`du -s ${filename} | awk '{print $1}'`).toString().replaceAll(',', ''))
                     // console.log(current_size, size);
-                    win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}`});
+                    win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}` });
 
                 }, 1000);
 
@@ -1181,7 +1180,7 @@ ipcMain.on('extract', (e, location) => {
                             win.send('get_folder_size', filename);
 
                             clearInterval(setinterval_id);
-                            win.send('set_progress', { value: size, max: size, msg: ''});
+                            win.send('set_progress', { value: size, max: size, msg: '' });
 
                         } catch (err) {
                             // console.log(err)
@@ -1202,61 +1201,38 @@ ipcMain.on('extract', (e, location) => {
 // Compress
 ipcMain.on('compress', (e, location, type, size) => {
 
-    let c = 0;
-    let file_list = [];
-    selected_files_arr.forEach((item, idx) => {
-        file_list += "'" + path.basename(item) + "' ";
+    let worker = new Worker(path.join(__dirname, './workers/worker.js'));
+    worker.on('message', (data) => {
+        if (data.cmd === 'msg') {
+            win.send('msg', data.msg, data.has_timeout);
+        }
+        if (data.cmd === 'progress') {
+            win.send('set_progress', data)
+        }
+        if (data.cmd === 'compress_done') {
+            // win.send('msg', 'Done Compressing Files', 1);
+            win.send('remove_card', data.file_path);
+            win.send('get_card_gio', gio.get_file(data.file_path));
+            let close_progress = {
+                id: data.id,
+                value: 1,
+                max: 1,
+                msg: ''
+            }
+            win.send('set_progress', close_progress);
+        }
     })
 
-    // Create command for compressed file
-    destination = path.basename(selected_files_arr[0]);
-    selected_files_arr = [];
-
-    if (type === 'zip') {
-        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-        cmd = `cd '${location}'; zip -r '${destination}' ${file_list}`;
-    } else {
-        destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-        cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
+    let data = {
+        id: progress_id += 1,
+        cmd: 'compress',
+        location: location,
+        type: type,
+        size: size,
+        files_arr: selected_files_arr
     }
+    worker.postMessage(data);
 
-    // win.send('msg', 'Compressing Files.', 0);
-
-    let file_path = path.format({dir: location, base: destination});
-    // Show progress for compressing files
-    let setinterval_id = setInterval(() => {
-
-        if (++c === 1)  {
-            // win.send('msg', 'Compressing Files.');
-        }
-
-        let file = gio.get_file(file_path);
-        // console.log(file.size);
-        win.send('set_progress', { value: file.size, max: (size / 2), msg: `Compressing ${path.basename(file_path)}`});
-
-    }, 1000);
-
-    exec(cmd, (err, stdout) => {
-        if (err) {
-            console.log(err);
-            win.send('msg', err);
-        }
-
-        if (watcher_failed) {
-            win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
-        }
-        clearInterval(setinterval_id);
-        win.send('set_progress', { value: 1, max: 1, msg: ''});
-        win.send('msg', 'Done Compressing Files.');
-
-        win.send('remove_card', file_path);
-        win.send('get_card_gio', gio.get_file(file_path));
-
-        size = 0;
-        c = 0;
-
-    })
-    selected_files_arr = [];
 })
 
 // Path Utilities //////////////////////////////////
@@ -1274,7 +1250,7 @@ ipcMain.handle('path:join', (e, dir) => {
 
 // Path Format
 ipcMain.handle('path:format', (e, dir, base) => {
-    return path.format({dir: dir, base: path.basename(base)});
+    return path.format({ dir: dir, base: path.basename(base) });
 })
 
 // Dirname
@@ -1313,7 +1289,7 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
             }
         }
 
-        win.send('set_progress', { value: i + 1, max: filter_merge_arr.length, msg: `Copying ${i + 1} of ${filter_merge_arr.length}`});
+        win.send('set_progress', { value: i + 1, max: filter_merge_arr.length, msg: `Copying ${i + 1} of ${filter_merge_arr.length}` });
         if (i == filter_merge_arr.length - 1) {
             progress_counter = 0;
         }
@@ -1361,7 +1337,7 @@ ipcMain.on('umount', (e, href) => {
 })
 
 // Search Results
-ipcMain.on('search_results', (e , search_arr) => {
+ipcMain.on('search_results', (e, search_arr) => {
     let arr = []
     search_arr.forEach(item => {
         try {
@@ -1505,22 +1481,13 @@ ipcMain.on('update_settings_columns', (e, key, value, location) => {
 })
 
 ipcMain.on('create_thumbnail', (e, href) => {
-
     // Note: Attempting thumbnail creation at the get_files call
-
-    // let thumb_dir  = path.join(app.getPath('userData'), 'thumbnails');
-    // let thumbnail = `${path.join(thumb_dir, path.basename(href))}`;
-    // gio.thumbnail(href);
-    // thumb.postMessage({cmd: 'create_thumbnail', href: href});
-
-    // if (!href.indexOf('sftp:') > -1) {
-        let thumb_dir = path.join(app.getPath('userData'), 'thumbnails')
-        thumb.postMessage({cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir});
-    // }
+    let thumb_dir = path.join(app.getPath('userData'), 'thumbnails')
+    thumb.postMessage({ cmd: 'create_thumbnail', href: href, thumb_dir: thumb_dir });
 })
 
 ipcMain.handle('get_thumbnails_directory', async (e) => {
-    let thumbnails_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    let thumbnails_dir = path.join(app.getPath('userData'), 'thumbnails')
     if (!fs.existsSync(thumbnails_dir)) {
         fs.mkdirSync(thumbnails_dir)
     }
@@ -1528,7 +1495,7 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
 })
 
 ipcMain.handle('get_thumbnail', (e, file) => {
-    let thumbnail_dir  = path.join(app.getPath('userData'), 'thumbnails')
+    let thumbnail_dir = path.join(app.getPath('userData'), 'thumbnails')
     let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
     if (!gio.exists(thumbnail)) {
         thumbnail = `./assets/icons/image-generic.svg`
@@ -1552,13 +1519,7 @@ function isValidUTF8(str) {
 }
 
 ipcMain.on('search', (e, search, location, depth) => {
-    // if (!isValidUTF8(search) || !isValidUTF8(location)) {
-    //     throw new Error("Invalid UTF-8 string");
-    // }
-    // gio.search(search, location, res => {
-    //     console.log(res);
-    // })
-    find.postMessage({cmd: 'search', search: search, location: location, depth: depth});
+    find.postMessage({ cmd: 'search', search: search, location: location, depth: depth });
 })
 
 // Om Get Recent Files
@@ -1571,7 +1532,7 @@ ipcMain.on('get_recent_files', (e, dir) => {
 // On Get Folder Size
 ipcMain.on('get_folder_size', (e, href) => {
     // console.log('get folder size', href);
-    worker.postMessage({cmd: 'folder_size', source: href});
+    worker.postMessage({ cmd: 'folder_size', source: href });
 })
 
 ipcMain.handle('get_folder_size_properties', async (e, href) => {
@@ -1593,7 +1554,7 @@ ipcMain.handle('get_folder_size_properties', async (e, href) => {
 
 // On Get Folder Count
 ipcMain.on('get_folder_count', (e, href) => {
-    worker.postMessage({cmd: 'folder_count', source: href});
+    worker.postMessage({ cmd: 'folder_count', source: href });
 })
 
 // On Get Folder Count
@@ -1744,11 +1705,37 @@ ipcMain.handle('get_icon', async (e, href) => {
 
 ipcMain.on('paste', (e, destination) => {
 
+    // progress_id += 1;
     // Note: Added a global array called selected_files_arr
     // This facilitates copying files between windows
     // Make sure this array gets cleared
     // Refer to preload.js: getSelectedFiles() sends the call to populate the array and is used in multiple operations in preload.js
     // Refer to main.js: ipcMain.on('selected_files', (e, selected_files)
+
+    // let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+    // paste_worker.on('message', (data) => {
+    //     if (data.cmd === 'progress') {
+    //         win.send('set_progress', data)
+    //         if (data.value == data.max) {
+    //             progress_counter = 0;
+    //         }
+    //     }
+    //     if (data.cmd === 'copy_done') {
+    //         if (is_main) {
+    //             if (watcher_failed) {
+    //                 let file = gio.get_file(data.destination);
+    //                 win.send('get_card_gio', file);
+    //             }
+    //         } else {
+    //             if (!is_main) {
+    //                 win.send('get_folder_count', path.dirname(data.destination));
+    //                 win.send('get_folder_size', path.dirname(data.destination));
+    //             }
+    //         }
+    //         win.send('lazyload');
+    //         win.send('clear');
+    //     }
+    // })
 
     let copy_arr = [];
     let copy_overwrite_arr = []
@@ -1756,10 +1743,10 @@ ipcMain.on('paste', (e, destination) => {
     let location = destination; //document.getElementById('location');
     if (selected_files_arr.length > 0) {
 
-        for(let i = 0; i < selected_files_arr.length; i++) {
+        for (let i = 0; i < selected_files_arr.length; i++) {
 
             let source = selected_files_arr[i];
-            let destination = path.format({dir: location, base: path.basename(selected_files_arr[i])});
+            let destination = path.format({ dir: location, base: path.basename(selected_files_arr[i]) });
             let file = gio.get_file(source)
 
             // Directory
@@ -1773,7 +1760,7 @@ ipcMain.on('paste', (e, destination) => {
                     }
                 }
 
-            // Files
+                // Files
             } else {
                 if (source === destination) {
                     // this is not building the filename correctly when a file extension has .tar.gz
@@ -1788,7 +1775,8 @@ ipcMain.on('paste', (e, destination) => {
 
             let copy_data = {
                 source: source, //selected_files_arr[i],
-                destination: destination //path.format({dir: location, base: path.basename(selected_files_arr[i])}),  //path.join(location, path.basename(selected_files_arr[i]))
+                destination: destination, //path.format({dir: location, base: path.basename(selected_files_arr[i])}),  //path.join(location, path.basename(selected_files_arr[i]))
+                is_dir: file.is_dir
             }
 
             if (overwrite == 0) {
@@ -1799,8 +1787,96 @@ ipcMain.on('paste', (e, destination) => {
 
             if (i == selected_files_arr.length - 1) {
                 if (copy_arr.length > 0) {
-                    worker.postMessage({ cmd: 'paste', copy_arr: copy_arr });
+
+                    // copy_arr.forEach(item => {
+
+                    //     let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+                    //     paste_worker.on('message', (data) => {
+                    //         if (data.cmd === 'progress') {
+                    //             win.send('set_progress', data)
+                    //         }
+                    //         if (data.cmd === 'copy_done') {
+                    //             if (is_main) {
+                    //                 if (watcher_failed) {
+                    //                     let file = gio.get_file(data.destination);
+                    //                     win.send('get_card_gio', file);
+                    //                 }
+                    //             } else {
+                    //                 if (!is_main) {
+                    //                     win.send('get_folder_count', path.dirname(data.destination));
+                    //                     win.send('get_folder_size', path.dirname(data.destination));
+                    //                 }
+                    //             }
+
+                    //             let close_progress = {
+                    //                 id: data.id,
+                    //                 value: 0,
+                    //                 max: 0,
+                    //             }
+                    //             win.send('set_progress', close_progress);
+
+                    //             win.send('lazyload');
+                    //             win.send('clear');
+                    //         }
+                    //     })
+
+                    //     let copy_arr1 = []
+                    //     copy_arr1.push(item)
+                    //     progress_id += 1;
+                    //     if (item.is_dir) {
+                    //         let data = {
+                    //             id: progress_id,
+                    //             cmd: 'paste',
+                    //             copy_arr: copy_arr1
+                    //         }
+                    //         paste_worker.postMessage(data);
+
+                    //     } else {
+
+                    //     }
+
+                    // })
+
+                    let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+                    paste_worker.on('message', (data) => {
+                        if (data.cmd === 'progress') {
+                            win.send('set_progress', data)
+
+                            if (data.max === 0) {
+                                win.send('msg', data.msg);
+                            }
+
+                        }
+                        if (data.cmd === 'copy_done') {
+                            if (is_main) {
+                                if (watcher_failed) {
+                                    let file = gio.get_file(data.destination);
+                                    win.send('get_card_gio', file);
+                                }
+                            } else {
+                                if (!is_main) {
+                                    win.send('get_folder_count', path.dirname(data.destination));
+                                    win.send('get_folder_size', path.dirname(data.destination));
+                                }
+                            }
+                            win.send('lazyload');
+                            win.send('clear');
+                        }
+
+                    })
+
+
+                    progress_id += 1;
+                    let data = {
+                        id: progress_id,
+                        cmd: 'paste',
+                        copy_arr: copy_arr
+                    }
+                    paste_worker.postMessage(data);
+
                 }
+
+
                 if (copy_overwrite_arr.length > 0) {
                     overWriteNext(copy_overwrite_arr);
                 }
@@ -1808,6 +1884,7 @@ ipcMain.on('paste', (e, destination) => {
                 copy_arr = [];
                 copy_overwrite_arr = [];
                 selected_files_arr = [];
+
             }
             // Reset variables
             overwrite = 0;
@@ -1823,10 +1900,10 @@ ipcMain.on('paste', (e, destination) => {
 ipcMain.on('move', (e, destination) => {
     let copy_arr = [];
     if (selected_files_arr.length > 0) {
-        for(let i = 0; i < selected_files_arr.length; i++) {
+        for (let i = 0; i < selected_files_arr.length; i++) {
             let copy_data = {
                 source: selected_files_arr[i],
-                destination: path.format({dir: destination, base: path.basename(selected_files_arr[i])})
+                destination: path.format({ dir: destination, base: path.basename(selected_files_arr[i]) })
             }
             copy_arr.push(copy_data);
         }
@@ -1837,39 +1914,6 @@ ipcMain.on('move', (e, destination) => {
         win.send('msg', `Nothing to Paste`);
     }
 })
-
-// Get Folder Size
-// ipcMain.handle('get_folder_size', async (e, href) => {
-//     console.log('get folder size', href);
-//     try {
-
-//         let st = new Date().getTime();
-
-//         let cmd = `cd '${href.replace("'", "''")}'; du -Hs`;
-//         const { err, stdout, stderr } = await exec(cmd);
-
-//         if (err) {
-//             console.error(stderr);
-//             return 0;
-//         }
-
-//         let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
-//         size = size * 1024;
-
-//         console.log('get folder size', size, (new Date().getTime() - st) / 1000);
-
-//         return size;
-//     } catch (error) {
-//         console.error(error);
-//         return 0;
-//     }
-// });
-
-// Dont use this - maybe handle in cpp using gio
-// ipcMain.on('get_folder_size', (e, href) => {
-//     worker.postMessage({cmd: 'get_folder_size', source: href});
-// })
-
 
 ipcMain.on('rename', (e, source, destination) => {
     worker.postMessage({ cmd: 'rename', source: source, destination: destination });
@@ -2381,7 +2425,30 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
 
     // Send array to worker
-    worker.postMessage({ cmd: 'delete_confirmed', files_arr: selected_files_arr });
+    let worker = new Worker(path.join(__dirname, 'workers/worker.js'));
+    worker.on('message', (data) => {
+        if (data.cmd === 'progress') {
+            win.send('set_progress', data)
+
+            // If data.max = 0 then we are done
+            if (data.max === 0) {
+                win.send('msg', data.msg);
+            }
+        }
+
+        // this fires after each file or directory is deleted
+        if (data.cmd === 'delete_done') {
+            win.send('remove_card', data.source);
+            // win.send('msg', `Deleted "${path.basename(data.source)}"`)
+        }
+    })
+
+    let delete_confirmed = {
+        id: progress_id += 1,
+        cmd: 'delete_confirmed',
+        files_arr: selected_files_arr
+    }
+    worker.postMessage(delete_confirmed);
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
@@ -2562,7 +2629,7 @@ let sort = 'date_desc';
 ipcMain.on('sort', (e, sort_by) => {
     sort = sort_by
 })
-function sort_menu () {
+function sort_menu() {
 
     let submenu = [
         {
@@ -3252,7 +3319,7 @@ ipcMain.on('recent_menu', (e, file) => {
 const template = [
     {
         label: 'File',
-        submenu : [
+        submenu: [
             {
                 label: 'New Window',
                 click: () => {
@@ -3260,7 +3327,7 @@ const template = [
                     createWindow();
                 }
             },
-            {type: 'separator'},
+            { type: 'separator' },
             // {
             //     label: 'Create New Folder',
             //     click: () => {
@@ -3278,7 +3345,7 @@ const template = [
                     }
                 ]
             },
-            {type: 'separator'},
+            { type: 'separator' },
             {
                 label: 'Connect to Server',
                 click: () => {
@@ -3294,12 +3361,13 @@ const template = [
                     });
                 }
             },
-            {type: 'separator'},
-            {role: 'Close'}
-    ]},
+            { type: 'separator' },
+            { role: 'Close' }
+        ]
+    },
     {
         label: 'Edit',
-        submenu : [
+        submenu: [
             {
                 role: 'copy',
                 click: () => {
@@ -3325,7 +3393,7 @@ const template = [
                     {
                         label: 'Date',
                         // accelerator: process.platform === 'darwin' ? 'CTRL+SHIFT+D' : 'CTRL+SHIFT+D',
-                        click: () => {win.send('sort', 'date')}
+                        click: () => { win.send('sort', 'date') }
                     },
                     {
                         label: 'Name',
@@ -3335,11 +3403,11 @@ const template = [
                     },
                     {
                         label: 'Size',
-                        click: () => {win.send('sort', 'name')}
+                        click: () => { win.send('sort', 'name') }
                     },
                     {
                         label: 'Type',
-                        click: () => {win.send('sort', 'type')}
+                        click: () => { win.send('sort', 'type') }
                     },
                 ]
             },
@@ -3367,7 +3435,7 @@ const template = [
                     win.send('msg', 'Error: Not yet implemented');
                 }
             },
-            {type: 'separator'},
+            { type: 'separator' },
             {
                 label: 'Show Sidebar',
                 accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.ShowSidebar : settings.keyboard_shortcuts.ShowSidebar,
@@ -3389,21 +3457,21 @@ const template = [
                     }
                 }
             },
-            {role: 'toggleDevTools'},
-            {type: 'separator'},
-            {type: 'separator'},
+            { role: 'toggleDevTools' },
+            { type: 'separator' },
+            { type: 'separator' },
             {
                 label: 'Appearance',
                 role: 'viewMenu'
             },
-            {type: 'separator'},
-            {role: 'reload'},
+            { type: 'separator' },
+            { role: 'reload' },
 
         ]
     },
     {
         label: 'Help',
-        submenu : [
+        submenu: [
             {
                 label: 'About',
                 click: () => {

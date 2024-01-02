@@ -19,48 +19,152 @@ if (localStorage.getItem('view') == null) {
     view = localStorage.getItem('view');
 }
 
-class ProgressBar {
+class ProgressManager {
 
-    constructor(containerId, options = {}) {
-        this.container = document.getElementById(containerId);
-        console.log(this.container)
-        this.progressElement = document.createElement('div');
-        this.progressElement.className = 'progress-bar';
-        this.container.appendChild(this.progressElement);
+    constructor(containerSelector, options) {
+        this.container = document.querySelector(containerSelector);
+        this.progress = null;
+        this.progressMsg = null;
+        this.progressBar = null;
+        this.startTime = null;
+        this.id = null;
+        this.msg = null;
 
-        this.options = Object.assign({
-            minValue: 0,
-            maxValue: 100,
-            currentValue: 0,
-            showText: true,
-        }, options);
-
-        this.setValue(this.options.currentValue);
-    }
-
-    setValue(value) {
-        const percentage = this.calculatePercentage(value);
-        this.progressElement.style.width = `${percentage}%`;
-
-        if (this.options.showText) {
-            this.progressElement.innerHTML = `${percentage.toFixed(2)}%`;
+        if (this.healthCheck(options)) {
+            this.initialize(options);
         }
     }
 
-    calculatePercentage(value) {
-        const { minValue, maxValue } = this.options;
-        return Math.max(0, Math.min(100, ((value - minValue) / (maxValue - minValue)) * 100));
+    healthCheck(options) {
+        for (let key in options) {
+            if (key[options] === 'undefined' || key[options] === "") {
+                console.log('missing option', key)
+                return 0;
+            }
+        }
+        return 1;
     }
 
-    increment(step = 1) {
-         this.setValue(this.options.currentValue + step);
+    initialize(options) {
+
+        // If the provided ID is different, create a new instance
+        this.id = options.id;
+        this.createProgressElements();
+        this.showProgress();
+
+        this.startTime = new Date();
+
+        const currentTime = new Date();
+        const elapsedTimeInSeconds = Math.floor((currentTime - this.startTime) / 1000);
+        const estimatedTimeInSeconds =
+        (elapsedTimeInSeconds / options.value) * (options.max - options.value);
+
+        const formattedEstimatedTime = this.formatEstimatedTime(estimatedTimeInSeconds);
+        this.msg = `${options.msg}`;
+
+        if (estimatedTimeInSeconds > 3) {
+            this.msg = `${options.msg} (${formattedEstimatedTime})`;
+        }
+
+        this.progressMsg.innerHTML = this.msg;
+        this.progressBar.value = options.value;
+        this.progressBar.max = options.max;
+
+        if (this.progressBar.value === this.progressBar.max) {
+            this.hideProgress();
+        }
+
     }
 
-    decrement(step = 1) {
-        this.setValue(this.options.currentValue - step);
+    createProgressElements() {
+        this.progress = this.addDiv(['progress']);
+        this.progressMsg = this.addDiv(['progress_msg']);
+        this.progressBar = document.createElement('progress');
+
+        this.progress.id = `progress_${this.id}`;
+        this.progressMsg.id = `progress_msg_${this.id}`;
+        this.progressBar.id = `progress_bar_${this.id}`;
+
+        this.progress.append(this.progressMsg, this.progressBar);
+        this.container.append(this.progress);
+
+        // this.progress.style.display = 'block';
+        // this.progress.style.position = 'absolute';
+        // this.progress.style.bottom = `${this.calculateBottomPosition()}px`; // Set the bottom property dynamically
+
     }
 
-  }
+    calculateBottomPosition() {
+        // Calculate the height of the progress bar plus any additional margin or padding
+        const progressBarHeight = this.progress.offsetHeight;
+        const additionalMargin = 5; // Adjust as needed
+
+        // Calculate the bottom position for the new progress bar
+        const bottomPosition = Array.from(this.container.children)
+            .filter(child => child.classList.contains('progress'))
+            .reduce((totalHeight, child) => totalHeight + child.offsetHeight + additionalMargin, 0);
+
+        return bottomPosition;
+    }
+
+    addDiv(classList) {
+        const div = document.createElement('div');
+        div.classList.add(...classList);
+        return div;
+    }
+
+    formatEstimatedTime(seconds) {
+        // Implement your own logic for formatting the estimated time (HH:MM:SS or other format)
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = Math.floor(seconds % 60);
+        return `${hours}:${minutes}:${remainingSeconds}`;
+    }
+
+    showProgress() {
+        this.container.classList.remove('hidden');
+    }
+
+    hideProgress() {
+        let progress_arr = document.querySelectorAll('.progress');
+        if (progress_arr.length === 0) {
+            this.container.classList.add('hidden');
+        }
+    }
+
+    updateProgress(data) {
+
+        if (data.max === 0) {
+            console.log('progress bar max is 0')
+            this.progressMsg.remove();
+            this.progressBar.remove();
+            this.progress.remove();
+            this.hideProgress();
+            return;
+        }
+
+        const currentTime = new Date();
+        const elapsedTimeInSeconds = Math.floor((currentTime - this.startTime) / 1000);
+        const estimatedTimeInSeconds =
+            (elapsedTimeInSeconds / data.value) * (this.progressBar.max - data.value);
+
+        const formattedEstimatedTime = this.formatEstimatedTime(estimatedTimeInSeconds);
+        let msg = `${data.msg} ${getFileSize(data.value)}`;
+
+        if (estimatedTimeInSeconds > 3) {
+            msg = `${data.msg} ${getFileSize(data.value)} (${formattedEstimatedTime})`;
+        }
+
+        this.progressMsg.innerHTML = msg;
+        this.progressBar.value = data.value;
+        this.progressBar.max = data.max;
+
+
+    }
+
+
+
+}
 
 class SettingsManager {
 
@@ -1009,7 +1113,11 @@ class Utilities {
         let cards = document.querySelectorAll('.highlight, .highlight_select');
         let size = 0;
         cards.forEach(card => {
-            size += parseInt(card.dataset.size);
+            if (card.dataset.size) {
+                size += parseInt(card.dataset.size);
+            } else {
+                size += 0;
+            }
         })
         // this.msg(`Selected Size: ${getFileSize(size)}`);
         return size;
@@ -1207,7 +1315,6 @@ class Utilities {
      * Call get folder size
      */
     getFolderSizes() {
-
         let tabs_content = document.querySelectorAll('.tab-content');
         tabs_content.forEach(tab_content => {
             let folder_grid = tab_content.querySelector('.folder_grid', '.hidden_folder_grid');
@@ -1215,14 +1322,14 @@ class Utilities {
             cards.forEach(card => {
                 let href = card.dataset.href;
                 // this.clearFolderSize(href);
-                if (localStorage.getItem(href) !== null) {
-                    let size = localStorage.getItem(href);
-                    let size_div = card.querySelector('.size');
-                    size_div.innerHTML = getFileSize(size);
-                    card.dataset.size = parseInt(size);
-                } else {
+                // if (localStorage.getItem(href) !== null) {
+                //     let size = localStorage.getItem(href);
+                //     let size_div = card.querySelector('.size');
+                //     size_div.innerHTML = getFileSize(size);
+                //     card.dataset.size = parseInt(size);
+                // } else {
                     ipcRenderer.send('get_folder_size', href);
-                }
+                // }
             })
         })
 
@@ -2241,99 +2348,6 @@ class FileOperation {
 
             // Drag Select for cards
             utilities.dragSelect();
-            // const cards = document.querySelectorAll('.card');
-            // active_tab_content.addEventListener('mousedown', (e) => {
-
-            //     if (e.button === 2 || is_dragging_tab) {
-            //         is_dragging_tab = false;
-            //         return;
-            //     }
-
-            //     isSelecting = true;
-            //     startPosX = e.clientX;
-            //     startPosY = e.clientY;
-
-            //     selectionRectangle.style.left = startPosX + 'px';
-            //     selectionRectangle.style.top = startPosY + 'px';
-            //     selectionRectangle.style.width = '0';
-            //     selectionRectangle.style.height = '0';
-            //     selectionRectangle.style.display = 'block';
-
-            //     cards.forEach(item => item.classList.remove('selected'));
-
-            // });
-
-            // let allowClick = 1;
-            // active_tab_content.addEventListener('mousemove', (e) => {
-
-            //     if (!isSelecting || is_dragging_tab) {
-            //         return;
-            //     }
-
-            //     endPosX = e.clientX;
-            //     endPosY = e.clientY;
-
-            //     const rectWidth = endPosX - startPosX;
-            //     const rectHeight = endPosY - startPosY;
-
-            //     selectionRectangle.style.width = Math.abs(rectWidth) + 'px';
-            //     selectionRectangle.style.height = Math.abs(rectHeight) + 'px';
-            //     selectionRectangle.style.left = rectWidth > 0 ? startPosX + 'px' : endPosX + 'px';
-            //     selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
-
-            //     // Highlight selectable items within the selection area
-            //     cards.forEach(item => {
-
-            //         const itemRect = item.getBoundingClientRect();
-            //         const isSelected =
-            //             ((itemRect.left < endPosX && itemRect.right > startPosX) ||
-            //             (itemRect.left < startPosX && itemRect.right > endPosX)) &&
-            //             ((itemRect.top < endPosY && itemRect.bottom > startPosY) ||
-            //             (itemRect.top < startPosY && itemRect.bottom > endPosY));
-
-            //         if (isSelected) {
-            //             item.classList.add('highlight_select');
-
-            //             // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
-            //             // folder_count.innerText = viewManager.getFolderCount()
-            //             // disk_space.prepend(`Folder Count`, folder_count);
-            //             utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected`);
-
-            //         }
-
-            //         item.addEventListener('dragstart', (e) => {
-            //             e.dataTransfer.setData('text/plain', item.textContent);
-            //             isSelecting = false;
-            //             selectionRectangle.style.display = 'none';
-            //             item.classList.add('dragging')
-            //         })
-
-            //         item.addEventListener('dragover', (e) => {
-            //             isSelecting = false;
-            //         })
-
-            //         item.addEventListener('drop', (e) => {
-            //             isSelecting = false;
-            //         })
-
-            //     });
-
-            //     allowClick = 0;
-
-            // });
-
-            // active_tab_content.addEventListener('mouseup', (e) => {
-            //     isSelecting = false;
-            //     selectionRectangle.style.display = 'none';
-            // });
-
-            // active_tab_content.addEventListener('click', (e) => {
-            //     if (allowClick) {
-            //         clearHighlight()
-            //     } else {
-            //         allowClick = 1;
-            //     }
-            // })
 
             utilities.getFolderSizes();
 
@@ -3418,9 +3432,11 @@ ipcRenderer.on('recent_files', (e, dirents) => {
 
 // Get Folder Size for properties
 ipcRenderer.on('folder_size', (e, source, folder_size) => {
+    // console.log('setting folder size', folder_size)
     let folders = document.querySelector('.folder_grid, .hidden_folder_grid');
     let card = folders.querySelector(`[data-href="${source}"]`)
-    let size = card.querySelectorAll('.size')
+    card.dataset.size = folder_size;
+    let size = card.querySelector('.size')
     card = null;
     size.innerHTML = ''
     size.innerHTML = getFileSize(folder_size);
@@ -3831,63 +3847,22 @@ function formatEstimatedTime(seconds) {
 }
 
 // Set Progress
-let startTime = null
+const progressInstances = new Map();
 ipcRenderer.on('set_progress', (e, data) => {
 
-    // // console.log(data)
-    let main = document.querySelector('.main')
-    let progress = document.getElementById('progress');
-    let progress_msg = document.getElementById('progress_msg');
-    let progress_bar = document.getElementById('progress_bar');
+    let progressInstance;
 
-    if (!progress) {
-
-        startTime = new Date(); // Replace data.startTime with the actual start time
-
-        progress = add_div(['progress', 'bottom']);
-        progress_msg = add_div(['progress_msg']);
-        progress_bar = document.createElement('progress');
-
-        progress.id = 'progress';
-        progress_msg.id = 'progress_msg';
-        progress_bar.id = 'progress_bar';
-
-        progress.append(progress_msg, progress_bar)
-        main.append(progress)
-
+    // Check if an instance with the ID already exists
+    if (progressInstances.has(data.id)) {
+        progressInstance = progressInstances.get(data.id);
+    } else {
+        // If not, create a new instance and store it in the Map
+        progressInstance = new ProgressManager('.progress_div', data);
+        progressInstances.set(data.id, progressInstance);
     }
 
-    if (progress.classList.contains('hidden')) {
-        progress.classList.remove('hidden');
-    }
-
-    // Get new time
-    const currentTime = new Date();
-
-    // Calculate estimated time remaining
-    const progressValue = data.value;
-    const maxValue = data.max;
-    const elapsedTimeInSeconds = Math.floor((currentTime - startTime) / 1000);
-    const estimatedTimeInSeconds = (elapsedTimeInSeconds / progressValue) * (maxValue - progressValue);
-
-    // Format the estimated time as HH:MM:SS or in a way that suits your needs
-    const formattedEstimatedTime = formatEstimatedTime(estimatedTimeInSeconds);
-    let msg = `${data.msg}`;
-
-    // console.log(estimatedTimeInSeconds)
-    if (estimatedTimeInSeconds > 3) {
-        msg = `${data.msg} (${formattedEstimatedTime})`;
-    }
-
-    progress_msg.innerHTML = msg;
-    progress_bar.value = data.value;
-    progress_bar.max = data.max;
-
-    if (progress_bar.value == progress_bar.max) {
-        progress.classList.add('hidden')
-    }
-
-
+    // Update the progress for the specific instance
+    progressInstance.updateProgress(data);
 
 })
 
