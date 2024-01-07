@@ -1035,16 +1035,6 @@ ipcMain.handle('nav_item', (e, dir) => {
     return dir;
 })
 
-// DragSelect
-// ipcMain.handle('init_drag_select', (e) => {
-//     return ds = new DragSelect({
-//         // area: main,
-//         // selectorClass: 'drag_select',
-//         // keyboardDragSpeed: 0,
-//     })
-//     // return DragSelect;
-// })
-
 // New Folder
 ipcMain.on('new_folder', (e, destination) => {
     let folder_path = `${path.format({ dir: destination, base: 'New Folder' })}`
@@ -1059,142 +1049,174 @@ ipcMain.on('new_folder', (e, destination) => {
 // Extract
 ipcMain.on('extract', (e, location) => {
 
-    selected_files_arr.forEach(item => {
+    for (let i = 0; i < selected_files_arr.length; i++) {
 
-        let cmd = '';
-        let us_cmd = '';
-        let filename = '';
-        let source = item;
-        let ext = path.extname(source).toLowerCase();
-        let makedir = 1;
+        let worker = new Worker(path.join(__dirname, './workers/worker.js'));
+        worker.on('message', (data) => {
 
-        // console.log('extension ', source);
-        let c = 0;
-        switch (ext) {
-            case '.zip':
-                filename = source.replace('.zip', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
+            if (data.cmd === 'msg') {
+                win.send('msg', data.msg, data.has_timeout);
+            }
+
+            if (data.cmd === 'progress') {
+                win.send('set_progress', data)
+            }
+
+            if (data.cmd === 'extract_done') {
+                let close_progress = {
+                    id: data.id,
+                    value: 0,
+                    max: 0,
+                    msg: ''
                 }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = "unzip '" + source + "' -d '" + filename + "'"
-                break;
-            case '.tar':
-                filename = source.replace('.tar', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
-                break;
-            case '.gz':
-                filename = source.replace('.tar.gz', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+                win.send('set_progress', close_progress);
 
-                break;
-            case '.xz':
-                filename = source.replace('tar.xz', '')
-                filename = filename.replace('.img.xz', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
-                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
-                if (source.indexOf('img.xz') > -1) {
-                    makedir = 0;
-                    cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
-                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
-                } else {
-                    cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
-                }
-                break;
-            case '.bz2':
-                filename = source.replace('.bz2', '')
-                c = 0
-                while (fs.existsSync(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
-                break;
-
-        }
-
-        // console.log('cmd ' + cmd);
-        // console.log('uncompressed size cmd ' + us_cmd);
-
-        if (makedir) {
-            gio.mkdir(filename)
-            // fs.mkdirSync(filename);
-        }
-
-        // GET UNCOMPRESSED SIZE
-        // let uncompressed_size = parseInt(execSync(us_cmd).toString().replaceAll(',', ''))
-        win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
-
-        exec(us_cmd, (err, stdout, stderr) => {
-            if (err) {
-                console.log(err);
-                // win.send('msg', err);
-            } else {
-
-                win.send('msg', '');
-
-                var size = parseInt(stdout.toString().replaceAll(',', ''));
-                // Show progress for compressing files
-                let setinterval_id = setInterval(() => {
-
-                    // let current_size = gio.du(filename).total;
-                    let current_size = parseInt(execSync(`du -s ${filename} | awk '{print $1}'`).toString().replaceAll(',', ''))
-                    // console.log(current_size, size);
-                    win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}` });
-
-                }, 1000);
-
-                // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-                exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
-
-                    if (err) {
-                        // console.log('error ' + err)
-                        win.send('msg', err);
-                    } else {
-                        try {
-                            // GET REFERENCE TO FOLDER GRID
-                            if (watcher_failed) {
-                                win.send('get_card_gio', gio.get_file(filename));
-                            }
-                            win.send('get_folder_count', filename);
-                            win.send('get_folder_size', filename);
-
-                            clearInterval(setinterval_id);
-                            win.send('set_progress', { value: size, max: size, msg: '' });
-
-                        } catch (err) {
-                            // console.log(err)
-                            win.send('msg', err);
-                        }
-                        win.send('msg', `Extracted ${source}`);
-                    }
-                })
+                win.send('remove_card', data.destination);
+                win.send('get_card_gio', gio.get_file(data.destination));
 
             }
-        });
-    })
+        })
+
+        let data = {
+            id: progress_id += 1,
+            cmd: 'extract',
+            location: location,
+            source: selected_files_arr[i],
+        }
+        worker.postMessage(data);
+
+    }
 
     selected_files_arr = [];
+
+    // selected_files_arr.forEach(item => {
+
+    //     let cmd = '';
+    //     let us_cmd = '';
+    //     let filename = '';
+    //     let source = item;
+    //     let ext = path.extname(source).toLowerCase();
+    //     let makedir = 1;
+
+    //     // console.log('extension ', source);
+    //     let c = 0;
+    //     switch (ext) {
+    //         case '.zip':
+    //             filename = source.replace('.zip', '')
+    //             c = 0
+    //             while (fs.existsSync(filename) && c < 5) {
+    //                 filename = filename + ' Copy'
+    //                 ++c;
+    //             }
+    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+    //             cmd = "unzip '" + source + "' -d '" + filename + "'"
+    //             break;
+    //         case '.tar':
+    //             filename = source.replace('.tar', '')
+    //             c = 0
+    //             while (fs.existsSync(filename) && c < 5) {
+    //                 filename = filename + ' Copy'
+    //                 ++c;
+    //             }
+    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+    //             cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+    //             break;
+    //         case '.gz':
+    //             filename = source.replace('.tar.gz', '')
+    //             c = 0
+    //             while (fs.existsSync(filename) && c < 5) {
+    //                 filename = filename + ' Copy'
+    //                 ++c;
+    //             }
+    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+    //             cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+
+    //             break;
+    //         case '.xz':
+    //             filename = source.replace('tar.xz', '')
+    //             filename = filename.replace('.img.xz', '')
+    //             c = 0
+    //             while (fs.existsSync(filename) && c < 5) {
+    //                 filename = filename + ' Copy'
+    //                 ++c;
+    //             }
+    //             us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
+    //             // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+    //             if (source.indexOf('img.xz') > -1) {
+    //                 makedir = 0;
+    //                 cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
+    //                 // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
+    //             } else {
+    //                 cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
+    //             }
+    //             break;
+    //         case '.bz2':
+    //             filename = source.replace('.bz2', '')
+    //             c = 0
+    //             while (fs.existsSync(filename) && c < 5) {
+    //                 filename = filename + ' Copy'
+    //                 ++c;
+    //             }
+    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+    //             cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
+    //             break;
+
+    //     }
+
+    //     if (makedir) {
+    //         gio.mkdir(filename)
+    //         // fs.mkdirSync(filename);
+    //     }
+
+    //     // GET UNCOMPRESSED SIZE
+    //     win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
+
+    //     exec(us_cmd, (err, stdout, stderr) => {
+    //         if (err) {
+    //             console.log(err);
+    //             // win.send('msg', err);
+    //         } else {
+
+    //             win.send('msg', '');
+
+    //             var size = parseInt(stdout.toString().replaceAll(',', ''));
+    //             // Show progress for compressing files
+    //             let setinterval_id = setInterval(() => {
+    //                 let current_size = parseInt(execSync(`du -s ${filename} | awk '{print $1}'`).toString().replaceAll(',', ''))
+    //                 win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}` });
+    //             }, 1000);
+
+    //             // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+    //             exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
+
+    //                 if (err) {
+    //                     // console.log('error ' + err)
+    //                     win.send('msg', err);
+    //                 } else {
+    //                     try {
+    //                         // GET REFERENCE TO FOLDER GRID
+    //                         if (watcher_failed) {
+    //                             win.send('get_card_gio', gio.get_file(filename));
+    //                         }
+    //                         win.send('get_folder_count', filename);
+    //                         win.send('get_folder_size', filename);
+
+    //                         clearInterval(setinterval_id);
+    //                         win.send('set_progress', { value: size, max: size, msg: '' });
+
+    //                     } catch (err) {
+    //                         // console.log(err)
+    //                         win.send('msg', err);
+    //                     }
+    //                     win.send('msg', `Extracted ${source}`);
+    //                 }
+    //             })
+
+    //         }
+    //     });
+    // })
+
+    // selected_files_arr = [];
 
 })
 
@@ -1216,14 +1238,14 @@ ipcMain.on('compress', (e, location, type, size) => {
             let close_progress = {
                 id: data.id,
                 value: 1,
-                max: 1,
+                max: 0,
                 msg: ''
             }
             win.send('set_progress', close_progress);
         }
     })
 
-    let data = {
+    let compress_data = {
         id: progress_id += 1,
         cmd: 'compress',
         location: location,
@@ -1231,7 +1253,7 @@ ipcMain.on('compress', (e, location, type, size) => {
         size: size,
         files_arr: selected_files_arr
     }
-    worker.postMessage(data);
+    worker.postMessage(compress_data);
 
 })
 
@@ -1704,38 +1726,6 @@ ipcMain.handle('get_icon', async (e, href) => {
 })
 
 ipcMain.on('paste', (e, destination) => {
-
-    // progress_id += 1;
-    // Note: Added a global array called selected_files_arr
-    // This facilitates copying files between windows
-    // Make sure this array gets cleared
-    // Refer to preload.js: getSelectedFiles() sends the call to populate the array and is used in multiple operations in preload.js
-    // Refer to main.js: ipcMain.on('selected_files', (e, selected_files)
-
-    // let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
-    // paste_worker.on('message', (data) => {
-    //     if (data.cmd === 'progress') {
-    //         win.send('set_progress', data)
-    //         if (data.value == data.max) {
-    //             progress_counter = 0;
-    //         }
-    //     }
-    //     if (data.cmd === 'copy_done') {
-    //         if (is_main) {
-    //             if (watcher_failed) {
-    //                 let file = gio.get_file(data.destination);
-    //                 win.send('get_card_gio', file);
-    //             }
-    //         } else {
-    //             if (!is_main) {
-    //                 win.send('get_folder_count', path.dirname(data.destination));
-    //                 win.send('get_folder_size', path.dirname(data.destination));
-    //             }
-    //         }
-    //         win.send('lazyload');
-    //         win.send('clear');
-    //     }
-    // })
 
     let copy_arr = [];
     let copy_overwrite_arr = []
@@ -2965,7 +2955,7 @@ ipcMain.on('folder_menu', (e, file) => {
             type: 'separator'
         },
         {
-            label: 'Delete',
+            label: 'Delete Permanently',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
             click: () => {
                 // e.sender.send('context-menu-command', 'delete_folder')
@@ -3127,7 +3117,7 @@ ipcMain.on('file_menu', (e, file) => {
             type: 'separator'
         },
         {
-            label: 'Delete File',
+            label: 'Delete Permanently',
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
             click: () => {
                 // e.sender.send('context-menu-command', 'delete_file')

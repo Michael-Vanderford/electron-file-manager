@@ -235,10 +235,10 @@ class FileOperation {
 
                         if (cpc === dirents.length) {
                             // console.log('done deleting files');
-                            // data = {
-                            //     cmd: 'delete_done',
-                            //     source: del_item
-                            // }
+                            data = {
+                                cmd: 'delete_done',
+                                source: del_item
+                            }
                             parentPort.postMessage(data)
                             delete_next();
                         }
@@ -288,7 +288,13 @@ function get_files_arr (source, destination, callback) {
             if (file.is_dir) {
                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
-                file_arr.push({type: 'file', source: file.href, destination: path.format({dir: destination, base: file.name}), size: file.size})
+                let file_obj = {
+                    type: 'file',
+                    source: file.href,
+                    destination: path.format({dir: destination, base: file.name}),
+                    size: file.size
+                }
+                file_arr.push(file_obj)
             }
 
         }
@@ -447,7 +453,6 @@ parentPort.on('message', data => {
 
             if (is_writable) {
 
-
                 let file = gio.get_file(copy_item.source);
 
                 if (file.is_dir || file.type === 'directory') {
@@ -577,7 +582,7 @@ parentPort.on('message', data => {
                 // console.log(`Folder Size: ${data.source} ${size} bytes ${Date.now() - ts}ms`);
             })
         } catch (error) {
-            console.error(error);
+            console.error('folder_size', error);
             return 0;
         }
 
@@ -827,7 +832,7 @@ parentPort.on('message', data => {
                     }
 
                     if (cpc === dirents.length) {
-                        // console.log('done deleting files');
+                        console.log('done deleting files');
                         data = {
                             id: data.id,
                             cmd: 'delete_done',
@@ -927,10 +932,14 @@ parentPort.on('message', data => {
                             }
                         }
 
+                        let max = 0;
                         get_files_arr(copy_item.source, destination, dirents => {
 
-                            let size = gio.du(path.dirname("/"))
-                            console.log(size);
+                            for (let i = 0; i < dirents.length; i++) {
+                                if (dirents[i].type === 'file') {
+                                    max += parseInt(dirents[i].size);
+                                }
+                            }
 
                             let cpc = 0;
                             for (let i = 0; i < dirents.length; i++) {
@@ -1093,6 +1102,144 @@ parentPort.on('message', data => {
 
         })
         selected_files_arr = [];
+    }
+
+    // Extract
+    if (data.cmd === 'extract') {
+
+        console.log('running extract')
+
+        let location = data.location;
+        // let selected_files_arr = data.files_arr;
+        let progress_id = data.id;
+        let source = data.source; //selected_files_arr[i];
+        let ext = path.extname(source).toLowerCase();
+
+        let cmd = '';
+        let us_cmd = '';
+        let filename = '';
+        let makedir = 1;
+
+        let c = 0;
+        switch (ext) {
+            case '.zip':
+                filename = source.replace('.zip', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = "unzip '" + source + "' -d '" + filename + "'"
+                break;
+            case '.tar':
+                filename = source.replace('.tar', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+                break;
+            case '.gz':
+                filename = source.replace('.tar.gz', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
+
+                break;
+            case '.xz':
+                filename = source.replace('tar.xz', '')
+                filename = filename.replace('.img.xz', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
+                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
+                if (source.indexOf('img.xz') > -1) {
+                    makedir = 0;
+                    cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
+                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
+                } else {
+                    cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
+                }
+                break;
+            case '.bz2':
+                filename = source.replace('.bz2', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
+                cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
+                break;
+
+        }
+
+        if (makedir) {
+            gio.mkdir(filename)
+            // fs.mkdirSync(filename);
+        }
+
+        // GET UNCOMPRESSED SIZE
+        // win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
+        // let setinterval_id = 0;
+        let file = gio.get_file(source)
+        let ratio = 0.5;
+        let max = (parseInt(file.size / 1024) / ratio);
+        let current_size = 0;
+
+        let setinterval_id = setInterval(() => {
+
+            current_size = parseInt(execSync(`du -s '${filename}' | awk '{print $1}'`).toString().replaceAll(',', ''))
+            // console.log(current_size, filename)
+            let progress_opts = {
+                id: progress_id,
+                cmd: 'progress',
+                value: (current_size),
+                max: max,
+                msg: `Extracting "${path.basename(filename)}"`
+            }
+            parentPort.postMessage(progress_opts);
+
+        }, 1000);
+
+
+
+        // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
+        exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
+        // execSync(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER })
+
+            if (err) {
+                console.log('error ' + err)
+                clearInterval(setinterval_id);
+                return;
+            }
+
+            console.log('done extracting files');
+
+            clearInterval(setinterval_id);
+            let extract_done = {
+                id: progress_id,
+                cmd: 'extract_done',
+                source: source,
+                destination: filename
+            }
+            parentPort.postMessage(extract_done);
+            // clearInterval(setinterval_id);
+
+        })
+
+
+
     }
 
 })

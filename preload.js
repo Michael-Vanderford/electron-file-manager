@@ -646,8 +646,10 @@ class Utilities {
             // if (e.ctrlKey) {
                 if (card.classList.contains('highlight_select')) {
                     card.classList.remove('highlight_select')
+                    utilities.getSelectedCount();
                 } else {
                     card.classList.add('highlight_select')
+                    utilities.getSelectedCount();
                 }
             // }
         })
@@ -971,8 +973,10 @@ class Utilities {
      */
     dragSelect () {
 
+        console.log('running drag select');
+
         const selectionRectangle = document.getElementById('selection-rectangle');
-        console.log(selectionRectangle)
+        console.log(selectionRectangle);
         let isSelecting = false;
         let startPosX = 0;
         let startPosY = 0;
@@ -981,6 +985,8 @@ class Utilities {
 
         const cards = document.querySelectorAll('.card');
         const active_tab_content = document.querySelector('.active-tab-content');
+        // const tab_content = document.querySelector('.tab-content');
+
         active_tab_content.addEventListener('mousedown', (e) => {
 
             if (e.button === 2 || is_dragging_tab) {
@@ -1021,9 +1027,9 @@ class Utilities {
             selectionRectangle.style.top = rectHeight > 0 ? startPosY + 'px' : endPosY + 'px';
 
             // Highlight selectable items within the selection area
-            cards.forEach(item => {
+            cards.forEach(card => {
 
-                const itemRect = item.getBoundingClientRect();
+                const itemRect = card.getBoundingClientRect();
                 const isSelected =
                     ((itemRect.left < endPosX && itemRect.right > startPosX) ||
                     (itemRect.left < startPosX && itemRect.right > endPosX)) &&
@@ -1031,8 +1037,8 @@ class Utilities {
                     (itemRect.top < startPosY && itemRect.bottom > endPosY));
 
                 if (isSelected) {
-                    item.classList.add('highlight_select');
 
+                    card.classList.add('highlight_select');
                     // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
                     // folder_count.innerText = viewManager.getFolderCount()
                     // disk_space.prepend(`Folder Count`, folder_count);
@@ -1040,18 +1046,18 @@ class Utilities {
 
                 }
 
-                item.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', item.textContent);
+                card.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', card.textContent);
                     isSelecting = false;
                     selectionRectangle.style.display = 'none';
-                    item.classList.add('dragging')
+                    card.classList.add('dragging')
                 })
 
-                item.addEventListener('dragover', (e) => {
+                card.addEventListener('dragover', (e) => {
                     isSelecting = false;
                 })
 
-                item.addEventListener('drop', (e) => {
+                card.addEventListener('drop', (e) => {
                     isSelecting = false;
                 })
 
@@ -1128,12 +1134,13 @@ class Utilities {
      * @returns Returns the selected count
      */
     getSelectedCount() {
-        // let cards = document.querySelectorAll('.highlight, .highlight_select');
-        let count = 0;
-        // cards.forEach(card => {
-        //     ++count
-        // })
-        return count;
+        let cards = document.querySelectorAll('.highlight_select');
+        let count = cards.length;
+        if (count > 0) {
+            this.msg(`${count} items selected (${getFileSize(this.getSelectedSize())})`, 0);
+        } else {
+            this.msg('');
+        }
     }
 
     getIcon(href) {
@@ -1277,13 +1284,12 @@ class Utilities {
      */
     msg(message, has_timeout = 1) {
 
-        let main = document.querySelector('.main');
-        let content = document.querySelector('.active-tab-content');
+        // let content = document.querySelector('.tab-content');
         let msg = document.querySelector('.msg');
-        if (!msg) {
-            msg = add_div(['msg', 'bottom']);
-            content.append(msg);
-        }
+        // if (!msg) {
+        //     msg = add_div(['msg', 'bottom']);
+        //     content.append(msg);
+        // }
 
         msg.innerHTML = '';
         msg.classList.remove('hidden');
@@ -2348,7 +2354,6 @@ class FileOperation {
 
             // Drag Select for cards
             utilities.dragSelect();
-
             utilities.getFolderSizes();
 
             // utilities.autoComplete();

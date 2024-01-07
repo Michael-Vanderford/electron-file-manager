@@ -81,7 +81,7 @@ th {
     background: var(--location);
     border: 1px solid var(--location-border);
     /* border: inset; */
-    font-size: 12px;
+    font-size: 1em;
     height: 23px;
     width: 96%;
     font-weight: bold;
@@ -154,6 +154,7 @@ th {
     border-radius: 5px;
     padding: 10px;
     z-index: 100;
+    user-select: none;
 }
 
 .progress_div {
@@ -166,6 +167,7 @@ th {
     border-radius: 10px;
     color: var(--text);
     z-index: 100;
+    user-select: none;
 }
 
 .progress {
@@ -1010,8 +1012,8 @@ input[type=text]:focus {
 
 .right {
     margin-left: auto;
-    /* margin-right: 25px; */
-    /* right: 25px; */
+    /* margin-right: 0px; */
+    right: 0;
 }
 
 .warning {
@@ -1104,7 +1106,7 @@ input[type=text]:focus {
 
 .tab-content {
     /* box-sizing: border-box; */
-    /* border: 1px solid gray; */
+    /* border: 1px solid red; */
     padding: 10px;
 }
 

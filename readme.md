@@ -20,11 +20,20 @@
 
 ![Screenshot 3](/screenshots/screenshot_3.png?raw=true) -->
 
+## Changelog
+
+### Version 1.0.6 (2024-01-02)
+- Multithreading for copying separate directories
+- Multithreading for deleting separate directories
+- Multithreading for compressing multiple tar files
+- Multithreading for extracting multiple tar files
+- Updated progress bar to handle multiple operations
+
 
 ## Features
 
-* QuickSearch search
-* Collapsible minibar
+* QuickSearch search (ctrl+f)
+* Collapsible sidebar (ctrl+b)
 * Icon scaling
 * Tabbed Views
 * Audio or Video to Audio conversion - Requires ffmpeg
@@ -48,11 +57,6 @@
 * Properties: Ctrl+I
 * NewFolder: Ctrl+Shift+N
 * AddWorkspace: Ctrl+D
-
-
-
-
-
 
 
 <!-- Stack

@@ -1530,6 +1530,86 @@ namespace gio {
 
     }
 
+    // NAN_METHOD(extract) {
+
+    //     if (info.Length() < 2) {
+    //         return Nan::ThrowError("Wrong number of arguments");
+    //     }
+
+    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+    //     v8::Isolate* isolate = info.GetIsolate();
+    //     v8::String::Utf8Value sourceFile(isolate, sourceString);
+    //     v8::String::Utf8Value destFile(isolate, destString);
+
+    //     GFile* src = g_file_new_for_path(*sourceFile);
+    //     GFile* dest = g_file_new_for_path(*destFile);
+
+    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    //     const char *dest_scheme = g_uri_parse_scheme(*destFile);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(*sourceFile);
+    //     }
+    //     if (dest_scheme != NULL) {
+    //         dest = g_file_new_for_uri(*destFile);
+    //     }
+
+    //     // GFile *inputFile, *outputFile;
+    //     GInputStream *inputStream;
+    //     GOutputStream *outputStream;
+
+    //     // Initialize GIO
+    //     g_type_init();
+
+    //     // Open input file for reading
+    //     inputStream = G_INPUT_STREAM(g_file_read(src, NULL, NULL));
+    //     if (inputStream == NULL) {
+    //         g_object_unref(src);
+    //         g_object_unref(dest);
+    //         g_error("Error opening input file");
+    //     }
+
+    //     // Open output file for writing
+    //     outputStream = G_OUTPUT_STREAM(g_file_replace(dest, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL));
+    //     if (outputStream == NULL) {
+    //         g_object_unref(src);
+    //         g_object_unref(dest);
+    //         g_object_unref(inputStream);
+    //         g_error("Error opening output file");
+    //     }
+
+    //     // Create a decompression stream
+    //     GZlibDecompressor *decompressor = g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP);
+    //     GFilterInputStream *filterInputStream = g_zlib_decompressor_new(g_object_ref(decompressor));
+
+    //     // Set the input stream for the decompressor
+    //     g_filter_input_stream_set_base_stream(filterInputStream, inputStream);
+
+    //     // Set the output stream for the decompressor
+    //     g_filter_output_stream_set_base_stream(G_FILTER_OUTPUT_STREAM(decompressor), outputStream);
+
+    //     // Copy the decompressed data from input to output
+    //     g_output_stream_splice(G_OUTPUT_STREAM(decompressor),
+    //         G_INPUT_STREAM(filterInputStream),
+    //         G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
+    //         NULL,
+    //         NULL);
+
+    //         // | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET
+
+    //     // Clean up resources
+    //     g_object_unref(decompressor);
+    //     g_object_unref(filterInputStream);
+    //     g_object_unref(inputStream);
+    //     g_object_unref(outputStream);
+    //     g_object_unref(src);
+    //     g_object_unref(dest);
+
+    //     info.GetReturnValue().Set(Nan::True());
+
+    // }
+
     NAN_MODULE_INIT(init) {
         Nan::Export(target, "on_theme_change", on_theme_change);
         Nan::Export(target, "is_dir", is_dir);
