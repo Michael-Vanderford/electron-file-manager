@@ -1294,6 +1294,8 @@ ipcMain.on('get_view', (e, location) => {
 
 ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 
+    progress_id += 1;
+    progress_counter = 1;
     filter_merge_arr.forEach((item, i) => {
         if (item.action === 1) {
             gio.cp(item.source, item.destination, 1);
@@ -1311,14 +1313,26 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
             }
         }
 
-        win.send('set_progress', { value: i + 1, max: filter_merge_arr.length, msg: `Copying ${i + 1} of ${filter_merge_arr.length}` });
+        let progress = {
+            id: progress_id,
+            value: i + 1,
+            max: filter_merge_arr.length,
+            msg: `Copying ${i + 1} of ${filter_merge_arr.length}`
+        }
+        win.send('set_progress', progress);
+
         if (i == filter_merge_arr.length - 1) {
-            progress_counter = 0;
+            let progress_done = {
+                id: progress_id,
+                value: 0,
+                max: 0,
+                msg: ''
+            }
+            win.send('set_progress', progress_done);
         }
     })
 
     win.send('done_merging_files');
-    // win.send('msg', 'Done Merging Files');
 
 })
 
