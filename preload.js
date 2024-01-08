@@ -1042,7 +1042,8 @@ class Utilities {
                     // msg(` ${getFileSize(utilities.getSelectedFilesSize())}`);
                     // folder_count.innerText = viewManager.getFolderCount()
                     // disk_space.prepend(`Folder Count`, folder_count);
-                    utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected (${getFileSize(viewManager.getTotalSize())})`);
+                    // utilities.msg(`${viewManager.getFolderCount()} Folders / ${viewManager.getFileCount()} Files Selected (${getFileSize(viewManager.getTotalSize())})`);
+                    utilities.getSelectedCount();
 
                 }
 
@@ -2671,6 +2672,9 @@ async function getShortcuts() {
 contextBridge.exposeInMainWorld('api', {
     getSelectedSize: () => {
         return utilities.getSelectedSize();
+    },
+    getSelectedCount: () => {
+        return utilities.getSelectedCount();
     },
     getShortcuts,
     clear,
@@ -4770,6 +4774,8 @@ function clear() {
     copy_arr = [];
     selected_files_arr = [];
 
+    global.gc()
+
 }
 
 // Clear Highlighted Cards
@@ -4779,6 +4785,7 @@ function clearHighlight() {
     cards.forEach(item => {
         item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
     })
+    utilities.msg('');
 }
 
 // Add column

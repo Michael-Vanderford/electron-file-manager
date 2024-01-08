@@ -89,7 +89,8 @@ document.addEventListener("DOMContentLoaded", (e) => {
             cards.forEach(item => {
                 item.classList.add('highlight_select');
             })
-            window.api.getSelectedSize();
+            // window.api.getSelectedSize();
+            window.api.getSelectedCount();
         })
 
         // New Tav
