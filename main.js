@@ -1407,7 +1407,6 @@ ipcMain.handle('connect', async (e, cmd) => {
 // Get folder icon
 ipcMain.on('get_folder_icon', (e, folder_path) => {
     let icon = gio.get_icon(folder_path);
-    console.log(icon);
 })
 
 // Icon Theme

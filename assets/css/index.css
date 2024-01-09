@@ -1221,7 +1221,8 @@ input[type=text]:focus {
         --button-active: #1b557c;
         --location: #2c2c2c;
         --location-border: #3b3a3a;
-        --progress: rgba(44, 44, 44, .75);
+        /* --progress: rgba(44, 44, 44, .75); */
+        --progress: #2c2c2c;
 
         --svg: rgba(155, 155, 155, .9);
 

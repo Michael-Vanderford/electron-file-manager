@@ -1138,9 +1138,26 @@ class Utilities {
         let cards = document.querySelectorAll('.highlight_select');
         let count = cards.length;
         if (count > 0) {
-            this.msg(`${count} items selected (${getFileSize(this.getSelectedSize())})`, 0);
+            this.msg(`${count} Items selected (${getFileSize(this.getSelectedSize())})`, 0);
         } else {
             this.msg('');
+        }
+    }
+
+    /**
+     *
+     * @returns Returns the selected copy count
+     */
+    getSelectedCopy() {
+        let active_tab_content = document.querySelector('.active-tab-content');
+        let cards = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select'));
+        let count = cards.length;
+        if (count === 0) {
+            this.msg('');
+        } else if (count === 1) {
+            this.msg(`${count} Item copied (${getFileSize(this.getSelectedSize())})`, 0);
+        } else {
+            this.msg(`${count} Items copied (${getFileSize(this.getSelectedSize())})`, 0);
         }
     }
 
@@ -2416,7 +2433,7 @@ class FileOperation {
         // console.log('running edit');
         let main = document.querySelector('.main');
         let active_tab_content = document.querySelector('.active-tab-content');
-        let cards = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
+        let cards = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select'));
 
         cards.forEach(card => {
             let href = card.dataset.href;
@@ -2675,6 +2692,9 @@ contextBridge.exposeInMainWorld('api', {
     },
     getSelectedCount: () => {
         return utilities.getSelectedCount();
+    },
+    getSelectedCopy: () => {
+        return utilities.getSelectedCopy();
     },
     getShortcuts,
     clear,
@@ -3906,7 +3926,7 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             ipcRenderer.invoke('settings')
                 .then(settings => {
                     let cmd = settings.Terminal;
-                    let cards = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+                    let cards = document.querySelectorAll('.highlight, .highlight_select');
                     // console.log(cards.length)
                     if (cards.length > 0) {
                         cards.forEach(card => {
@@ -4774,16 +4794,16 @@ function clear() {
     copy_arr = [];
     selected_files_arr = [];
 
-    global.gc()
+    // global.gc()
 
 }
 
 // Clear Highlighted Cards
 function clearHighlight() {
 
-    let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target, .ds-selected')
+    let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target')
     cards.forEach(item => {
-        item.classList.remove('highlight', 'highlight_select', 'highlight_target', 'ds-selected')
+        item.classList.remove('highlight', 'highlight_select', 'highlight_target')
     })
     utilities.msg('');
 }
@@ -5903,16 +5923,18 @@ function getFiles(source, callback) {
 function getSelectedFiles() {
     selected_files_arr = [];
     let active_tab_content = document.querySelector('.active-tab-content');
-    let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select, .ds-selected'));
+    let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select'));
     selected_items.forEach(item => {
         // console.log(item)
         selected_files_arr.push(item.dataset.href);
         // selected_files_arr.push(item.dataset.search_href);
     })
     if (selected_files_arr.length == 1) {
-        utilities.msg(`${selected_files_arr.length} Item Selected`);
+        // utilities.msg(`${selected_files_arr.length} Item Selected`);
+        utilities.getSelectedCopy();
     } else if (selected_files_arr.length > 1) {
-        utilities.msg(`${selected_files_arr.length} Items Selected`);
+        // utilities.msg(`${selected_files_arr.length} Items Selected`);
+        utilities.getSelectedCopy();
     } else {
         utilities.msg(`No Items Selected`);
     }
@@ -5946,9 +5968,9 @@ function getFolderCount(href) {
 function clearContextMenu(e) {
     const isInsideContextMenu = e.target.closest('.context-menu');
     if (!isInsideContextMenu) {
-        let selected_items = document.querySelectorAll('.highlight, .highlight_select, .ds-selected');
+        let selected_items = document.querySelectorAll('.highlight, .highlight_select');
         selected_items.forEach(item => {
-            item.classList.remove('highlight_select', '.ds-selected')
+            item.classList.remove('highlight_select')
         })
     }
 }
