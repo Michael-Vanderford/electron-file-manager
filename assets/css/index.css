@@ -148,7 +148,7 @@ th {
 
 .msg {
     color: var(--text);
-    background-color: var(--dialog);
+    background-color: var(--msg);
     border: 1px solid var(--border);
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.9));
     border-radius: 5px;
@@ -1262,7 +1262,7 @@ input[type=text]:focus {
         --main: #f7f7f7;
         --minibar: #ffffff;
         --border: #cfcfcf;
-        --msg: #222222;
+        --msg: #f7f7f7;
         --dialog: #cfcfcf;
         --text: #252525;
         --active: #252525;
@@ -1270,6 +1270,7 @@ input[type=text]:focus {
         --button: #cfcfcf;
         --location: #e8e8e8;
         --location-border: #cfcfcf;
+        --progress: #f7f7f7;
 
         --link: #4183c4;
         --highlight: rgba(0, 0, 0, 0.1);

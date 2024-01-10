@@ -1011,6 +1011,8 @@ class Utilities {
         let allowClick = 1;
         active_tab_content.addEventListener('mousemove', (e) => {
 
+            // e.preventDefault();
+
             if (!isSelecting || is_dragging_tab) {
                 return;
             }
@@ -1047,26 +1049,45 @@ class Utilities {
 
                 }
 
-                card.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('text/plain', card.textContent);
-                    isSelecting = false;
-                    selectionRectangle.style.display = 'none';
-                    card.classList.add('dragging')
-                })
+                // card.addEventListener('dragstart', (e) => {
+                //     e.dataTransfer.setData('text/plain', card.textContent);
+                //     isSelecting = false;
+                //     selectionRectangle.style.display = 'none';
+                //     card.classList.add('dragging')
+                // })
 
-                card.addEventListener('dragover', (e) => {
-                    isSelecting = false;
-                })
+                // card.addEventListener('dragover', (e) => {
+                //     isSelecting = false;
+                // })
 
-                card.addEventListener('drop', (e) => {
-                    isSelecting = false;
-                })
+                // card.addEventListener('drop', (e) => {
+                //     isSelecting = false;
+                // })
 
             });
 
             allowClick = 0;
 
         });
+
+        cards.forEach(card => {
+
+            card.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', card.textContent);
+                isSelecting = false;
+                selectionRectangle.style.display = 'none';
+                card.classList.add('dragging')
+            })
+
+            card.addEventListener('dragover', (e) => {
+                isSelecting = false;
+            })
+
+            card.addEventListener('drop', (e) => {
+                isSelecting = false;
+            })
+
+        })
 
         active_tab_content.addEventListener('mouseup', (e) => {
             isSelecting = false;
@@ -1138,7 +1159,7 @@ class Utilities {
         let cards = document.querySelectorAll('.highlight_select');
         let count = cards.length;
         if (count > 0) {
-            this.msg(`${count} Items selected (${getFileSize(this.getSelectedSize())})`, 0);
+            this.msg(`${count} Items selected (${getFileSize(this.getSelectedSize())})`);
         } else {
             this.msg('');
         }
@@ -1332,8 +1353,6 @@ class Utilities {
         }
 
     }
-
-
 
     /**
      * Call get folder size
