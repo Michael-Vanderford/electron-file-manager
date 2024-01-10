@@ -1095,6 +1095,11 @@ parentPort.on('message', data => {
 
         exec(cmd, (err, stdout) => {
             if (err) {
+                let msg = {
+                    cmd: 'msg',
+                    msg: err.message
+                }
+                parentPort.postMessage(msg);
                 console.log(err);
             }
 

@@ -1854,6 +1854,7 @@ ipcMain.on('paste', (e, destination) => {
                             if (is_main) {
                                 if (watcher_failed) {
                                     let file = gio.get_file(data.destination);
+                                    win.send('remove_card', data.destination);
                                     win.send('get_card_gio', file);
                                 }
                             } else {
