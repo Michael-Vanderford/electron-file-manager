@@ -1852,11 +1852,11 @@ ipcMain.on('paste', (e, destination) => {
                         }
                         if (data.cmd === 'copy_done') {
                             if (is_main) {
-                                if (watcher_failed) {
+                                // if (watcher_failed) {
                                     let file = gio.get_file(data.destination);
                                     win.send('remove_card', data.destination);
                                     win.send('get_card_gio', file);
-                                }
+                                // }
                             } else {
                                 if (!is_main) {
                                     win.send('get_folder_count', path.dirname(data.destination));
