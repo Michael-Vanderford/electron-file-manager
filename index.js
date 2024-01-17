@@ -82,15 +82,16 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.fileInfo();
         })
 
-        // Select All
+        // Select All Ctrl+A
         mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
             e.preventDefault();
-            let cards = main.querySelectorAll('.card')
-            cards.forEach(item => {
-                item.classList.add('highlight_select');
+            let tab_content = document.querySelector('.tab-content');
+            let cards = tab_content.querySelectorAll('.card')
+            cards.forEach(card => {
+                card.classList.add('highlight_select');
             })
-            // window.api.getSelectedSize();
             window.api.getSelectedCount();
+
         })
 
         // New Tav

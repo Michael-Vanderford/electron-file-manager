@@ -1156,7 +1156,8 @@ class Utilities {
      * @returns Returns the selected count
      */
     getSelectedCount() {
-        let cards = document.querySelectorAll('.highlight_select');
+        let tab_content = document.querySelector('.active-tab-content');
+        let cards = tab_content.querySelectorAll('.highlight_select');
         let count = cards.length;
         if (count > 0) {
             this.msg(`${count} Items selected (${getFileSize(this.getSelectedSize())})`);
