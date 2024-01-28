@@ -611,9 +611,17 @@ parentPort.on('message', data => {
     if (data.cmd === 'folder_count') {
         try {
             // Get Folder Count
-            get_files_arr(data.source, '', dirents => {
+            get_files_arr(data.source, '', (err, dirents) => {
+
+                if (err) {
+                    console.log(err);
+                    parentPort.postMessage({cmd: 'msg', msg: err});
+                    return;
+                }
+
                 let folder_count = dirents.length - 1;
                 parentPort.postMessage({cmd: 'folder_count',source: data.source, folder_count: folder_count});
+                
             })
         } catch (err) {
 
@@ -623,13 +631,21 @@ parentPort.on('message', data => {
     // Note: dont use this for normal operation. maybe use on properties
     if (data.cmd === 'get_folder_size') {
         let folder_size = 0;
-        get_files_arr(data.source, '', files_arr => {
+        get_files_arr(data.source, '', (err, files_arr) => {
+
+            if (err) {
+                console.log(err);
+                parentPort.postMessage({cmd: 'msg', msg: err});
+                return;
+            }
+
             files_arr.forEach(item => {
                 if (item.type === 'file') {
                     folder_size += parseInt(item.size);
                 }
             });
             parentPort.postMessage({cmd: 'folder_size_done', source: data.source ,folder_size: folder_size});
+
         })
     }
 
