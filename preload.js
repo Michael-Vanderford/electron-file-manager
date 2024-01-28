@@ -3482,14 +3482,17 @@ ipcRenderer.on('recent_files', (e, dirents) => {
 // Get Folder Size for properties
 ipcRenderer.on('folder_size', (e, source, folder_size) => {
     // console.log('setting folder size', folder_size)
-    let folders = document.querySelector('.folder_grid, .hidden_folder_grid');
+    let tab_content = document.querySelector('.active-tab-content');
+    let folders = tab_content.querySelector('.folder_grid, .hidden_folder_grid');
     let card = folders.querySelector(`[data-href="${source}"]`)
-    card.dataset.size = folder_size;
-    let size = card.querySelector('.size')
-    card = null;
-    size.innerHTML = ''
-    size.innerHTML = getFileSize(folder_size);
-    localStorage.setItem(source, folder_size);
+    if (card !== null) {
+        card.dataset.size = folder_size;
+        let size = card.querySelector('.size')
+        card = null;
+        size.innerHTML = ''
+        size.innerHTML = getFileSize(folder_size);
+        localStorage.setItem(source, folder_size);
+    }
 })
 
 // On folder count for properties
@@ -6245,15 +6248,19 @@ window.addEventListener('DOMContentLoaded', (e) => {
         })
 
         let nav_items = document.querySelectorAll('.nav_item')
-        // console.log(nav_items)
         nav_items.forEach(nav_item => {
             nav_item.addEventListener('click', (e) => {
+                e.preventDefault();
                 let dir = nav_item.innerText.replace(' ', '');
                 if (dir === 'Home') { dir = '' }
                 ipcRenderer.invoke('nav_item', dir).then(path => {
                     location.value = path;
-                    viewManager.getView(path)
-                    navigation.addHistory(path)
+                    if (e.ctrlKey) {
+                        viewManager.getView(path, 1);
+                    } else {
+                        viewManager.getView(path);
+                    }
+                    navigation.addHistory(path);
                 })
             })
         })
