@@ -280,6 +280,11 @@ function get_files_arr (source, destination, callback) {
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
     gio.ls(source, (err, dirents) => {
+
+        if (err) {
+            return callback(err);
+        }
+
         for (let i = 0; i < dirents.length; i++) {
 
             parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
@@ -304,7 +309,7 @@ function get_files_arr (source, destination, callback) {
 
             let file_arr1 = file_arr;
             file_arr = []
-            return callback(file_arr1);
+            return callback(null, file_arr1);
         }
     })
 }
@@ -328,10 +333,15 @@ parentPort.on('message', data => {
                 // Directory
                 if (src_file.is_dir) {
 
-                    get_files_arr(item.source, item.destination, dirents => {
+                    get_files_arr(item.source, item.destination, (err, dirents) => {
+
+                        if (err) {
+                            console.log(err);
+                            parentPort.postMessage({cmd: 'msg', msg: err});
+                            return;
+                        }
 
                         let files = dirents.filter(x => x.type === 'file');
-
                         for (let i = 0; i < files.length; i++) {
 
                             let f = files[i]
@@ -379,6 +389,7 @@ parentPort.on('message', data => {
                             }
 
                         }
+
 
                     })
 
@@ -783,8 +794,13 @@ parentPort.on('message', data => {
             let is_dir = gio.is_dir(del_item);
 
             if (is_dir) {
+                get_files_arr(del_item, del_item, (err, dirents) => {
 
-                get_files_arr(del_item, del_item, dirents => {
+                    if (err) {
+                        console.log(err);
+                        parentPort.postMessage({cmd: 'msg', msg: err});
+                        return;
+                    }
 
                     let cpc = 0;
 
@@ -941,7 +957,13 @@ parentPort.on('message', data => {
                         }
 
                         let max = 0;
-                        get_files_arr(copy_item.source, destination, dirents => {
+                        get_files_arr(copy_item.source, destination, (err, dirents) => {
+
+                            if (err) {
+                                console.log(err);
+                                parentPort.postMessage({cmd: 'msg', msg: err});
+                                return;
+                            }
 
                             for (let i = 0; i < dirents.length; i++) {
                                 if (dirents[i].type === 'file') {
