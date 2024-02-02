@@ -781,6 +781,26 @@ parentPort.on('message', data => {
         }
     }
 
+    if (data.cmd === 'cp_template') {
+        if (gio.exists(data.destination)) {
+            //  todo: implement file cp with copy appended
+            // try {
+            //     gio.cp(data.source, data.destination, data.overwrite_flag);
+            //     parentPort.postMessage({cmd: 'copy_template_done', destination: data.destination});
+            // } catch (err) {
+            //     parentPort.postMessage({cmd: 'msg', msg: err.message});
+            // }
+        } else {
+            try {
+                gio.cp(data.source, data.destination, 0);
+                parentPort.postMessage({cmd: 'cp_template_done', destination: data.destination});
+            } catch (err) {
+                parentPort.postMessage({cmd: 'msg', msg: err.message});
+            }
+        }
+    }
+
+
     // Delete Confirmed
     if (data.cmd === 'delete_confirmed') {
 

@@ -534,6 +534,29 @@ worker.on('message', (data) => {
         win.send('clear');
     }
 
+    if (data.cmd === 'cp_template_done') {
+        if (is_main) {
+            // if (watcher_failed) {
+                let file = gio.get_file(data.destination);
+                win.send('get_card_gio', file);
+                win.send('edit', data.destination);
+            // }
+        }
+
+        // else {
+        //     if (!is_main) {
+        //         win.send('get_folder_count', path.dirname(data.destination));
+        //         win.send('get_folder_size', path.dirname(data.destination));
+        //     }
+        //     // let href = path.dirname(data.destination)
+        //     // let file = gio.get_file(href)
+        //     // win.send('replace_card', href, file);
+        // }
+
+        // win.send('lazyload');
+        // win.send('clear');
+    }
+
     if (data.cmd === 'delete_done') {
         win.send('remove_card', data.source);
         win.send('msg', `Deleted "${path.basename(data.source)}"`)
@@ -2524,7 +2547,7 @@ function add_launcher_menu(menu, e, file) {
 }
 
 function createFileFromTemplate(source, destination) {
-    worker.postMessage({ cmd: 'cp', source: source, destination: destination });
+    worker.postMessage({ cmd: 'cp_template', source: source, destination: destination });
 }
 
 // Templated Menu
