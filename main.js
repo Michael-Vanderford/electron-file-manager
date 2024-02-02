@@ -484,6 +484,11 @@ worker.on('message', (data) => {
 
     if (data.cmd === 'rename_done') {
         console.log('rename_done');
+        if (watcher_failed) {
+            win.send('remove_card', data.source);
+            let file = gio.get_file(data.destination);
+            win.send('get_card_gio', file);
+        }
     }
 
     if (data.cmd === 'mkdir_done') {
@@ -758,17 +763,13 @@ function get_apps() {
 }
 
 function new_folder(destination) {
-
     try {
         gio.mkdir(destination);
-        if (watcher_failed) {
-            win.send('get_card_gio', gio.get_file(destination));
-        }
+        win.send('get_card_gio', gio.get_file(destination));
+        win.send('edit', destination);
     } catch (err) {
         win.send('msg', err);
     }
-    // win.send('new_folder', gio.get_file(destination));
-
 }
 
 // function watch_for_theme_change() {
@@ -1037,12 +1038,14 @@ ipcMain.handle('nav_item', (e, dir) => {
 
 // New Folder
 ipcMain.on('new_folder', (e, destination) => {
+
     let folder_path = `${path.format({ dir: destination, base: 'New Folder' })}`
-    try {
-        gio.mkdir(folder_path)
-    } catch (err) {
-        win.send('msg', err.message);
-    }
+    new_folder(folder_path);
+    // try {
+    //     gio.mkdir(folder_path)
+    // } catch (err) {
+    //     win.send('msg', err.message);
+    // }
     // win.send('get_card_gio', folder_path);
 })
 

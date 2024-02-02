@@ -2473,6 +2473,55 @@ class FileOperation {
 
         })
 
+        // Edit Mode
+        ipcRenderer.on('edit', (e, source) => {
+
+            console.log('running new edit', source)
+
+            let active_tab_content = document.querySelector('.active-tab-content');
+            let card = active_tab_content.querySelector(`[data-href="${source}"]`);
+            if (card) {
+
+                let href = source;
+                let header_link = card.querySelector('a');
+                let input = card.querySelector('input');
+
+                header_link.classList.add('hidden');
+                input.classList.remove('hidden');
+
+                input.select();
+                ipcRenderer.invoke('path:extname', href).then(extname => {
+                    input.setSelectionRange(0, input.value.length - extname.length)
+                })
+                input.focus();
+
+                main.removeEventListener('keydown', quickSearch);
+
+                input.addEventListener('change', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    let location = document.getElementById('location');
+                    let source = href;
+                    ipcRenderer.invoke('path:format', location.value, e.target.value).then(destination => {
+                        ipcRenderer.send('rename', source, destination);
+                    })
+                })
+
+                document.addEventListener('keyup', (e) => {
+                    if (e.key === 'Escape') {
+                        ipcRenderer.invoke('basename', href).then(basename => {
+                            input.value = basename;
+                            header_link.classList.remove('hidden');
+                            input.classList.add('hidden');
+                        })
+                    }
+                })
+
+            }
+
+        })
+
     }
 
     // Cut
@@ -2576,6 +2625,7 @@ class FileOperation {
 
     // New Folder
     newFolder() {
+        console.log('running new folder');
         let location = document.querySelector('.location')
         ipcRenderer.send('new_folder', location.value);
     }
@@ -3377,9 +3427,9 @@ ipcRenderer.on('msg', (e, message, has_timeout) => {
 })
 
 // Edit mode
-ipcRenderer.on('edit', (e) => {
-    edit();
-})
+// ipcRenderer.on('edit', (e) => {
+//     edit();
+// })
 
 ipcRenderer.on('clear', (e) => {
     clear();

@@ -621,7 +621,7 @@ parentPort.on('message', data => {
 
                 let folder_count = dirents.length - 1;
                 parentPort.postMessage({cmd: 'folder_count',source: data.source, folder_count: folder_count});
-                
+
             })
         } catch (err) {
 
