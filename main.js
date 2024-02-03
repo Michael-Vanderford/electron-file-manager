@@ -1322,20 +1322,52 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
 
     progress_id += 1;
     progress_counter = 1;
+    merge_err_arr = [];
     filter_merge_arr.forEach((item, i) => {
         if (item.action === 1) {
-            gio.cp(item.source, item.destination, 1);
-            if (is_move) {
-                gio.rm(item.source);
+            try {
+                gio.cp(item.source, item.destination, 1);
+                if (is_move) {
+                    gio.rm(item.source);
+                }
+            } catch (err) {
+
+                merge_err_arr.push(err.message);
+
+                win.send('msg', err.message, 1);
+
+                let progress_done = {
+                    id: progress_id,
+                    value: 0,
+                    max: 0,
+                    msg: ''
+                }
+                win.send('set_progress', progress_done);
+                // return;
             }
         } else if (item.action === 2) {
-            let destination_dir = path.dirname(item.destination);
-            if (!gio.exists(destination_dir)) {
-                gio.mkdir(destination_dir);
-            }
-            gio.cp(item.source, item.destination, 1);
-            if (is_move) {
-                gio.rm(item.source);
+            try {
+                let destination_dir = path.dirname(item.destination);
+                if (!gio.exists(destination_dir)) {
+                    gio.mkdir(destination_dir);
+                }
+                gio.cp(item.source, item.destination, 1);
+                if (is_move) {
+                    gio.rm(item.source);
+                }
+            } catch (err) {
+
+                merge_err_arr.push(err.message);
+
+                win.send('msg', err.message, 1);
+                let progress_done = {
+                    id: progress_id,
+                    value: 0,
+                    max: 0,
+                    msg: ''
+                }
+                win.send('set_progress', progress_done);
+                // return;
             }
         }
 
@@ -1355,10 +1387,11 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
                 msg: ''
             }
             win.send('set_progress', progress_done);
+            win.send('done_merging_files', merge_err_arr);
         }
     })
 
-    win.send('done_merging_files');
+
 
 })
 

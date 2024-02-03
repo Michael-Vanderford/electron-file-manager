@@ -31,6 +31,8 @@ th {
     padding: 5px;
     width: 100%;
     z-index: 100;
+    height: 24px;
+    align-items: center;
 }
 
 #header_menu .slider {
@@ -70,7 +72,8 @@ th {
     background: var(--menu);
     padding: 5px;
     width: 100%;
-    /* height: 16px; */
+    align-items: center;
+    height: 24px;
 }
 
 #navigation_menu input[type=text].location {
@@ -139,6 +142,12 @@ th {
 
 .not-writable {
     opacity: 0.9 !important;
+    /* background: red !important; */
+}
+
+.merge_not_writable {
+    opacity: 0.9 !important;
+    color: #ff2b2b !important;
     /* background: red !important; */
 }
 
@@ -484,12 +493,13 @@ th {
     width: 100%;
 }
 
+/* css is in merge.html */
 .merge_file_container {
     /* background-color: var(--dialog); */
     /* border: inset; */
-    /* overflow: auto; */
+    /* overflow: auto;
     width: 95%;
-    /* height: 90%; */
+    height: 100%; */
     /* background: var(--dialog) */
 }
 

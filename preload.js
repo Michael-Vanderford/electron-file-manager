@@ -2906,13 +2906,27 @@ ipcRenderer.on('get_settings', (e) => {
 // })
 
 // Merge done
-ipcRenderer.on('done_merging_files', (e) => {
+ipcRenderer.on('done_merging_files', (e, merge_err_arr) => {
 
     let active_tab = document.querySelector('.active-tab-content');
     const table = active_tab.querySelector('.destination_table');
     let msg = active_tab.querySelector('.merge_done_msg');
 
-    msg.innerHTML = '<i class="bi bi-info-circle"></i>Done merging files.';
+
+    if (merge_err_arr.length > 0) {
+        let merge_err_div = add_div(['merge_err_div']);
+        merge_err_div.classList.add('error');
+        merge_err_arr.forEach(item => {
+            let merge_err_item = add_div(['merge_err_item']);
+            merge_err_item.textContent = item;
+            merge_err_div.append(merge_err_item);
+        })
+        msg.innerHTML = '<i class="bi bi-exclamation-triangle"></i>Done merging files with errors.<br><br>';
+        msg.append(merge_err_div);
+    } else {
+        msg.innerHTML = '<i class="bi bi-info-circle"></i>Done merging files.';
+    }
+
     table.remove();
 
 })
@@ -2978,6 +2992,12 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     href.title = item.destination
                     href.classList.add('item')
 
+                    // File is not writable
+                    if (!item.is_writable) {
+                        console.log('not writable');
+                        href.classList.add('merge_not_writable');
+                    }
+
                     dest_div.append(img, href);
 
                     href.addEventListener('click', (e) => {
@@ -2998,6 +3018,10 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                         action_option.text = action_arr[i];
                         action_option.value = i;
                         action_select.append(action_option);
+
+                        if (!item.is_writable) {
+                            action_select.disabled = true;
+                        }
                     }
                     action_cell.append(action_select); //item.action
 

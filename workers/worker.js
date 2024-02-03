@@ -287,7 +287,7 @@ function get_files_arr (source, destination, callback) {
 
         for (let i = 0; i < dirents.length; i++) {
 
-            parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
+            // parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
             let file = dirents[i]
             // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
             if (file.is_dir) {
@@ -305,7 +305,7 @@ function get_files_arr (source, destination, callback) {
         }
 
         if (--cp_recursive == 0) {
-            parentPort.postMessage({cmd: 'msg', msg: ``})
+            // parentPort.postMessage({cmd: 'msg', msg: ``})
 
             let file_arr1 = file_arr;
             file_arr = []
@@ -330,6 +330,19 @@ parentPort.on('message', data => {
                 let src_file = gio.get_file(item.source);
                 let dest_file = gio.get_file(item.destination);
 
+                // Permission Denied
+                if (!dest_file.is_writable) {
+                    parentPort.postMessage({cmd: 'msg', msg: `Error: Permission Denied`});
+                    return;
+                }
+
+                let msg = {
+                    cmd: 'msg',
+                    msg: `Getting files for merge operation`,
+                    has_timeout: 0
+                }
+                parentPort.postMessage(msg);
+
                 // Directory
                 if (src_file.is_dir) {
 
@@ -337,8 +350,8 @@ parentPort.on('message', data => {
 
                         if (err) {
                             console.log(err);
-                            parentPort.postMessage({cmd: 'msg', msg: err});
-                            return;
+                            parentPort.postMessage({cmd: 'msg', msg: `Merge err: ${err}`});
+                            // return;
                         }
 
                         let files = dirents.filter(x => x.type === 'file');
@@ -355,7 +368,8 @@ parentPort.on('message', data => {
                                 destination_date: '',
                                 action: '',
                                 id_dir: 0,
-                                content_type: ''
+                                content_type: '',
+                                is_writable: 0
                             }
 
                             merge_obj.source = src.href;
@@ -371,15 +385,22 @@ parentPort.on('message', data => {
                                 merge_obj.destination = dest.href;
                                 merge_obj.destination_date = dest.mtime
 
+                                merge_obj.is_writable = dest.is_writable;
+
                                 if (src.mtime > dest.mtime) {
                                     merge_obj.action = 1;
                                     merge_arr.push(merge_obj);
                                 } else if (src.mtime < dest.mtime) {
                                     merge_obj.action = 0;
                                     merge_arr.push(merge_obj);
+                                } else if (!dest_file.file_exists) {
+                                    merge_obj.action = 0;
+                                    merge_arr.push(merge_obj);
                                 } else if (src.mtime === dest.mtime) {
 
                                 }
+
+
 
                             } else {
                                 // New File
@@ -403,12 +424,17 @@ parentPort.on('message', data => {
                         destination_date: '',
                         action: '',
                         id_dir: 0,
-                        content_type: ''
+                        content_type: '',
+                        is_writable: 0
                     }
+
+                    merge_obj.is_writable = dest.is_writable;
 
                     if (src_file.mtime > dest_file.mtime) {
                         merge_obj.action = 1;
                     } else if (src_file.mtime < dest_file.mtime) {
+                        merge_obj.action = 0;
+                    } else if (!dest_file.file_exists) {
                         merge_obj.action = 0;
                     } else if (src_file.mtime === dest_file.mtime) {
 
@@ -433,6 +459,7 @@ parentPort.on('message', data => {
         })
 
         parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
+        parentPort.postMessage({cmd: 'msg', msg: ''});
         merge_arr = [];
 
     }
