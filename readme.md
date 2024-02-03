@@ -22,6 +22,11 @@
 
 ## Changelog
 
+### Version 1.07 (2024-02-03)
+- Edit mode for new folder creation
+- Error handle merge files
+- Fixed column header formatting when switching views
+
 ### Version 1.0.6 (2024-01-02)
 - Multithreading for copying separate directories
 - Multithreading for deleting separate directories
@@ -32,6 +37,7 @@
 
 ## Features
 
+* Tab completion in the location bar
 * QuickSearch search (ctrl+f)
 * Collapsible sidebar (ctrl+b)
 * Icon scaling
@@ -39,6 +45,7 @@
 * Audio or Video to Audio conversion - Requires ffmpeg
 * Templates Folder for new file creation
 * Native icon support
+* Merge Files
 
 
 ## Keyboard Shortcuts
