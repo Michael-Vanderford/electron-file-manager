@@ -35,6 +35,8 @@ gio.monitor(data => {
     }
 });
 
+
+
 let win;
 let window_id = 0;
 let window_id0 = 0;
@@ -968,34 +970,47 @@ ipcMain.on('columns', (e) => {
 ipcMain.handle('find', async (e, cmd) => {
 
     try {
-        let { stdout, stderr } = await exec(cmd);
+        const { stdout } = await exec(cmd);
 
-        if (stderr) {
-            win.send('msg', stderr);
-            return;
-        }
-
-        let files = stdout.split('\n');
+        const files = stdout.trim().split('\n');
         if (files.length > 500) {
-            return false;
-        } else {
-            let search_arr = [];
-            let c = 0;
-            for (let i = 0; i < files.length; i++) {
-
-                if (files[i] != '') {
-                    ++c
-                    search_arr.push(files[i])
-                }
-
-            }
-            return search_arr;
+          return false;
         }
 
-    } catch (err) {
-        win.send('msg', err);
-        return err;
-    }
+        return files.filter(Boolean); // Remove empty lines
+      } catch (error) {
+        win.send('msg', error.stderr || error.message);
+        return;
+      }
+
+    // try {
+        // let { stdout, stderr } = await exec(cmd);
+
+        // if (stderr) {
+        //     win.send('msg', stderr);
+        //     return;
+        // }
+
+        // let files = stdout.split('\n');
+        // if (files.length > 500) {
+        //     return false;
+        // } else {
+        //     let search_arr = [];
+        //     let c = 0;
+        //     for (let i = 0; i < files.length; i++) {
+
+        //         if (files[i] != '') {
+        //             ++c
+        //             search_arr.push(files[i])
+        //         }
+
+        //     }
+        //     return search_arr;
+        // }
+    // } catch (err) {
+    //     win.send('msg', err);
+    //     return err;
+    // }
 
 
 })
@@ -1455,7 +1470,8 @@ ipcMain.on('connect_dialog', (e) => {
 // Connect
 ipcMain.handle('connect', async (e, cmd) => {
     try {
-        const { stdout, stderr } = await exec(cmd);
+        // const { stdout, stderr } = await exec(cmd);
+        gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key);
         return 1;
     } catch (err) {
         return err.message;
@@ -1984,7 +2000,7 @@ ipcMain.on('rename', (e, source, destination) => {
 
 //////////////////////////////////////////////////////////////
 
-// Create Main Winsow
+// Create Main Window
 function createWindow() {
 
     let displayToUse = 0;
@@ -2026,7 +2042,7 @@ function createWindow() {
         y: window_settings.window.y,
         frame: true,
         autoHideMenuBar: true,
-        icon: path.join(__dirname, '/assets/icons/folder.png'),
+        icon: path.join(__dirname, '/assets/icons/sfm.png'),
         webPreferences: {
             nodeIntegration: false, // is default value after Electron v5
             contextIsolation: true, // protect against prototype pollution

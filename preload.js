@@ -3384,13 +3384,18 @@ ipcRenderer.on('connect', (e) => {
 
         // Inputs
         let state = 0;
-        let conntection_type = document.getElementById('connection_type')
-        let server = document.getElementById('txt_server')
-        let username = document.getElementById('txt_username')
+        let conntection_type = document.getElementById('connection_type');
+        let server = document.getElementById('txt_server');
+        let username = document.getElementById('txt_username');
+        let password = document.getElementById('txt_password');
+        let use_ssh_key = document.getElementById('chk_pk');
 
-        let connect_msg = document.getElementById('connect_msg')
+        let str_server = "";
+        let use_key = 0;
 
-        connect_msg.innerHTML = `Connecting to ${server.value}`
+
+        let connect_msg = document.getElementById('connect_msg');
+        connect_msg.innerHTML = `Connecting to ${server.value}`;
 
         // Process
         let inputs = [].slice.call(document.querySelectorAll('.input, .checkbox'))
@@ -3412,10 +3417,22 @@ ipcRenderer.on('connect', (e) => {
         if (state == 1) {
 
             if (conntection_type.value == 'ssh') {
-                // let cmd = `zenity --password --title="SSH Password" | gio mount ssh://${username.value}@${server.value}`
-                cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+                // cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
+                str_server = `sftp://${server.value}`
             } else if (conntection_type.value == 'smb') {
-                cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
+                // cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
+                str_server = `smb://${server.value}`
+            }
+
+            if (use_ssh_key.checked) {
+                use_key = 1;
+            }
+
+            let cmd = {
+                server: str_server,
+                username: username.value,
+                password: password.value,
+                use_ssh_key: use_key,
             }
 
             ipcRenderer.invoke('connect', cmd).then(res => {

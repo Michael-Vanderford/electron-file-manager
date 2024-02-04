@@ -164,6 +164,8 @@ th {
     padding: 10px;
     z-index: 100;
     user-select: none;
+    max-height: 50px;
+    overflow-x: auto;
 }
 
 .progress_div {
