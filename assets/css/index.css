@@ -1270,6 +1270,44 @@ input[type=text]:focus {
     :root {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
+        --input: #f0f0f0;
+        --main: #f7f7f7;
+        --minibar: #ffffff;
+        --border: #dcdcdc;
+        --msg: #f7f7f7;
+        --dialog: #dcdcdc;
+        --text: #333333;
+        --active: #333333;
+        --tabs: #ffffff;
+        --button: #dcdcdc;
+        --location: #f0f0f0;
+        --location-border: #dcdcdc;
+        --progress: #f7f7f7;
+
+        --link: #4183c4;
+        --highlight: rgba(0, 0, 0, 0.1);
+        --highlight-select: rgba(0, 0, 0, 0.1);
+
+        --black: #000000;
+        --white: #FFFFFF;
+        --warning: #960000;
+        --green: #008000;
+        --blue: #233654;
+        --lightblue: #506585;
+        --yellow: #FFFF00;
+        --orange: #FFA500;
+
+        --grey: #707070;
+        --light: #e6e6e6;
+        --lighter: #dcdcdc;
+        --lightest: #f0f0f0;
+    }
+}
+
+/* @media (prefers-color-scheme: light) {
+    :root {
+        --menu: #f7f7f7;
+        --sidebar: #f7f7f7;
         --input: #e8e8e8;
         --main: #f7f7f7;
         --minibar: #ffffff;
@@ -1302,4 +1340,4 @@ input[type=text]:focus {
         --lighter: #cfcfcf;
         --lightest: #cacaca;
     }
-}
+} */
