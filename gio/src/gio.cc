@@ -17,8 +17,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <libtracker-sparql/
-
 
 using namespace std;
 
@@ -582,7 +580,6 @@ namespace gio {
         info.GetReturnValue().SetUndefined();
     }
 
-
     NAN_METHOD(open_with) {
 
         Nan::HandleScope scope;
@@ -968,8 +965,6 @@ namespace gio {
         callback.Call(2, argv);
 
     }
-
-
 
     NAN_METHOD(exists) {
 
@@ -1532,7 +1527,76 @@ namespace gio {
 
     }
 
+    // void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+
+    //     Nan::HandleScope scope;
+
+    //     GError *error = NULL;
+    //     GFile *location = G_FILE(source_object);
+    //     gboolean mounted = g_file_mount_enclosing_volume_finish(location, res, &error);
+    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+
+    //     const unsigned argc = 1;
+    //     Nan::TryCatch tryCatch;
+    //     v8::Local<v8::Object> errorObj = Nan::New<v8::Object>();
+    //     Nan::Set(errorObj, Nan::New("message").ToLocalChecked(), Nan::New(error->message).ToLocalChecked());
+
+    //     // if (mounted) {
+    //     //     printf("Mounted successfully\n");
+    //     // } else {
+    //     //     printf("Failed to mount\n");
+    //     // }
+
+    //     // if (error) {
+    //     //     Nan::ThrowError(error->message);
+    //     //     g_error_free(error);
+    //     //     g_object_unref(location);
+    //     //     return;
+    //     // }
+
+    //     g_object_unref(location);
+
+    //     v8::Local<v8::Value> argv[argc] = { errorObj };
+    //     callback->Call(argc, argv);
+    //     if (tryCatch.HasCaught()) {
+    //         Nan::FatalException(tryCatch); // Handle the exception if occurred
+    //     }
+
+    // }
+
+    void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+
+        Nan::HandleScope scope;
+
+        GError *error = nullptr;
+        GFile *location = G_FILE(source_object);
+        gboolean mounted = g_file_mount_enclosing_volume_finish(location, res, &error);
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+
+        if (error) {
+
+            v8::Local<v8::Object> errorObj = Nan::New<v8::Object>();
+            Nan::Set(errorObj, Nan::New("message").ToLocalChecked(), Nan::New(error->message).ToLocalChecked());
+
+            const unsigned argc = 1;
+            v8::Local<v8::Value> argv[argc] = { errorObj };
+            callback->Call(argc, argv);
+
+            g_error_free(error);
+
+        } else {
+
+            const unsigned argc = 0;
+            v8::Local<v8::Value> argv[argc] = { };
+            callback->Call(argc, argv);
+
+        }
+
+    }
+
     NAN_METHOD(connect_network_drive) {
+
+        Nan::HandleScope scope;
 
         if (info.Length() < 3) {
             return Nan::ThrowError("Wrong number of arguments");
@@ -1541,61 +1605,71 @@ namespace gio {
         v8::Local<v8::String> v8_hostname = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Local<v8::String> v8_username = Nan::To<v8::String>(info[1]).ToLocalChecked();
         v8::Local<v8::String> v8_password = Nan::To<v8::String>(info[2]).ToLocalChecked();
-        v8::Local<v8::Int32> v8_ssh_key_path = Nan::To<v8::Int32>(info[3]).ToLocalChecked();
+        v8::Local<v8::Int32> v8_ssh_key = Nan::To<v8::Int32>(info[3]).ToLocalChecked();
 
         v8::Isolate* isolate = info.GetIsolate();
         v8::String::Utf8Value utf8_hostname(isolate, v8_hostname);
         v8::String::Utf8Value utf8_username(isolate, v8_username);
         v8::String::Utf8Value utf8_password(isolate, v8_password);
-        v8::String::Utf8Value utf8_ssh_key_path(isolate, v8_ssh_key_path);
 
         const char *hostname = *utf8_hostname;
         const char *username = *utf8_username;
         const char *password = *utf8_password;
-        const char *ssh_key_path = *utf8_ssh_key_path;
-
+        int ssh_key = Nan::To<int>(v8_ssh_key).FromJust();
 
         GError *error = NULL;
         GFile *location = NULL;
+        GAsyncResult *result = NULL;
+        GAsyncReadyCallback callback = NULL;
+
+        // Set up SSH key authentication
+        GMountOperation *mount_operation = g_mount_operation_new();
+
+        int is_sftp = strncmp(hostname, "sftp://", 7);
 
         // Prioritize SSH key if provided
-        if (ssh_key_path) {
+        if (is_sftp == 0 && ssh_key) {
 
-            // Set up SSH key authentication
-            GFile *identity_file = g_file_new_for_path(ssh_key_path);
-            GMountOperation *mount_operation = g_mount_operation_new();
-            GCancellable *cancellable = g_cancellable_new();
+            printf("Using SSH key\n");
 
             location = g_file_new_for_uri(hostname);
             g_file_mount_enclosing_volume(location,
                                         G_MOUNT_MOUNT_NONE,
                                         mount_operation,
                                         NULL,
+                                        GAsyncReadyCallback(connect_network_drive_callback),
+                                        new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+
+        } else if (is_sftp == 0 && !ssh_key) {
+
+            printf("Using username and password\n");
+
+            location = g_file_new_for_uri(hostname);
+            g_mount_operation_set_username(mount_operation, username);
+            g_mount_operation_set_password(mount_operation, password);
+
+            g_file_mount_enclosing_volume(location,
+                                        G_MOUNT_MOUNT_NONE,
+                                        mount_operation,
                                         NULL,
-                                        NULL);
+                                        GAsyncReadyCallback(connect_network_drive_callback),
+                                        new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
 
-            g_object_unref(identity_file);
-            g_object_unref(cancellable);
-
-        } else {
-
-            // Use username and password authentication
-            char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
-            location = g_file_new_for_uri(uri);
-            g_free(uri);
 
         }
+        // else {
 
-        if (error) {
+        //     // Use username and password authentication
+        //     char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
+        //     location = g_file_new_for_uri(uri);
+        //     g_free(uri);
 
-            g_warning("Failed to connect to network drive: %s", error->message);
-            g_error_free(error);
-            g_object_unref(location);  // Clean up file if error occurred
-            location = NULL;
+        // }
 
-            return Nan::ThrowError(error->message);
+        g_object_unref(location);
+        g_object_unref(mount_operation);
 
-        }
+        info.GetReturnValue().SetUndefined();
 
     }
 

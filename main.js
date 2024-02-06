@@ -38,6 +38,7 @@ gio.monitor(data => {
 
 
 let win;
+let connect_win;
 let window_id = 0;
 let window_id0 = 0;
 let is_main = 1;
@@ -1469,13 +1470,17 @@ ipcMain.on('connect_dialog', (e) => {
 
 // Connect
 ipcMain.handle('connect', async (e, cmd) => {
-    try {
-        // const { stdout, stderr } = await exec(cmd);
-        gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key);
-        return 1;
-    } catch (err) {
-        return err.message;
-    }
+
+    // const { stdout, stderr } = await exec(cmd);
+    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
+        console.log(error);
+        if (error) {
+            connect_win.send('msg_connect', error.message);
+        } else {
+            connect_win.send('msg_connect', `Connected to ${cmd.server}`);
+        }
+    });
+    return `Connecting to ${cmd.server}`;
 
 })
 
@@ -2202,7 +2207,7 @@ function connectDialog() {
     let y = bounds.y + parseInt((bounds.height - 350) / 2);
 
 
-    let connect = new BrowserWindow({
+    connect_win = new BrowserWindow({
         parent: window.getFocusedWindow(),
         width: 400,
         height: 350,
@@ -2215,19 +2220,20 @@ function connectDialog() {
             // contextIsolation: true, // protect against prototype pollution
             // enableRemoteModule: false, // turn off remote
             // nodeIntegrationInWorker: true,
-            preload: path.join(__dirname, 'preload.js'),
+            // preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, './dialogs/connect.js'),
         },
     })
 
-    connect.loadFile('dialogs/connect.html')
-    // connect.webContents.openDevTools()
+    connect_win.loadFile('dialogs/connect.html')
+    // connect_win.webContents.openDevTools()
 
     // SHOW DIALG
-    connect.once('ready-to-show', () => {
+    connect_win.once('ready-to-show', () => {
         let title = 'Connect to Server'
-        connect.title = title
-        connect.removeMenu()
-        connect.send('connect')
+        connect_win.title = title
+        connect_win.removeMenu()
+        connect_win.send('connect')
     })
 
 }

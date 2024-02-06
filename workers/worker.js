@@ -428,7 +428,7 @@ parentPort.on('message', data => {
                         is_writable: 0
                     }
 
-                    merge_obj.is_writable = dest.is_writable;
+                    merge_obj.is_writable = dest_file.is_writable;
 
                     if (src_file.mtime > dest_file.mtime) {
                         merge_obj.action = 1;
@@ -443,7 +443,7 @@ parentPort.on('message', data => {
                     merge_obj.source = item.source
                     merge_obj.destination = item.destination;
                     merge_obj.source_date = src_file.mtime
-                    merge_obj.destination_date = src_file.mtime
+                    merge_obj.destination_date = dest_file.mtime
                     merge_obj.is_dir = 0;
                     merge_obj.content_type = src_file.content_type;
 
