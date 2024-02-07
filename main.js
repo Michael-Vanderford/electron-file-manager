@@ -577,6 +577,14 @@ worker.on('message', (data) => {
         }
     }
 
+    if (data.cmd === 'show_loader') {
+        win.send('show_loader')
+    }
+
+    if (data.cmd === 'hide_loader') {
+        win.send('hide_loader')
+    }
+
     if (data.cmd === 'count') {
         win.send('count', data.source, data.count)
     }
@@ -1340,7 +1348,8 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
     progress_counter = 1;
     merge_err_arr = [];
     filter_merge_arr.forEach((item, i) => {
-        if (item.action === 1) {
+        action = parseInt(item.action);
+        if (action === 1) {
             try {
                 gio.cp(item.source, item.destination, 1);
                 if (is_move) {
@@ -1361,7 +1370,7 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
                 win.send('set_progress', progress_done);
                 // return;
             }
-        } else if (item.action === 2) {
+        } else if (action === 2) {
             try {
                 let destination_dir = path.dirname(item.destination);
                 if (!gio.exists(destination_dir)) {

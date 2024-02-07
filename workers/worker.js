@@ -342,6 +342,7 @@ parentPort.on('message', data => {
                     has_timeout: 0
                 }
                 parentPort.postMessage(msg);
+                parentPort.postMessage({cmd: 'show_loader'});
 
                 // Directory
                 if (src_file.is_dir) {
@@ -366,7 +367,7 @@ parentPort.on('message', data => {
                                 destination: '',
                                 source_date: '',
                                 destination_date: '',
-                                action: '',
+                                action: 0,
                                 id_dir: 0,
                                 content_type: '',
                                 is_writable: 0
@@ -422,7 +423,7 @@ parentPort.on('message', data => {
                         destination: '',
                         source_date: '',
                         destination_date: '',
-                        action: '',
+                        action: 0,
                         id_dir: 0,
                         content_type: '',
                         is_writable: 0
@@ -461,7 +462,7 @@ parentPort.on('message', data => {
         parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
         parentPort.postMessage({cmd: 'msg', msg: ''});
         merge_arr = [];
-
+        parentPort.postMessage({cmd: 'hide_loader'});
     }
 
     // // Merge

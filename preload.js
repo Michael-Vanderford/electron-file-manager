@@ -4523,30 +4523,25 @@ function add_img(src) {
 //     localStorage.setItem('icon_size', icon_size);
 // }
 
+ipcRenderer.on('show_loader', (e) => {
+    console.log('running show loader')
+    show_loader();
+})
+
+ipcRenderer.on('hide_loader', (e) => {
+    console.log('running hide loader')
+    hide_loader();
+})
+
 function show_loader() {
-
-    let loader = document.getElementById("loader")
-    loader.classList.add('active')
-    loader.style = 'background: transparent !important'
-
-    setTimeout(() => {
-
-        if (loader.classList.contains('active')) {
-
-            hide_loader()
-            // notification("Error Reading the Directory. Operation Timed Out")
-            // alert('Oh no. Operation timed out!')
-        }
-
-    }, 10000);
+    document.body.style.cursor = 'wait';
 }
 
 /**
  * Hide Loader
  */
 function hide_loader() {
-    let loader = document.getElementById("loader")
-    loader.classList.remove('active')
+    document.body.style.cursor = 'auto';
 }
 
 function add_item(text) {
