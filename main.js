@@ -1783,6 +1783,7 @@ ipcMain.on('remove_workspace', (e, href) => {
 
 // Get Workspae
 ipcMain.handle('get_workspace', async (e) => {
+
     let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
     if (!gio.exists(workspace_file)) {
         let workspace_data = [];
@@ -1790,6 +1791,23 @@ ipcMain.handle('get_workspace', async (e) => {
     }
     let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
     return workspace_items;
+
+})
+
+// Update workspace
+ipcMain.on('rename_workspace', (e, href, workspace_name) => {
+
+    let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+    let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
+
+    let index = workspace_data.findIndex(data => data.href === href);
+    if (index !== -1) {
+        workspace_data[index].name = workspace_name;
+        fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
+        win.send('get_workspace');
+    } else {
+        console.error("Workspace entry not found with href:", href);
+    }
 
 })
 
@@ -3329,6 +3347,15 @@ ipcMain.on('workspace_menu', (e, file) => {
 
     // // console.log(file)
     let workspace_menu_template = [
+        {
+            label: 'Rename',
+            click: () => {
+                win.send('edit_workspace', file.href);
+            }
+        },
+        {
+            type: 'separator',
+        },
         {
             label: 'Remove From Workspace',
             click: () => {

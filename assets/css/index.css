@@ -73,7 +73,7 @@ th {
     padding: 5px;
     width: 100%;
     align-items: center;
-    height: 24px;
+    height: 26px;
 }
 
 #navigation_menu input[type=text].location {
@@ -1266,6 +1266,44 @@ input[type=text]:focus {
     }
 }
 
+@media (prefers-color-scheme: light1) {
+    :root {
+        --menu: #f0f0f0;
+        --sidebar: #f0f0f0;
+        --input: #f0f0f0;
+        --main: #ffffff;
+        --minibar: #f0f0f0;
+        --border: #dddddd;
+        --msg: #f0f0f0;
+        --dialog: #dddddd;
+        --text: #333333;
+        --active: #333333;
+        --tabs: #ffffff;
+        --button: #dddddd;
+        --location: #f0f0f0;
+        --location-border: #dddddd;
+        --progress: #f0f0f0;
+
+        --link: #007acc;
+        --highlight: rgba(0, 0, 0, 0.1);
+        --highlight-select: rgba(0, 0, 0, 0.1);
+
+        --black: #000000;
+        --white: #FFFFFF;
+        --warning: #a31515;
+        --green: #008000;
+        --blue: #007acc;
+        --lightblue: #3f7ebe;
+        --yellow: #a31515;
+        --orange: #a31515;
+
+        --grey: #6c6c6c;
+        --light: #eeeeee;
+        --lighter: #dddddd;
+        --lightest: #f0f0f0;
+    }
+}
+
 @media (prefers-color-scheme: light) {
     :root {
         --menu: #f7f7f7;
@@ -1304,7 +1342,7 @@ input[type=text]:focus {
     }
 }
 
-/* @media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: light3) {
     :root {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
@@ -1340,4 +1378,4 @@ input[type=text]:focus {
         --lighter: #cfcfcf;
         --lightest: #cacaca;
     }
-} */
+}

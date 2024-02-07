@@ -616,6 +616,7 @@ class Utilities {
                 'Type: ' + file.content_type
 
             card.title = title;
+            href.focus();
 
         })
 
@@ -2793,6 +2794,52 @@ class DeviceManager {
 
 }
 
+class WorkspaceManager {
+
+    Workspace () {
+
+    }
+
+    editWorkspace () {
+
+        let workspace = document.querySelector('.workspace');
+        console.log(workspace)
+        if (workspace) {
+
+            let workspace_item = workspace.querySelector('.workspace_item');
+            let workspace_item_input = workspace.querySelector('.input');
+
+            // Edit workspace item
+            workspace.addEventListener('keyup', (e) => {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (e.key === 'F2') {
+                    workspace_item_input.classList.remove('hidden');
+                    workspace_item.classList.add('hidden');
+                    workspace_item_input.focus();
+                }
+                if (e.key === 'Escape') {
+                    workspace_item_input.classList.add('hidden');
+                    workspace_item.classList.remove('hidden');
+                }
+
+            })
+
+            workspace_item_input.addEventListener('click', (e) => {
+                e.stopPropagation();
+            })
+
+            workspace_item_input.addEventListener('change', (e) => {
+                ipcRenderer.send('rename_workspace', file.href, e.target.value)
+            })
+
+        }
+
+    }
+
+}
 
 // Get reference to File Operations
 let fileOperation = new FileOperation();
@@ -2803,6 +2850,7 @@ let iconManager = null;
 let tabManager = null;
 let navigation = null;
 let utilities = new Utilities();
+let workspaceManager = null;
 
 window.addEventListener('DOMContentLoaded', (e) => {
     settingsManager = new SettingsManager();
@@ -2815,6 +2863,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
     })
 
     utilities.autoComplete();
+    workspaceManager = new WorkspaceManager();
 
 })
 
@@ -3329,6 +3378,13 @@ ipcRenderer.on('get_workspace', (e) => {
 // Remove Workspace
 ipcRenderer.on('remove_workspace', (e, href) => {
     ipcRenderer.send('remove_workspace', (e, href));
+})
+
+// Rename Workspace
+ipcRenderer.on('edit_workspace', (e, href) => {
+    // Edit workspace
+    editWorkspace(href);
+
 })
 
 ipcRenderer.on('sort', (e, sort_by) => {
@@ -5476,45 +5532,52 @@ function getWorkspace(callback) {
 
         res.forEach(file => {
 
-            let workspace_div = add_div(['flex', 'item'])
+            let workspace_div = add_div(['flex', 'item', 'workspace_div'])
             let workspace_item = add_div(['workspace_item']);
+            let workspace_item_input = document.createElement('input');
             let img = document.createElement('img')
 
-            // workspace_item.classList.add('item');
             img.classList.add('icon', 'icon16')
-
             let a = document.createElement('a');
             a.href = file.href;
             a.innerHTML = file.name;
             a.preventDefault = true;
+            workspace_item_input.classList.add('input', 'hidden');
+
+            workspace_div.dataset.href = file.href;
+            workspace_item_input.value = file.name;
 
             if (file.content_type === 'inode/directory') {
                 img.src = folder_icon + 'folder.svg';
                 workspace_item.append(a);
-                workspace_div.append(img, workspace_item);
+                workspace_div.append(img, workspace_item, workspace_item_input);
             } else {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                     img.src = res;
                     workspace_item.append(a);
-                    workspace_div.append(img, workspace_item);
+                    workspace_div.append(img, workspace_item, workspace_item_input);
                     // workspace_item.append(img, a);
                 })
             }
 
             workspace_div.addEventListener('mouseover', (e) => {
-                workspace_div.title = file.href
+                workspace_div.title = `${file.href} \n Rename (F2)`;
+                a.focus();
             })
 
             // Show Workspace Context Menu
             workspace_div.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 ipcRenderer.send('workspace_menu', file);
-                workspace_div.classList.add('highlight')
+                workspace_div.classList.add('highlight');
             });
 
             // Open Workspace Item
             workspace_div.addEventListener('click', (e) => {
+
                 e.preventDefault();
+                e.stopPropagation();
+
                 if (file.is_dir) {
                     if (e.ctrlKey) {
                         viewManager.getView(file.href, 1);
@@ -5527,6 +5590,35 @@ function getWorkspace(callback) {
 
             })
 
+            // Edit workspace item
+            workspace_div.addEventListener('keyup', (e) => {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (e.key === 'F2') {
+                    workspace_item_input.classList.remove('hidden');
+                    workspace_item.classList.add('hidden');
+                    workspace_item_input.focus();
+                    workspace_item_input.select();
+                }
+                if (e.key === 'Escape') {
+                    workspace_item_input.classList.add('hidden');
+                    workspace_item.classList.remove('hidden');
+                }
+
+            })
+
+            workspace_item_input.addEventListener('click', (e) => {
+                e.stopPropagation();
+            })
+
+            workspace_item_input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    ipcRenderer.send('rename_workspace', file.href, e.target.value)
+                }
+            })
+
             // workspace_item.append(img, a);
             workspace.append(workspace_div);
 
@@ -5534,6 +5626,21 @@ function getWorkspace(callback) {
         return callback(workspace);
 
     })
+}
+
+function editWorkspace (href) {
+
+    let workspace = document.getElementById('workspace');
+    let workspace_div = workspace.querySelector(`[data-href="${href}"]`);
+    let workspace_item = workspace_div.querySelector('.workspace_item');
+    let workspace_item_input = workspace_div.querySelector('.input');
+
+    // Edit workspace item
+    workspace_item_input.classList.remove('hidden');
+    workspace_item.classList.add('hidden');
+    workspace_item_input.focus();
+    workspace_item_input.select();
+
 }
 
 // Get Devices
