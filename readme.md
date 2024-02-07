@@ -26,6 +26,8 @@
 - Edit mode for new folder creation
 - Error handle merge files
 - Fixed column header formatting when switching views
+- Edit workspace names
+- Updated light color scheme
 
 ### Version 1.0.6 (2024-01-02)
 - Multithreading for copying separate directories
