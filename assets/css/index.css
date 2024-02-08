@@ -238,7 +238,7 @@ th {
 }
 
 .connect .input {
-    border: none;
+    border: 1px solid var(--border);
     height: 23px;
     background: var(--input);
     color: var(--text);
@@ -248,8 +248,17 @@ th {
 }
 
 .connect .button {
+    border: 1px solid var(--border);
     background: var(--button);
-    color: var(--text);
+    color: var(--button-text);
+}
+
+.connect .button:active {
+    background: var(--button-active);
+}
+
+.connect .button:hover {
+    background: var(--button-active-hover);
 }
 
 .connect .msg {
@@ -505,7 +514,9 @@ th {
     /* background: var(--dialog) */
 }
 
-.destination_table table {}
+.destination_table table {
+    padding: 5px;
+}
 
 .destination_table .destination {
     word-break: break-all;
@@ -1037,8 +1048,8 @@ input[type=text]:focus {
 }
 
 .button {
-    /* background-color: var(--button); */
-    /* color: var(--text); */
+    background-color: var(--button);
+    color: var(--button-text);
     width: 120px;
     border: none;
     padding: 5px 5px;
@@ -1052,11 +1063,11 @@ input[type=text]:focus {
 }
 
 .button:active {
-    /* background-color: var(--button-active); */
+    background-color: var(--button-active);
 }
 
 .button:hover {
-    /* background-color: var(--button-active); */
+    background-color: var(--button-active-hover);
 }
 
 .button.warning {
@@ -1231,6 +1242,7 @@ input[type=text]:focus {
         --tabs: #292929;
         --button: #484848;
         --button-active: #1b557c;
+        --button-active-hover: #5c636a;
         --location: #2c2c2c;
         --location-border: #3b3a3a;
         /* --progress: rgba(44, 44, 44, .75); */
@@ -1317,7 +1329,10 @@ input[type=text]:focus {
         --text: #333333;
         --active: #333333;
         --tabs: #ffffff;
-        --button: #dcdcdc;
+        --button: #707070;
+        --button-text: #ffffff;
+        --button-active: #5c636a;
+        --button-active-hover: #5c636a;
         --location: #f0f0f0;
         --location-border: #dcdcdc;
         --progress: #f7f7f7;
