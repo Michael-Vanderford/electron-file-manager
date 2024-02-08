@@ -2949,6 +2949,8 @@ ipcMain.on('main_menu', (e, destination) => {
 // Folders Menu
 ipcMain.on('folder_menu', (e, file) => {
 
+    console.log('file', file)
+
     const template = [
         {
             label: 'Open with Code',
@@ -3304,6 +3306,370 @@ ipcMain.on('file_menu', (e, file) => {
     menu.popup(BrowserWindow.fromWebContents(e.sender))
 
 })
+
+// Merge Folders Menu
+ipcMain.on('merge_folder_menu', (e, href) => {
+
+    file = gio.get_file(href);
+
+    const template = [
+        {
+            label: 'Open with Code',
+            click: () => {
+                exec(`cd "${file.href}"; code .`, (err) => {
+                    win.send('clear');
+                    if (err) {
+                        return;
+                    }
+                })
+                // e.sender.send('context-menu-command', 'vscode')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Window',
+            click: () => {
+                createWindow(file.href);
+            }
+        },
+        {
+            label: 'New Tab',
+            click: () => {
+                ls.postMessage({ cmd: 'ls', source: file.href, tab: 1 });
+            }
+        },
+        {
+            id: 'launchers',
+            label: 'Open with',
+            submenu: []
+        },
+        {
+            type: 'separator'
+        },
+        {
+            type: 'separator'
+        },
+        {
+            id: 'sort_menu',
+            label: 'Sort',
+            submenu: sort_menu()
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'New Folder',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            click: () => {
+                e.sender.send('context-menu-command', 'new_folder')
+            }
+        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         },],
+        // },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Add to workspace',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+            click: () => {
+                e.sender.send('context-menu-command', 'add_workspace');
+            },
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Cut',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+            click: () => {
+                e.sender.send('context-menu-command', 'cut')
+            }
+        },
+        {
+            label: 'Copy',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+            click: () => {
+                e.sender.send('context-menu-command', 'copy')
+            }
+        },
+        {
+            label: '&Rename',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+            click: () => {
+                e.sender.send('context-menu-command', 'rename')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Compress',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            submenu: [
+                {
+                    label: 'tar.gz',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress')
+                    }
+                },
+                {
+                    label: 'zip',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress_zip')
+                    }
+                },
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Delete Permanently',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            click: () => {
+                // e.sender.send('context-menu-command', 'delete_folder')
+                e.sender.send('context-menu-command', 'delete')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Open in terminal',
+            click: () => {
+                e.sender.send('context-menu-command', 'terminal');
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Disk Usage Analyzer',
+            click: () => {
+                exec(`baobab ${file.href}`);
+            }
+
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Properties',
+            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+            click: () => {
+                e.sender.send('context-menu-command', 'properties')
+            }
+        },
+
+    ]
+
+    const merge_folder_menu = Menu.buildFromTemplate(template);
+
+    // Handle Sort Menu
+    // let sort_menu_item = menu.getMenuItemById('sort_menu');
+    // let sort_submenu_items = sort_menu_item.submenu.items
+    // for (const item of sort_submenu_items) {
+    //     if (item.id == sort) {
+    //         item.checked = true;
+    //     }
+    // }
+
+    // ADD LAUNCHER MENU
+    // add_launcher_menu(menu, e, file)
+
+    // ADD TEMPLATES
+    // add_templates_menu(menu, file.);
+
+    // ADD LAUNCHER MENU
+    //   add_launcher_menu(menu1, e, args);
+    merge_folder_menu.popup(BrowserWindow.fromWebContents(e.sender));
+
+})
+
+// Merge Files Menu
+ipcMain.on('merge_file_menu', (e, href) => {
+
+    file = gio.get_file(href);
+
+    // const template = [
+    let files_menu_template = [
+        {
+            id: 'launchers',
+            label: 'Open with',
+            submenu: []
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Add to workspace',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+            click: () => {
+                e.sender.send('context-menu-command', 'add_workspace')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            id: 'sort_menu',
+            label: 'Sort',
+            submenu: sort_menu()
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Cut',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
+            click: () => {
+                e.sender.send('context-menu-command', 'cut')
+            }
+        },
+        {
+            label: 'Copy',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
+            click: () => {
+                e.sender.send('context-menu-command', 'copy')
+            }
+        },
+        {
+            label: '&Rename',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Rename : settings.keyboard_shortcuts.Rename,
+            click: () => { e.sender.send('context-menu-command', 'rename') }
+        },
+        {
+            type: 'separator'
+        },
+        // {
+        //     id: 'templates',
+        //     label: 'New Document',
+        //     submenu: [
+        //         {
+        //             label: 'Open Templates Folder',
+        //             click: () => {
+        //                 e.sender.send('context-menu-command', 'open_templates_folder'
+        //                 ),
+        //                 {
+        //                     type: 'separator'
+        //                 }
+        //             }
+        //         }],
+        // },
+        {
+            label: '&New Folder',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+            click: () => {
+                e.sender.send('context-menu-command', 'new_folder')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Compress',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
+            submenu: [
+                {
+                    label: 'tar.gz',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress')
+                    }
+                },
+                {
+                    label: 'zip',
+                    click: () => {
+                        e.sender.send('context-menu-command', 'compress_zip')
+                    }
+                },
+            ]
+        },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Delete Permanently',
+            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Delete : settings.keyboard_shortcuts.Delete,
+            click: () => {
+                // e.sender.send('context-menu-command', 'delete_file')
+                e.sender.send('context-menu-command', 'delete')
+            }
+        },
+        {
+            type: 'separator'
+        },
+        // {
+        //     label: 'Terminal',
+        //     click: () => {
+        //         e.sender.send(
+        //             'context-menu-command', 'open_terminal'
+        //         )
+        //     }
+        // },
+        {
+            type: 'separator'
+        },
+        {
+            label: 'Properties',
+            accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
+            click: () => {
+                e.sender.send('context-menu-command', 'properties')
+            }
+        },
+    ]
+
+    let menu = Menu.buildFromTemplate(files_menu_template)
+
+    // Handle Sort Menu
+    let sort_menu_item = menu.getMenuItemById('sort_menu');
+    let sort_submenu_items = sort_menu_item.submenu.items
+    for (const item of sort_submenu_items) {
+        if (item.id == sort) {
+            item.checked = true;
+        }
+    }
+
+    // ADD TEMPLATES
+    // add_templates_menu(menu, e, args)
+
+    // ADD LAUNCHER MENU
+    add_launcher_menu(menu, e, file)
+
+    // Run as program
+    // if (args.access) {
+    // add_execute_menu(menu, e, args)
+    // }
+
+    // Handle Audio conversion
+    let ext = path.extname(file.href);
+    if (ext == '.mp4' || ext == '.mp3') {
+        add_convert_audio_menu(menu, file.href);
+    }
+
+    if (ext == '.xz' || ext == '.gz' || ext == '.zip' || ext == '.img' || ext == '.tar') {
+        extract_menu(menu, e);
+    }
+
+    menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+})
+
 
 // Devices Menu
 ipcMain.on('device_menu', (e, href, uuid) => {

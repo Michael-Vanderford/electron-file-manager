@@ -387,6 +387,9 @@ parentPort.on('message', data => {
                                 merge_obj.destination_date = dest.mtime
 
                                 merge_obj.is_writable = dest.is_writable;
+                                if (!dest.is_writable) {
+                                    console.log(dest.href, 'not writable');
+                                }
 
                                 if (src.mtime > dest.mtime) {
                                     merge_obj.action = 1;
@@ -405,6 +408,7 @@ parentPort.on('message', data => {
 
                             } else {
                                 // New File
+                                merge_obj.is_writable = 1;
                                 merge_obj.destination = f.destination;
                                 merge_obj.action = 2;
                                 merge_arr.push(merge_obj);

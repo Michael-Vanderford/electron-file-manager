@@ -1684,9 +1684,10 @@ class ViewManager {
         // Switch View Listener
         ipcRenderer.on('switch_view', (e, view) => {
             this.view = view
-            localStorage.setItem('view', this.view);
-            let location = document.querySelector('.location');
-            this.getView(location.value);
+            // localStorage.setItem('view', this.view);
+            // let location = document.querySelector('.location');
+            // this.getView(location.value);
+            this.switchView (this.view);
         })
 
         // Register listener for columns
@@ -1825,6 +1826,7 @@ class ViewManager {
         console.log('running list view')
 
         let tabs_content = document.querySelectorAll('.tab-content');
+        console.log(tabs_content)
         tabs_content.forEach(tab_content => {
 
             let header_row = tab_content.querySelector('.header_row');
@@ -3051,6 +3053,16 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
                     href.addEventListener('click', (e) => {
                         ipcRenderer.send('open', item.destination);
+                    })
+
+                    href.addEventListener('contextmenu', (e) => {
+                        console.log('running context menu');
+                        e.preventDefault();
+                        if (item.is_dir) {
+                            // ipcRenderer.send('merge_folder_menu', item.source);
+                        } else {
+                            // ipcRenderer.send('merge_file_menu', item.source);
+                        }
                     })
 
                     dest_cell.append(dest_div);
