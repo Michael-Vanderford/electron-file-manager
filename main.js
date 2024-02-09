@@ -437,6 +437,7 @@ ls.on('message', (data) => {
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source, data.tab);
     }
+    
 })
 
 let progress_counter = 0;
@@ -3310,7 +3311,8 @@ ipcMain.on('file_menu', (e, file) => {
 // Merge Folders Menu
 ipcMain.on('merge_folder_menu', (e, href) => {
 
-    file = gio.get_file(href);
+    let file = gio.get_file(href);
+    console.log(file)
 
     const template = [
         {
@@ -3505,7 +3507,7 @@ ipcMain.on('merge_folder_menu', (e, href) => {
 // Merge Files Menu
 ipcMain.on('merge_file_menu', (e, href) => {
 
-    file = gio.get_file(href);
+    let file = gio.get_file(href);
 
     // const template = [
     let files_menu_template = [

@@ -723,15 +723,16 @@ class Utilities {
             // ipcRenderer.send('get_folder_icon', file.href);
 
             is_dir = 1;
-            let folder_icon_path = folder_icon + `folder.svg`;
-            ipcRenderer.invoke('file_exists', folder_icon_path)
+            let test_folder_icon_path = folder_icon + `folder.svg`;
+            ipcRenderer.invoke('file_exists', test_folder_icon_path)
             .then(res => {
-                let ext = '.svg';
 
+                let ext = '.svg';
                 if (!res) {
                     ext = '.png';
                 }
 
+                let folder_icon_path = "";
                 if (file.href.endsWith('Document')) {
                     folder_icon_path = folder_icon + `folder-documents${ext}`;
                 } else if (file.href.endsWith('Downloads')) {
@@ -1736,10 +1737,12 @@ class ViewManager {
 
     // Get View
     getView(dir, tab = 0) {
-        // getSubFolders(dir, () => {});
+
+        show_loader();
         console.log('running get view');
         ipcRenderer.send('get_files', dir, tab);
         clearHighlight();
+
     }
 
     /**
@@ -2138,6 +2141,8 @@ class FileOperation {
 
             let st = new Date().getTime();
 
+            show_loader();
+
             localStorage.setItem('location', source);
             navigation.addHistory(source);
             auto_complete_arr = [];
@@ -2473,6 +2478,7 @@ class FileOperation {
             // href.focus();
 
             console.log('time', (new Date().getTime() - st));
+            hide_loader();
 
         })
 
@@ -3058,10 +3064,12 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     href.addEventListener('contextmenu', (e) => {
                         console.log('running context menu');
                         e.preventDefault();
+                        e.stopPropagation();
                         if (item.is_dir) {
-                            // ipcRenderer.send('merge_folder_menu', item.source);
+                            console.log('merge folder menu', item.source);
+                            ipcRenderer.send('merge_folder_menu', item.source);
                         } else {
-                            // ipcRenderer.send('merge_file_menu', item.source);
+                            ipcRenderer.send('merge_file_menu', item.source);
                         }
                     })
 

@@ -277,6 +277,7 @@ let cp_recursive = 0;
 let progress_id = 0;
 
 function get_files_arr (source, destination, callback) {
+
     cp_recursive++
     file_arr.push({type: 'directory', source: source, destination: destination})
     gio.ls(source, (err, dirents) => {
