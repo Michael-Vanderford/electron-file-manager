@@ -258,7 +258,7 @@ th {
 }
 
 .connect .button:hover {
-    background: var(--button-active-hover);
+    background: var(--button-hover);
 }
 
 .connect .msg {
@@ -1067,12 +1067,12 @@ input[type=text]:focus {
 }
 
 .button:hover {
-    background-color: var(--button-active-hover);
+    background-color: var(--button-hover);
 }
 
-.button.warning {
+.button-warning:hover {
     color: var(--white);
-    background: var(--warning);
+    background: var(--button-hover-warning);
 }
 
 .context-menu-icon {
@@ -1242,7 +1242,8 @@ input[type=text]:focus {
         --tabs: #292929;
         --button: #484848;
         --button-active: #1b557c;
-        --button-active-hover: #5c636a;
+        --button-hover: #5c636a;
+        --button-hover-warning: #960000;
         --location: #2c2c2c;
         --location-border: #3b3a3a;
         /* --progress: rgba(44, 44, 44, .75); */
@@ -1332,7 +1333,8 @@ input[type=text]:focus {
         --button: #707070;
         --button-text: #ffffff;
         --button-active: #5c636a;
-        --button-active-hover: #5c636a;
+        --button-hover: #5c636a;
+        --button-hover-warning: #960000;
         --location: #f0f0f0;
         --location-border: #dcdcdc;
         --progress: #f7f7f7;

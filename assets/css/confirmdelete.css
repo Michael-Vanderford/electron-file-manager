@@ -38,14 +38,18 @@ html, body {
     padding-bottom: 10px !important;
 }
 
-#confirm_delete .button {
-    color: var(--text);
-    background: var(--button)
-
+/* #confirm_delete .button {
+    color: var(--button-text);
+    background: var(--button);
 }
 
-#confirm_delete .button > .delete {
+#confirm_delete .button:hover {
+    color: var(--button-text);
+    background: var(--button-hover);
+} */
+
+/* #confirm_delete .button > .delete {
     color: var(--text);
     background: var(--warning);
 
-}
+} */
