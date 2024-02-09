@@ -5563,9 +5563,45 @@ function getWorkspace(callback) {
             workspace_item_input.value = file.name;
 
             if (file.content_type === 'inode/directory') {
-                img.src = folder_icon + 'folder.svg';
-                workspace_item.append(a);
-                workspace_div.append(img, workspace_item, workspace_item_input);
+
+                let test_folder_icon_path = folder_icon + `folder.svg`;
+                ipcRenderer.invoke('file_exists', test_folder_icon_path)
+                .then(res => {
+
+                    let ext = '.svg';
+                    if (!res) {
+                        ext = '.png';
+                    }
+
+                    let folder_icon_path = "";
+                    if (file.href.endsWith('Document')) {
+                        folder_icon_path = folder_icon + `folder-documents${ext}`;
+                    } else if (file.href.endsWith('Downloads')) {
+                        const downloadsPath = folder_icon + `folder-downloads${ext}`;
+                        ipcRenderer.invoke('file_exists', downloadsPath).then(res => {
+                            folder_icon_path = res ? downloadsPath : folder_icon + `folder-download${ext}`;
+                            img.src = folder_icon_path;
+                        });
+                        // return;
+                    } else if (file.href.endsWith('Music')) {
+                        folder_icon_path = folder_icon + `folder-music${ext}`;
+                    } else if (file.href.endsWith('Pictures')) {
+                        folder_icon_path = folder_icon + `folder-pictures${ext}`;
+                    } else if (file.href.endsWith('Videos')) {
+                        folder_icon_path = folder_icon + `folder-videos${ext}`;
+                    } else {
+                        folder_icon_path = folder_icon + `folder${ext}`;
+                    }
+
+                    img.src = folder_icon_path;
+
+                    workspace_item.append(a);
+                    workspace_div.append(img, workspace_item, workspace_item_input);
+                });
+
+                // img.src = folder_icon + 'folder.svg';
+                // workspace_item.append(a);
+                // workspace_div.append(img, workspace_item, workspace_item_input);
             } else {
                 ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                     img.src = res;
