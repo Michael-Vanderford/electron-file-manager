@@ -1503,7 +1503,7 @@ class Navigation {
                     case 'mb_home': {
                         sb_view = document.querySelector('.sb_home');
                         sb_view.classList.remove('hidden');
-                        sidebarHome();
+                        this.initSidebar();
                         mb_item.classList.add('active')
                         break;
                     }
@@ -6537,7 +6537,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // localStorage.setItem('icon_size', init_size);
         })
 
-        // navigation.sidebarHome();
+        navigation.sidebarHome();
 
         // Resize Sidebar -----------------------------------------------------
         // let sidebarWidth = '350';
