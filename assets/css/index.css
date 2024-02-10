@@ -6,12 +6,140 @@ body {
     margin: 0;
     padding: 0;
     height: 100%;
-}
-
-html,
-body {
     background: var(--main);
     color: var(--text);
+}
+
+.container {
+    /* border:1px solid green; */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100vh !important;
+    /* background: var(--lessdark); */
+}
+
+.wrapper {
+    /* border: 1px solid red; */
+    display: flex;
+    width: 100%;
+    height: 100%;
+
+}
+
+.container:focus {
+    outline: none;
+    border: none;
+}
+
+.main {
+    /* position: relative; */
+    /* background: linear-gradient(to right, var(--main), var(--menu)); */
+    /* border-left: 1px solid red; */
+    background: var(--main);
+    border-radius: 5px;
+    width: 100%;
+    height: 90%;
+    /* justify-content: space-around; */
+    z-index: 1;
+}
+
+/* .main:focus {
+    outline: none;
+    border: none;
+} */
+
+.tab-container {
+    border: 1px solid var(--border);
+    width: 90%;
+    height: 100%;
+    /* background: var(--sidebar); */
+    /* width: 500px; */
+    /* height: 100%; */
+}
+
+.tab-content {
+    padding: 10px;
+}
+
+.tabs {
+    background: var(--tabs);
+    height: 23px;
+    top: 0;
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    display: inline-block;
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+
+
+.tab {
+    padding-top: 2px;
+    height: 19px;
+    border-radius: 5px 5px 0px 0px;
+    background: var(--main);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-left: 1px solid transparent;
+    display: inline-block;
+}
+
+.tab .label {
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.tab_close {
+    text-align: center;
+    margin-left: auto;
+    right: 0;
+}
+
+.tab:hover {
+    cursor: pointer;
+}
+
+.tab.active-tab {
+    color: var(--text);
+    border-top: 2px solid var(--blue);
+    border-bottom: none;
+    filter: drop-shadow(1px 0px 0px rgb(0 0 0 / 0.9));
+    font-weight: bold;
+}
+
+/* .tab_container {
+    padding: 4px;
+    width: 100%;
+    height: 20px;
+} */
+
+/* .tab_content {
+    box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
+    height: 100%;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: 50px;
+} */
+
+/* Properties Tab */
+.tab-header {
+    /* padding-right: 10px; */
+    position: sticky;
+    background: var(--tabs);
+    height: 23px;
+    top: 0 !important;
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    display: inline-block;
+    z-index: 1000;
+    box-sizing: border-box;
+    line-height: 18px;
 }
 
 /* Progress input */
@@ -135,21 +263,6 @@ th {
     border-radius: 5px;
     background-color: var(--highlight);
 }
-
-/* #main { */
-    /* position: relative; */
-    /* overflow-y: auto; */
-    /* overflow-x: hidden; */
-    /* border: 1px solid red; */
-    /* background: var(--main); */
-    /* background: linear-gradient(to right, var(--main), var(--menu)); */
-
-    /* border-radius: 5px; */
-    /* padding: 10px; */
-    /* width: 100%; */
-    /* height: 92%; */
-    /* flex: 1; */
-/* } */
 
 .active-tab-content::-webkit-scrollbar {
     background: var(--input);
@@ -353,43 +466,6 @@ th {
     cursor: pointer;
 }
 
-.wrapper {
-    overflow: hidden;
-    box-sizing: border-box;
-    /* border:1px solid green; */
-    height: 100% !important;
-    background: var(--lessdark);
-}
-
-.container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-
-}
-
-.container:focus {
-    outline: none;
-    border: none;
-}
-
-.main {
-    /* position: relative; */
-    background: var(--main);
-    /* background: linear-gradient(to right, var(--main), var(--menu)); */
-    border-radius: 5px;
-    width: 100%;
-    height: 92%;
-    border-left: 1px solid var(--border);
-    justify-content: space-around;
-    z-index: 1;
-}
-
-.main:focus {
-    outline: none;
-    border: none;
-}
-
 .split-view {
     width: 500px;
 }
@@ -412,92 +488,6 @@ th {
     border-top: none;
     border-radius: 5px;
     height: 100px;
-}
-
-.tabs {
-    background: var(--tabs);
-    height: 23px;
-    top: 0;
-    display: flex;
-    width: 100%;
-    border-bottom: 1px solid var(--border);
-    display: inline-block;
-    z-index: 1000;
-    box-sizing: border-box;
-}
-
-.tab-container {
-    border: 1px solid var(--border);
-    width: 90%;
-    /* background: var(--sidebar); */
-    /* width: 500px; */
-    /* height: 100%; */
-}
-
-.tab {
-    padding-top: 2px;
-    height: 19px;
-    border-radius: 5px 5px 0px 0px;
-    background: var(--main);
-    color: var(--text);
-    border: 1px solid var(--border);
-    border-left: 1px solid transparent;
-    display: inline-block;
-}
-
-.tab .label {
-    padding-left: 10px;
-    padding-right: 10px;
-}
-
-.tab_close {
-    text-align: center;
-    margin-left: auto;
-    right: 0;
-}
-
-.tab:hover {
-    cursor: pointer;
-}
-
-.tab.active-tab {
-    color: var(--text);
-    border-top: 2px solid var(--blue);
-    border-bottom: none;
-    filter: drop-shadow(1px 0px 0px rgb(0 0 0 / 0.9));
-    font-weight: bold;
-}
-
-.tab_container {
-    padding: 4px;
-    width: 100%;
-    height: 20px;
-}
-
-.tab_content {
-    box-sizing: border-box;
-    overflow-y: auto;
-    overflow-x: hidden;
-    height: 100%;
-    padding-left: 5px;
-    padding-right: 5px;
-    padding-bottom: 50px;
-}
-
-/* Properties Tab */
-.tab-header {
-    /* padding-right: 10px; */
-    position: sticky;
-    background: var(--tabs);
-    height: 23px;
-    top: 0 !important;
-    display: flex;
-    width: 100%;
-    border-bottom: 1px solid var(--border);
-    display: inline-block;
-    z-index: 1000;
-    box-sizing: border-box;
-    line-height: 18px;
 }
 
 .properties-tab {
@@ -1160,7 +1150,7 @@ input[type=text]:focus {
 .tab-content {
     /* box-sizing: border-box; */
     /* border: 1px solid red; */
-    padding: 10px;
+    /* padding: 10px; */
 }
 
 /* .t {

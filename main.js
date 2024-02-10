@@ -236,7 +236,7 @@ class IconManager {
 
             search_path.every(icon_path => {
                 let theme_path = path.join(icon_path, icon_theme);
-                console.log(theme_path)
+                // console.log(theme_path)
                 if (fs.existsSync(theme_path)) {
                     icon_dir = path.join(icon_path, icon_theme);
                     return false;
@@ -267,7 +267,7 @@ class IconManager {
                     return true;
                 }
             })
-            console.log(folder_icon_path);
+            // console.log(folder_icon_path);
             return folder_icon_path;
         } catch (err) {
             console.log(err);
@@ -2112,21 +2112,29 @@ function createWindow() {
 
     win.on('resize', (e) => {
         setTimeout(() => {
-            window_settings.window.width = win.getBounds().width;
-            window_settings.window.height = win.getBounds().height;
-            // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-            // fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
-            settingsManger.updateWindowSettings(window_settings);
+            try {
+                window_settings.window.width = win.getBounds().width;
+                window_settings.window.height = win.getBounds().height;
+                // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+                // fs.writeFileSync(settings_file, JSON.stringify(settings, null, 4));
+                settingsManger.updateWindowSettings(window_settings);
+            } catch (err) {
+
+            }
         }, 1000);
     })
 
     win.on('move', (e) => {
         setTimeout(() => {
-            window_settings.window.x = win.getBounds().x;
-            window_settings.window.y = win.getBounds().y;
-            // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-            // fs.writeFileSync(settings_file, JSON.stringify(window_settings, null, 4));
-            settingsManger.updateWindowSettings(window_settings);
+            try {
+                window_settings.window.x = win.getBounds().x;
+                window_settings.window.y = win.getBounds().y;
+                // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+                // fs.writeFileSync(settings_file, JSON.stringify(window_settings, null, 4));
+                settingsManger.updateWindowSettings(window_settings);
+            } catch (err) {
+
+            }
         }, 1000);
     })
     windows.add(win);

@@ -1581,7 +1581,11 @@ class Navigation {
                 sb_home.append(devices)
             })
 
+            let sidebar = document.querySelector('.sidebar');
+            sidebar.style.height = document.documentElement.clientHeight + 'px';
+
             sidebar.append(sb_home)
+
         }
 
     }
@@ -1954,15 +1958,14 @@ class ViewManager {
 
         console.log('running view manager')
 
+        window.addEventListener('resize', this.resize);
+
         // this.utils = new Utilities();
         this.view = localStorage.getItem('view');
 
         // Switch View Listener
         ipcRenderer.on('switch_view', (e, view) => {
             this.view = view
-            // localStorage.setItem('view', this.view);
-            // let location = document.querySelector('.location');
-            // this.getView(location.value);
             this.switchView (this.view);
         })
 
@@ -2008,6 +2011,17 @@ class ViewManager {
 
         })
 
+    }
+
+    resize() {
+        let container = document.querySelector('.container');
+        let main = document.querySelector('.main');
+        let sidebar = document.querySelector('.sidebar');
+        let sb_view = document.querySelector('.sb_home');
+
+        main.style.height = container.clientHeight - 30 + 'px';
+        sidebar.style.height = container.clientHeight - 10 + 'px';
+        // sb_view.style.height = container.clientHeight - 200 + 'px';
     }
 
     // Get View
@@ -2736,21 +2750,17 @@ class FileOperation {
             iconManager.resizeIcons(icon_size);
             slider.value = icon_size;
 
-
             viewManager.lazyload();
             sort_cards();
 
             // clearHighlight();
-            main.classList.remove('loader');
+            // main.classList.remove('loader');
 
             // Drag Select for cards
             utilities.dragSelect();
             utilities.getFolderSizes();
 
-            // utilities.autoComplete();
-            // Focus first card
-            // let href = cards[0].querySelector('.header a');
-            // href.focus();
+            viewManager.resize();
 
             console.log('time', (new Date().getTime() - st));
             hide_loader();
@@ -6501,18 +6511,8 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         })
 
-        // })
-
-
         // Get local storage for icon size
         let init_size = 32;
-        // if (localStorage.getItem('icon_size') !== null) {
-        //     scaleIcons(`${localStorage.getItem('icon_size')}`)
-        // } else {
-        //     scaleIcons(`${init_size}px`)
-        //     localStorage.setItem('icon_size', init_size);
-        // }
-
         document.addEventListener('wheel', (e) => {
             if (e.ctrlKey && e.deltaY < 0) {
                 if ((init_size) < 64) {
@@ -6537,7 +6537,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // localStorage.setItem('icon_size', init_size);
         })
 
-        navigation.sidebarHome();
+        // navigation.sidebarHome();
 
         // Resize Sidebar -----------------------------------------------------
         // let sidebarWidth = '350';

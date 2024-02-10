@@ -1,6 +1,7 @@
 
 .sidebar {
     /* overflow-y: auto; */
+    /* border: 1px solid red; */
     position: relative;
     box-sizing: border-box;
     background-color: var(--sidebar);
@@ -8,7 +9,7 @@
     color: var(--text);
     padding-left: 5px;
     padding-right: 5px;
-    height: 100%;
+    height: 90%;
     width: 300px;
 }
 
@@ -44,8 +45,11 @@
 
 .sb_view {
     /* border: 1px solid var(--border); */
+    /* border: 1px solid red; */
+    overflow-y: auto;
+    overflow-x: hidden;
     margin-top: 5px;
-    height: 100%;
+    /* height: 100%; */
     padding-bottom: 20px;
 }
 
@@ -54,13 +58,41 @@
 }
 
 .sb_home {
-    height: 80%;
-    overflow-y: auto;
-    overflow-x: hidden;
+    height: 90%;
+
 }
 
 .sb_home::-webkit-scrollbar {
     width: 0px;
+}
+
+.minibar {
+    margin-left: -4px;
+    padding: 8px;
+    width: 24px;
+    float:left;
+    background-color: var(--minibar);
+    color: var(--text);
+    border-right: 1px solid var(--border);
+    height:100%;
+    z-index: 1000;
+}
+
+#minibar .bi {
+    font-size: 18px;
+    padding: 5px;
+}
+
+#minibar .item.active {
+    background: none;
+    font-weight: bolder;
+    color: var(--text);
+}
+
+#minibar .item  {
+    color: var(--grey);
+    cursor: pointer;
+    padding-bottom: 15px;
 }
 
 .properties_view {
@@ -127,35 +159,6 @@
 
 .draghandle:hover {
     background-color: #3794ff !important;
-}
-
-.minibar {
-    margin-left: -4px;
-    padding: 8px;
-    width: 24px;
-    float:left;
-    background-color: var(--minibar);
-    color: var(--text);
-    border-right: 1px solid var(--border);
-    height:100%;
-    z-index: 1000;
-}
-
-#minibar .bi {
-    font-size: 18px;
-    padding: 5px;
-}
-
-#minibar .item.active {
-    background: none;
-    font-weight: bolder;
-    color: var(--text);
-}
-
-#minibar .item  {
-    color: var(--grey);
-    cursor: pointer;
-    padding-bottom: 15px;
 }
 
 .search_view {
