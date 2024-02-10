@@ -437,7 +437,7 @@ ls.on('message', (data) => {
     if (data.cmd === 'ls_done') {
         win.send('ls', data.dirents, data.source, data.tab);
     }
-    
+
 })
 
 let progress_counter = 0;
@@ -2111,7 +2111,7 @@ function createWindow() {
     });
 
     win.on('resize', (e) => {
-        let intervalid = setInterval(() => {
+        setTimeout(() => {
             window_settings.window.width = win.getBounds().width;
             window_settings.window.height = win.getBounds().height;
             // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
@@ -2121,11 +2121,13 @@ function createWindow() {
     })
 
     win.on('move', (e) => {
-        window_settings.window.x = win.getBounds().x;
-        window_settings.window.y = win.getBounds().y;
-        // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
-        // fs.writeFileSync(settings_file, JSON.stringify(window_settings, null, 4));
-        settingsManger.updateWindowSettings(window_settings);
+        setTimeout(() => {
+            window_settings.window.x = win.getBounds().x;
+            window_settings.window.y = win.getBounds().y;
+            // fs.writeFileSync(path.join(__dirname, 'settings.json'), JSON.stringify(settings, null, 4));
+            // fs.writeFileSync(settings_file, JSON.stringify(window_settings, null, 4));
+            settingsManger.updateWindowSettings(window_settings);
+        }, 1000);
     })
     windows.add(win);
 

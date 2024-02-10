@@ -7,10 +7,16 @@ hr {
     padding: 20px;
 }
 
+.settings_item label {
+    display: block;
+    color: var(--text);
+    margin-bottom: 5px;
+}
+
 .settings_view input {
     display: block;
     color: var(--text);
-    background: var(--main);
+    background: var(--input);
     border: 1px solid var(--border);
     margin-bottom: 10px;
     width: 350px;
@@ -19,8 +25,8 @@ hr {
 .settings_view select {
     display: block;
     color: var(--text);
-    background: var(--main);
-    border: 1px solid var(--border);
+    background: var(--input);
+    /* border: 1px solid var(--border); */
     margin-bottom: 10px;
     width: 350px;
 }

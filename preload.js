@@ -314,6 +314,8 @@ class SettingsManager {
                     }
                 }
 
+                input.classList.add('input');
+
                 settings_item.append(label, input);
                 input.value = settings[key];
                 form.append(settings_item);
