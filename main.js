@@ -2525,6 +2525,8 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 
     })
 
+    confirm.setMinimumSize(400, 250);
+
     // Load file
     confirm.loadFile('dialogs/confirmdelete.html')
 
@@ -2870,6 +2872,7 @@ ipcMain.on('main_menu', (e, destination) => {
             submenu: [
                 {
                     label: 'Grid',
+                    icon: path.join(__dirname, 'assets/icons/menu/grid.png'),
                     // accelerator: process.platform === 'darwin' ? 'Shift+G' : 'Shift+G',
                     click: (e) => {
                         win.send('switch_view', 'grid')
@@ -2878,6 +2881,7 @@ ipcMain.on('main_menu', (e, destination) => {
                 },
                 {
                     label: 'List',
+                    icon: path.join(__dirname, 'assets/icons/menu/list.png'),
                     // accelerator: process.platform === 'darwin' ? 'CmdOrCtrl+L' : 'CmdOrCtrl+L',
                     click: () => {
                         win.send('switch_view', 'list')
@@ -2919,7 +2923,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Show Hidden',
-            type: 'checkbox',
+            icon: path.join(__dirname, 'assets/icons/menu/eye.png'),
             checked: false,
             click: (e) => {
                 // e.sender.send('context-menu-command', 'show_hidden')
@@ -2960,7 +2964,7 @@ ipcMain.on('main_menu', (e, destination) => {
 // Folders Menu
 ipcMain.on('folder_menu', (e, file) => {
 
-    console.log('file', file)
+    // console.log('file', file)
 
     const template = [
         {
@@ -3322,7 +3326,7 @@ ipcMain.on('file_menu', (e, file) => {
 ipcMain.on('merge_folder_menu', (e, href) => {
 
     let file = gio.get_file(href);
-    console.log(file)
+    // console.log(file)
 
     const template = [
         {
@@ -3686,7 +3690,7 @@ ipcMain.on('merge_file_menu', (e, href) => {
 // Devices Menu
 ipcMain.on('device_menu', (e, href, uuid) => {
 
-    console.log(uuid)
+    // console.log(uuid)
 
     let device_menu_template = [
         {

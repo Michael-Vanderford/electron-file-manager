@@ -39,7 +39,7 @@ body {
     background: var(--main);
     border-radius: 5px;
     width: 100%;
-    height: 90%;
+    height: 100%;
     /* justify-content: space-around; */
     z-index: 1;
 }
@@ -73,8 +73,6 @@ body {
     z-index: 1000;
     box-sizing: border-box;
 }
-
-
 
 .tab {
     padding-top: 2px;
@@ -154,7 +152,7 @@ th {
 
 #header_menu {
     display: flex;
-    /* font-weight: bold; */
+    white-space: nowrap;
     background: var(--menu);
     padding: 5px;
     width: 100%;
@@ -673,7 +671,9 @@ th {
 } */
 
 .svg {
-    background: var(--svg);
+    /* background: var(--svg); */
+    border: 1px solid var(--border);
+    border-radius: 5px;
     filter: drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));
 }
 

@@ -363,6 +363,7 @@ class SettingsManager {
                                     }
                                     case 'Header Menu': {
                                         this.showHeaderMenu();
+                                        viewManager.resize();
                                         break;
                                     }
                                     case 'Navigation Menu': {
@@ -2014,14 +2015,18 @@ class ViewManager {
     }
 
     resize() {
+
+        console.log('running resize')
         let container = document.querySelector('.container');
+        let header_container = document.querySelector('.header_container');
         let main = document.querySelector('.main');
         let sidebar = document.querySelector('.sidebar');
         let sb_view = document.querySelector('.sb_home');
 
-        main.style.height = container.clientHeight - 30 + 'px';
-        sidebar.style.height = container.clientHeight - 10 + 'px';
-        // sb_view.style.height = container.clientHeight - 200 + 'px';
+        main.style.height = container.clientHeight - header_container.clientHeight + 'px';
+        sidebar.style.height = container.clientHeight - header_container.clientHeight + 'px';
+        sb_view.style.height = container.clientHeight - header_container.clientHeight - 20 + 'px';
+
     }
 
     // Get View
@@ -2789,7 +2794,7 @@ class FileOperation {
                 })
                 input.focus();
 
-                main.removeEventListener('keydown', quickSearch);
+                // main.removeEventListener('keydown', quickSearch);
 
                 input.addEventListener('change', (e) => {
                     e.preventDefault();
@@ -2974,6 +2979,7 @@ class DeviceManager {
             ipcRenderer.invoke('get_devices').then(device_arr => {
 
                 let connect_btn = add_link('', 'Connect to Server')
+                connect_btn.classList.add('button');
 
                 // console.log('running get devices', device_arr)
                 device_arr.sort((a, b) => {
