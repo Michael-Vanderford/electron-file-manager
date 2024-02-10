@@ -97,13 +97,43 @@ th {
 
 #navigation_menu .item {
     padding: 5px;
-    padding-right: 15px;
+    padding-right: 10px;
     white-space: nowrap;
+    vertical-align: middle;
 }
 
 #navigation_menu .item a {
     padding: 5px;
     color: var(--text);
+}
+
+#navigation_menu .item a:hover {
+    /* background-color: var(--button); */
+    border-radius: 5px;
+}
+
+#navigation_menu .history-popup {
+    /* border: 1px solid red; */
+    padding: 10px;
+    border-radius: 5px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: auto;
+    max-height: 350px;
+    overflow: auto;
+    background-color: var(--menu);
+    z-index: 10000;
+}
+
+#navigation_menu .history-popup:after {
+
+}
+
+.nav_menu .history-popup .item:hover {
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: var(--highlight);
 }
 
 /* #main { */

@@ -1446,54 +1446,327 @@ class IconManager {
 class Navigation {
 
     constructor() {
+
         this.historyArr = [];
-        this.idx = 0;
+        this.idx = -1;  // Start at -1 to indicate no current history entry
         this.location = document.querySelector('.location');
 
         const left = document.getElementById('left');
         const right = document.getElementById('right');
 
-        left.addEventListener('click', (e) => {
-            this.left();
-        })
-
-        right.addEventListener('click', (e) => {
-            this.right();
-        })
+        this.initNavItems();
+        this.initSidebar();
 
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key.toLocaleLowerCase() === 'l') {
                 this.location.focus();
             }
-
         });
 
     }
 
+    // Initialize Navigation menu items
+    initNavItems () {
+
+        // Handle top navigation
+        let nav_items = document.querySelectorAll('.nav_item')
+        nav_items.forEach(nav_item => {
+            nav_item.addEventListener('click', (e) => {
+                e.preventDefault();
+                let dir = nav_item.innerText.replace(' ', '');
+                if (dir === 'Home') { dir = '' }
+                ipcRenderer.invoke('nav_item', dir).then(path => {
+                    location.value = path;
+                    if (e.ctrlKey) {
+                        viewManager.getView(path, 1);
+                    } else {
+                        viewManager.getView(path);
+                    }
+                    navigation.addHistory(path);
+                })
+            })
+        })
+
+        // Handle minibar navigation
+        let minibar = document.getElementById('minibar');
+        let mb_items = minibar.querySelectorAll('.item');
+        mb_items.forEach(mb_item => {
+
+            mb_item.addEventListener('click', (e) => {
+
+                clearViews();
+
+                let sb_view;
+                switch (mb_item.id) {
+                    case 'mb_home': {
+                        sb_view = document.querySelector('.sb_home');
+                        sb_view.classList.remove('hidden');
+                        sidebarHome();
+                        mb_item.classList.add('active')
+                        break;
+                    }
+                    case 'mb_workspace': {
+                        getWorkspace(workspace => {
+                            sidebar.innerHTML = '';
+                            sidebar.append(workspace);
+                        })
+                        mb_item.classList.add('active')
+                        break;
+                    }
+                    case 'mb_find': {
+                        mb_item.classList.add('active')
+                        find_files(res => { })
+                        break;
+                    }
+                    case 'mb_info': {
+                        let properties_view = document.querySelector('.properties_view');
+                        properties_view.classList.remove('hidden')
+                        mb_item.classList.add('active')
+                        break;
+                    }
+                }
+                sidebar.classList.remove('hidden');
+            })
+        })
+
+        left.title = `Back \n Right Click for History`;
+        right.title = `Forward`;
+
+        // Handle left and right navigation
+        left.addEventListener('click', (e) => {
+            this.left();
+        });
+
+        left.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.showHistory();
+        })
+
+        right.addEventListener('click', (e) => {
+            this.right();
+        });
+
+
+    }
+
+    // Initialize Sidebar items
+    initSidebar() {
+
+        let mb = document.getElementById('mb_home');
+        mb.classList.add('active');
+
+        const deviceManager = new DeviceManager();
+
+        let sb_home = document.querySelector('.sb_home')
+        if (sb_home) {
+            sb_home.classList.remove('hidden')
+        } else {
+            sb_home = add_div();
+            sb_home.classList.add('sb_home', 'sb_view');
+
+            // Get Home
+            this.getHome(home => {
+                sb_home.append(home)
+            })
+
+            // Workspace
+            getWorkspace(workspace => {
+                sb_home.append(workspace)
+            })
+
+            // Get Device
+            deviceManager.getDevices(devices => {
+                sb_home.append(devices)
+            })
+
+            sidebar.append(sb_home)
+        }
+
+    }
+
+    // Get sidebar Home items
+    getHome(callback) {
+
+        let location = document.getElementById('location');
+        // let home_dir = os.homedir();
+        let my_computer_arr = [
+            'Home',
+            'Documents',
+            'Downloads',
+            'Music',
+            'Pictures',
+            'Videos',
+            'Recent',
+            'File System'
+        ]
+
+        let my_computer_paths_arr = [
+            'Home',
+            'Documents',
+            'Downloads',
+            'Music',
+            'Pictures',
+            'Videos',
+            'Recent',
+            '/'
+        ]
+
+        let my_computer_icons_arr = [
+            'house',
+            'folder',
+            'download',
+            'file-music',
+            'image',
+            'film',
+            'clock-history',
+            'hdd'
+        ]
+
+        localStorage.setItem('minibar', 'mb_home')
+
+        let home = add_div();
+        home.innerHTML = ''
+
+        // Get home
+        for (let i = 0; i < my_computer_arr.length; i++) {
+
+            let href = my_computer_paths_arr[i];
+            let item = add_div();
+
+            item.classList.add('item');
+
+            let link = add_link(my_computer_paths_arr[i], my_computer_arr[i]);
+            item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link);
+            home.append(item);
+
+            ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+                item.title = nav_path;
+                item.dataset.href = nav_path;
+            })
+
+            item.addEventListener('click', (e) => {
+                let items = home.querySelectorAll('.item');
+                items.forEach(item => {
+                    item.classList.remove('active');
+                })
+
+                item.classList.add('active')
+                if (href === 'Recent') {
+                    ipcRenderer.send('get_recent_files', location.value);
+                } else {
+                    ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+                        if (e.ctrlKey) {
+                            viewManager.getView(nav_path, 1);
+                        } else {
+                            viewManager.getView(nav_path);
+                        }
+                        this.addHistory(nav_path);
+                    })
+                }
+            })
+
+            item.draggable = true;
+            item.addEventListener('dragenter', (e) => {
+                e.preventDefault();
+                // getView(my_computer_paths_arr[i], () => {});
+            })
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                item.classList.add('highlght_select')
+            })
+
+            item.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                item.classList.add('highlight_select');
+                ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+                    ipcRenderer.send('sidebar_menu', nav_path);
+                })
+
+            })
+
+        }
+        return callback(home);
+    }
+
+    // Add history
     addHistory(location) {
-
-        if (this.historyArr[this.historyArr.length - 1] !== location) {
-            // console.log('adding history');
-            this.historyArr.push(location);
-            this.idx = this.historyArr.length - 1;
-        }
+        this.historyArr.push(location);  // Always push new location
+        this.idx = this.historyArr.length - 1;
     }
 
+    showHistory() {
+
+        // Create the popup element
+        const popup = document.createElement('div');
+        popup.classList.add('history-popup'); // Add a CSS class for styling
+
+        // Create the title
+        const title = document.createElement('h2');
+        title.textContent = 'Navigation History';
+        // popup.appendChild(title);
+
+        // Create the list of history items
+        this.historyArr.forEach((item) => {
+            const menu_item = add_div(['item']);
+            menu_item.textContent = item;
+            popup.append(menu_item);
+
+            menu_item.addEventListener('click', (e) => {
+                viewManager.getView(item);
+            })
+
+        });
+
+
+        popup.addEventListener('mouseleave', (e) => {
+            popup.remove();
+        })
+
+        // Determine position based on space below and above
+        const windowHeight = window.innerHeight;
+        const popupHeight = popup.offsetHeight;
+        const triggerElement = left // Replace with your trigger element
+        const triggerRect = triggerElement.getBoundingClientRect();
+        const triggerTop = triggerRect.top;
+        const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
+        const spaceAbove = triggerTop;
+
+        if (spaceBelow > popupHeight) {
+            popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
+        } else if (spaceAbove > popupHeight) {
+            popup.style.top = triggerTop - popupHeight + 'px';
+        } else {
+            // Handle cases where neither direction has enough space
+            console.warn('Not enough space to display popup!');
+        }
+        popup.style.left = triggerRect.left + 10 + 'px';
+
+        // Append the popup to the body
+        const nav_menu = document.querySelector('.nav_menu');
+        nav_menu.appendChild(popup);
+
+        console.log(this.historyArr)
+
+    }
+
+    // Navigate left
     left() {
-        console.log('left', this.idx);
+        console.log('running left')
         if (this.idx > 0) {
-            --this.idx;
+            this.idx--;
             viewManager.getView(this.historyArr[this.idx]);
         }
     }
 
+    // Navigate right
     right() {
+        console.log('right')
         if (this.idx < this.historyArr.length - 1) {
-            ++this.idx
+            this.idx++;
             viewManager.getView(this.historyArr[this.idx]);
         }
     }
-
 }
 
 class TabManager {
@@ -2144,7 +2417,7 @@ class FileOperation {
             show_loader();
 
             localStorage.setItem('location', source);
-            navigation.addHistory(source);
+            // navigation.addHistory(source);
             auto_complete_arr = [];
 
             let main = document.querySelector('.main');
@@ -2917,7 +3190,11 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.send('new_window');
     },
     clearViews,
-    sidebarHome,
+    sidebarHome: () => {
+        // todo: this needs to be changed to a show sidebar home function.
+        // this is just for keyboard switching between find and home
+        navigation.initSidebar();
+    },
     fileInfo: () => {
         fileOperation.fileInfo();
     },
@@ -2937,11 +3214,7 @@ contextBridge.exposeInMainWorld('api', {
         clear()
     },
     goBack: () => {
-        let location = document.querySelector('.location')
-        ipcRenderer.invoke('dirname', location.value).then(dir => {
-            viewManager.getView(dir);
-            localStorage.setItem('location', dir);
-        })
+        navigation.left();
     }
 
 })
@@ -4969,7 +5242,7 @@ function getProperties(properties_arr) {
                     let cards = document.querySelectorAll('.properties')
                     if (cards.length === 0) {
                         clearViews()
-                        sidebarHome();
+                        navigation.sidebarHome();
                     }
                 })
 
@@ -5349,45 +5622,39 @@ function getRecentView(dirents) {
 
 // }
 
-function sidebarHome() {
+// function sidebarHome() {
 
-    let mb = document.getElementById('mb_home');
-    mb.classList.add('active');
+//     let mb = document.getElementById('mb_home');
+//     mb.classList.add('active');
 
-    const deviceManager = new DeviceManager();
+//     const deviceManager = new DeviceManager();
 
-    let sb_home = document.querySelector('.sb_home')
-    if (sb_home) {
-        sb_home.classList.remove('hidden')
-    } else {
-        sb_home = add_div();
-        sb_home.classList.add('sb_home', 'sb_view');
+//     let sb_home = document.querySelector('.sb_home')
+//     if (sb_home) {
+//         sb_home.classList.remove('hidden')
+//     } else {
+//         sb_home = add_div();
+//         sb_home.classList.add('sb_home', 'sb_view');
 
-        getHome(home => {
-            sb_home.append(home)
-        })
+//         // Get Home
+//         getHome(home => {
+//             sb_home.append(home)
+//         })
 
-        // Workspace
-        getWorkspace(workspace => {
-            // sb_home.append(document.createElement('br'));
-            sb_home.append(workspace)
-        })
+//         // Workspace
+//         getWorkspace(workspace => {
+//             sb_home.append(workspace)
+//         })
 
-        // Get Device
-        deviceManager.getDevices(devices => {
-            // sb_home.append(document.createElement('br'));
-            sb_home.append(devices)
-        })
+//         // Get Device
+//         deviceManager.getDevices(devices => {
+//             sb_home.append(devices)
+//         })
 
-        sidebar.append(sb_home)
-    }
+//         sidebar.append(sb_home)
+//     }
 
-    // sb_home.innerHTML = ''
-
-    // let sidebar = document.getElementById('sidebar')
-    // sidebar.innerHTML = ''
-
-}
+// }
 
 function getSub(dir) {
     ipcRenderer.send('get_sub', dir);
@@ -5399,112 +5666,112 @@ function getSubFolders(dir, callback) {
     })
 }
 
-// Get Home
-function getHome(callback) {
+// // Get Home
+// function getHome(callback) {
 
-    let location = document.getElementById('location');
-    // let home_dir = os.homedir();
-    let my_computer_arr = [
-        'Home',
-        'Documents',
-        'Downloads',
-        'Music',
-        'Pictures',
-        'Videos',
-        'Recent',
-        'File System'
-    ]
+//     let location = document.getElementById('location');
+//     // let home_dir = os.homedir();
+//     let my_computer_arr = [
+//         'Home',
+//         'Documents',
+//         'Downloads',
+//         'Music',
+//         'Pictures',
+//         'Videos',
+//         'Recent',
+//         'File System'
+//     ]
 
-    let my_computer_paths_arr = [
-        'Home',
-        'Documents',
-        'Downloads',
-        'Music',
-        'Pictures',
-        'Videos',
-        'Recent',
-        '/'
-    ]
+//     let my_computer_paths_arr = [
+//         'Home',
+//         'Documents',
+//         'Downloads',
+//         'Music',
+//         'Pictures',
+//         'Videos',
+//         'Recent',
+//         '/'
+//     ]
 
-    let my_computer_icons_arr = [
-        'house',
-        'folder',
-        'download',
-        'file-music',
-        'image',
-        'film',
-        'clock-history',
-        'hdd'
-    ]
+//     let my_computer_icons_arr = [
+//         'house',
+//         'folder',
+//         'download',
+//         'file-music',
+//         'image',
+//         'film',
+//         'clock-history',
+//         'hdd'
+//     ]
 
-    localStorage.setItem('minibar', 'mb_home')
+//     localStorage.setItem('minibar', 'mb_home')
 
-    let home = add_div();
-    home.innerHTML = ''
-    // home.append(add_header('Home'))
-    // home.append(document.createElement('hr'))
+//     let home = add_div();
+//     home.innerHTML = ''
+//     // home.append(add_header('Home'))
+//     // home.append(document.createElement('hr'))
 
-    // Get home
-    for (let i = 0; i < my_computer_arr.length; i++) {
+//     // Get home
+//     for (let i = 0; i < my_computer_arr.length; i++) {
 
-        let href = my_computer_paths_arr[i];
-        let item = add_div();
+//         let href = my_computer_paths_arr[i];
+//         let item = add_div();
 
-        item.classList.add('item');
+//         item.classList.add('item');
 
-        let link = add_link(my_computer_paths_arr[i], my_computer_arr[i]);
-        item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link);
-        home.append(item);
+//         let link = add_link(my_computer_paths_arr[i], my_computer_arr[i]);
+//         item.append(add_icon(my_computer_icons_arr[i].toLocaleLowerCase()), link);
+//         home.append(item);
 
-        // item.title = link.href.replace('file://', '');
-        ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
-            item.title = nav_path;
-            item.dataset.href = nav_path;
-        })
+//         // item.title = link.href.replace('file://', '');
+//         ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+//             item.title = nav_path;
+//             item.dataset.href = nav_path;
+//         })
 
-        item.addEventListener('click', (e) => {
-            let items = home.querySelectorAll('.item');
-            items.forEach(item => {
-                item.classList.remove('active');
-            })
+//         item.addEventListener('click', (e) => {
+//             let items = home.querySelectorAll('.item');
+//             items.forEach(item => {
+//                 item.classList.remove('active');
+//             })
 
-            item.classList.add('active')
-            if (href === 'Recent') {
-                ipcRenderer.send('get_recent_files', location.value);
-            } else {
-                ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
-                    if (e.ctrlKey) {
-                        viewManager.getView(nav_path, 1);
-                    } else {
-                        viewManager.getView(nav_path);
-                    }
-                })
-            }
-        })
+//             item.classList.add('active')
+//             if (href === 'Recent') {
+//                 ipcRenderer.send('get_recent_files', location.value);
+//             } else {
+//                 ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+//                     if (e.ctrlKey) {
+//                         viewManager.getView(nav_path, 1);
+//                     } else {
+//                         viewManager.getView(nav_path);
+//                     }
+//                 })
+//             }
+//         })
 
-        item.draggable = true;
-        item.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            // getView(my_computer_paths_arr[i], () => {});
-        })
+//         item.draggable = true;
+//         item.addEventListener('dragenter', (e) => {
+//             e.preventDefault();
+//             // getView(my_computer_paths_arr[i], () => {});
+//         })
 
-        item.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            item.classList.add('highlght_select')
-        })
+//         item.addEventListener('dragover', (e) => {
+//             e.preventDefault();
+//             item.classList.add('highlght_select')
+//         })
 
-        item.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            item.classList.add('highlight_select');
-            ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
-                ipcRenderer.send('sidebar_menu', nav_path);
-            })
+//         item.addEventListener('contextmenu', (e) => {
+//             e.preventDefault();
+//             item.classList.add('highlight_select');
+//             ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
+//                 ipcRenderer.send('sidebar_menu', nav_path);
+//             })
 
-        })
+//         })
 
-    }
-    return callback(home);
-}
+//     }
+//     return callback(home);
+// }
 
 // Get Workspace
 function getWorkspace(callback) {
@@ -6023,46 +6290,46 @@ window.addEventListener('DOMContentLoaded', (e) => {
         let cut_flag = 0;
         let show_sidebar = 0;
 
-        let minibar = document.getElementById('minibar');
-        let mb_items = minibar.querySelectorAll('.item');
-        mb_items.forEach(mb_item => {
+        // let minibar = document.getElementById('minibar');
+        // let mb_items = minibar.querySelectorAll('.item');
+        // mb_items.forEach(mb_item => {
 
-            mb_item.addEventListener('click', (e) => {
+        //     mb_item.addEventListener('click', (e) => {
 
-                clearViews();
+        //         clearViews();
 
-                let sb_view;
-                switch (mb_item.id) {
-                    case 'mb_home': {
-                        sb_view = document.querySelector('.sb_home');
-                        sb_view.classList.remove('hidden');
-                        sidebarHome();
-                        mb_item.classList.add('active')
-                        break;
-                    }
-                    case 'mb_workspace': {
-                        getWorkspace(workspace => {
-                            sidebar.innerHTML = '';
-                            sidebar.append(workspace);
-                        })
-                        mb_item.classList.add('active')
-                        break;
-                    }
-                    case 'mb_find': {
-                        mb_item.classList.add('active')
-                        find_files(res => { })
-                        break;
-                    }
-                    case 'mb_info': {
-                        let properties_view = document.querySelector('.properties_view');
-                        properties_view.classList.remove('hidden')
-                        mb_item.classList.add('active')
-                        break;
-                    }
-                }
-                sidebar.classList.remove('hidden');
-            })
-        })
+        //         let sb_view;
+        //         switch (mb_item.id) {
+        //             case 'mb_home': {
+        //                 sb_view = document.querySelector('.sb_home');
+        //                 sb_view.classList.remove('hidden');
+        //                 sidebarHome();
+        //                 mb_item.classList.add('active')
+        //                 break;
+        //             }
+        //             case 'mb_workspace': {
+        //                 getWorkspace(workspace => {
+        //                     sidebar.innerHTML = '';
+        //                     sidebar.append(workspace);
+        //                 })
+        //                 mb_item.classList.add('active')
+        //                 break;
+        //             }
+        //             case 'mb_find': {
+        //                 mb_item.classList.add('active')
+        //                 find_files(res => { })
+        //                 break;
+        //             }
+        //             case 'mb_info': {
+        //                 let properties_view = document.querySelector('.properties_view');
+        //                 properties_view.classList.remove('hidden')
+        //                 mb_item.classList.add('active')
+        //                 break;
+        //             }
+        //         }
+        //         sidebar.classList.remove('hidden');
+        //     })
+        // })
 
         ipcRenderer.send('get_settings');
 
@@ -6131,23 +6398,23 @@ window.addEventListener('DOMContentLoaded', (e) => {
             })
         })
 
-        let nav_items = document.querySelectorAll('.nav_item')
-        nav_items.forEach(nav_item => {
-            nav_item.addEventListener('click', (e) => {
-                e.preventDefault();
-                let dir = nav_item.innerText.replace(' ', '');
-                if (dir === 'Home') { dir = '' }
-                ipcRenderer.invoke('nav_item', dir).then(path => {
-                    location.value = path;
-                    if (e.ctrlKey) {
-                        viewManager.getView(path, 1);
-                    } else {
-                        viewManager.getView(path);
-                    }
-                    navigation.addHistory(path);
-                })
-            })
-        })
+        // let nav_items = document.querySelectorAll('.nav_item')
+        // nav_items.forEach(nav_item => {
+        //     nav_item.addEventListener('click', (e) => {
+        //         e.preventDefault();
+        //         let dir = nav_item.innerText.replace(' ', '');
+        //         if (dir === 'Home') { dir = '' }
+        //         ipcRenderer.invoke('nav_item', dir).then(path => {
+        //             location.value = path;
+        //             if (e.ctrlKey) {
+        //                 viewManager.getView(path, 1);
+        //             } else {
+        //                 viewManager.getView(path);
+        //             }
+        //             navigation.addHistory(path);
+        //         })
+        //     })
+        // })
 
         // List view
         let list_view = document.querySelectorAll('.list_view');
@@ -6158,8 +6425,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 localStorage.setItem('view', view);
 
                 location = document.querySelector('.location');
-
-                // viewManager.getView(location.value);
                 viewManager.switchView('list');
 
             })
@@ -6174,8 +6439,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
                 localStorage.setItem('view', view);
 
                 location = document.querySelector('.location');
-
-                // viewManager.getView(location.value);
                 viewManager.switchView('grid');
 
             })
@@ -6234,140 +6497,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         }).then(() => {
 
-            // Delete
-            // mt.bind(shortcut.Delete.toLocaleLowerCase(), (e) => {
-            //     e.preventDefault();
-            //     getSelectedFiles();
-            //     if (selected_files_arr.length > 0) {
-            //         ipcRenderer.send('delete', (selected_files_arr));
-            //     }
-            //     clear();
-            // })
-            // Escape (Cancel)
-            // mt.bind(shortcut.Escape.toLocaleLowerCase(), (e) => {
-            //     // Clear Arrays and selected items
-            //     clear();
-            // })
-            // // Reload
-            // mt.bind(shortcut.Reload.toLocaleLowerCase(), (e) => {
-            //     getView(location.value)
-            // })
-            // // Edit
-            // mt.bind(shortcut.Rename.toLocaleLowerCase(), (e) => {
-            //     edit();
-            // })
-            // // Ctrl+C (Copy)
-            // mt.bind(shortcut.Copy.toLocaleLowerCase(), (e) => {
-            //     getSelectedFiles();
-            // })
-            // Ctrl+X (Cut)
-            // mt.bind(shortcut.Cut.toLocaleLowerCase(), (e) => {
-            //     cut_flag = 1;
-            //     getSelectedFiles();
-            //     selected_files_arr.forEach(item => {
-            //         let active_tab_content = document.querySelector('.active-tab-content');
-            //         let card = active_tab_content.querySelector(`[data-href="${item}"]`);
-            //         card.style = 'opacity: 0.6 !important';
-            //     })
-            // })
-            // Ctrl+V (Paste)
-            // mt.bind(shortcut.Paste.toLocaleLowerCase(), (e) => {
-            //     ipcRenderer.send('main', 1);
-            //     if (cut_flag) {
-            //         utils.move(location.value);
-            //     } else {
-            //         paste(location.value);
-            //     }
-            //     cut_flag = 0;
-            // })
-            // // Show / Hide Sidebar
-            // mt.bind(shortcut.ShowSidebar.toLocaleLowerCase(), (e) => {
-            //     if (sidebar.classList.contains('hidden')) {
-            //         sidebar.classList.remove('hidden');
-            //         localStorage.setItem('sidebar', 1);
-            //     } else {
-            //         sidebar.classList.add('hidden');
-            //         localStorage.setItem('sidebar', 0);
-            //     }
-            // })
-            // // Find
-            // mt.bind(shortcut.Find.toLocaleLowerCase(), (e) => {
-            //     // getSearch();
-            //     find_files(res => {})
-            // })
-            // // Quick Search
-            // mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
-            //     quickSearch(e);
-            // })
-            // // New Window
-            // mt.bind(shortcut.NewWindow.toLocaleLowerCase(), (e) => {
-            //     ipcRenderer.send('new_window');
-            // })
-            // // Show Home View Sidebar
-            // mt.bind(shortcut.ShowHome.toLocaleLowerCase(), (e) => {
-            //     clearViews();
-            //     sidebarHome();
-            // })
-
-            // // Get File Info
-            // mt.bind(shortcut.Properties.toLocaleLowerCase(), (e) => {
-            //     getSelectedFiles();
-            //     ipcRenderer.send('get_properties', selected_files_arr, location.value);
-            //     selected_files_arr = [];
-            // })
-
-            // // Select All
-            // mt.bind(shortcut.SelectAll.toLocaleLowerCase(), (e) => {
-            //     e.preventDefault();
-            //     let cards = main.querySelectorAll('.card')
-            //     cards.forEach(item => {
-            //         item.classList.add('highlight');
-            //     })
-            // })
-            // // Go Back
-            // mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
-            //     ipcRenderer.invoke('dirname', location.value).then(dir => {
-            //         // console.log('dir', dir)
-            //         // location.value = location.value.replace(dir, '');
-            //         getView(dir);
-            //         localStorage.setItem('location', dir);
-            //     })
-            //     // ipcRenderer.invoke('basename', location.value).then(basename => {
-            //     //     location.value = basename;
-            //     //     getView(location.value);
-            //     // })
-            //     // localStorage.setItem('location', location.value);
-            // })
-            // // Add to Workspace
-            // mt.bind(shortcut.AddWorkspace.toLocaleLowerCase(), (e) => {
-            //     getSelectedFiles()
-            //     ipcRenderer.send('add_workspace', selected_files_arr);
-            //     clear()
-            // })
-            // // New Folder
-            // mt.bind(shortcut.NewFolder.toLocaleLowerCase(), (e) => {
-            //     ipcRenderer.send('new_folder', location.value);
-            // })
-            // // Show settings
-            // mt.bind(shortcut.ShowSettings.toLocaleLowerCase(), (e) => {
-            //     getSettings();
-            // })
-            // // Extract Compressed Files
-            // mt.bind(shortcut.Extract.toLocaleLowerCase(), (e) => {
-            //     extract();
-            // })
-            // // Compress Files
-            // mt.bind(shortcut.Compress.toLocaleLowerCase(), (e) => {
-            //     compress();
-            // })
-            // // New Tav
-            // mt.bind(shortcut.NewTab.toLocaleLowerCase(), (e) => {
-            //     getView(location.value, 1);
-            // })
-            // mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
-            //     console.log('down')
-            // })
-
         })
 
         // })
@@ -6406,38 +6535,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
             // localStorage.setItem('icon_size', init_size);
         })
 
-        sidebarHome();
-
-        // INITIALIZE DRAG SELECT
-        try {
-
-            // ds = new DragSelect({
-            //     area: main, //document.querySelector('.active-tab-content'), //main, //document.getElementById('files_grid'),
-            //     selectorClass: 'drag_select',
-            //     keyboardDragSpeed: 0,
-            // })
-            // let sc = 0;
-            // ds.subscribe('elementselect', (e) => {
-            //     // msg(`${++sc} Items Selected`)
-            // });
-            // ds.subscribe('elementunselect', (e) => {
-            //     if (--sc == 0) {
-            //         msg('')
-            //     } else {
-            //         // msg(`${sc} Items Selected`)
-            //     }
-            // });
-            // ds.subscribe('predragmove', ({ isDragging, isDraggingKeyboard }) => {
-            //     if (isDragging || isDraggingKeyboard) {
-            //         ds.break()
-            //     } else {
-            //     }
-            // })
-
-        } catch (err) {
-            // console.log(err);
-        }
-
+        // navigation.sidebarHome();
 
         // Resize Sidebar -----------------------------------------------------
         // let sidebarWidth = '350';
