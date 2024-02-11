@@ -74,7 +74,7 @@
     color: var(--text);
     border-right: 1px solid var(--border);
     height:100%;
-    z-index: 1000;
+    z-index: 0;
 }
 
 #minibar .bi {
@@ -147,7 +147,7 @@
 
 .draghandle {
     overflow: hidden;
-    z-index: 100;
+    z-index: 1;
     width: 4px;
     height:100%;
     /* right: 0;

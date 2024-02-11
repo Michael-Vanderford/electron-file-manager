@@ -363,7 +363,6 @@ class SettingsManager {
                                     }
                                     case 'Header Menu': {
                                         this.showHeaderMenu();
-                                        viewManager.resize();
                                         break;
                                     }
                                     case 'Navigation Menu': {
@@ -413,7 +412,7 @@ class SettingsManager {
 
                 }
 
-
+                viewManager.resize();
 
             // } else {
 
@@ -1116,7 +1115,6 @@ class Utilities {
 
     }
 
-
     /**
      * Clear Folder Size
      */
@@ -1195,132 +1193,129 @@ class Utilities {
     // Auto Complete that populates a directory path when typing in the location bar
     autoComplete() {
 
-        // let viewManager = new ViewManager();
-        let nav_menu = document.querySelector('.nav_menu');
-        let location = document.querySelector('.location');
+        // // let viewManager = new ViewManager();
+        // // let header_container = document.querySelector('.header_container');
+        // let header_menu = document.querySelector('.header_menu');
+        // let nav_menu = document.querySelector('.nav_menu');
+        // let location = document.querySelector('.location');
 
-        let autocomplete_container = document.querySelector('.autocomplete');
-        if (!autocomplete_container) {
-            autocomplete_container = add_div(['autocomplete']);
-            location.append(autocomplete_container);
-        }
+        // let autocomplete_container = document.querySelector('.autocomplete');
+        // if (!autocomplete_container) {
+        //     autocomplete_container = add_div(['autocomplete']);
+        //     nav_menu.appendChild(autocomplete_container);
+        // }
 
-        let val0 = location.value;
-        location.addEventListener('input', (e) => {
+        // let val0 = location.value;
+        // location.addEventListener('input', (e) => {
 
-            if (e.key !== 'Backspace') {
-                let val = e.target.value;
-                ipcRenderer.invoke('autocomplete', val).then(res => {
-                    if (res.length > 0 && val0 !== val) {
-                        autocomplete_container.innerHTML = '';
-                        res.forEach((dir, i) => {
-                            let suggestion = add_div(['suggestion']);
-                            suggestion.textContent = dir;
-                            autocomplete_container.appendChild(suggestion);
-                            autocomplete_container.classList.remove('hidden');
+        //     if (e.key !== 'Backspace') {
+        //         let val = e.target.value;
+        //         ipcRenderer.invoke('autocomplete', val).then(res => {
+        //             if (res.length > 0 && val0 !== val) {
+        //                 autocomplete_container.innerHTML = '';
+        //                 res.forEach((dir, i) => {
+        //                     let suggestion = add_div(['suggestion']);
+        //                     suggestion.textContent = dir;
+        //                     autocomplete_container.appendChild(suggestion);
+        //                     autocomplete_container.classList.remove('hidden');
 
-                            nav_menu.append(autocomplete_container);
-                            if (i === 0) {
-                                suggestion.classList.add('highlight');
-                            }
+        //                     nav_menu.append(autocomplete_container);
+        //                     if (i === 0) {
+        //                         suggestion.classList.add('highlight');
+        //                     }
 
-                            // Open highlighted suggestion
-                            suggestion.addEventListener('click', (e) => {
-                                viewManager.getView(dir);
-                                autocomplete_container.classList.add('hidden');
-                            })
-                        })
+        //                     // Open highlighted suggestion
+        //                     suggestion.addEventListener('click', (e) => {
+        //                         viewManager.getView(dir);
+        //                         autocomplete_container.classList.add('hidden');
+        //                     })
+        //                 })
 
-                    }
-                })
-            }
-        })
+        //             }
+        //         })
+        //     }
+        // })
 
-        // Open highlighted suggestion
-        location.addEventListener('keydown', (e) => {
-            let suggestions = document.querySelectorAll('.suggestion');
-            switch (e.key) {
-                case 'ArrowDown': {
-                    clearTimeout(this.timeout_id);
-                    for (let i = 0; i < suggestions.length; i++) {
-                        if (suggestions[i].classList.contains('highlight')) {
-                            suggestions[i].classList.remove('highlight');
-                            if (i === suggestions.length - 1) {
-                                suggestions[0].classList.add('highlight');
-                            } else {
-                                suggestions[i + 1].classList.add('highlight');
-                                location.value = suggestions[i + 1].innerText;
-                            }
-                            break;
-                        }
-                    }
+        // // Open highlighted suggestion
+        // location.addEventListener('keydown', (e) => {
 
-                    break
-                }
-                case 'ArrowUp': {
-                    clearTimeout(this.timeout_id);
-                    for (let i = 0; i < suggestions.length; i++) {
-                        if (suggestions[i].classList.contains('highlight')) {
-                            suggestions[i].classList.remove('highlight');
-                            if (i === 0) {
-                                suggestions[suggestions.length - 1].classList.add('highlight');
-                            } else {
-                                suggestions[i - 1].classList.add('highlight');
-                            }
-                            break;
-                        }
-                    }
-                    break;
-                }
-                case 'Enter': {
-                    clearTimeout(this.timeout_id);
-                    if (suggestions.length > 0) {
-                        suggestions.forEach(item => {
-                            if (item.classList.contains('highlight')) {
-                                viewManager.getView(item.innerText);
-                                autocomplete_container.classList.add('hidden');
-                            } else {
-                                viewManager.getView(location.value);
-                                autocomplete_container.classList.add('hidden');
-                            }
-                        })
-                        viewManager.getView(location.value);
-                        autocomplete_container.classList.add('hidden');
-                    } else {
-                    }
-                    break;
-                }
-                case 'Escape': {
-                    clearTimeout(this.timeout_id);
-                    autocomplete_container.classList.add('hidden');
-                    break;
-                }
-                case 'Tab': {
-                    e.preventDefault()
-                    for (let i = 0; i < suggestions.length; i++) {
-                        if (suggestions[i].classList.contains('highlight')) {
-                            location.value = suggestions[i].innerText;
-                            autocomplete_container.classList.add('hidden');
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
+        //     let suggestions = document.querySelectorAll('.suggestion');
+        //     switch (e.key) {
+        //         case 'ArrowDown': {
+        //             clearTimeout(this.timeout_id);
+        //             for (let i = 0; i < suggestions.length; i++) {
+        //                 if (suggestions[i].classList.contains('highlight')) {
+        //                     suggestions[i].classList.remove('highlight');
+        //                     if (i === suggestions.length - 1) {
+        //                         suggestions[0].classList.add('highlight');
+        //                     } else {
+        //                         suggestions[i + 1].classList.add('highlight');
+        //                         location.value = suggestions[i + 1].innerText;
+        //                     }
+        //                     break;
+        //                 }
+        //             }
 
-            // if (e.key !== 'Backspace') {
-            //     this.timeout_id = setTimeout(() => {
-            //         let suggestions = document.querySelectorAll('.suggestion');
-            //         if (suggestions.length > 0) {
-            //             location.value = suggestions[0].innerText;
-            //         }
-            //     }, 1000);
-            // }
+        //             break
+        //         }
+        //         case 'ArrowUp': {
+        //             clearTimeout(this.timeout_id);
+        //             for (let i = 0; i < suggestions.length; i++) {
+        //                 if (suggestions[i].classList.contains('highlight')) {
+        //                     suggestions[i].classList.remove('highlight');
+        //                     if (i === 0) {
+        //                         suggestions[suggestions.length - 1].classList.add('highlight');
+        //                     } else {
+        //                         suggestions[i - 1].classList.add('highlight');
+        //                     }
+        //                     break;
+        //                 }
+        //             }
+        //             break;
+        //         }
+        //         case 'Enter': {
+        //             clearTimeout(this.timeout_id);
+        //             if (suggestions.length > 0) {
+        //                 suggestions.forEach(item => {
+        //                     if (item.classList.contains('highlight')) {
+        //                         viewManager.getView(item.innerText);
+        //                         autocomplete_container.classList.add('hidden');
+        //                     } else {
+        //                         viewManager.getView(location.value);
+        //                         autocomplete_container.classList.add('hidden');
+        //                     }
+        //                 })
+        //                 viewManager.getView(location.value);
+        //                 autocomplete_container.classList.add('hidden');
+        //             } else {
+        //             }
+        //             break;
+        //         }
+        //         case 'Escape': {
+        //             clearTimeout(this.timeout_id);
+        //             autocomplete_container.classList.add('hidden');
+        //             break;
+        //         }
+        //         case 'Tab': {
+        //             e.preventDefault()
+        //             for (let i = 0; i < suggestions.length; i++) {
+        //                 if (suggestions[i].classList.contains('highlight')) {
+        //                     location.value = suggestions[i].innerText;
+        //                     autocomplete_container.classList.add('hidden');
+        //                     break;
+        //                 }
+        //             }
+        //             break;
+        //         }
 
+        //     }
 
-        })
+        // })
 
     }
+
+
+
 
     /**
      *
@@ -1451,7 +1446,8 @@ class Navigation {
     constructor() {
 
         this.historyArr = [];
-        this.idx = -1;  // Start at -1 to indicate no current history entry
+        this.history_idx = -1;  // Start at -1 to indicate no current history entry
+        this.autocomplete_idx = 0;
         this.location = document.querySelector('.location');
 
         const left = document.getElementById('left');
@@ -1466,6 +1462,49 @@ class Navigation {
             }
         });
 
+        // Handle Location
+        if (localStorage.getItem('location') !== null) {
+            this.location.value = localStorage.getItem('location');
+        } else {
+
+            ipcRenderer.invoke('home').then(home => {
+                this.location.value = home;
+                viewManager.getView(this.location.value);
+                localStorage.setItem('location', this.location.value);
+            })
+
+        }
+
+        // Load view on reload
+        if (this.location.value != "") {
+            switch (this.location.value) {
+                case 'Recent': {
+                    ipcRenderer.send('get_recent_files');
+                    break;
+                }
+                case 'Settings': {
+                    // todo: review this is de funked
+                    getSettings();
+                    break;
+                }
+                default: {
+                    viewManager.getView(this.location.value)
+                    this.addHistory(this.location.value);
+                    break;
+                }
+            }
+        }
+
+        // Change Location on change
+        this.location.onchange = () => {
+            if (this.location.value != "") {
+                viewManager.getView(this.location.value)
+                this.val0 = this.location.value;
+            }
+        }
+
+        this.val0 = this.location.value;
+
     }
 
     // Initialize Navigation menu items
@@ -1479,7 +1518,7 @@ class Navigation {
                 let dir = nav_item.innerText.replace(' ', '');
                 if (dir === 'Home') { dir = '' }
                 ipcRenderer.invoke('nav_item', dir).then(path => {
-                    location.value = path;
+                    this.location.value = path;
                     if (e.ctrlKey) {
                         viewManager.getView(path, 1);
                     } else {
@@ -1549,6 +1588,11 @@ class Navigation {
             this.right();
         });
 
+        // this.location.addEventListener('input', (e) => {
+        //     this.showAutoComplete();
+        // })
+
+        this.initAutoComplete();
 
     }
 
@@ -1659,7 +1703,7 @@ class Navigation {
 
                 item.classList.add('active')
                 if (href === 'Recent') {
-                    ipcRenderer.send('get_recent_files', location.value);
+                    ipcRenderer.send('get_recent_files', this.location.value);
                 } else {
                     ipcRenderer.invoke('nav_item', my_computer_paths_arr[i]).then(nav_path => {
                         if (e.ctrlKey) {
@@ -1699,9 +1743,10 @@ class Navigation {
     // Add history
     addHistory(location) {
         this.historyArr.push(location);  // Always push new location
-        this.idx = this.historyArr.length - 1;
+        this.history_idx = this.historyArr.length - 1;
     }
 
+    // Show back button history
     showHistory() {
 
         // Create the popup element
@@ -1757,21 +1802,169 @@ class Navigation {
 
     }
 
+    /**
+     * Show Auto Complete for location bar
+     */
+    initAutoComplete() {
+
+        // Create the popup element
+        const popup = document.createElement('div');
+        popup.classList.add('autocomplete-popup'); // Add a CSS class for styling
+
+        let val0 = this.location.value;
+        console.log('val', val0)
+        this.location.addEventListener('input', (e) => {
+
+            if (e.key !== 'Backspace') {
+                let val = e.target.value;
+
+                ipcRenderer.invoke('autocomplete', val).then(res => {
+                    if (res.length > 0 && val0 !== val) {
+                        this.autocomplete_idx = 0;
+                        popup.innerHTML = '';
+                        res.forEach((dir, i) => {
+                            const menu_item = add_div(['item']);
+                            menu_item.textContent = dir;
+                            popup.append(menu_item);
+
+                            menu_item.addEventListener('click', (e) => {
+                                viewManager.getView(dir);
+                                popup.remove();
+                            })
+
+                            if (i === 0) {
+                                menu_item.classList.add('highlight_select');
+                            }
+
+                        })
+
+                        // Append the popup to the body
+                        const nav_menu = document.querySelector('.nav_menu');
+                        nav_menu.appendChild(popup);
+
+                        // Determine position based on space below and above
+                        const windowHeight = window.innerHeight;
+                        const popupHeight = popup.offsetHeight;
+                        const triggerElement = this.location // Replace with your trigger element
+                        const triggerRect = triggerElement.getBoundingClientRect();
+                        const triggerTop = triggerRect.top;
+                        const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
+                        const spaceAbove = triggerTop;
+
+                        if (spaceBelow > popupHeight) {
+                            popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
+                        } else if (spaceAbove > popupHeight) {
+                            popup.style.top = triggerTop - popupHeight + 'px';
+                        } else {
+                            // Handle cases where neither direction has enough space
+                            console.warn('Not enough space to display popup!');
+                        }
+                        popup.style.left = triggerRect.left + 10 + 'px';
+
+                    }
+
+                })
+
+            }
+
+        })
+
+        popup.addEventListener('mouseleave', (e) => {
+            popup.remove();
+        })
+
+        // track item selection
+        // let idx = 0;
+
+        this.location.addEventListener('keydown', (e) => {
+
+            let suggestions = popup.querySelectorAll('.item');
+
+            switch (e.key) {
+                case 'ArrowDown': {
+
+                    this.autocomplete_idx = (this.autocomplete_idx + 1) % suggestions.length;
+                    for (let i = 0; i < suggestions.length; i++) {
+                        if (i === this.autocomplete_idx) {
+                            suggestions[i].classList.add('highlight_select');
+                            this.location.value = suggestions[i].innerText;
+                        } else {
+                            suggestions[i].classList.remove('highlight_select');
+                        }
+                    }
+
+                    break
+                }
+                case 'ArrowUp': {
+
+                    this.autocomplete_idx = (this.autocomplete_idx - 1 + suggestions.length) % suggestions.length;
+                    for (let i = 0; i < suggestions.length; i++) {
+                        if (i === this.autocomplete_idx) {
+                            suggestions[i].classList.add('highlight_select');
+                            this.location.value = suggestions[i].innerText;
+                        } else {
+                            suggestions[i].classList.remove('highlight_select');
+                        }
+                    }
+
+                    break;
+                }
+                case 'Enter': {
+                    // clearTimeout(this.timeout_id);
+                    if (suggestions.length > 0) {
+                        suggestions.forEach(item => {
+                            if (item.classList.contains('highlight_select')) {
+                                viewManager.getView(item.innerText);
+                                popup.remove();
+                            } else {
+                                viewManager.getView(this.location.value);
+                                popup.remove();
+                            }
+                        })
+                        viewManager.getView(this.location.value);
+                        popup.remove();
+                    } else {
+                    }
+                    break;
+                }
+                case 'Escape': {
+                    this.location.value = this.val0;
+                    popup.remove();
+                    break;
+                }
+                case 'Tab': {
+                    e.preventDefault()
+                    for (let i = 0; i < suggestions.length; i++) {
+                        if (suggestions[i].classList.contains('highlight_select')) {
+                            this.location.value = suggestions[i].innerText;
+                            popup.remove();
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+            }
+
+        })
+
+    }
+
     // Navigate left
     left() {
         console.log('running left')
-        if (this.idx > 0) {
-            this.idx--;
-            viewManager.getView(this.historyArr[this.idx]);
+        if (this.history_idx > 0) {
+            this.history_idx--;
+            viewManager.getView(this.historyArr[this.history_idx]);
         }
     }
 
     // Navigate right
     right() {
         console.log('right')
-        if (this.idx < this.historyArr.length - 1) {
-            this.idx++;
-            viewManager.getView(this.historyArr[this.idx]);
+        if (this.history_idx < this.historyArr.length - 1) {
+            this.history_idx++;
+            viewManager.getView(this.historyArr[this.history_idx]);
         }
     }
 }
@@ -2245,7 +2438,6 @@ class ViewManager {
         iconManager.resizeIcons(icon_size);
 
     }
-
 
     // Lazy load images
     lazyload() {
@@ -3161,7 +3353,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
         settings = res;
     })
 
-    utilities.autoComplete();
+    // utilities.autoComplete();
     workspaceManager = new WorkspaceManager();
 
 })
@@ -6352,45 +6544,45 @@ window.addEventListener('DOMContentLoaded', (e) => {
         ipcRenderer.send('get_settings');
 
         // Local Storage //////////////////////////////////////////////
-        // Handle Location
-        if (localStorage.getItem('location') !== null) {
-            location.value = localStorage.getItem('location');
-        } else {
+        // // Handle Location
+        // if (localStorage.getItem('location') !== null) {
+        //     location.value = localStorage.getItem('location');
+        // } else {
 
-            ipcRenderer.invoke('home').then(home => {
-                location.value = home;
-                viewManager.getView(location.value);
-                localStorage.setItem('location', location.value);
-            })
+        //     ipcRenderer.invoke('home').then(home => {
+        //         location.value = home;
+        //         viewManager.getView(location.value);
+        //         localStorage.setItem('location', location.value);
+        //     })
 
-        }
+        // }
 
-        // Load view on reload
-        if (location.value != "") {
-            switch (location.value) {
-                case 'Recent': {
-                    ipcRenderer.send('get_recent_files');
-                    break;
-                }
-                case 'Settings': {
-                    // todo: review this is de funked
-                    getSettings();
-                    break;
-                }
-                default: {
-                    viewManager.getView(location.value)
-                    navigation.addHistory(location.value);
-                    break;
-                }
-            }
-        }
+        // // Load view on reload
+        // if (location.value != "") {
+        //     switch (location.value) {
+        //         case 'Recent': {
+        //             ipcRenderer.send('get_recent_files');
+        //             break;
+        //         }
+        //         case 'Settings': {
+        //             // todo: review this is de funked
+        //             getSettings();
+        //             break;
+        //         }
+        //         default: {
+        //             viewManager.getView(location.value)
+        //             navigation.addHistory(location.value);
+        //             break;
+        //         }
+        //     }
+        // }
 
-        // Change Location on change
-        location.onchange = () => {
-            if (location.value != "") {
-                viewManager.getView(location.value)
-            }
-        }
+        // // Change Location on change
+        // location.onchange = () => {
+        //     if (location.value != "") {
+        //         viewManager.getView(location.value)
+        //     }
+        // }
 
         // Handle Sidebar
         if (localStorage.getItem('sidebar') !== null) {

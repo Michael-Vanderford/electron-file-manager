@@ -959,16 +959,23 @@ ipcMain.handle('autocomplete', async (e, directory) => {
     let autocomplete_arr = [];
     let dir = path.dirname(directory);
     let search = path.basename(directory);
-    await gio.ls(dir, (err, dirents) => {
-        dirents.forEach(item => {
-            if (item.is_dir && item.name.startsWith(search)) {
-                autocomplete_arr.push(item.href + '/');
-            } else {
-                // autocomplete_arr.push(item.name);
+    try {
+        await gio.ls(dir, (err, dirents) => {
+            if (err) {
+                return;
             }
+            dirents.forEach(item => {
+                if (item.is_dir && item.name.startsWith(search)) {
+                    autocomplete_arr.push(item.href + '/');
+                } else {
+                    // autocomplete_arr.push(item.name);
+                }
+            })
         })
-    })
-    // console.log(autocomplete_arr);
+        // console.log(autocomplete_arr);
+    } catch (err) {
+
+    }
     return autocomplete_arr;
 
 })
@@ -2837,6 +2844,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'New Folder',
+            icon: path.join(__dirname, 'assets/icons/menu/folder.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
             click: () => {
                 new_folder(path.format({ dir: destination, base: 'New Folder' }));
@@ -3013,13 +3021,14 @@ ipcMain.on('folder_menu', (e, file) => {
         {
             type: 'separator'
         },
-        {
-            label: 'New Folder',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
-            click: () => {
-                e.sender.send('context-menu-command', 'new_folder')
-            }
-        },
+        // {
+        //     label: 'New Folder',
+        //     icon: path.join(__dirname, 'assets/icons/menu/folder.png'),
+        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+        //     click: () => {
+        //         new_folder(path.format({ dir: destination, base: 'New Folder' }));
+        //     }
+        // },
         // {
         //     id: 'templates',
         //     label: 'New Document',
@@ -3224,13 +3233,14 @@ ipcMain.on('file_menu', (e, file) => {
         //             }
         //         }],
         // },
-        {
-            label: '&New Folder',
-            accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
-            click: () => {
-                e.sender.send('context-menu-command', 'new_folder')
-            }
-        },
+        // {
+        //     label: '&New Folder',
+        //     icon: path.join(__dirname, 'assets/icons/menu/folder.png'),
+        //     accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.NewFolder : settings.keyboard_shortcuts.NewFolder,
+        //     click: () => {
+        //         e.sender.send('context-menu-command', 'new_folder')
+        //     }
+        // },
         {
             type: 'separator'
         },
