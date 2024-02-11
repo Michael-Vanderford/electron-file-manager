@@ -22,7 +22,7 @@
 
 ## Changelog
 
-### Version 1.0.7.1 (2024-02-11)
+### Version 1.0.71 (2024-02-11)
 - Re worked location autocomplete
 - Updated css for buttons to show activity
 - Fixed issues with left and right navigation buttons not traversing the stack properly
