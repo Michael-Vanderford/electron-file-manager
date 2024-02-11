@@ -22,7 +22,15 @@
 
 ## Changelog
 
-### Version 1.07 (2024-02-03)
+### Version 1.0.7.1 (2024-02-11)
+- Re worked location autocomplete
+- Updated css for buttons to show activity
+- Fixed issues with left and right navigation buttons not traversing the stack properly
+- Added right click dropdown for the left navigation to show previous locations
+- Fixed issue with the merge feature breaking on read only files
+- Added a few icons to the electron menus
+
+### Version 1.0.7 (2024-02-03)
 - Edit mode for new folder creation
 - Error handle merge files
 - Fixed column header formatting when switching views
