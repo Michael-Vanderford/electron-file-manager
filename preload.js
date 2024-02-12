@@ -2920,17 +2920,31 @@ class FileOperation {
             main.addEventListener('mouseenter', (e) => {
                 // console.log("running mouse enter");
                 // document.addEventListener('keyup', quick_search)
-
                 // let cards = active_tab_content.querySelectorAll('.card')
                 // let href = cards[0].querySelector('a')
                 // href.tabIndex = 1
                 // href.focus()
-
             })
 
             main.addEventListener('mouseleave', (e) => {
                 document.removeEventListener('keyup', quickSearch)
             })
+
+            // let nav_idx = 0;
+            // active_tab_content.addEventListener('keydown', (e) => {
+            //     console.log(e.key)
+            //     let cards = active_tab_content.querySelectorAll('.card');
+            //     if (e.key === 'ArrowDown') {
+            //         nav_idx = (nav_idx + 4) % cards.length;
+            //         for (let i = 0; i < cards.length; i++) {
+            //             if (i === nav_idx) {
+            //                 cards[i].classList.add('highlight_select');
+            //             } else {
+            //                 cards[i].classList.remove('highlight_select');
+            //             }
+            //         }
+            //     }
+            // })
 
             // if (view === 'grid') {
                 active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);

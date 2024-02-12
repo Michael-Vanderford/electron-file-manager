@@ -2903,6 +2903,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Paste',
+            icon: path.join(__dirname, 'assets/icons/menu/paste.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
             click: () => {
                 e.sender.send('context-menu-command', 'paste')
@@ -3066,6 +3067,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Copy',
+            icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
@@ -3205,6 +3207,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Copy',
+            icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
@@ -3429,6 +3432,7 @@ ipcMain.on('merge_folder_menu', (e, href) => {
         },
         {
             label: 'Copy',
+            icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
