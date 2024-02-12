@@ -16,7 +16,7 @@
         "show": true
     },
     "Header Menu": {
-        "show": true
+        "show": false
     },
     "Navigation Menu": {
         "Move to Bottom": false
