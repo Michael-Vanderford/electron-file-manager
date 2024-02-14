@@ -2932,7 +2932,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Show Hidden',
-            icon: path.join(__dirname, 'assets/icons/menu/eye.png'),
+            // icon: path.join(__dirname, 'assets/icons/menu/eye.png'),
             checked: false,
             click: (e) => {
                 // e.sender.send('context-menu-command', 'show_hidden')
@@ -2978,6 +2978,7 @@ ipcMain.on('folder_menu', (e, file) => {
     const template = [
         {
             label: 'Open with Code',
+            type: 'checkbox',
             click: () => {
                 exec(`cd "${file.href}"; code .`, (err) => {
                     win.send('clear');
@@ -3067,7 +3068,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Copy',
-            icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
+            // icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')

@@ -18,9 +18,6 @@
     "Header Menu": {
         "show": false
     },
-    "Navigation Menu": {
-        "Move to Bottom": false
-    },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowHome": "Alt+H",

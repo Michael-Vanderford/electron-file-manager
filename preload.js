@@ -1627,9 +1627,11 @@ class Navigation {
             })
 
             let sidebar = document.querySelector('.sidebar');
-            sidebar.style.height = document.documentElement.clientHeight + 'px';
+            sidebar.append(sb_home);
 
-            sidebar.append(sb_home)
+            let connect_btn = add_link('', 'Connect to Server');
+            connect_btn.classList.add('button', 'bottom');
+            sidebar.appendChild(connect_btn);
 
         }
 
@@ -2218,7 +2220,7 @@ class ViewManager {
 
         main.style.height = container.clientHeight - header_container.clientHeight + 'px';
         sidebar.style.height = container.clientHeight - header_container.clientHeight + 'px';
-        sb_view.style.height = container.clientHeight - header_container.clientHeight - 20 + 'px';
+        sb_view.style.height = container.clientHeight - header_container.clientHeight - 50 + 'px';
 
     }
 
@@ -3184,8 +3186,8 @@ class DeviceManager {
             devices.append(document.createElement('hr'))
             ipcRenderer.invoke('get_devices').then(device_arr => {
 
-                let connect_btn = add_link('', 'Connect to Server')
-                connect_btn.classList.add('button');
+                // let connect_btn = add_link('', 'Connect to Server')
+                // connect_btn.classList.add('button');
 
                 // console.log('running get devices', device_arr)
                 device_arr.sort((a, b) => {
@@ -3283,11 +3285,11 @@ class DeviceManager {
 
                 })
 
-                connect_btn.addEventListener('click', (e) => {
-                    ipcRenderer.send('connect_dialog');
-                })
+                // connect_btn.addEventListener('click', (e) => {
+                //     ipcRenderer.send('connect_dialog');
+                // })
 
-                devices.append(document.createElement('br'), connect_btn)
+                // devices.append(document.createElement('br'), connect_btn)
 
                 return callback(devices)
 

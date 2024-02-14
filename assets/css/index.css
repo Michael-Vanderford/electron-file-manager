@@ -1072,7 +1072,7 @@ input[type=text]:focus {
 
 .button {
     background-color: var(--button);
-    color: var(--button-text);
+    color: var(--button-text) !important;
     width: 120px;
     border: none;
     padding: 5px 5px;
