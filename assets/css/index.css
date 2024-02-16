@@ -539,6 +539,10 @@ th {
     /* background: var(--dialog) */
 }
 
+.merge_file_container a {
+    color: var(--text);
+}
+
 .destination_table table {
     padding: 5px;
 }

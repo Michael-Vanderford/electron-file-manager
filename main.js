@@ -1489,14 +1489,24 @@ ipcMain.on('connect_dialog', (e) => {
 ipcMain.handle('connect', async (e, cmd) => {
 
     // const { stdout, stderr } = await exec(cmd);
-    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
-        console.log(error);
-        if (error) {
-            connect_win.send('msg_connect', error.message);
-        } else {
-            connect_win.send('msg_connect', `Connected to ${cmd.server}`);
+    if (cmd.type.toLocaleLowerCase() === 'sshfs') {
+        cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+        try {
+            execSync(cmd);
+        } catch (err) {
+            console.log(err);
+            return err;
         }
-    });
+    } else {
+        gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
+            console.log(error);
+            if (error) {
+                connect_win.send('msg_connect', error.message);
+            } else {
+                connect_win.send('msg_connect', `Connected to ${cmd.server}`);
+            }
+        });
+    }
     return `Connecting to ${cmd.server}`;
 
 })
@@ -2271,7 +2281,7 @@ function connectDialog() {
     })
 
     connect_win.loadFile('dialogs/connect.html')
-    // connect_win.webContents.openDevTools()
+    connect_win.webContents.openDevTools()
 
     // SHOW DIALG
     connect_win.once('ready-to-show', () => {
@@ -2944,6 +2954,7 @@ ipcMain.on('main_menu', (e, destination) => {
         },
         {
             label: 'Disk Usage Analyzer',
+            icon: path.join(__dirname, 'assets/icons/menu/diskusage.png'),
             click: () => {
                 exec(`baobab ${destination}`);
             }
@@ -3061,6 +3072,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Cut',
+            // icon: path.join(__dirname, 'assets/icons/menu/cut.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Cut : settings.keyboard_shortcuts.Cut,
             click: () => {
                 e.sender.send('context-menu-command', 'cut')
@@ -3068,7 +3080,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Copy',
-            // icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
+            icon: path.join(__dirname, 'assets/icons/menu/copy.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Copy : settings.keyboard_shortcuts.Copy,
             click: () => {
                 e.sender.send('context-menu-command', 'copy')
@@ -3086,6 +3098,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Compress',
+            icon: path.join(__dirname, 'assets/icons/menu/extract.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
             submenu: [
                 {

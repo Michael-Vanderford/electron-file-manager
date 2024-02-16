@@ -1,7 +1,7 @@
 
 .sidebar {
     /* overflow-y: auto; */
-    /* border: 1px solid red; */
+    /* border: 1px solid var(--border); */
     position: relative;
     box-sizing: border-box;
     background-color: var(--sidebar);
@@ -54,10 +54,11 @@
 }
 
 .sb_view .item.active {
-    background: var(--highlight)
+    /* background: var(--highlight) */
 }
 
 .sb_home {
+    /* border-bottom: 1px solid var(--border); */
     /* height: 95%; */
 }
 

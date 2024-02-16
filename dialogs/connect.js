@@ -37,6 +37,7 @@ ipcRenderer.on('connect', (e) => {
         // Inputs
         let state = 0;
         let conntection_type = document.getElementById('connection_type');
+        let mount_point = document.getElementById('txt_mount_point');
         let server = document.getElementById('txt_server');
         let username = document.getElementById('txt_username');
         let password = document.getElementById('txt_password');
@@ -68,10 +69,12 @@ ipcRenderer.on('connect', (e) => {
         // Output
         if (state == 1) {
 
-            if (conntection_type.value == 'ssh') {
+            if (conntection_type.value === 'sshfs') {
+                str_server = server.value
+            } else if (conntection_type.value === 'ssh') {
                 // cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
                 str_server = `sftp://${server.value}`
-            } else if (conntection_type.value == 'smb') {
+            } else if (conntection_type.value === 'smb') {
                 // cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
                 str_server = `smb://${server.value}`
             }
@@ -81,7 +84,9 @@ ipcRenderer.on('connect', (e) => {
             }
 
             let cmd = {
+                type: conntection_type.value,
                 server: str_server,
+                mount_point: mount_point.value,
                 username: username.value,
                 password: password.value,
                 use_ssh_key: use_key,

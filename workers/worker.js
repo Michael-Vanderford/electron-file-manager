@@ -389,7 +389,7 @@ parentPort.on('message', data => {
 
                                 merge_obj.is_writable = dest.is_writable;
                                 if (!dest.is_writable) {
-                                    console.log(dest.href, 'not writable');
+                                    // console.log(dest.href, 'not writable');
                                 }
 
                                 if (src.mtime > dest.mtime) {

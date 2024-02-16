@@ -14,11 +14,16 @@
 
         <div class="connect">
             <select id="connection_type" class="input select">
+                <option value="sshfs">SSHFS</option>
                 <option value="ssh">SSH</option>
                 <option value="smb">Windows Share</option>
             </select>
             <label class="label" for="txt_server">Connect to Server / Share</label>
             <input class="input" type="text" id="txt_server" autocomplete="on" placeholder="IP Address or Machine Name">
+
+            <label class="label" for="txt_mount_point">Mount Point</label>
+            <input class="input" type="text" id="txt_mount_point" placeholder="Mount Point">
+
             <label class="label" for="txt_username">Username</label>
             <input class="input" type="text" id="txt_username" placeholder="User Name">
             <label class="label" for="txt_password">Password</label>

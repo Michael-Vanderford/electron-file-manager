@@ -1633,6 +1633,10 @@ class Navigation {
             connect_btn.classList.add('button', 'bottom');
             sidebar.appendChild(connect_btn);
 
+            connect_btn.addEventListener('click', (e) => {
+                ipcRenderer.send('connect_dialog');
+            })
+
         }
 
     }
@@ -2932,21 +2936,22 @@ class FileOperation {
                 document.removeEventListener('keyup', quickSearch)
             })
 
-            // let nav_idx = 0;
-            // active_tab_content.addEventListener('keydown', (e) => {
-            //     console.log(e.key)
-            //     let cards = active_tab_content.querySelectorAll('.card');
-            //     if (e.key === 'ArrowDown') {
-            //         nav_idx = (nav_idx + 4) % cards.length;
-            //         for (let i = 0; i < cards.length; i++) {
-            //             if (i === nav_idx) {
-            //                 cards[i].classList.add('highlight_select');
-            //             } else {
-            //                 cards[i].classList.remove('highlight_select');
-            //             }
-            //         }
-            //     }
-            // })
+            let nav_idx = 0;
+            main.addEventListener('keydown', (e) => {
+
+                console.log(e.key)
+                let cards = active_tab_content.querySelectorAll('.card');
+                if (e.key === 'ArrowDown') {
+                    nav_idx = (nav_idx + 4) % cards.length;
+                    for (let i = 0; i < cards.length; i++) {
+                        if (i === nav_idx) {
+                            cards[i].classList.add('highlight_select');
+                        } else {
+                            cards[i].classList.remove('highlight_select');
+                        }
+                    }
+                }
+            })
 
             // if (view === 'grid') {
                 active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
@@ -3561,15 +3566,13 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
                     })
 
                     href.addEventListener('contextmenu', (e) => {
-                        console.log('running context menu');
                         e.preventDefault();
-                        e.stopPropagation();
-                        if (item.is_dir) {
-                            console.log('merge folder menu', item.source);
-                            ipcRenderer.send('merge_folder_menu', item.source);
-                        } else {
-                            ipcRenderer.send('merge_file_menu', item.source);
-                        }
+                        // if (item.is_dir) {
+                        //     console.log('merge folder menu', item.source);
+                        //     ipcRenderer.send('merge_folder_menu', item.source);
+                        // } else {
+                        //     ipcRenderer.send('merge_file_menu', item.source);
+                        // }
                     })
 
                     dest_cell.append(dest_div);
@@ -3608,6 +3611,10 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
                 })
 
+            })
+
+            active_content.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
             })
 
             btn_merge.addEventListener('click', (e) => {
@@ -3922,127 +3929,6 @@ ipcRenderer.on('sort', (e, sort_by) => {
     }
     viewManager.getView(location.value);
 })
-
-// // Connect to Network
-// ipcRenderer.on('connect', (e) => {
-
-//     // Init
-//     let cmd = '';
-//     let connect = document.querySelector('.connect')
-//     let chk_pk = document.getElementById('chk_pk')
-//     let btn_connect = document.getElementById('button_connect')
-//     let btn_close = document.getElementById('button_close')
-//     let password = document.getElementById('txt_password')
-//     btn_connect.tabIndex = 1
-
-//     connect.addEventListener('keyup', (e) => {
-//         if (e.key === 'Escape') {
-//             window.close()
-//         }
-//     })
-
-//     btn_close.onclick = (e) => {
-//         window.close()
-//     }
-
-//     chk_pk.onchange = () => {
-//         if (chk_pk.checked) {
-//             password.disabled = true
-//         } else {
-//             password.disabled = false
-//         }
-//     }
-
-//     btn_connect.onclick = (e) => {
-
-//         e.preventDefault()
-
-//         // Inputs
-//         let state = 0;
-//         let conntection_type = document.getElementById('connection_type');
-//         let server = document.getElementById('txt_server');
-//         let username = document.getElementById('txt_username');
-//         let password = document.getElementById('txt_password');
-//         let use_ssh_key = document.getElementById('chk_pk');
-
-//         let str_server = "";
-//         let use_key = 0;
-
-
-//         let connect_msg = document.getElementById('connect_msg');
-//         connect_msg.innerHTML = `Connecting to ${server.value}`;
-
-//         // Process
-//         let inputs = [].slice.call(document.querySelectorAll('.input, .checkbox'))
-
-//         inputs.every(input => {
-
-//             if (input.value == '' && input.disabled == false) {
-//                 connect_msg.innerHTML = `${input.placeholder} Required.`, add_br()
-//                 state = 0;
-//                 return false
-//             } else {
-//                 state = 1
-//                 return true
-//             }
-
-//         })
-
-//         // Output
-//         if (state == 1) {
-
-//             if (conntection_type.value == 'ssh') {
-//                 // cmd = `echo '${password.value}' | gio mount ssh://${username.value}@${server.value}`
-//                 str_server = `sftp://${server.value}`
-//             } else if (conntection_type.value == 'smb') {
-//                 // cmd = `echo '${username.value}\n${'workgroup'}\n${password.value}\n' | gio mount smb://${server.value}`
-//                 str_server = `smb://${server.value}`
-//             }
-
-//             if (use_ssh_key.checked) {
-//                 use_key = 1;
-//             }
-
-//             let cmd = {
-//                 server: str_server,
-//                 username: username.value,
-//                 password: password.value,
-//                 use_ssh_key: use_key,
-//             }
-
-//             ipcRenderer.invoke('connect', cmd).then(res => {
-//                 console.log(res)
-//                 if (res === 1) {
-//                     // console.log('connection success')
-//                     connect_msg.style.color = 'green';
-//                     connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
-//                 } else {
-//                     connect_msg.innerHTML = res;
-//                 }
-//             })
-
-//             // exec(cmd, (err, stdout, stderr) => {
-//             //     if (!err) {
-//             //         connect_msg.style.color = 'green';
-//             //         connect_msg.innerHTML = `Connected to ${conntection_type[conntection_type.options.selectedIndex].text} Server.`;
-
-//             //     } else {
-//             //         if (stderr) {
-//             //             connect_msg.innerHTML = stderr;
-//             //         }
-//             //     }
-//             // })
-//         }
-//         // console.log(conntection_type.value);
-//     }
-// })
-
-// // Connect to network message
-// ipcRenderer.on('msg_connect', (e, msg) => {
-//     console.log('running msg connect');
-//     let connect_msg = document.querySelector('connect_msg');
-//     connect_msg.innerHTML = msg;
-// })
 
 // Msg
 ipcRenderer.on('msg', (e, message, has_timeout) => {
@@ -6131,6 +6017,8 @@ function getWorkspace(callback) {
                 } else {
                     ipcRenderer.send('open', file.href);
                 }
+
+                navigation.addHistory(file.href);
 
             })
 
