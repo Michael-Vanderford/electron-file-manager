@@ -457,7 +457,6 @@ namespace gio {
             return;
         }
         g_object_unref(src);
-
         info.GetReturnValue().SetUndefined();
 
     }
@@ -959,7 +958,7 @@ namespace gio {
         }
 
         g_object_unref(enumerator);
-        g_object_unref(src);
+        // g_object_unref(src);
 
         v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
         callback.Call(2, argv);
@@ -1656,17 +1655,16 @@ namespace gio {
                                         new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
 
 
+        } else {
+
+            // Use username and password authentication
+            char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
+            location = g_file_new_for_uri(uri);
+            g_free(uri);
+
         }
-        // else {
 
-        //     // Use username and password authentication
-        //     char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
-        //     location = g_file_new_for_uri(uri);
-        //     g_free(uri);
-
-        // }
-
-        g_object_unref(location);
+        // g_object_unref(location);
         g_object_unref(mount_operation);
 
         info.GetReturnValue().SetUndefined();

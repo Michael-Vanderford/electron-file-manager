@@ -35,8 +35,6 @@ gio.monitor(data => {
     }
 });
 
-
-
 let win;
 let connect_win;
 let window_id = 0;
@@ -46,6 +44,85 @@ let watcher_failed = 0;
 let progress_id = 0;
 
 let selected_files_arr = []
+
+class FileManager {
+
+    constructor() {
+        let source0 = '';
+    }
+
+    // Get files array
+    get_files(source, tab) {
+
+        watcher_failed = 1;
+        try {
+            gio.watcher(source, (watcher) => {
+                watcher_failed = 0;
+                if (watcher.event !== 'unknown') {
+                    if (watcher.event === 'deleted') {
+                        win.send('remove_card', watcher.filename);
+                    }
+                    if (watcher.event === 'created') {
+                        try {
+                            // console.log(watcher.event, watcher.filename);
+                            let file = gio.get_file(watcher.filename);
+                            win.send('get_card_gio', file);
+                            if (file.is_dir) {
+                                win.send('get_folder_count', watcher.filename);
+                                win.send('get_folder_size', watcher.filename);
+                            }
+                        } catch (err) {
+                            console.log(err)
+                        }
+                    }
+
+                    win.send('clear_folder_size', path.dirname(watcher.filename));
+                    get_disk_space(source);
+                }
+            })
+        } catch (err) {
+            // console.log('watcher err', err.message);
+            win.send('msg', err);
+            watcher_failed = 1;
+        }
+
+        // Call create thumbnails
+        let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
+        if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
+            thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+        } else {
+            thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+        }
+
+        // Call ls worker to get file data
+        ls.postMessage({ cmd: 'ls', source: source, tab: tab });
+
+        get_disk_space(source);
+
+        this.source0 = source;
+
+    }
+}
+
+class Utilities {
+
+    // Check if executable exists
+    checkExec (executable) {
+        try {
+            let cmd = `which ${executable}`;
+            let res = execSync(cmd).toString().trim();
+            if (res) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (err) {
+            return false;
+        }
+    }
+
+}
 
 class watcher {
 
@@ -285,7 +362,6 @@ class IconManager {
 
 // class CompressionManager {
 
-
 // compress (location, type, size) {
 
 //     let c = 0;
@@ -353,6 +429,8 @@ class IconManager {
 
 // }
 
+const fileManager = new FileManager();
+const utilities = new Utilities();
 const theme_watcher = new watcher();
 const dialogs = new Dialogs();
 const settingsManger = new SettingsManager();
@@ -884,55 +962,55 @@ function get_files_arr(source, destination, callback) {
     })
 }
 
-// Get files array
-function get_files(source, tab) {
+// // Get files array
+// function get_files(source, tab) {
 
-    watcher_failed = 1;
-    try {
-        gio.watcher(source, (watcher) => {
-            watcher_failed = 0;
-            if (watcher.event !== 'unknown') {
-                if (watcher.event === 'deleted') {
-                    win.send('remove_card', watcher.filename);
-                }
-                if (watcher.event === 'created') {
-                    try {
-                        // console.log(watcher.event, watcher.filename);
-                        let file = gio.get_file(watcher.filename);
-                        win.send('get_card_gio', file);
-                        if (file.is_dir) {
-                            win.send('get_folder_count', watcher.filename);
-                            win.send('get_folder_size', watcher.filename);
-                        }
-                    } catch (err) {
-                        console.log(err)
-                    }
-                }
+//     watcher_failed = 1;
+//     try {
+//         gio.watcher(source, (watcher) => {
+//             watcher_failed = 0;
+//             if (watcher.event !== 'unknown') {
+//                 if (watcher.event === 'deleted') {
+//                     win.send('remove_card', watcher.filename);
+//                 }
+//                 if (watcher.event === 'created') {
+//                     try {
+//                         // console.log(watcher.event, watcher.filename);
+//                         let file = gio.get_file(watcher.filename);
+//                         win.send('get_card_gio', file);
+//                         if (file.is_dir) {
+//                             win.send('get_folder_count', watcher.filename);
+//                             win.send('get_folder_size', watcher.filename);
+//                         }
+//                     } catch (err) {
+//                         console.log(err)
+//                     }
+//                 }
 
-                win.send('clear_folder_size', path.dirname(watcher.filename));
-                get_disk_space(source);
-            }
-        })
-    } catch (err) {
-        // console.log('watcher err', err.message);
-        win.send('msg', err);
-        watcher_failed = 1;
-    }
+//                 win.send('clear_folder_size', path.dirname(watcher.filename));
+//                 get_disk_space(source);
+//             }
+//         })
+//     } catch (err) {
+//         // console.log('watcher err', err.message);
+//         win.send('msg', err);
+//         watcher_failed = 1;
+//     }
 
-    // Call create thumbnails
-    let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
-    if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
-        thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
-    } else {
-        thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
-    }
+//     // Call create thumbnails
+//     let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
+//     if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
+//         thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+//     } else {
+//         thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+//     }
 
-    // Call ls worker to get file data
-    ls.postMessage({ cmd: 'ls', source: source, tab: tab });
+//     // Call ls worker to get file data
+//     ls.postMessage({ cmd: 'ls', source: source, tab: tab });
 
-    get_disk_space(source);
+//     get_disk_space(source);
 
-}
+// }
 
 function copyOverwrite(copy_overwrite_arr) {
     copy_overwrite_arr.every(item => {
@@ -1488,26 +1566,40 @@ ipcMain.on('connect_dialog', (e) => {
 // Connect
 ipcMain.handle('connect', async (e, cmd) => {
 
+    let msg = {
+        message: '',
+        error: 0
+    }
+
     // const { stdout, stderr } = await exec(cmd);
     if (cmd.type.toLocaleLowerCase() === 'sshfs') {
-        cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+        let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
         try {
-            execSync(cmd);
+            execSync(sshfs_cmd);
+            msg.message = `Connected to ${cmd.server}`;
+            msg.error = 0;
+            connect_win.send('msg_connect', msg);
         } catch (err) {
             console.log(err);
-            return err;
+            msg.message = err.message;
+            msg.error = 1;
+            connect_win.send('msg_connect', msg);
         }
     } else {
         gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
             console.log(error);
             if (error) {
-                connect_win.send('msg_connect', error.message);
+                msg.message = error.message;
+                msg.error = 1;
+                connect_win.send('msg_connect', msg);
             } else {
-                connect_win.send('msg_connect', `Connected to ${cmd.server}`);
+                msg.message = `Connected to ${cmd.server}`;
+                msg.error = 0;
+                connect_win.send('msg_connect', msg);
             }
         });
     }
-    return `Connecting to ${cmd.server}`;
+
 
 })
 
@@ -2181,7 +2273,7 @@ app.on('activate', () => {
 });
 
 ipcMain.on('get_files', (e, source, tab) => {
-    get_files(source, tab)
+    fileManager.get_files(source, tab)
     // worker.postMessage({cmd: 'preload', source: source});
 
     // let du = gio.du(source);
@@ -2265,7 +2357,7 @@ function connectDialog() {
     connect_win = new BrowserWindow({
         parent: window.getFocusedWindow(),
         width: 400,
-        height: 350,
+        height: 425,
         backgroundColor: '#2e2c29',
         x: x,
         y: y,
@@ -2281,7 +2373,7 @@ function connectDialog() {
     })
 
     connect_win.loadFile('dialogs/connect.html')
-    connect_win.webContents.openDevTools()
+    // connect_win.webContents.openDevTools()
 
     // SHOW DIALG
     connect_win.once('ready-to-show', () => {

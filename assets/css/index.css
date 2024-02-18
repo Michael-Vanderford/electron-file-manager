@@ -270,7 +270,7 @@ th {
 }
 
 /* Autocomplete popup */
-.nav_menu .autocomplete-popup {
+.autocomplete-popup {
     border: 1px solid var(--border);
     padding: 10px;
     border-radius: 5px;
@@ -284,11 +284,11 @@ th {
     z-index: 2;
 }
 
-.nav_menu .autocomplete-popup:after {
+.autocomplete-popup:after {
 
 }
 
-.nav_menu .autocomplete-popup .item:hover {
+.autocomplete-popup .item:hover {
     cursor: pointer;
     border-radius: 5px;
     background-color: var(--highlight);
@@ -340,6 +340,18 @@ th {
     user-select: none;
     max-height: 50px;
     overflow-x: auto;
+}
+
+.msg_connect {
+    color: var(--msg-connect);
+}
+
+.msg_connect_error {
+    color: var(--msg-connect-error);
+}
+
+.msg_connect_success {
+    color: var(--msg-connect-success);
 }
 
 .progress_div {
@@ -418,6 +430,11 @@ th {
     display: block;
     margin-bottom: 15px;
     width: 350px;
+}
+
+.input:focus {
+    outline: none;
+    border: 1px solid var(--input-focus) !important;
 }
 
 .connect .button {
@@ -1259,6 +1276,7 @@ input[type=text]:focus {
         --menu: #303134;
         --sidebar: #262626;
         --input: #484848;
+        --input-focus: #1b557c;
         --main: #2c2c2c;
         --minibar: #222222;
         --border: #333333;
@@ -1274,8 +1292,11 @@ input[type=text]:focus {
         --button-hover-warning: #960000;
         --location: #2c2c2c;
         --location-border: #3b3a3a;
-        /* --progress: rgba(44, 44, 44, .75); */
         --progress: #2c2c2c;
+
+        --msg-connect: #ffa500;
+        --msg-connect-error: #ff0000;
+        --msg-connect-success: #008000;
 
         --svg: rgba(155, 155, 155, .9);
 
@@ -1350,6 +1371,7 @@ input[type=text]:focus {
         --menu: #f7f7f7;
         --sidebar: #f7f7f7;
         --input: #f0f0f0;
+        --input-focus: #1b557c;
         --main: #f7f7f7;
         --minibar: #ffffff;
         --border: #dcdcdc;
