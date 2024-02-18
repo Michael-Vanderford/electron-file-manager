@@ -7,16 +7,25 @@
 
 #include <stdlib.h>
 #include <unistd.h>
+#include <iostream>
+#include <vector>
+#include <string>
+#include <array>
+#include <sstream>
+
+// Node includes
 #include <nan.h>
 #include <node.h>
 #include <node_api.h>
+
+// Glib includes
 #include <gio/gio.h>
 #include <glib-object.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
-#include <iostream>
-#include <vector>
-#include <string>
+
+
+
 
 using namespace std;
 
@@ -1526,43 +1535,6 @@ namespace gio {
 
     }
 
-    // void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
-
-    //     Nan::HandleScope scope;
-
-    //     GError *error = NULL;
-    //     GFile *location = G_FILE(source_object);
-    //     gboolean mounted = g_file_mount_enclosing_volume_finish(location, res, &error);
-    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-
-    //     const unsigned argc = 1;
-    //     Nan::TryCatch tryCatch;
-    //     v8::Local<v8::Object> errorObj = Nan::New<v8::Object>();
-    //     Nan::Set(errorObj, Nan::New("message").ToLocalChecked(), Nan::New(error->message).ToLocalChecked());
-
-    //     // if (mounted) {
-    //     //     printf("Mounted successfully\n");
-    //     // } else {
-    //     //     printf("Failed to mount\n");
-    //     // }
-
-    //     // if (error) {
-    //     //     Nan::ThrowError(error->message);
-    //     //     g_error_free(error);
-    //     //     g_object_unref(location);
-    //     //     return;
-    //     // }
-
-    //     g_object_unref(location);
-
-    //     v8::Local<v8::Value> argv[argc] = { errorObj };
-    //     callback->Call(argc, argv);
-    //     if (tryCatch.HasCaught()) {
-    //         Nan::FatalException(tryCatch); // Handle the exception if occurred
-    //     }
-
-    // }
-
     void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
 
         Nan::HandleScope scope;
@@ -1671,22 +1643,60 @@ namespace gio {
 
     }
 
-    // NAN_METHOD(extract) {
+    // Function to execute shell command and return result as a v8::Array
+    NAN_METHOD(exec) {
 
+        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
+            return Nan::ThrowTypeError("Invalid arguments");
+        }
+
+        v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
+        Nan::Utf8String command(info[0]->ToString(context).ToLocalChecked());
+
+        printf("Command: %s\n", *command);
+
+        Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
+
+        std::array<char, 128> buffer;
+        std::string result;
+        std::shared_ptr<FILE> pipe(popen(*command, "r"), pclose);
+        if (!pipe) {
+            return Nan::ThrowError("popen() failed!");
+        }
+        while (!feof(pipe.get())) {
+            if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                result += buffer.data();
+            }
+        }
+
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+        size_t index = 0;
+        size_t pos = 0;
+        while (true) {
+            size_t found = result.find("\n", pos);
+            if (found == std::string::npos) {
+                break;
+            }
+            resultArray->Set(context, index++, Nan::New<v8::String>(result.substr(pos, found - pos).c_str()).ToLocalChecked());
+            pos = found + 1;
+        }
+
+        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+        callback->Call(2, argv);
+
+    }
+
+    // NAN_METHOD(extract) {
     //     if (info.Length() < 2) {
     //         return Nan::ThrowError("Wrong number of arguments");
     //     }
-
     //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
     //     v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
     //     v8::Isolate* isolate = info.GetIsolate();
     //     v8::String::Utf8Value sourceFile(isolate, sourceString);
     //     v8::String::Utf8Value destFile(isolate, destString);
-
     //     GFile* src = g_file_new_for_path(*sourceFile);
     //     GFile* dest = g_file_new_for_path(*destFile);
-
     //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
     //     const char *dest_scheme = g_uri_parse_scheme(*destFile);
     //     if (src_scheme != NULL) {
@@ -1695,14 +1705,11 @@ namespace gio {
     //     if (dest_scheme != NULL) {
     //         dest = g_file_new_for_uri(*destFile);
     //     }
-
     //     // GFile *inputFile, *outputFile;
     //     GInputStream *inputStream;
     //     GOutputStream *outputStream;
-
     //     // Initialize GIO
     //     g_type_init();
-
     //     // Open input file for reading
     //     inputStream = G_INPUT_STREAM(g_file_read(src, NULL, NULL));
     //     if (inputStream == NULL) {
@@ -1710,7 +1717,6 @@ namespace gio {
     //         g_object_unref(dest);
     //         g_error("Error opening input file");
     //     }
-
     //     // Open output file for writing
     //     outputStream = G_OUTPUT_STREAM(g_file_replace(dest, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL));
     //     if (outputStream == NULL) {
@@ -1719,26 +1725,20 @@ namespace gio {
     //         g_object_unref(inputStream);
     //         g_error("Error opening output file");
     //     }
-
     //     // Create a decompression stream
     //     GZlibDecompressor *decompressor = g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP);
     //     GFilterInputStream *filterInputStream = g_zlib_decompressor_new(g_object_ref(decompressor));
-
     //     // Set the input stream for the decompressor
     //     g_filter_input_stream_set_base_stream(filterInputStream, inputStream);
-
     //     // Set the output stream for the decompressor
     //     g_filter_output_stream_set_base_stream(G_FILTER_OUTPUT_STREAM(decompressor), outputStream);
-
     //     // Copy the decompressed data from input to output
     //     g_output_stream_splice(G_OUTPUT_STREAM(decompressor),
     //         G_INPUT_STREAM(filterInputStream),
     //         G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
     //         NULL,
     //         NULL);
-
     //         // | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET
-
     //     // Clean up resources
     //     g_object_unref(decompressor);
     //     g_object_unref(filterInputStream);
@@ -1746,9 +1746,7 @@ namespace gio {
     //     g_object_unref(outputStream);
     //     g_object_unref(src);
     //     g_object_unref(dest);
-
     //     info.GetReturnValue().Set(Nan::True());
-
     // }
 
     NAN_MODULE_INIT(init) {
@@ -1775,7 +1773,7 @@ namespace gio {
         Nan::Export(target, "watcher", watcher);
         Nan::Export(target, "get_mounts", get_mounts);
         Nan::Export(target, "connect_network_drive", connect_network_drive);
-
+        Nan::Export(target, "exec", exec);
     }
 
     NAN_MODULE_WORKER_ENABLED(gio, init)

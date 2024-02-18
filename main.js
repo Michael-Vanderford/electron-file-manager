@@ -1062,51 +1062,28 @@ ipcMain.on('columns', (e) => {
     dialogs.Columns();
 })
 
+
+function findCommand(cmd) {
+    return new Promise((resolve, reject) => {
+        gio.exec(cmd, (err, res) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(res);
+        });
+    });
+}
+
 ipcMain.handle('find', async (e, cmd) => {
 
     try {
-        const { stdout } = await exec(cmd);
-
-        const files = stdout.trim().split('\n');
-        if (files.length > 500) {
-          return false;
-        }
-
-        return files.filter(Boolean); // Remove empty lines
-      } catch (error) {
-        win.send('msg', error.stderr || error.message);
-        return;
-      }
-
-    // try {
-        // let { stdout, stderr } = await exec(cmd);
-
-        // if (stderr) {
-        //     win.send('msg', stderr);
-        //     return;
-        // }
-
-        // let files = stdout.split('\n');
-        // if (files.length > 500) {
-        //     return false;
-        // } else {
-        //     let search_arr = [];
-        //     let c = 0;
-        //     for (let i = 0; i < files.length; i++) {
-
-        //         if (files[i] != '') {
-        //             ++c
-        //             search_arr.push(files[i])
-        //         }
-
-        //     }
-        //     return search_arr;
-        // }
-    // } catch (err) {
-    //     win.send('msg', err);
-    //     return err;
-    // }
-
+        const res = findCommand(cmd);
+        return res;
+    } catch (err) {
+        win.send('msg', err);
+        throw err;
+    }
 
 })
 

@@ -4793,7 +4793,7 @@ function find_files() {
                                         options.o = ''
                                     }
 
-                                    cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}`
+                                    cmd = `find "${location.value}"${options.depth}${options.d}${options.start_date}${options.end_date}${options.o}${options.f}${options.start_date}${options.end_date}-prune 2>/dev/null`
                                     if (process.platform === 'Win32') {
                                         // notification('find is not yet implemented on window');
                                         // cmd = `find [/v] [/c] [/n] [/i] [/off[line]] <"string"> [[<drive>:][<path>]<filename>[...]]`
@@ -4802,7 +4802,7 @@ function find_files() {
                                     let c = 0
 
                                     ipcRenderer.invoke('find', cmd).then(search_arr => {
-
+                                        console.log('arr', search_arr)
                                         if (search_arr.length > 0) {
                                             ipcRenderer.send('search_results', search_arr);
                                             search_info.innerHTML = search_arr.length + ' matches found';
@@ -4810,39 +4810,6 @@ function find_files() {
                                             search_info.innerHTML = '0 matches found';
                                         }
 
-                                        // })
-                                        // let child = exec(cmd)
-                                        // let search_arr = [];
-                                        // child.stdout.on('data', (res) => {
-                                        //     data = 1;
-                                        //     search_info.innerHTML = ''
-                                        //     let files = res.split('\n')
-                                        //     search_progress.value = 0
-                                        //     search_progress.max = files.length
-                                        //     if (files.length > 500) {
-                                        //         search_info.innerHTML = 'Please narrow your search.'
-                                        //         search_progress.classList.add('hidden')
-                                        //         return false;
-                                        //     } else {
-                                        //         for (let i = 0; i < files.length; i++) {
-                                        //             if (files[i] != '') {
-                                        //                 ++c
-
-                                        //                 search_arr.push(files[i])
-                                        //             }
-                                        //         }
-                                        //     }
-                                        // })
-                                        // child.stdout.on('end', (res) => {
-                                        //     if (!data) {
-                                        //         search_info.innerHTML = '0 matches found';
-                                        //     } else {
-
-                                        // console.log('ipc send search results');
-                                        // ipcRenderer.send('search_results', search_arr);
-                                        // search_info.innerHTML = c + ' matches found';
-                                        // }
-                                        // search_progress.classList.add('hidden');
                                     })
 
                                 } else {
