@@ -40,7 +40,7 @@ body {
 .main {
     /* position: relative; */
     /* background: linear-gradient(to right, var(--main), var(--menu)); */
-    /* border-left: 1px solid red; */
+    border-left: 1px solided;
     background: var(--main);
     border-radius: 5px;
     width: 100%;
@@ -1331,7 +1331,7 @@ input[type=text]:focus {
 @media (prefers-color-scheme: light1) {
     :root {
         --menu: #f0f0f0;
-        --sidebar: #f0f0f0;
+        --sidebar: #f8f8f8;
         --input: #f0f0f0;
         --main: #ffffff;
         --minibar: #f0f0f0;
@@ -1369,7 +1369,7 @@ input[type=text]:focus {
 @media (prefers-color-scheme: light) {
     :root {
         --menu: #f7f7f7;
-        --sidebar: #f7f7f7;
+        --sidebar: #f0f0f0;
         --input: #f0f0f0;
         --input-focus: #1b557c;
         --main: #f7f7f7;

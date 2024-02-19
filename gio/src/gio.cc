@@ -1653,8 +1653,6 @@ namespace gio {
         v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
         Nan::Utf8String command(info[0]->ToString(context).ToLocalChecked());
 
-        printf("Command: %s\n", *command);
-
         Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
 
         std::array<char, 128> buffer;

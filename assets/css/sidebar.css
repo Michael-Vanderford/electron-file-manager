@@ -75,7 +75,7 @@
     color: var(--text);
     border-right: 1px solid var(--border);
     height:100%;
-    z-index: 0;
+    z-index: 3;
 }
 
 #minibar .bi {

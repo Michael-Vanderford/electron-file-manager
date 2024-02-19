@@ -3091,6 +3091,8 @@ class FileOperation {
             let header_link = card.querySelector('a');
             let input = card.querySelector('input');
 
+            card.classList.add('highlight_select')
+
             header_link.classList.add('hidden');
             input.classList.remove('hidden');
 
@@ -3691,10 +3693,7 @@ ipcRenderer.on('get_devices', (e) => {
 // On Search Results
 ipcRenderer.on('search_results', (e, find_arr) => {
 
-    // console.log('getting array');
-
     let location = document.querySelector('.location');
-    // location.value = 'Search Results';
 
     let folder_grid = add_div(['folder_grid','grid']);
     let hidden_folder_grid = add_div(['hidden_folder_grid', 'grid']);
@@ -4719,10 +4718,10 @@ function find_files() {
 
                                 if (find.value != '') {
                                     search_info.innerHTML = 'Searching...';
-                                    search_progress.classList.remove('hidden')
+                                    // search_progress.classList.remove('hidden')
                                 } else {
                                     search_info.innerHTML = '';
-                                    search_progress.classList.add('hidden')
+                                    // search_progress.classList.add('hidden')
                                 }
                                 search_results.innerHTML = '';
                                 if (find.value != '' || find_size.value != '' || start_date.value != '' || end_date.value != '') {
@@ -4809,7 +4808,6 @@ function find_files() {
                                         } else {
                                             search_info.innerHTML = '0 matches found';
                                         }
-
                                     })
 
                                 } else {
