@@ -22,6 +22,11 @@
 
 ## Changelog
 
+### Version 1.0.72 (2024-02-19)
+- Added sshfs option for network
+- Removed smb from option from network
+- Updated find to work on root directories
+
 ### Version 1.0.71 (2024-02-11)
 - Re worked location autocomplete
 - Updated css for buttons to show activity
