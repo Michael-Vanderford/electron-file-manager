@@ -247,7 +247,8 @@ th {
 /* History popup */
 .nav_menu .history-popup {
     border: 1px solid var(--border);
-    padding: 10px;
+    background-color: var(--menu);
+    padding: 5px;
     border-radius: 5px;
     position: fixed;
     top: 0;
@@ -255,8 +256,7 @@ th {
     width: auto;
     max-height: 350px;
     overflow: auto;
-    background-color: var(--menu);
-    z-index: 2;
+    z-index: 4;
 }
 
 .nav_menu .history-popup:after {
@@ -272,7 +272,8 @@ th {
 /* Autocomplete popup */
 .autocomplete-popup {
     border: 1px solid var(--border);
-    padding: 10px;
+    background-color: var(--menu);
+    padding: 5px;
     border-radius: 5px;
     position: fixed;
     top: 0;
@@ -280,7 +281,6 @@ th {
     width: auto;
     max-height: 350px;
     overflow: auto;
-    background-color: var(--menu);
     z-index: 2;
 }
 

@@ -1190,133 +1190,6 @@ class Utilities {
 
     }
 
-    // Auto Complete that populates a directory path when typing in the location bar
-    autoComplete() {
-
-        // // let viewManager = new ViewManager();
-        // // let header_container = document.querySelector('.header_container');
-        // let header_menu = document.querySelector('.header_menu');
-        // let nav_menu = document.querySelector('.nav_menu');
-        // let location = document.querySelector('.location');
-
-        // let autocomplete_container = document.querySelector('.autocomplete');
-        // if (!autocomplete_container) {
-        //     autocomplete_container = add_div(['autocomplete']);
-        //     nav_menu.appendChild(autocomplete_container);
-        // }
-
-        // let val0 = location.value;
-        // location.addEventListener('input', (e) => {
-
-        //     if (e.key !== 'Backspace') {
-        //         let val = e.target.value;
-        //         ipcRenderer.invoke('autocomplete', val).then(res => {
-        //             if (res.length > 0 && val0 !== val) {
-        //                 autocomplete_container.innerHTML = '';
-        //                 res.forEach((dir, i) => {
-        //                     let suggestion = add_div(['suggestion']);
-        //                     suggestion.textContent = dir;
-        //                     autocomplete_container.appendChild(suggestion);
-        //                     autocomplete_container.classList.remove('hidden');
-
-        //                     nav_menu.append(autocomplete_container);
-        //                     if (i === 0) {
-        //                         suggestion.classList.add('highlight');
-        //                     }
-
-        //                     // Open highlighted suggestion
-        //                     suggestion.addEventListener('click', (e) => {
-        //                         viewManager.getView(dir);
-        //                         autocomplete_container.classList.add('hidden');
-        //                     })
-        //                 })
-
-        //             }
-        //         })
-        //     }
-        // })
-
-        // // Open highlighted suggestion
-        // location.addEventListener('keydown', (e) => {
-
-        //     let suggestions = document.querySelectorAll('.suggestion');
-        //     switch (e.key) {
-        //         case 'ArrowDown': {
-        //             clearTimeout(this.timeout_id);
-        //             for (let i = 0; i < suggestions.length; i++) {
-        //                 if (suggestions[i].classList.contains('highlight')) {
-        //                     suggestions[i].classList.remove('highlight');
-        //                     if (i === suggestions.length - 1) {
-        //                         suggestions[0].classList.add('highlight');
-        //                     } else {
-        //                         suggestions[i + 1].classList.add('highlight');
-        //                         location.value = suggestions[i + 1].innerText;
-        //                     }
-        //                     break;
-        //                 }
-        //             }
-
-        //             break
-        //         }
-        //         case 'ArrowUp': {
-        //             clearTimeout(this.timeout_id);
-        //             for (let i = 0; i < suggestions.length; i++) {
-        //                 if (suggestions[i].classList.contains('highlight')) {
-        //                     suggestions[i].classList.remove('highlight');
-        //                     if (i === 0) {
-        //                         suggestions[suggestions.length - 1].classList.add('highlight');
-        //                     } else {
-        //                         suggestions[i - 1].classList.add('highlight');
-        //                     }
-        //                     break;
-        //                 }
-        //             }
-        //             break;
-        //         }
-        //         case 'Enter': {
-        //             clearTimeout(this.timeout_id);
-        //             if (suggestions.length > 0) {
-        //                 suggestions.forEach(item => {
-        //                     if (item.classList.contains('highlight')) {
-        //                         viewManager.getView(item.innerText);
-        //                         autocomplete_container.classList.add('hidden');
-        //                     } else {
-        //                         viewManager.getView(location.value);
-        //                         autocomplete_container.classList.add('hidden');
-        //                     }
-        //                 })
-        //                 viewManager.getView(location.value);
-        //                 autocomplete_container.classList.add('hidden');
-        //             } else {
-        //             }
-        //             break;
-        //         }
-        //         case 'Escape': {
-        //             clearTimeout(this.timeout_id);
-        //             autocomplete_container.classList.add('hidden');
-        //             break;
-        //         }
-        //         case 'Tab': {
-        //             e.preventDefault()
-        //             for (let i = 0; i < suggestions.length; i++) {
-        //                 if (suggestions[i].classList.contains('highlight')) {
-        //                     location.value = suggestions[i].innerText;
-        //                     autocomplete_container.classList.add('hidden');
-        //                     break;
-        //                 }
-        //             }
-        //             break;
-        //         }
-
-        //     }
-
-        // })
-
-    }
-
-
-
-
     /**
      *
      * @param {*} message
@@ -1858,14 +1731,14 @@ class Navigation {
                         const spaceAbove = triggerTop;
 
                         if (spaceBelow > popupHeight) {
-                            popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
+                            popup.style.top = triggerTop + triggerRect.height + 5 + 'px';
                         } else if (spaceAbove > popupHeight) {
                             popup.style.top = triggerTop - popupHeight + 'px';
                         } else {
                             // Handle cases where neither direction has enough space
                             console.warn('Not enough space to display popup!');
                         }
-                        popup.style.left = triggerRect.left + 10 + 'px';
+                        popup.style.left = triggerRect.left + 5 + 'px';
 
                     }
 
@@ -4954,9 +4827,12 @@ function toggleHidden() {
 function clear() {
 
     console.log('running clear');
-    let autocomplete_container = document.querySelector('.autocomplete');
-    if (autocomplete_container) {
-        autocomplete_container.classList.add('hidden');
+    let autocomplete = document.querySelectorAll('.autocomplete, .history-popup');
+    console.log('auto', autocomplete)
+    if (autocomplete.length > 0) {
+        autocomplete.forEach(item => {
+            item.classList.add('hidden');
+        })
     }
     clearHighlight();
     utilities.msg('');

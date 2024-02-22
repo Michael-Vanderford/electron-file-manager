@@ -1032,30 +1032,54 @@ ipcMain.handle('file_exists', (e, href) => {
     return fs.existsSync(href);
 })
 
+let autocomplete_arr = [];
 ipcMain.handle('autocomplete', async (e, directory) => {
 
-    let autocomplete_arr = [];
-    let dir = path.dirname(directory);
-    let search = path.basename(directory);
+    // let autocomplete_arr;
+    // let dir = path.dirname(directory);
+    // let search = path.basename(directory);
+
     try {
-        await gio.ls(dir, (err, dirents) => {
+        await gio.ls(directory, (err, dirents) => {
             if (err) {
                 return;
             }
+            let dir_arr = [];
             dirents.forEach(item => {
-                if (item.is_dir && item.name.startsWith(search)) {
-                    autocomplete_arr.push(item.href + '/');
-                } else {
-                    // autocomplete_arr.push(item.name);
+                if (item.is_dir) {
+                    dir_arr.push(item.href);
                 }
             })
+            autocomplete_arr = dir_arr;
         })
-        // console.log(autocomplete_arr);
+
     } catch (err) {
 
     }
-    return autocomplete_arr;
 
+    let filter = autocomplete_arr.filter(item => item.startsWith(directory));
+    return filter;
+
+    // let autocomplete_arr = [];
+    // let dir = path.dirname(directory);
+    // let search = path.basename(directory);
+
+    // try {
+    //     await gio.ls(dir, (err, dirents) => {
+    //         if (err) {
+    //             return;
+    //         }
+    //         dirents.forEach(item => {
+    //             if (item.is_dir && item.name.startsWith(search)) {
+    //                 autocomplete_arr.push(item.href + '/');
+    //             }
+    //         })
+    //     })
+
+    // } catch (err) {
+
+    // }
+    // return autocomplete_arr;
 })
 
 ipcMain.on('columns', (e) => {
