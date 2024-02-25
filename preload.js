@@ -171,7 +171,7 @@ class SettingsManager {
     constructor () {
         this.settings = '';
         this.showHeaderMenu();
-        this.moveNavMenu();
+        // this.moveNavMenu();
     }
 
     getSettings(callback) {
@@ -553,6 +553,7 @@ class Utilities {
         let content = add_div(['content']);
         let icon = add_div(['icon_div']);
         let img = document.createElement('img');
+        let video = document.createElement('video');
         let header = add_div(['header', 'item']);
         let href = document.createElement('a');
         let path = add_div(['path', 'item', 'hidden']);
@@ -757,7 +758,6 @@ class Utilities {
                 img.src = folder_icon_path;
             });
             // img.src = folder_icon;
-
             // if (file.href.endsWith('Documents')) {
             //     img.src = folder_icon + 'folder-documents.svg';
             // } else if (file.href.endsWith('Downloads')) {
@@ -862,9 +862,21 @@ class Utilities {
 
                     }
                 } else if (file.content_type.indexOf('video/') > -1) {
-                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-                        img.src = res;
+
+                    // let video = add_canvas(file);
+                    video.src = file.href;
+                    video.classList.add('icon');
+                    icon.innerHTML = '';
+                    icon.append(video);
+                    icon.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        ipcRenderer.send('open', file.href);
+                        ipcRenderer.send('saveRecentFile', file.href);
                     })
+                    // icon_div.append(add_canvas(file));
+                    // ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                    //     img.src = res;
+                    // })
                 } else {
                     ipcRenderer.invoke('get_icon', (file.href)).then(res => {
                         img.src = res;
@@ -2503,7 +2515,9 @@ class FileOperation {
 
             show_loader();
 
-            localStorage.setItem('location', source);
+            // if (source !== 'Recent') {
+                localStorage.setItem('location', source);
+            // }
             // navigation.addHistory(source);
             auto_complete_arr = [];
 
@@ -4906,6 +4920,31 @@ function add_div(classlist = []) {
     return div
 }
 
+function add_canvas(file) {
+
+    // let icon_size = localStorage.getItem('icon_size');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 32;
+    canvas.height = 32;
+
+    // canvas.classList.add('icon', icon_size);
+    const media = document.createElement('video');
+    media.src = file.href;
+
+    media.addEventListener('loadeddata', () => {
+        console.log('media', media)
+        ctx.drawImage(media, 0, 0, canvas.width, canvas.height);
+        media.play();
+        media.pause();
+    })
+
+    console.log('canvas', canvas, file.href)
+    return canvas
+
+}
+
 // Add Tab
 // let tab_id = 0
 // function add_tab(href) {
@@ -5350,9 +5389,8 @@ function getProperties(properties_arr) {
         }).catch(err => {
             console.log(err)
         })
+
     })
-
-
 
 }
 
