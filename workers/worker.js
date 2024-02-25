@@ -331,7 +331,7 @@ function execPromise(cmd) {
 // Handle Worker Messages
 parentPort.on('message', data => {
 
-    console.log('worker', data);
+    // console.log('worker', data);
 
     if (data.cmd === 'merge_files') {
 
