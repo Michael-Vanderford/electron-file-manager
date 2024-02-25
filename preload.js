@@ -1633,10 +1633,11 @@ class Navigation {
 
     // Add history
     addHistory(location) {
+
         this.historyArr.push(location);  // Always push new location
         this.history_idx = this.historyArr.length - 1;
-
         ipcRenderer.send('add_history', location);
+
 
     }
 
@@ -1663,6 +1664,7 @@ class Navigation {
 
                 menu_item.addEventListener('click', (e) => {
                     viewManager.getView(item);
+                    this.history_idx = this.historyArr.length - 1;
                     clearHighlight();
                 })
 
@@ -4887,13 +4889,6 @@ function toggleHidden() {
 function clear() {
 
     console.log('running clear');
-    let autocomplete = document.querySelectorAll('.autocomplete, .history-popup');
-    console.log('auto', autocomplete)
-    if (autocomplete.length > 0) {
-        autocomplete.forEach(item => {
-            item.classList.add('hidden');
-        })
-    }
     clearHighlight();
     utilities.msg('');
 
@@ -4906,6 +4901,14 @@ function clear() {
 
 // Clear Highlighted Cards
 function clearHighlight() {
+
+    let autocomplete = document.querySelectorAll('.autocomplete, .history-popup');
+    console.log('auto', autocomplete)
+    if (autocomplete.length > 0) {
+        autocomplete.forEach(item => {
+            item.classList.add('hidden');
+        })
+    }
 
     let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target')
     cards.forEach(item => {
