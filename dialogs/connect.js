@@ -52,7 +52,7 @@ ipcRenderer.on('connect', (e) => {
 
     connection_type.addEventListener('change', (e) => {
         if (connection_type.value === 'sshfs') {
-            msg_connect.innerHTML = `! Using ssfs requires sshfs be installed.`
+            msg_connect.innerHTML = `! Using sshfs requires sshfs be installed.`
             mount_point_div.classList.remove('hidden');
         } else if (connection_type.value === 'smb') {
             msg_connect.innerHTML = '';

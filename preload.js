@@ -723,55 +723,10 @@ class Utilities {
         // Directory
         if (file.is_dir || file.type === 'inode/directory') {
 
-            // ipcRenderer.send('get_folder_icon', file.href);
-
             is_dir = 1;
-            let test_folder_icon_path = folder_icon + `folder.svg`;
-            ipcRenderer.invoke('file_exists', test_folder_icon_path)
-            .then(res => {
-
-                let ext = '.svg';
-                if (!res) {
-                    ext = '.png';
-                }
-
-                let folder_icon_path = "";
-                if (file.href.endsWith('Document')) {
-                    folder_icon_path = folder_icon + `folder-documents${ext}`;
-                } else if (file.href.endsWith('Downloads')) {
-                    const downloadsPath = folder_icon + `folder-downloads${ext}`;
-                    ipcRenderer.invoke('file_exists', downloadsPath).then(res => {
-                        folder_icon_path = res ? downloadsPath : folder_icon + `folder-download${ext}`;
-                        img.src = folder_icon_path;
-                    });
-                    return;
-                } else if (file.href.endsWith('Music')) {
-                    folder_icon_path = folder_icon + `folder-music${ext}`;
-                } else if (file.href.endsWith('Pictures')) {
-                    folder_icon_path = folder_icon + `folder-pictures${ext}`;
-                } else if (file.href.endsWith('Videos')) {
-                    folder_icon_path = folder_icon + `folder-videos${ext}`;
-                } else {
-                    folder_icon_path = folder_icon + `folder${ext}`;
-                }
-
-                img.src = folder_icon_path;
-            });
-            // img.src = folder_icon;
-            // if (file.href.endsWith('Documents')) {
-            //     img.src = folder_icon + 'folder-documents.svg';
-            // } else if (file.href.endsWith('Downloads')) {
-            //     img.src = folder_icon + 'folder-downloads.svg';
-            // } else if (file.href.endsWith('Music')) {
-            //     img.src = folder_icon + 'folder-music.svg';
-            // } else if (file.href.endsWith('Pictures')) {
-            //     img.src = folder_icon + 'folder-pictures.svg';
-            // } else if (file.href.endsWith('Videos')) {
-            //     img.src = folder_icon + 'folder-videos.svg';
-            // } else {
-            //     img.src = folder_icon + 'folder.svg';
-            // }
-            // console.log(img.src)
+            utilities.getFolderIcon(file).then(folder_icon => {
+                img.src = folder_icon;
+            })
 
             card.classList.add('folder_card', 'lazy')
 
@@ -1125,6 +1080,8 @@ class Utilities {
         // let href = cards[0].querySelector('.header a');
         // href.focus();
 
+
+
     }
 
     /**
@@ -1264,6 +1221,43 @@ class Utilities {
      */
     getFolderSize(href) {
         ipcRenderer.send('get_folder_size', href);
+    }
+
+    getFolderIcon(file) {
+
+        let test_folder_icon_path = folder_icon + `folder.svg`;
+        let folder_icon_path = "";
+        return ipcRenderer.invoke('file_exists', test_folder_icon_path)
+        .then(res => {
+
+            let ext = '.svg';
+            if (!res) {
+                ext = '.png';
+            }
+            let folder_icon_path = "";
+            if (file.href.endsWith('Document')) {
+                folder_icon_path = folder_icon + `folder-documents${ext}`;
+            } else if (file.href.endsWith('Downloads')) {
+                const downloadsPath = folder_icon + `folder-downloads${ext}`;
+                return ipcRenderer.invoke('file_exists', downloadsPath).then(res => {
+                    folder_icon_path = res ? downloadsPath : folder_icon + `folder-download${ext}`;
+                    return folder_icon_path;
+                });
+            } else if (file.href.endsWith('Music')) {
+                folder_icon_path = folder_icon + `folder-music${ext}`;
+            } else if (file.href.endsWith('Pictures')) {
+                folder_icon_path = folder_icon + `folder-pictures${ext}`;
+            } else if (file.href.endsWith('Videos')) {
+                folder_icon_path = folder_icon + `folder-videos${ext}`;
+            } else {
+                folder_icon_path = folder_icon + `folder${ext}`;
+            }
+
+            console.log('folder_icon', folder_icon_path)
+            return folder_icon_path
+
+        });
+
     }
 
 }
@@ -2836,7 +2830,7 @@ class FileOperation {
             let nav_idx = 0;
             main.addEventListener('keydown', (e) => {
 
-                console.log(e.key)
+                // console.log(e.key)
                 let cards = active_tab_content.querySelectorAll('.card');
                 if (e.key === 'ArrowDown') {
                     nav_idx = (nav_idx + 4) % cards.length;
@@ -4903,7 +4897,6 @@ function clear() {
 function clearHighlight() {
 
     let autocomplete = document.querySelectorAll('.autocomplete, .history-popup');
-    console.log('auto', autocomplete)
     if (autocomplete.length > 0) {
         autocomplete.forEach(item => {
             item.classList.add('hidden');
@@ -5275,9 +5268,14 @@ function getProperties(properties_arr) {
                     content.append(add_item('Location:'), location);
 
                     if (file.is_dir) {
-                        let icon_img = add_img(folder_icon + `folder.svg`);
-                        icon_img.classList.add('icon48');
-                        icon.append(icon_img);
+
+                        utilities.getFolderIcon(file).then(folder_icon => {
+                            console.log('folder_icon', folder_icon)
+                            let icon_img = add_img(folder_icon);
+                            icon_img.classList.add('icon48');
+                            icon.append(icon_img);
+                        });
+
                         content.append(add_item('Size:'), add_item(size));
 
                         if (file.is_readable) {
@@ -5832,40 +5830,11 @@ function getWorkspace(callback) {
 
             if (file.content_type === 'inode/directory') {
 
-                let test_folder_icon_path = folder_icon + `folder.svg`;
-                ipcRenderer.invoke('file_exists', test_folder_icon_path)
-                .then(res => {
-
-                    let ext = '.svg';
-                    if (!res) {
-                        ext = '.png';
-                    }
-
-                    let folder_icon_path = "";
-                    if (file.href.endsWith('Document')) {
-                        folder_icon_path = folder_icon + `folder-documents${ext}`;
-                    } else if (file.href.endsWith('Downloads')) {
-                        const downloadsPath = folder_icon + `folder-downloads${ext}`;
-                        ipcRenderer.invoke('file_exists', downloadsPath).then(res => {
-                            folder_icon_path = res ? downloadsPath : folder_icon + `folder-download${ext}`;
-                            img.src = folder_icon_path;
-                        });
-                        // return;
-                    } else if (file.href.endsWith('Music')) {
-                        folder_icon_path = folder_icon + `folder-music${ext}`;
-                    } else if (file.href.endsWith('Pictures')) {
-                        folder_icon_path = folder_icon + `folder-pictures${ext}`;
-                    } else if (file.href.endsWith('Videos')) {
-                        folder_icon_path = folder_icon + `folder-videos${ext}`;
-                    } else {
-                        folder_icon_path = folder_icon + `folder${ext}`;
-                    }
-
+                utilities.getFolderIcon(file).then(folder_icon_path => {
                     img.src = folder_icon_path;
-
                     workspace_item.append(a);
                     workspace_div.append(img, workspace_item, workspace_item_input);
-                });
+                })
 
                 // img.src = folder_icon + 'folder.svg';
                 // workspace_item.append(a);
