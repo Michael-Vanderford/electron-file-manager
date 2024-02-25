@@ -1330,6 +1330,11 @@ class Navigation {
         this.autocomplete_idx = 0;
         this.location = document.querySelector('.location');
 
+        ipcRenderer.invoke('get_history').then(history => {
+            this.historyArr = history;
+            this.history_idx = history.length - 1;
+        })
+
         const left = document.getElementById('left');
         const right = document.getElementById('right');
 
@@ -1461,7 +1466,7 @@ class Navigation {
 
         left.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            this.showHistory();
+            this.getHistory();
         })
 
         right.addEventListener('click', (e) => {
@@ -1630,10 +1635,13 @@ class Navigation {
     addHistory(location) {
         this.historyArr.push(location);  // Always push new location
         this.history_idx = this.historyArr.length - 1;
+
+        ipcRenderer.send('add_history', location);
+
     }
 
     // Show back button history
-    showHistory() {
+    getHistory() {
 
         // Create the popup element
         const popup = document.createElement('div');
@@ -1644,47 +1652,52 @@ class Navigation {
         title.textContent = 'Navigation History';
         // popup.appendChild(title);
 
-        // Create the list of history items
-        this.historyArr.forEach((item) => {
-            const menu_item = add_div(['item']);
-            menu_item.textContent = item;
-            popup.append(menu_item);
+        ipcRenderer.invoke('get_history').then(history => {
+            this.historyArr = history;
 
-            menu_item.addEventListener('click', (e) => {
-                viewManager.getView(item);
+            // Create the list of history items
+            this.historyArr.forEach((item) => {
+                const menu_item = add_div(['item']);
+                menu_item.textContent = item;
+                popup.append(menu_item);
+
+                menu_item.addEventListener('click', (e) => {
+                    viewManager.getView(item);
+                    clearHighlight();
+                })
+
+            });
+
+            popup.addEventListener('mouseleave', (e) => {
+                popup.remove();
             })
 
-        });
+            // Determine position based on space below and above
+            const windowHeight = window.innerHeight;
+            const popupHeight = popup.offsetHeight;
+            const triggerElement = left // Replace with your trigger element
+            const triggerRect = triggerElement.getBoundingClientRect();
+            const triggerTop = triggerRect.top;
+            const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
+            const spaceAbove = triggerTop;
 
+            if (spaceBelow > popupHeight) {
+                popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
+            } else if (spaceAbove > popupHeight) {
+                popup.style.top = triggerTop - popupHeight + 'px';
+            } else {
+                // Handle cases where neither direction has enough space
+                console.warn('Not enough space to display popup!');
+            }
+            popup.style.left = triggerRect.left + 10 + 'px';
 
-        popup.addEventListener('mouseleave', (e) => {
-            popup.remove();
+            // Append the popup to the body
+            const nav_menu = document.querySelector('.nav_menu');
+            nav_menu.appendChild(popup);
+
+            console.log(this.historyArr)
+
         })
-
-        // Determine position based on space below and above
-        const windowHeight = window.innerHeight;
-        const popupHeight = popup.offsetHeight;
-        const triggerElement = left // Replace with your trigger element
-        const triggerRect = triggerElement.getBoundingClientRect();
-        const triggerTop = triggerRect.top;
-        const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
-        const spaceAbove = triggerTop;
-
-        if (spaceBelow > popupHeight) {
-            popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
-        } else if (spaceAbove > popupHeight) {
-            popup.style.top = triggerTop - popupHeight + 'px';
-        } else {
-            // Handle cases where neither direction has enough space
-            console.warn('Not enough space to display popup!');
-        }
-        popup.style.left = triggerRect.left + 10 + 'px';
-
-        // Append the popup to the body
-        const nav_menu = document.querySelector('.nav_menu');
-        nav_menu.appendChild(popup);
-
-        console.log(this.historyArr)
 
     }
 

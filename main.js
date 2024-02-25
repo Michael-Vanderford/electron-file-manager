@@ -1096,6 +1096,48 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+// Add history
+ipcMain.on('add_history', (e, location) => {
+
+    let history_file = path.join(app.getPath('userData'), 'history.json');
+    let history_data = [];
+    if (!gio.exists(history_file)) {
+        fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+    }
+    history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
+    for (let i = 0; i < history_data.length; i++) {
+        if (history_data[i] === location) {
+            history_data.splice(i, 1);
+        }
+    }
+    history_data.push(location)
+    fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+
+})
+
+// // Remove history
+// ipcMain.on('remove_history', (e, href) => {
+//     let history_file = path.join(app.getPath('userData'), 'history.json');
+//     let history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
+//     let history = history_data.filter(data => data.href !== href);
+//     fs.writeFileSync(history_file, JSON.stringify(history, null, 4));
+//     win.send('get_history');
+//     selected_files_arr = [];
+// })
+
+// Get history
+ipcMain.handle('get_history', async (e) => {
+
+    let history_file = path.join(app.getPath('userData'), 'history.json');
+    if (!gio.exists(history_file)) {
+        let history_data = [];
+        fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+    }
+    let history_items = JSON.parse(fs.readFileSync(history_file, 'utf-8'));
+    return history_items;
+
+})
+
 ipcMain.handle('file_exists', (e, href) => {
     return fs.existsSync(href);
 })

@@ -1,5 +1,5 @@
 
-## SFM - Beta
+## SFM (String File Manager)
 
 # Linux File Manager - Built with Electron
 
@@ -22,9 +22,16 @@
 
 ## Changelog
 
+### Version 1.0.73 (2024-02-25)
+- Videos now have a thumbnail
+- Retain location history
+- Added a global action dropdown for merge files
+- Speed improvement for content count in properties view
+- Various properties view fixes
+
 ### Version 1.0.72 (2024-02-19)
 - Added sshfs option for network
-- Removed smb from option from network
+- Removed smb option from network
 - Updated find to work on root directories
 
 ### Version 1.0.71 (2024-02-11)
