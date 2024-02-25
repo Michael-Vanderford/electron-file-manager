@@ -42,6 +42,7 @@ let window_id0 = 0;
 let is_main = 1;
 let watcher_failed = 0;
 let progress_id = 0;
+let is_active = 0;
 
 let selected_files_arr = []
 
@@ -360,75 +361,6 @@ class IconManager {
 
 }
 
-// class CompressionManager {
-
-// compress (location, type, size) {
-
-//     let c = 0;
-//     let cmd = '';
-//     let file_list = [];
-//     selected_files_arr.forEach((item, idx) => {
-//         file_list += "'" + path.basename(item) + "' ";
-//     })
-
-//     // Create command for compressed file
-//     let destination = path.basename(selected_files_arr[0]);
-//     selected_files_arr = [];
-
-//     if (type === 'zip') {
-//         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
-//         cmd = `cd '${location}'; zip -r '${destination}' ${file_list}`;
-//     } else {
-//         destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
-//         cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
-//     }
-
-//     let file_path = path.format({dir: location, base: destination});
-
-//     progress_id = progress_id + 1;
-//     let setinterval_id = setInterval(() => {
-
-//         let file = gio.get_file(file_path);
-
-//         let progress_opts = {
-//             id: progress_id,
-//             value: file.size,
-//             max: (size / 2),
-//             msg: `Compressing ${path.basename(file_path)}`
-//         }
-//         win.send('set_progress', progress_opts);
-
-//     }, 1000);
-
-//     exec(cmd, (err, stdout) => {
-//         if (err) {
-//             console.log(err);
-//             win.send('msg', err);
-//         }
-
-//         if (watcher_failed) {
-//             win.send('get_card_gio', gio.get_file(path.format({dir: location, base: destination})))
-//         }
-//         clearInterval(setinterval_id);
-//         let progress_opts1 = {
-//             id: progress_id,
-//             value: 1,
-//             max: 1,
-//             msg: ''
-//         }
-//         win.send('set_progress', progress_opts1);
-//         win.send('remove_card', file_path);
-//         win.send('get_card_gio', gio.get_file(file_path));
-
-//         size = 0;
-//         c = 0;
-
-//     })
-//     selected_files_arr = [];
-// }
-
-// }
-
 const fileManager = new FileManager();
 const utilities = new Utilities();
 const theme_watcher = new watcher();
@@ -438,40 +370,6 @@ const iconManager = new IconManager();
 
 let window_settings = settingsManger.getWindowSetting();
 let settings = settingsManger.getSettings();
-// let settings_file = path.join(app.getPath('userData'), 'settings.json');
-// let settings = {};
-// try {
-//     checkSettings();
-//     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
-// } catch (err) {
-//     fs.copyFileSync(path.join(__dirname, 'assets/config/settings.json'), settings_file);
-//     settings = JSON.parse(fs.readFileSync(settings_file, 'utf-8'));
-// }
-
-// function checkSettings() {
-
-//     // Read the content of the first JSON file
-//     const file1 = fs.readFileSync(settings_file, 'utf8');
-//     const json1 = JSON.parse(file1);
-
-//     // Read the content of the second JSON file
-//     const file2 = fs.readFileSync(__dirname, './assets/config/settings.json', 'utf8');
-//     const json2 = JSON.parse(file2);
-
-//     let f2 = gio.get_file(__dirname, './assets/config/settings.json');
-//     let f1 = gio.get_file(settings_file);
-
-//     if (f2.mtime > f1.mtime) {
-
-//         // Update json1 with changes from json2
-//         Object.assign(json1, json2);
-
-//         // Write the updated JSON to the first file
-//         fs.writeFileSync(settings_file, JSON.stringify(json2, null, 4));
-
-//     }
-
-// }
 
 worker.postMessage({ cmd: 'monitor' });
 
@@ -521,162 +419,332 @@ ls.on('message', (data) => {
 let progress_counter = 0;
 worker.on('message', (data) => {
 
-    if (data.cmd === 'merge_files_move') {
-        const is_move = 1;
-        win.send("merge_files", data.merge_arr, is_move);
-        data.merge_arr = [];
-    }
-
-    if (data.cmd === 'merge_files') {
-        win.send("merge_files", data.merge_arr);
-        data.merge_arr = [];
-    }
-
-    if (data.cmd === 'folder_size') {
-        win.send('folder_size', data.source, data.size);
-    }
-
-    if (data.cmd === 'folder_count') {
-        win.send('folder_count', data.source, data.folder_count)
-    }
-
-    if (data.cmd === 'confirm_overwrite') {
-        overWriteNext(data.copy_overwrite_arr);
-        // confirmOverwrite(data.source, data.destination, data.copy_overwrite_arr);
-    }
-
-    if (data.cmd === 'msg') {
-        win.send('msg', data.msg, data.has_timeout);
-    }
-
-    if (data.cmd === 'move_done') {
-
-        // Handle Cut / Move
-        if (is_main && watcher_failed) {
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
-        } else {
-            win.send('get_folder_size', path.dirname(data.destination));
-            win.send('remove_card', data.source);
+    switch (data.cmd) {
+        case 'merge_files_move': {
+            const is_move = 1;
+            win.send("merge_files", data.merge_arr, is_move);
+            data.merge_arr = [];
+            break;
         }
-
-        win.send('lazyload');
-        win.send('clear');
-    }
-
-    if (data.cmd === 'rename_done') {
-        console.log('rename_done');
-        if (watcher_failed) {
-            win.send('remove_card', data.source);
-            let file = gio.get_file(data.destination);
-            win.send('get_card_gio', file);
+        case 'merge_files': {
+            win.send("merge_files", data.merge_arr);
+            data.merge_arr = [];
+            break;
         }
-    }
-
-    if (data.cmd === 'mkdir_done') {
-
-        if (is_main && watcher_failed) {
-            try {
-                let file = gio.get_file(data.destination);
-                file.is_new_folder = 1;
-                win.send('get_card_gio', file);
-            } catch (err) {
-                console.log(err);
-            }
-
-        } else if (!is_main && watcher_failed) {
-            try {
-                let href = path.dirname(data.destination)
-                let file = gio.get_file(href)
-                win.send('replace_card', href, file);
-            } catch (err) {
-                console.log(err);
-            }
-
+        case 'folder_size': {
+            win.send('folder_size', data.source, data.size);
+            break;
         }
-    }
+        case 'folder_count': {
+            win.send('folder_count', data.source, data.folder_count);
+            break;
+        }
+        case 'confirm_overwrite': {
+            overWriteNext(data.copy_overwrite_arr);
+            // confirmOverwrite(data.source, data.destination, data.copy_overwrite_arr);
+            break;
+        }
+        case 'msg': {
+            win.send('msg', data.msg, data.has_timeout);
+            break;
+        }
+        case 'move_done': {
 
-    if (data.cmd === 'copy_done') {
-        if (is_main) {
-            if (watcher_failed) {
+            // Handle Cut / Move
+            if (is_main && watcher_failed) {
                 let file = gio.get_file(data.destination);
                 win.send('get_card_gio', file);
-            }
-        } else {
-            if (!is_main) {
-                win.send('get_folder_count', path.dirname(data.destination));
+            } else {
                 win.send('get_folder_size', path.dirname(data.destination));
+                win.send('remove_card', data.source);
             }
-            // let href = path.dirname(data.destination)
-            // let file = gio.get_file(href)
-            // win.send('replace_card', href, file);
+
+            win.send('lazyload');
+            win.send('clear');
+            break;
         }
-
-        win.send('lazyload');
-        win.send('clear');
-    }
-
-    if (data.cmd === 'cp_template_done') {
-        if (is_main) {
-            // if (watcher_failed) {
+        case 'rename_done': {
+            console.log('rename_done');
+            if (watcher_failed) {
+                win.send('remove_card', data.source);
                 let file = gio.get_file(data.destination);
                 win.send('get_card_gio', file);
-                win.send('edit', data.destination);
-            // }
+            }
+            break;
+        }
+        case  'mkdir_done': {
+
+            if (is_main && watcher_failed) {
+                try {
+                    let file = gio.get_file(data.destination);
+                    file.is_new_folder = 1;
+                    win.send('get_card_gio', file);
+                } catch (err) {
+                    console.log(err);
+                }
+
+            } else if (!is_main && watcher_failed) {
+                try {
+                    let href = path.dirname(data.destination)
+                    let file = gio.get_file(href)
+                    win.send('replace_card', href, file);
+                } catch (err) {
+                    console.log(err);
+                }
+
+            }
+            break;
+        }
+        case  'copy_done': {
+            if (is_main) {
+                if (watcher_failed) {
+                    let file = gio.get_file(data.destination);
+                    win.send('get_card_gio', file);
+                }
+            } else {
+                if (!is_main) {
+                    win.send('get_folder_count', path.dirname(data.destination));
+                    win.send('get_folder_size', path.dirname(data.destination));
+                }
+            }
+
+            win.send('lazyload');
+            win.send('clear');
+            break;
+        }
+        case  'cp_template_done': {
+            if (is_main) {
+                // if (watcher_failed) {
+                    let file = gio.get_file(data.destination);
+                    win.send('get_card_gio', file);
+                    win.send('edit', data.destination);
+                // }
+                break;
+            }
+
+        }
+        case  'delete_done': {
+            win.send('remove_card', data.source);
+            win.send('msg', `Deleted "${path.basename(data.source)}"`);
+            break;
+        }f
+        case 'progress': {
+            win.send('set_progress', data)
+            if (data.value == data.max) {
+                progress_counter = 0;
+            }
+            break;
+        }
+        case 'show_loader': {
+            win.send('show_loader');
+            break;
+        }
+        case 'hide_loader': {
+            win.send('hide_loader');
+            break;
+        }
+        case 'count': {
+            win.send('count', data.source, data.count);
+            break;
+        }
+        case  'folder_size_done': {
+            win.send('folder_size', data.source, data.folder_size);
+            break;
+        }
+        case 'properties': {
+            win.send('properties', data.properties_arr);
+            break;
         }
 
-        // else {
-        //     if (!is_main) {
-        //         win.send('get_folder_count', path.dirname(data.destination));
-        //         win.send('get_folder_size', path.dirname(data.destination));
-        //     }
-        //     // let href = path.dirname(data.destination)
-        //     // let file = gio.get_file(href)
-        //     // win.send('replace_card', href, file);
-        // }
-
-        // win.send('lazyload');
-        // win.send('clear');
     }
 
-    if (data.cmd === 'delete_done') {
-        win.send('remove_card', data.source);
-        win.send('msg', `Deleted "${path.basename(data.source)}"`)
-    }
+    // if (data.cmd === 'merge_files_move') {
+    //     const is_move = 1;
+    //     win.send("merge_files", data.merge_arr, is_move);
+    //     data.merge_arr = [];
+    // }
 
-    if (data.cmd === 'progress') {
-        // progress_counter++
-        // let msg = data.msg;
-        // let max = data.max;
-        // let value = data.value;
-        // win.send('set_progress', { value: value, max: max, msg: msg })
-        win.send('set_progress', data)
-        if (data.value == data.max) {
-            progress_counter = 0;
-        }
-    }
+    // if (data.cmd === 'merge_files') {
+    //     win.send("merge_files", data.merge_arr);
+    //     data.merge_arr = [];
+    // }
 
-    if (data.cmd === 'show_loader') {
-        win.send('show_loader')
-    }
+    // if (data.cmd === 'folder_size') {
+    //     win.send('folder_size', data.source, data.size);
+    // }
 
-    if (data.cmd === 'hide_loader') {
-        win.send('hide_loader')
-    }
+    // if (data.cmd === 'folder_count') {
+    //     win.send('folder_count', data.source, data.folder_count)
+    // }
 
-    if (data.cmd === 'count') {
-        win.send('count', data.source, data.count)
-    }
+    // if (data.cmd === 'confirm_overwrite') {
+    //     overWriteNext(data.copy_overwrite_arr);
+    //     // confirmOverwrite(data.source, data.destination, data.copy_overwrite_arr);
+    // }
 
-    if (data.cmd === 'folder_size_done') {
-        win.send('folder_size', data.source, data.folder_size);
-    }
+    // if (data.cmd === 'msg') {
+    //     win.send('msg', data.msg, data.has_timeout);
+    // }
+
+    // if (data.cmd === 'move_done') {
+
+    //     // Handle Cut / Move
+    //     if (is_main && watcher_failed) {
+    //         let file = gio.get_file(data.destination);
+    //         win.send('get_card_gio', file);
+    //     } else {
+    //         win.send('get_folder_size', path.dirname(data.destination));
+    //         win.send('remove_card', data.source);
+    //     }
+
+    //     win.send('lazyload');
+    //     win.send('clear');
+    // }
+
+    // if (data.cmd === 'rename_done') {
+    //     console.log('rename_done');
+    //     if (watcher_failed) {
+    //         win.send('remove_card', data.source);
+    //         let file = gio.get_file(data.destination);
+    //         win.send('get_card_gio', file);
+    //     }
+    // }
+
+    // if (data.cmd === 'mkdir_done') {
+
+    //     if (is_main && watcher_failed) {
+    //         try {
+    //             let file = gio.get_file(data.destination);
+    //             file.is_new_folder = 1;
+    //             win.send('get_card_gio', file);
+    //         } catch (err) {
+    //             console.log(err);
+    //         }
+
+    //     } else if (!is_main && watcher_failed) {
+    //         try {
+    //             let href = path.dirname(data.destination)
+    //             let file = gio.get_file(href)
+    //             win.send('replace_card', href, file);
+    //         } catch (err) {
+    //             console.log(err);
+    //         }
+
+    //     }
+    // }
+
+    // if (data.cmd === 'copy_done') {
+    //     if (is_main) {
+    //         if (watcher_failed) {
+    //             let file = gio.get_file(data.destination);
+    //             win.send('get_card_gio', file);
+    //         }
+    //     } else {
+    //         if (!is_main) {
+    //             win.send('get_folder_count', path.dirname(data.destination));
+    //             win.send('get_folder_size', path.dirname(data.destination));
+    //         }
+    //         // let href = path.dirname(data.destination)
+    //         // let file = gio.get_file(href)
+    //         // win.send('replace_card', href, file);
+    //     }
+
+    //     win.send('lazyload');
+    //     win.send('clear');
+    // }
+
+    // if (data.cmd === 'cp_template_done') {
+    //     if (is_main) {
+    //         // if (watcher_failed) {
+    //             let file = gio.get_file(data.destination);
+    //             win.send('get_card_gio', file);
+    //             win.send('edit', data.destination);
+    //         // }
+    //     }
+
+    //     // else {
+    //     //     if (!is_main) {
+    //     //         win.send('get_folder_count', path.dirname(data.destination));
+    //     //         win.send('get_folder_size', path.dirname(data.destination));
+    //     //     }
+    //     //     // let href = path.dirname(data.destination)
+    //     //     // let file = gio.get_file(href)
+    //     //     // win.send('replace_card', href, file);
+    //     // }
+
+    //     // win.send('lazyload');
+    //     // win.send('clear');
+    // }
+
+    // if (data.cmd === 'delete_done') {
+    //     win.send('remove_card', data.source);
+    //     win.send('msg', `Deleted "${path.basename(data.source)}"`)
+    // }
+
+    // if (data.cmd === 'progress') {
+    //     // progress_counter++
+    //     // let msg = data.msg;
+    //     // let max = data.max;
+    //     // let value = data.value;
+    //     // win.send('set_progress', { value: value, max: max, msg: msg })
+    //     win.send('set_progress', data)
+    //     if (data.value == data.max) {
+    //         progress_counter = 0;
+    //     }
+    // }
+
+    // if (data.cmd === 'show_loader') {
+    //     win.send('show_loader')
+    // }
+
+    // if (data.cmd === 'hide_loader') {
+    //     win.send('hide_loader')
+    // }
+
+    // if (data.cmd === 'count') {
+    //     win.send('count', data.source, data.count)
+    // }
+
+    // if (data.cmd === 'folder_size_done') {
+    //     win.send('folder_size', data.source, data.folder_size);
+    // }
 
 })
 
 // Functions //////////////////////////////////////////////
 
 // Save Recent File
+
+function get_properties (href) {
+    if (href !== '/' && path.basename(href) !== 'Recent') {
+        let selected_files_arr = [];
+        console.log('get_properties', href);
+        selected_files_arr.push(href);
+        let cmd = {
+            cmd: 'properties',
+            selected_files_arr: selected_files_arr
+        }
+        worker.postMessage(cmd);
+    } else {
+        let msg = {
+            msg: `Cannot get properties for ${href}`
+        }
+        win.send('msg', msg.msg);
+    }
+}
+
+function execPromise(cmd) {
+    return new Promise((resolve, reject) => {
+        gio.exec(cmd, (err, res) => {
+            if (err) {
+                reject(err);
+                return;
+            }
+            resolve(res);
+        });
+    });
+}
+
 function saveRecentFile(href) {
 
     // Check if the file exists
@@ -1039,70 +1107,71 @@ ipcMain.handle('autocomplete', async (e, directory) => {
     // let dir = path.dirname(directory);
     // let search = path.basename(directory);
 
-    try {
-        await gio.ls(directory, (err, dirents) => {
-            if (err) {
-                return;
-            }
-            let dir_arr = [];
-            dirents.forEach(item => {
-                if (item.is_dir) {
-                    dir_arr.push(item.href);
-                }
-            })
-            autocomplete_arr = dir_arr;
-        })
-
-    } catch (err) {
-
-    }
-
-    let filter = autocomplete_arr.filter(item => item.startsWith(directory));
-    return filter;
-
-    // let autocomplete_arr = [];
-    // let dir = path.dirname(directory);
-    // let search = path.basename(directory);
-
     // try {
-    //     await gio.ls(dir, (err, dirents) => {
+    //     await gio.ls(directory, (err, dirents) => {
     //         if (err) {
     //             return;
     //         }
+    //         let dir_arr = [];
     //         dirents.forEach(item => {
-    //             if (item.is_dir && item.name.startsWith(search)) {
-    //                 autocomplete_arr.push(item.href + '/');
+    //             if (item.is_dir) {
+    //                 dir_arr.push(item.href);
     //             }
     //         })
+    //         autocomplete_arr = dir_arr;
     //     })
 
     // } catch (err) {
 
     // }
-    // return autocomplete_arr;
+
+    // let filter = autocomplete_arr.filter(item => item.startsWith(directory));
+    // return filter;
+
+    let autocomplete_arr = [];
+    let dir = path.dirname(directory);
+    let search = path.basename(directory);
+
+    try {
+        await gio.ls(dir, (err, dirents) => {
+            if (err) {
+                return;
+            }
+            dirents.forEach(item => {
+                if (item.is_dir && item.name.startsWith(search)) {
+                    autocomplete_arr.push(item.href + '/');
+                }
+            })
+        })
+
+    } catch (err) {
+
+    }
+    return autocomplete_arr;
 })
 
 ipcMain.on('columns', (e) => {
     dialogs.Columns();
 })
 
+// Promise function for find command
+// function findCommand(cmd) {
+//     return new Promise((resolve, reject) => {
+//         gio.exec(cmd, (err, res) => {
+//             if (err) {
+//                 reject(err);
+//                 return;
+//             }
+//             resolve(res);
+//         });
+//     });
+// }
 
-function findCommand(cmd) {
-    return new Promise((resolve, reject) => {
-        gio.exec(cmd, (err, res) => {
-            if (err) {
-                reject(err);
-                return;
-            }
-            resolve(res);
-        });
-    });
-}
-
+// Find command
 ipcMain.handle('find', async (e, cmd) => {
 
     try {
-        const res = findCommand(cmd);
+        const res = execPromise(cmd);
         return res;
     } catch (err) {
         win.send('msg', err);
@@ -1191,6 +1260,8 @@ ipcMain.on('extract', (e, location) => {
         let worker = new Worker(path.join(__dirname, './workers/worker.js'));
         worker.on('message', (data) => {
 
+            // console.log('extract cmd', data.cmd);
+
             if (data.cmd === 'msg') {
                 win.send('msg', data.msg, data.has_timeout);
             }
@@ -1223,138 +1294,7 @@ ipcMain.on('extract', (e, location) => {
         worker.postMessage(data);
 
     }
-
     selected_files_arr = [];
-
-    // selected_files_arr.forEach(item => {
-
-    //     let cmd = '';
-    //     let us_cmd = '';
-    //     let filename = '';
-    //     let source = item;
-    //     let ext = path.extname(source).toLowerCase();
-    //     let makedir = 1;
-
-    //     // console.log('extension ', source);
-    //     let c = 0;
-    //     switch (ext) {
-    //         case '.zip':
-    //             filename = source.replace('.zip', '')
-    //             c = 0
-    //             while (fs.existsSync(filename) && c < 5) {
-    //                 filename = filename + ' Copy'
-    //                 ++c;
-    //             }
-    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-    //             cmd = "unzip '" + source + "' -d '" + filename + "'"
-    //             break;
-    //         case '.tar':
-    //             filename = source.replace('.tar', '')
-    //             c = 0
-    //             while (fs.existsSync(filename) && c < 5) {
-    //                 filename = filename + ' Copy'
-    //                 ++c;
-    //             }
-    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-    //             cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
-    //             break;
-    //         case '.gz':
-    //             filename = source.replace('.tar.gz', '')
-    //             c = 0
-    //             while (fs.existsSync(filename) && c < 5) {
-    //                 filename = filename + ' Copy'
-    //                 ++c;
-    //             }
-    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-    //             cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
-
-    //             break;
-    //         case '.xz':
-    //             filename = source.replace('tar.xz', '')
-    //             filename = filename.replace('.img.xz', '')
-    //             c = 0
-    //             while (fs.existsSync(filename) && c < 5) {
-    //                 filename = filename + ' Copy'
-    //                 ++c;
-    //             }
-    //             us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
-    //             // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
-    //             if (source.indexOf('img.xz') > -1) {
-    //                 makedir = 0;
-    //                 cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
-    //                 // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
-    //             } else {
-    //                 cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
-    //             }
-    //             break;
-    //         case '.bz2':
-    //             filename = source.replace('.bz2', '')
-    //             c = 0
-    //             while (fs.existsSync(filename) && c < 5) {
-    //                 filename = filename + ' Copy'
-    //                 ++c;
-    //             }
-    //             us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-    //             cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
-    //             break;
-
-    //     }
-
-    //     if (makedir) {
-    //         gio.mkdir(filename)
-    //         // fs.mkdirSync(filename);
-    //     }
-
-    //     // GET UNCOMPRESSED SIZE
-    //     win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
-
-    //     exec(us_cmd, (err, stdout, stderr) => {
-    //         if (err) {
-    //             console.log(err);
-    //             // win.send('msg', err);
-    //         } else {
-
-    //             win.send('msg', '');
-
-    //             var size = parseInt(stdout.toString().replaceAll(',', ''));
-    //             // Show progress for compressing files
-    //             let setinterval_id = setInterval(() => {
-    //                 let current_size = parseInt(execSync(`du -s ${filename} | awk '{print $1}'`).toString().replaceAll(',', ''))
-    //                 win.send('set_progress', { value: (current_size * 1024), max: size, msg: `Extracting ${path.basename(source)}` });
-    //             }, 1000);
-
-    //             // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
-    //             exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
-
-    //                 if (err) {
-    //                     // console.log('error ' + err)
-    //                     win.send('msg', err);
-    //                 } else {
-    //                     try {
-    //                         // GET REFERENCE TO FOLDER GRID
-    //                         if (watcher_failed) {
-    //                             win.send('get_card_gio', gio.get_file(filename));
-    //                         }
-    //                         win.send('get_folder_count', filename);
-    //                         win.send('get_folder_size', filename);
-
-    //                         clearInterval(setinterval_id);
-    //                         win.send('set_progress', { value: size, max: size, msg: '' });
-
-    //                     } catch (err) {
-    //                         // console.log(err)
-    //                         win.send('msg', err);
-    //                     }
-    //                     win.send('msg', `Extracted ${source}`);
-    //                 }
-    //             })
-
-    //         }
-    //     });
-    // })
-
-    // selected_files_arr = [];
-
 })
 
 // Compress
@@ -1362,6 +1302,9 @@ ipcMain.on('compress', (e, location, type, size) => {
 
     let worker = new Worker(path.join(__dirname, './workers/worker.js'));
     worker.on('message', (data) => {
+
+        // console.log('compress cmd', data.cmd);
+
         if (data.cmd === 'msg') {
             win.send('msg', data.msg, data.has_timeout);
         }
@@ -1503,8 +1446,6 @@ ipcMain.on('merge_files_confirmed', (e, filter_merge_arr, is_move) => {
         }
     })
 
-
-
 })
 
 // ipcMain.on('umount', (e, uuid) => {
@@ -1600,7 +1541,6 @@ ipcMain.handle('connect', async (e, cmd) => {
             }
         });
     }
-
 
 })
 
@@ -1766,21 +1706,17 @@ ipcMain.on('get_recent_files', (e, dir) => {
 
 // On Get Folder Size
 ipcMain.on('get_folder_size', (e, href) => {
-    // console.log('get folder size', href);
     worker.postMessage({ cmd: 'folder_size', source: href });
 })
 
+// Currently using On Get Folder Size for properties!!
 ipcMain.handle('get_folder_size_properties', async (e, href) => {
     try {
-        let cmd = `cd '${href.replace("'", "''")}'; du -Hs`;
-        const { err, stdout, stderr } = await exec(cmd);
-        if (err) {
-            console.error(stderr);
-            return 0;
+        let cdm = {
+            cmd: 'get_folder_size',
+            source: href
         }
-        let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
-        size = size * 1024;
-        return size;
+        worker.postMessage(cdm);
     } catch (error) {
         console.error(error);
         return 0;
@@ -1805,19 +1741,25 @@ ipcMain.on('get_file_count', (e, href) => {
 
 // On Properties
 ipcMain.on('get_properties', (e, selected_files_arr, location) => {
-    let properties_arr = [];
-    if (selected_files_arr.length > 0) {
-        selected_files_arr.forEach(item => {
-            let properties = gio.get_file(item);
-            // console.log(properties);
-            properties_arr.push(properties);
-        })
-    } else {
-        let properties = gio.get_file(location);
-        properties_arr.push(properties);
+    let cmd = {
+        cmd: 'properties',
+        selected_files_arr: selected_files_arr
     }
+    worker.postMessage(cmd);
+
+    // let properties_arr = [];
+    // if (selected_files_arr.length > 0) {
+    //     selected_files_arr.forEach(item => {
+    //         let properties = gio.get_file(item);
+    //         // console.log(properties);
+    //         properties_arr.push(properties);
+    //     })
+    // } else {
+    //     let properties = gio.get_file(location);
+    //     properties_arr.push(properties);
+    // }
     // console.log('props', properties_arr);
-    win.send('properties', properties_arr);
+    // win.send('properties', properties_arr);
 })
 
 // On get card gio
@@ -1962,6 +1904,10 @@ ipcMain.on('paste', (e, destination) => {
     let copy_overwrite_arr = []
     let overwrite = 0;
     let location = destination; //document.getElementById('location');
+
+    // set active flag
+    is_active = 1;
+
     if (selected_files_arr.length > 0) {
 
         for (let i = 0; i < selected_files_arr.length; i++) {
@@ -2009,84 +1955,43 @@ ipcMain.on('paste', (e, destination) => {
             if (i == selected_files_arr.length - 1) {
                 if (copy_arr.length > 0) {
 
-                    // copy_arr.forEach(item => {
-
-                    //     let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
-                    //     paste_worker.on('message', (data) => {
-                    //         if (data.cmd === 'progress') {
-                    //             win.send('set_progress', data)
-                    //         }
-                    //         if (data.cmd === 'copy_done') {
-                    //             if (is_main) {
-                    //                 if (watcher_failed) {
-                    //                     let file = gio.get_file(data.destination);
-                    //                     win.send('get_card_gio', file);
-                    //                 }
-                    //             } else {
-                    //                 if (!is_main) {
-                    //                     win.send('get_folder_count', path.dirname(data.destination));
-                    //                     win.send('get_folder_size', path.dirname(data.destination));
-                    //                 }
-                    //             }
-
-                    //             let close_progress = {
-                    //                 id: data.id,
-                    //                 value: 0,
-                    //                 max: 0,
-                    //             }
-                    //             win.send('set_progress', close_progress);
-
-                    //             win.send('lazyload');
-                    //             win.send('clear');
-                    //         }
-                    //     })
-
-                    //     let copy_arr1 = []
-                    //     copy_arr1.push(item)
-                    //     progress_id += 1;
-                    //     if (item.is_dir) {
-                    //         let data = {
-                    //             id: progress_id,
-                    //             cmd: 'paste',
-                    //             copy_arr: copy_arr1
-                    //         }
-                    //         paste_worker.postMessage(data);
-
-                    //     } else {
-
-                    //     }
-
-                    // })
-
                     let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
                     paste_worker.on('message', (data) => {
-                        if (data.cmd === 'progress') {
-                            win.send('set_progress', data)
-
-                            if (data.max === 0) {
-                                win.send('msg', data.msg);
+                        // console.log('paste cmd', data.cmd);
+                        switch (data.cmd) {
+                            case 'msg': {
+                                win.send('msg', data.msg, data.has_timeout);
+                                break;
                             }
+                            case 'progress': {
+                                win.send('set_progress', data)
 
-                        }
-                        if (data.cmd === 'copy_done') {
-                            if (is_main) {
-                                // if (watcher_failed) {
-                                    let file = gio.get_file(data.destination);
-                                    win.send('remove_card', data.destination);
-                                    win.send('get_card_gio', file);
-                                // }
-                            } else {
-                                if (!is_main) {
-                                    win.send('get_folder_count', path.dirname(data.destination));
-                                    win.send('get_folder_size', path.dirname(data.destination));
+                                if (data.max === 0) {
+                                    win.send('msg', data.msg);
                                 }
+                                break;
                             }
-                            win.send('lazyload');
-                            win.send('clear');
+                            case 'copy_done': {
+                                if (is_main) {
+                                    // if (watcher_failed) {
+                                        let file = gio.get_file(data.destination);
+                                        win.send('remove_card', data.destination);
+                                        win.send('get_card_gio', file);
+                                    // }
+                                } else {
+                                    if (!is_main) {
+                                        win.send('get_folder_count', path.dirname(data.destination));
+                                        win.send('get_folder_size', path.dirname(data.destination));
+                                    }
+                                }
+
+                                win.send('lazyload');
+                                win.send('clear');
+                                break;
+                            }
+
                         }
-
                     })
-
 
                     progress_id += 1;
                     let data = {
@@ -2215,6 +2120,24 @@ function createWindow() {
         // });
 
     });
+
+    win.on('close', (e) => {
+
+        if (is_active) {
+                const choice = dialog.showMessageBoxSync(mainWindow, {
+                type: 'warning',
+                buttons: ['Cancel', 'Close Anyway'],
+                title: 'Warning',
+                message: 'An operation is still active. Are you sure you want to close?',
+                defaultId: 1,
+                cancelId: 0
+            });
+
+            if (choice === 0) {
+            e.preventDefault(); // Prevent the window from closing
+            }
+        }
+    })
 
     win.on('closed', () => {
         windows.delete(win);
@@ -2662,20 +2585,31 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
     // Send array to worker
     let worker = new Worker(path.join(__dirname, 'workers/worker.js'));
     worker.on('message', (data) => {
-        if (data.cmd === 'progress') {
-            win.send('set_progress', data)
 
-            // If data.max = 0 then we are done
-            if (data.max === 0) {
-                win.send('msg', data.msg);
+        console.log('del_conf cmd', data.cmd);
+
+        switch (data.cmd) {
+
+            case 'msg': {
+                win.send('msg', data.msg, data.has_timeout);
+                break;
+            }
+            case 'progress': {
+                win.send('set_progress', data)
+                // If data.max = 0 then we are done
+                if (data.max === 0) {
+                    win.send('msg', data.msg);
+                }
+                break;
+            }
+
+            // this fires after each file or directory is deleted
+            case 'delete_done': {
+                win.send('remove_card', data.source);
+                break;
             }
         }
 
-        // this fires after each file or directory is deleted
-        if (data.cmd === 'delete_done') {
-            win.send('remove_card', data.source);
-            // win.send('msg', `Deleted "${path.basename(data.source)}"`)
-        }
     })
 
     let delete_confirmed = {
@@ -2694,6 +2628,13 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
 ipcMain.on('delete_canceled', (e) => {
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
+})
+
+ipcMain.on('cancel_get_files', (e) => {
+    let cmd = {
+        cmd: 'cancel_get_files'
+    }
+    worker.postMessage(cmd);
 })
 
 // Menus////////////////////////////////////////////////////////////////
@@ -3233,6 +3174,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Disk Usage Analyzer',
+            icon: path.join(__dirname, 'assets/icons/menu/diskusage.png'),
             click: () => {
                 exec(`baobab ${file.href}`);
             }
@@ -3243,6 +3185,7 @@ ipcMain.on('folder_menu', (e, file) => {
         },
         {
             label: 'Properties',
+            icon: path.join(__dirname, 'assets/icons/menu/properties.png'),
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
@@ -3356,6 +3299,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Compress',
+            icon: path.join(__dirname, 'assets/icons/menu/extract.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
             submenu: [
                 {
@@ -3399,6 +3343,7 @@ ipcMain.on('file_menu', (e, file) => {
         },
         {
             label: 'Properties',
+            icon: path.join(__dirname, 'assets/icons/menu/properties.png'),
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
@@ -3557,6 +3502,7 @@ ipcMain.on('merge_folder_menu', (e, href) => {
         },
         {
             label: 'Compress',
+            icon: path.join(__dirname, 'assets/icons/menu/extract.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
             submenu: [
                 {
@@ -3598,6 +3544,7 @@ ipcMain.on('merge_folder_menu', (e, href) => {
         },
         {
             label: 'Disk Usage Analyzer',
+            icon: path.join(__dirname, 'assets/icons/menu/diskusage.png'),
             click: () => {
                 exec(`baobab ${file.href}`);
             }
@@ -3608,6 +3555,7 @@ ipcMain.on('merge_folder_menu', (e, href) => {
         },
         {
             label: 'Properties',
+            icon: path.join(__dirname, 'assets/icons/menu/properties.png'),
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
@@ -3721,6 +3669,7 @@ ipcMain.on('merge_file_menu', (e, href) => {
         },
         {
             label: 'Compress',
+            icon: path.join(__dirname, 'assets/icons/menu/extract.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Compress : settings.keyboard_shortcuts.Compress,
             submenu: [
                 {
@@ -3764,6 +3713,7 @@ ipcMain.on('merge_file_menu', (e, href) => {
         },
         {
             label: 'Properties',
+            icon: path.join(__dirname, 'assets/icons/menu/properties.png'),icon: path.join(__dirname, 'assets/icons/menu/properties.png'),
             accelerator: process.platform == 'darwin' ? settings.keyboard_shortcuts.Properties : settings.keyboard_shortcuts.Properties,
             click: () => {
                 e.sender.send('context-menu-command', 'properties')
@@ -3806,7 +3756,6 @@ ipcMain.on('merge_file_menu', (e, href) => {
     menu.popup(BrowserWindow.fromWebContents(e.sender))
 
 })
-
 
 // Devices Menu
 ipcMain.on('device_menu', (e, href, uuid) => {
@@ -3914,19 +3863,21 @@ ipcMain.on('sidebar_menu', (e, href) => {
                 ls.postMessage({ cmd: 'ls', source: href, tab: 1 });
             }
         },
-        {
-            label: 'Open In New Window',
-            click: () => {
-
-            }
-        },
+        // {
+        //     label: 'Open In New Window',
+        //     click: () => {
+        //         createWindow();
+        //     }
+        // },
         {
             type: 'separator',
         },
         {
             label: 'Properties',
+            icon: path.join(__dirname, 'assets/icons/menu/properties.png'),
             click: () => {
-                e.sender.send('context-menu-command', 'properties')
+                get_properties(href);
+                // e.sender.send('context-menu-command', 'sidebar_properties');
             }
         }
     ]

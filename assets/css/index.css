@@ -330,7 +330,7 @@ th {
 
 .msg {
 
-    color: var(--text);
+    color: var(--msg-text);
     background-color: var(--msg);
     border: 1px solid var(--border);
     filter: drop-shadow(3px 3px 2px rgb(0 0 0 / 0.9));
@@ -1281,6 +1281,7 @@ input[type=text]:focus {
         --minibar: #222222;
         --border: #333333;
         --msg: #222222;
+        --msg-text: #ffa500;
         --dialog: #262626;
         --text: #C0C0C0;
         --active: #ffffff;

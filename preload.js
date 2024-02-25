@@ -1199,11 +1199,6 @@ class Utilities {
 
         // let content = document.querySelector('.tab-content');
         let msg = document.querySelector('.msg');
-        // if (!msg) {
-        //     msg = add_div(['msg', 'bottom']);
-        //     content.append(msg);
-        // }
-
         msg.innerHTML = '';
         msg.classList.remove('hidden');
         if (message === '') {
@@ -3488,6 +3483,16 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
 
             })
 
+            let merge_action_all = active_content.querySelector('.merge-action-all');
+            merge_action_all.addEventListener('change', (e) => {
+                let target = e.target;
+                let select = table.querySelectorAll('select');
+                select.forEach(item => {
+                    item.selectedIndex = target.selectedIndex;
+                    item.value = target.value;
+                })
+            })
+
             active_content.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
             })
@@ -3633,15 +3638,28 @@ ipcRenderer.on('folder_size', (e, source, folder_size) => {
     // console.log('setting folder size', folder_size)
     let tab_content = document.querySelector('.active-tab-content');
     let folders = tab_content.querySelector('.folder_grid, .hidden_folder_grid');
-    let card = folders.querySelector(`[data-href="${source}"]`)
-    if (card !== null) {
-        card.dataset.size = folder_size;
-        let size = card.querySelector('.size')
-        card = null;
-        size.innerHTML = ''
-        size.innerHTML = getFileSize(folder_size);
-        localStorage.setItem(source, folder_size);
+    if (folders) {
+        let card = folders.querySelector(`[data-href="${source}"]`)
+        if (card !== null) {
+            card.dataset.size = folder_size;
+            let size = card.querySelector('.size')
+            card = null;
+            size.innerHTML = ''
+            size.innerHTML = getFileSize(folder_size);
+            localStorage.setItem(source, folder_size);
+        }
+
+    // Side menu properties
+    } else {
+        if (source !== 'File System' || source !== 'Recent') {
+            let card = tab_content.querySelector(`[data-properties_href="${source}"]`);
+            let size = card.querySelector('.size')
+            card = null;
+            size.innerHTML = ''
+            size.innerHTML = getFileSize(folder_size);
+        }
     }
+
 })
 
 // On folder count for properties
@@ -4057,6 +4075,21 @@ ipcRenderer.on('context-menu-command', (e, cmd) => {
             // ipcRenderer.send('get_properties', selected_files_arr);
             // clear();
             fileOperation.fileInfo();
+            break;
+        }
+        case 'sidebar_properties': {
+            let sidebar = document.querySelector('.sidebar');
+            let items = sidebar.querySelectorAll('.item');
+            items.forEach(item => {
+                if (item.classList.contains('highlight_select')) {
+                    let file_arr = [];
+                    file_arr.push(item.dataset.href);
+                    console.log('item', item.dataset.href);
+                    ipcRenderer.send('get_properties', file_arr);
+                    clearHighlight();
+                }
+            })
+
             break;
         }
         case 'open_templates': {
@@ -5111,247 +5144,208 @@ function getPermissions(unixMode) {
 // Get Properties View
 function getProperties(properties_arr) {
 
-    // Check if properties tab exists
-    // let tab_exists = 0;
-    // let tabs = document.querySelectorAll('.tab')
-    // tabs.forEach(tab => {
-    //     let label = tab.querySelector('.label')
-    //     if (label.innerText === 'Properties') {
-    //         tab_exists = 1;
-    //         return;
-    //     }
-    // })
+    console.log('properties_arr', properties_arr);
 
     // if (!tab_exists) {
-    tabManager.addTab('Properties')
+    tabManager.addTab('Properties');
     // }
     let tab_content = document.querySelector('.active-tab-content');
     console.log(tab_content)
 
     let properties_div = add_div();
-    // tab_content.append(properties_div);
 
     ipcRenderer.invoke('path:join', 'views/properties.html').then(path => {
         fetch(path).then(res => {
             return res.text()
         }).then(html => {
 
-            properties_div.innerHTML = html;
+            if (properties_arr.length > 0) {
 
-            let properties_view = document.querySelector('.properties_view');
-            let properties_content = document.querySelector('.properties_content');
-            let permissions_container = document.querySelector('.permissions_container');
+                properties_div.innerHTML = html;
+                properties_arr.forEach(file => {
 
-            // let tabs = properties_view.querySelectorAll('.properties-tab');
-            // let tabs_content = properties_view.querySelectorAll('.properties-tab-content');
-            // tabs.forEach((tab, idx) => {
-            //     tab.addEventListener('click', (e) => {
+                    let properties_div1 = add_div();
+                    let basic_content = add_div();
+                    let permissions_content = add_div();
 
-            //         tabs.forEach((tab, idx1) => {
+                    properties_div1.classList.add('properties', 'grid2');
+                    basic_content.classList.add('basic');
+                    permissions_content.classList.add('permissions');
 
-            //             if (idx === idx1) {
-            //                 tabs[idx1].classList.add('active-properties-tab');
-            //                 tabs_content[idx1].classList.remove('hidden')
-            //             } else {
-            //                 tabs[idx1].classList.remove('active-properties-tab');
-            //                 tabs_content[idx1].classList.add('hidden')
-            //             }
+                    properties_div1.append(basic_content, permissions_content);
+                    tab_content.append(properties_div1);
 
-            //         })
+                    // Basic Tab
+                    let card = add_div();
+                    let content = add_div();
 
-            //     })
-            // })
+                    card.dataset.properties_href = file.href;
 
-            properties_arr.forEach(file => {
-
-                let properties_div1 = add_div();
-                let basic_content = add_div();
-                let permissions_content = add_div();
-
-                properties_div1.classList.add('properties', 'grid2');
-                basic_content.classList.add('basic');
-                permissions_content.classList.add('permissions');
-
-                properties_div1.append(basic_content, permissions_content);
-                // properties_content.append(properties_div1);
-                tab_content.append(properties_div1);
-
-                // Basic Tab
-                let card = add_div();
-                let content = add_div();
-
-                card.dataset.properties_href = file.href;
-
-                console.log(file)
-
-                let close_btn = add_div();
-                let close_icon = document.createElement('i');
-                close_icon.classList.add('bi', 'bi-x');
-                close_btn.classList.add('float', 'right', 'pointer');
-                close_btn.append(close_icon);
-                // card.append(close_btn);
-                close_btn.addEventListener('click', (e) => {
-                    card.remove()
-                    let cards = document.querySelectorAll('.properties')
-                    if (cards.length === 0) {
-                        clearViews()
-                        navigation.sidebarHome();
-                    }
-                })
-
-                content.classList.add('content');
-                card.classList.add('properties');
-
-                let icon = add_div();
-                icon.classList.add('icon');
-                card.append(icon);
-
-                content.append(add_item('Name:'), add_item(file.name));
-
-                let folder_count = add_div();
-                folder_count.classList.add('item', 'folder_count');
-
-                let size = add_div();
-                size.classList.add('size');
-                // size.append('Calculating..');
-
-                content.append(add_item('Type:'), add_item(file.content_type));
-                content.append(add_item(`Contents:`), folder_count);
-
-                let location = add_item(file.location);
-                location.title = file.location;
-
-                content.append(add_item('Location:'), location);
-
-                if (file.is_dir) {
-
-                    icon.append(add_img(folder_icon + `folder.svg`))
-                    content.append(add_item('Size:'), add_item(size));
-
-                    if (file.is_readable) {
-
-                        size.append('Calculating..');
-                        folder_count.append('Calculating..');
-                        ipcRenderer.send('get_folder_count', file.href);
-                        ipcRenderer.invoke('get_folder_size_properties', file.href).then(res => {
-                            size.innerHTML = getFileSize(res);
-                        })
-
-                    } else {
-
-                        size.append('Unknown')
-                        folder_count.append('Unknown')
-
-                    }
-
-
-                } else {
-
-                    folder_count.append('1');
-                    content.append(add_item('Size:'), add_item(getFileSize(file.size)));
-
-                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
-
-                        if (file.content_type.indexOf('image/') > -1) {
-                            icon.append(add_img(file.href));
-                        } else {
-                            icon.append(add_img(res));
+                    let close_btn = add_div();
+                    let close_icon = document.createElement('i');
+                    close_icon.classList.add('bi', 'bi-x');
+                    close_btn.classList.add('float', 'right', 'pointer');
+                    close_btn.append(close_icon);
+                    close_btn.addEventListener('click', (e) => {
+                        card.remove()
+                        let cards = document.querySelectorAll('.properties')
+                        if (cards.length === 0) {
+                            clearViews()
+                            navigation.sidebarHome();
                         }
                     })
 
-                }
+                    content.classList.add('content');
+                    card.classList.add('properties');
 
-                content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
-                content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
-                content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
+                    let icon = add_div();
+                    icon.classList.add('icon');
+                    card.append(icon);
 
-                card.append(content);
-                basic_content.append(card)
+                    content.append(add_item('Name:'), add_item(file.name));
 
-                // if (file.is_dir) {
+                    let folder_count = add_div();
+                    folder_count.classList.add('item', 'folder_count');
 
-                //     icon.append(add_img(folder_icon))
-                //     ipcRenderer.send('get_folder_count', file.href);
-                //     ipcRenderer.send('get_folder_size', file.href);
+                    let size = add_div();
+                    size.classList.add('size');
+                    // size.append('Calculating..');
 
-                // } else {
-                //     ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                    content.append(add_item('Type:'), add_item(file.content_type));
+                    content.append(add_item(`Contents:`), folder_count);
 
-                //         if (file.content_type.indexOf('image/') > -1) {
-                //             // .src = item.source;
-                //             icon.append(add_img(file.href));
-                //         } else {
-                //             icon.append(add_img(res));
-                //         }
-                //     })
-                // }
+                    let location = add_item(file.location);
+                    location.title = file.location;
 
+                    content.append(add_item('Location:'), location);
 
+                    if (file.is_dir) {
+                        let icon_img = add_img(folder_icon + `folder.svg`);
+                        icon_img.classList.add('icon48');
+                        icon.append(icon_img);
+                        content.append(add_item('Size:'), add_item(size));
 
-                // Permissions Tab
-                let permissions = getPermissions(file.permissions);
-                let rows = ['Owner', 'Access', 'Group', 'Access', 'Other', 'Access']
-                let perm_key;
+                        if (file.is_readable) {
 
-                if (!file.is_dir) {
-                    rows.push('Execute')
-                }
+                            // Calculate Folder Count
+                            size.append('Calculating..');
+                            ipcRenderer.send('get_folder_count', file.href);
 
-                for (let i = 0; i < rows.length; i++) {
+                            // Calculate Folder Size
+                            folder_count.append('Calculating..');
+                            console.log('getting folder size')
+                            ipcRenderer.send('get_folder_size', file.href);
 
-                    let row = add_div(['flex', 'row']);
-                    for (let ii = 0; ii < 2; ii++) {
-                        let col = add_div();
-                        if (ii == 0) {
-                            col.classList.add('td');
-                            col.append(rows[i]);
+                            // ipcRenderer.invoke('get_folder_size_properties', file.href).then(res => {
+                            //     // size.innerHTML = getFileSize(res);
+                            // })
+
                         } else {
-                            if (i % 2 === 0) {
-                                perm_key = rows[i].toLowerCase();
-                                if (file[perm_key]) {
-                                    col.append(file[perm_key]);
-                                }
-                            } else {
-                                col.append(getMappedPermissions(permissions[perm_key]));
-                            }
 
-                            if (rows[i] === 'Execute' && !file.is_dir) {
+                            size.append('Unknown')
+                            folder_count.append('Unknown')
 
-                                let chk_execute = document.createElement('input');
-                                let label_execute = document.createElement('label');
-
-                                label_execute.innerText = ' Allow executing file as program';
-                                label_execute.htmlFor = 'chk_execute';
-
-                                chk_execute.id = 'chk_execute';
-                                chk_execute.type = 'checkbox';
-                                col.append(chk_execute, label_execute);
-
-                                if (file.is_execute) {
-                                    chk_execute.checked = true;
-                                }
-
-                                chk_execute.addEventListener('click', (e) => {
-                                    if (chk_execute.checked) {
-                                        ipcRenderer.send('set_execute', file.href);
-                                    } else {
-                                        ipcRenderer.send('clear_execute', file.href);
-                                    }
-                                })
-
-                            }
                         }
 
-                        row.append(col);
+
+                    } else {
+
+                        folder_count.append('1');
+                        content.append(add_item('Size:'), add_item(getFileSize(file.size)));
+
+                        ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+
+                            let icon_img;
+                            if (file.content_type.indexOf('image/') > -1) {
+                                icon_img = add_img(file.href);
+                                icon_img.classList.add('icon48');
+                                icon.append(icon_img);
+                            } else {
+                                icon_img = add_img(res);
+                                icon_img.classList.add('icon48');
+                                icon.append(icon_img);
+                            }
+                        })
+
                     }
 
-                    if (i % 2 === 1) {
-                        row.append(document.createElement('br'));
-                    }
-                    permissions_content.append(row);
-                }
+                    content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
+                    content.append(add_item(`Accessed:`), add_item(getDateTime(file.atime)));
+                    content.append(add_item(`Created:`), add_item(getDateTime(file.ctime)));
 
-            })
+                    card.append(content);
+                    basic_content.append(card)
+
+                    // Permissions Tab
+                    let permissions = getPermissions(file.permissions);
+                    let rows = ['Owner', 'Access', 'Group', 'Access', 'Other', 'Access']
+                    let perm_key;
+
+                    if (!file.is_dir) {
+                        rows.push('Execute')
+                    }
+
+                    for (let i = 0; i < rows.length; i++) {
+
+                        let row = add_div(['flex', 'row']);
+                        for (let ii = 0; ii < 2; ii++) {
+                            let col = add_div();
+                            if (ii == 0) {
+                                col.classList.add('td');
+                                col.append(rows[i]);
+                            } else {
+                                if (i % 2 === 0) {
+                                    perm_key = rows[i].toLowerCase();
+                                    if (file[perm_key]) {
+                                        col.append(file[perm_key]);
+                                    }
+                                } else {
+                                    col.append(getMappedPermissions(permissions[perm_key]));
+                                }
+
+                                if (rows[i] === 'Execute' && !file.is_dir) {
+
+                                    let chk_execute = document.createElement('input');
+                                    let label_execute = document.createElement('label');
+
+                                    label_execute.innerText = ' Allow executing file as program';
+                                    label_execute.htmlFor = 'chk_execute';
+
+                                    chk_execute.id = 'chk_execute';
+                                    chk_execute.type = 'checkbox';
+                                    col.append(chk_execute, label_execute);
+
+                                    if (file.is_execute) {
+                                        chk_execute.checked = true;
+                                    }
+
+                                    chk_execute.addEventListener('click', (e) => {
+                                        if (chk_execute.checked) {
+                                            ipcRenderer.send('set_execute', file.href);
+                                        } else {
+                                            ipcRenderer.send('clear_execute', file.href);
+                                        }
+                                    })
+
+                                }
+                            }
+
+                            row.append(col);
+                        }
+
+                        if (i % 2 === 1) {
+                            row.append(document.createElement('br'));
+                        }
+                        permissions_content.append(row);
+                    }
+
+                })
+
+            } else {
+                properties_div.innerHTML = "Unable to get properties";
+                tab_content.classList.add('empty_msg');
+                tab_content.append(properties_div);
+            }
 
         }).catch(err => {
             console.log(err)
