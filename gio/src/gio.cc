@@ -872,14 +872,12 @@ namespace gio {
                                             "Failed to get child file");
 
             return Nan::ThrowError(enum_err->message);
-
         }
 
         if (error != NULL) {
             g_error_free(error);
             g_object_unref(src);
             return Nan::ThrowError(error->message);
-            return;
         }
 
         GFileInfo* file_info = NULL;
@@ -895,11 +893,7 @@ namespace gio {
             const char* mimetype = g_file_info_get_content_type(file_info);
             gboolean is_symlink = g_file_info_get_is_symlink(file_info);
             gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
-
             gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
-
-            // GIcon *icon = g_file_info_get_symbolic_icon(file_info);
-            // gchar *icon_name = g_icon_to_string(icon);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -910,24 +904,13 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
-            // Nan::Set(fileObj, Nan::New("icon_name").ToLocalChecked(), Nan::New(icon_name).ToLocalChecked());
-            // Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
-
-            // const char* thumbnail_path = g_file_info_get_attribute_byte_string(file_info,
-            //                                                                     G_FILE_ATTRIBUTE_THUMBNAIL_PATH);
-            // if (thumbnail_path == NULL) {
-            //     thumbnail_path = "";
-            // }
-            // Nan::Set(fileObj, Nan::New("thumbnail_path").ToLocalChecked(), Nan::New(thumbnail_path).ToLocalChecked());
 
             if (mimetype != nullptr) {
                 Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
             }
 
-            // if (!is_directory) {
-                gint64 size = g_file_info_get_size(file_info);
-                Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
-            // }
+            gint64 size = g_file_info_get_size(file_info);
+            Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
 
             // GTimeVal mtime_val;
             GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);

@@ -5281,17 +5281,19 @@ function getProperties(properties_arr) {
                         if (file.is_readable) {
 
                             // Calculate Folder Count
-                            size.append('Calculating..');
+                            let spinner = add_img('assets/icons/spinner.gif');
+                            spinner.style = 'width: 12px; height: 12px;'
+
+                            size.append(`Calculating `, spinner);
                             ipcRenderer.send('get_folder_count', file.href);
 
                             // Calculate Folder Size
-                            folder_count.append('Calculating..');
+                            spinner = add_img('assets/icons/spinner.gif');
+                            spinner.style = 'width: 12px; height: 12px;'
+
+                            folder_count.append(`Calculating `, spinner);
                             console.log('getting folder size')
                             ipcRenderer.send('get_folder_size', file.href);
-
-                            // ipcRenderer.invoke('get_folder_size_properties', file.href).then(res => {
-                            //     // size.innerHTML = getFileSize(res);
-                            // })
 
                         } else {
 

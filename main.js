@@ -406,12 +406,19 @@ find.on('message', (data) => {
 
 ls.on('message', (data) => {
 
-    if (data.cmd === 'ls_err') {
-        win.send('msg', data.err)
-    }
-
-    if (data.cmd === 'ls_done') {
-        win.send('ls', data.dirents, data.source, data.tab);
+    switch (data.cmd) {
+        case 'msg': {
+            win.send('msg', data.msg, data.has_timeout);
+            break;
+        }
+        case 'ls_done': {
+            win.send('ls', data.dirents, data.source, data.tab);
+            break;
+        }
+        case 'remove_history': {
+            remove_history(data.href);
+            break
+        }
     }
 
 })
@@ -1115,15 +1122,21 @@ ipcMain.on('add_history', (e, location) => {
 
 })
 
-// // Remove history
-// ipcMain.on('remove_history', (e, href) => {
-//     let history_file = path.join(app.getPath('userData'), 'history.json');
-//     let history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
-//     let history = history_data.filter(data => data.href !== href);
-//     fs.writeFileSync(history_file, JSON.stringify(history, null, 4));
-//     win.send('get_history');
-//     selected_files_arr = [];
-// })
+// Remove history
+function remove_history(href) {
+    let history_file = path.join(app.getPath('userData'), 'history.json');
+    let history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
+    let history = history_data.filter(item => item !== href);
+    fs.writeFileSync(history_file, JSON.stringify(history, null, 4));
+}
+
+// Remove history
+ipcMain.on('remove_history', (e, href) => {
+    let history_file = path.join(app.getPath('userData'), 'history.json');
+    let history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
+    let history = history_data.filter(data => data.href !== href);
+    fs.writeFileSync(history_file, JSON.stringify(history, null, 4));
+})
 
 // Get history
 ipcMain.handle('get_history', async (e) => {

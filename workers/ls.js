@@ -15,22 +15,34 @@ parentPort.on('message', data => {
                 try {
                     gio.ls(data.source, (err, dirents) => {
                         if (err) {
-                            parentPort.postMessage({cmd: 'ls_err', err: err});
+                            parentPort.postMessage({cmd: 'msg', err: err});
                             return;
                         }
                         parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
                     })
                 } catch (err) {
-                    parentPort.postMessage({cmd: 'ls_err', err: err.message});
+                    parentPort.postMessage({cmd: 'msg', err: err.message});
                 }
             } else {
-                parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
+
+                let msg = {
+                    cmd: 'msg',
+                    msg: 'Error: Directory does not exist'
+                }
+                parentPort.postMessage(msg);
+
+                let cmd = {
+                    cmd: 'remove_history',
+                    href: data.source
+                }
+                parentPort.postMessage(cmd);
+
             }
         } catch (err) {
 
             let msg = {
                 cmd: 'msg',
-                msg: err.message
+                msg: err
             }
             parentPort.postMessage(msg);
 
