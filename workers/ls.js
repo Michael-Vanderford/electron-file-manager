@@ -27,7 +27,13 @@ parentPort.on('message', data => {
                 parentPort.postMessage({cmd: 'msg', msg: 'Error: Getting Directory'});
             }
         } catch (err) {
-            console.log(err)
+
+            let msg = {
+                cmd: 'msg',
+                msg: err.message
+            }
+            parentPort.postMessage(msg);
+
         }
 
     }

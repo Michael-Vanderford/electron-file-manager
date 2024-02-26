@@ -1315,8 +1315,6 @@ parentPort.on('message', data => {
 
         })
 
-
-
     }
 
     // Properties
