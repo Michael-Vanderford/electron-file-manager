@@ -512,6 +512,13 @@ th {
     height: 100px;
 }
 
+.properties_view  {
+    padding: 10px;
+    /* border: 1px solid var(--border); */
+    /* border-radius: 5px; */
+    /* height: 100%; */
+}
+
 .properties-tab {
     padding-left: 10px;
     padding-right: 10px;

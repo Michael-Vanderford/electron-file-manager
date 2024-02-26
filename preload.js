@@ -5216,7 +5216,7 @@ function getProperties(properties_arr) {
                     let basic_content = add_div();
                     let permissions_content = add_div();
 
-                    properties_div1.classList.add('properties', 'grid2');
+                    properties_div1.classList.add('properties_view', 'grid2');
                     basic_content.classList.add('basic');
                     permissions_content.classList.add('permissions');
 
