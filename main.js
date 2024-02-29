@@ -67,10 +67,12 @@ class FileManager {
                         try {
                             // console.log(watcher.event, watcher.filename);
                             let file = gio.get_file(watcher.filename);
-                            win.send('get_card_gio', file);
-                            if (file.is_dir) {
-                                win.send('get_folder_count', watcher.filename);
-                                win.send('get_folder_size', watcher.filename);
+                            if (file) {
+                                win.send('get_card_gio', file);
+                                if (file.is_dir) {
+                                    win.send('get_folder_count', watcher.filename);
+                                    win.send('get_folder_size', watcher.filename);
+                                }
                             }
                         } catch (err) {
                             console.log(err)

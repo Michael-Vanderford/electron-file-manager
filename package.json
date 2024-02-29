@@ -37,15 +37,11 @@
     "email": "michael.vanderford@gmail.com",
     "devDependencies": {
         "electron": "^26.2.2",
-        "electron-builder": "^24.6.4",
-        "electron-installer-debian": "^3.2.0",
-        "electron-packager": "^17.1.2"
+        "electron-builder": "^24.6.4"
     },
     "dependencies": {
         "bootstrap-icons": "^1.10.5",
         "chart.js": "^3.9.1",
-        "mousetrap": "^1.6.5",
-        "node-addon-api": "^6.1.0",
-        "semantic-ui-icon": "^2.5.0"
+        "mousetrap": "^1.6.5"
     }
 }

@@ -81,7 +81,7 @@ ipcRenderer.on('connect', (e) => {
         inputs.push(mount_point);
         inputs.every(input => {
 
-            console.log('input', input)
+            // console.log('input', input)
 
             if (
                 mount_point_div.classList.contains('hidden') === false &&
@@ -152,10 +152,10 @@ ipcRenderer.on('connect', (e) => {
     popup.classList.add('autocomplete-popup'); // Add a CSS class for styling
 
     let val0 = mount_point.value;
-    console.log('val', val0)
+    // console.log('val', val0)
     mount_point.addEventListener('input', (e) => {
 
-        console.log(e.key)
+        // console.log(e.key)
 
         if (e.key !== 'Backspace') {
             let val = e.target.value;
@@ -164,7 +164,7 @@ ipcRenderer.on('connect', (e) => {
 
                 if (res.length > 0 && val0 !== val) {
 
-                    console.log('res', res)
+                    // console.log('res', res)
 
                     this.autocomplete_idx = 0;
                     popup.innerHTML = '';

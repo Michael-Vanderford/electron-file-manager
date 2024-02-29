@@ -1127,7 +1127,7 @@ parentPort.on('message', data => {
         let cmd = '';
         let file_list = [];
         selected_files_arr.forEach((item, idx) => {
-            file_list += "'" + path.basename(item) + "' ";
+            file_list += `'${path.basename(item)}' `;
         })
 
         // Create command for compressed file
@@ -1137,6 +1137,7 @@ parentPort.on('message', data => {
         if (type === 'zip') {
             destination = destination.substring(0, destination.length - path.extname(destination).length) + '.zip';
             cmd = `cd '${location}'; zip -r '${destination}' ${file_list}`;
+            // cmd = `cd '${location}' && tar -czf '${destination}' ${file_list}`;
         } else {
             destination = destination.substring(0, destination.length - path.extname(destination).length) + '.tar.gz';
             cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
@@ -1147,14 +1148,22 @@ parentPort.on('message', data => {
         const compressionRatio = 0.5;
         let setinterval_id = setInterval(() => {
             let file = gio.get_file(file_path);
-            let progress_opts = {
-                id: progress_id,
-                cmd: 'progress',
-                value: file.size,
-                max: Math.round(parseInt(size) * compressionRatio),
-                msg: `Compressing "${path.basename(file_path)}"`
+            if (file) {
+                let progress_opts = {
+                    id: progress_id,
+                    cmd: 'progress',
+                    value: file.size,
+                    max: Math.round(parseInt(size) * compressionRatio),
+                    msg: `Compressing "${path.basename(file_path)}"`
+                }
+                parentPort.postMessage(progress_opts);
+            } else {
+                // let msg = {
+                //     cmd: 'msg',
+                //     msg: `Error: File ${file_path} not found`
+                // }
+                // parentPort.postMessage(msg);
             }
-            parentPort.postMessage(progress_opts);
         }, 1000);
 
         exec(cmd, (err, stdout) => {
@@ -1190,47 +1199,53 @@ parentPort.on('message', data => {
         // let selected_files_arr = data.files_arr;
         let progress_id = data.id;
         let source = data.source; //selected_files_arr[i];
-        let ext = path.extname(source).toLowerCase();
+        let ext = '' //path.extname(source).toLowerCase();
 
         let cmd = '';
-        let us_cmd = '';
         let filename = '';
-        let makedir = 1;
+        let make_dir = 1;
 
         let c = 0;
-        switch (ext) {
-            case '.zip':
+
+        switch(true) {
+            case source.indexOf('.zip') > -1:
                 filename = source.replace('.zip', '')
                 c = 0
                 while (gio.exists(filename) && c < 5) {
                     filename = filename + ' Copy'
                     ++c;
                 }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
                 cmd = "unzip '" + source + "' -d '" + filename + "'"
                 break;
-            case '.tar':
-                filename = source.replace('.tar', '')
-                c = 0
-                while (gio.exists(filename) && c < 5) {
-                    filename = filename + ' Copy'
-                    ++c;
-                }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
-                break;
-            case '.gz':
+            case source.indexOf('.tar.gz') > -1:
                 filename = source.replace('.tar.gz', '')
                 c = 0
                 while (gio.exists(filename) && c < 5) {
                     filename = filename + ' Copy'
                     ++c;
                 }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
-                cmd = 'cd "' + location + '"; /usr/bin/tar -xzf "' + source + '" -C "' + filename + '"';
-
+                cmd = `cd "${location}"; /usr/bin/tar -xzf "${source}" -C "${filename}"`;
                 break;
-            case '.xz':
+            case source.indexOf('.tar') > -1:
+                filename = source.replace('.tar', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                cmd = 'cd "' + location + '"; /usr/bin/tar --strip-components=1 -xzf "' + source + '"'
+                break;
+            case source.indexOf('.gz') > -1:
+                filename = source.replace('.gz', '')
+                c = 0
+                while (gio.exists(filename) && c < 5) {
+                    filename = filename + ' Copy'
+                    ++c;
+                }
+                cmd = `cd "${location}"; /usr/bin/gunzip -d -k "${source}"` // | tar -x -C ${filename}"`;
+                make_dir = 0;
+                break;
+            case source.indexOf('.xz') > -1:
                 filename = source.replace('tar.xz', '')
                 filename = filename.replace('.img.xz', '')
                 c = 0
@@ -1238,30 +1253,26 @@ parentPort.on('message', data => {
                     filename = filename + ' Copy'
                     ++c;
                 }
-                us_cmd = "xz -l -v '" + source + "' | awk 'FNR==11{print $6}'"
-                // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/tar --strip-components=1 -xf "' + source + '" -C "' + filename + '"'
                 if (source.indexOf('img.xz') > -1) {
-                    makedir = 0;
+                    make_dir = 0;
                     cmd = 'cd "' + location + '"; /usr/bin/unxz -k "' + source + '"';
-                    // cmd = 'cd "' + breadcrumbs.value + '"; /usr/bin/xz -d -k "' + source + '"';
                 } else {
                     cmd = 'cd "' + location + '"; /usr/bin/tar -xf "' + source + '" -C "' + filename + '"';
                 }
                 break;
-            case '.bz2':
+            case source.indexOf('.bz2') > -1:
+                ext = '.bz2';
                 filename = source.replace('.bz2', '')
                 c = 0
                 while (gio.exists(filename) && c < 5) {
                     filename = filename + ' Copy'
                     ++c;
                 }
-                us_cmd = "gzip -Nl '" + source + "' | awk 'FNR==2{print $2}'"
                 cmd = 'cd "' + location + '"; /usr/bin/bzip2 -dk "' + source + '"'
                 break;
-
         }
 
-        if (makedir) {
+        if (make_dir) {
             gio.mkdir(filename)
             // fs.mkdirSync(filename);
         }
@@ -1289,14 +1300,18 @@ parentPort.on('message', data => {
 
         }, 1000);
 
-
-
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
         exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
         // execSync(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER })
 
             if (err) {
-                console.log('error ' + err)
+
+                let msg = {
+                    cmd: 'msg',
+                    msg: err.message
+                }
+                parentPort.postMessage(msg);
+                gio.rm(filename);
                 clearInterval(setinterval_id);
                 return;
             }

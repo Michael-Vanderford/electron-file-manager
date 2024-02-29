@@ -177,14 +177,12 @@ class SettingsManager {
     getSettings(callback) {
         ipcRenderer.invoke('settings').then(settings => {
             this.settings = settings;
-            // console.log('settings', settings)
             return callback(settings);
         })
     }
 
     showHeaderMenu () {
         const header_menu = document.querySelector('.header_menu');
-        // console.log(header_menu)
         this.getSettings(settings => {
             if (settings['Header Menu'].show) {
                 header_menu.classList.remove('hidden')
@@ -239,21 +237,21 @@ class SettingsManager {
         ipcRenderer.invoke('path:join', 'views/settings.html').then(path => {
 
             fetch(path)
-                .then(res => {
-                    return res.text();
-                })
-                .then(settings_html => {
+            .then(res => {
+                return res.text();
+            })
+            .then(settings_html => {
 
-                    tab_content.innerHTML = settings_html;
-                    ipcRenderer.invoke('settings')
-                        .then(res => res)
-                        .then(settings => this.settingsForm(settings))
-                        .catch(error => console.error('Error:', error))
+                tab_content.innerHTML = settings_html;
+                ipcRenderer.invoke('settings')
+                    .then(res => res)
+                    .then(settings => this.settingsForm(settings))
+                    .catch(error => console.error('Error:', error))
 
-                })
-                .catch(err => {
-                    console.log(err)
-                })
+            })
+            .catch(err => {
+                console.log(err)
+            })
 
         })
 
@@ -271,12 +269,15 @@ class SettingsManager {
             if (typeof value === 'string') {
 
                 let input = document.createElement('input');
+                input.classList.add('input');
+
                 let settings_item = add_div(['settings_item']);
                 let label = document.createElement('label');
+
                 label.innerText = key;
+
                 switch (key.toLocaleLowerCase()) {
                     case 'theme': {
-                        // console.log('running theme')
                         input = document.createElement('select');
                         let options = ['Light', 'Dark']
                         options.forEach((option, i) => {
@@ -295,28 +296,26 @@ class SettingsManager {
                             ipcRenderer.send('update_settings', [key], input.value)
                         })
 
-                        // settings_item.append(label, input)
+                        settings_item.append(label, input)
                         break;
                     }
                     case 'terminal': {
                         input.addEventListener('change', (e) => {
                             ipcRenderer.send('update_settings', [key], input.value)
                         })
-                        // settings_item.append(label, input);
+                        settings_item.append(label, input);
                         break;
                     }
                     case 'disk utility': {
                         input.addEventListener('change', (e) => {
                             ipcRenderer.send('update_settings', [key], input.value)
                         })
-                        // settings_item.append(label, input);
+                        settings_item.append(label, input);
+
                         break;
                     }
                 }
 
-                input.classList.add('input');
-
-                settings_item.append(label, input);
                 input.value = settings[key];
                 form.append(settings_item);
 
@@ -341,6 +340,9 @@ class SettingsManager {
 
                     let sub_value = settings[`${key}`][`${sub_key}`];
                     let type = typeof sub_value;
+
+                    let label = document.createElement('label');
+                    label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
 
                     // Create input field for non-nested properties
                     switch (type) {
@@ -376,24 +378,30 @@ class SettingsManager {
                             if (sub_key === 'Name') {
                                 input.disabled = true;
                             }
-
+                            settings_item.append(label, input);
+                            form.append(settings_item);
                             break;
                         }
                         case 'string': {
                             input = document.createElement('input');
                             input.type = 'text';
                             input.value = sub_value
-
-                            if (key === 'keyboard_shortcuts') {
+                            if (key.toLocaleLowerCase() === 'keyboard_shortcuts') {
+                                console.log(sub_key, sub_value)
                                 input.disabled = true;
                             }
-
+                            settings_item.append(label, input);
+                            form.append(settings_item);
                             break;
                         }
                         case 'number': {
                             input = document.createElement('input');
                             input.type = 'number';
                             input.value = sub_value;
+
+                            settings_item.append(label, input);
+                            form.append(settings_item);
+
                             break;
                         }
                         default: {
@@ -405,120 +413,18 @@ class SettingsManager {
 
                     }
 
-                    let label = document.createElement('label');
-                    label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
-                    settings_item.append(label, input);
-                    form.append(settings_item);
+                    // let label = document.createElement('label');
+                    // label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
+                    // settings_item.append(label, input);
+                    // form.append(settings_item);
 
                 }
 
                 viewManager.resize();
 
-            // } else {
-
-            //     // console.log(typeof value)
-            //     let settings_item = add_div(['settings_item']);
-
-            //     // Create input field for non-nested properties
-            //     const label = document.createElement('label');
-            //     label.textContent = `${key.charAt(0).toUpperCase() + key.slice(1)}:`;
-            //     let input;
-            //     if (typeof value === 'boolean') {
-            //         // For boolean values, create a checkbox
-            //         input = document.createElement('input');
-            //         input.type = 'checkbox';
-            //         input.name = key;
-            //         input.checked = value;
-            //         settings_item.append(label, input);
-
-            //         if ()
-            //         input.addEventListener('click', (e) => {
-            //             // console.log(key)
-            //         })
-
-            //         console.log(value)
-            //         console.log('chk', idx, key)
-
-            //     } else {
-            //         // For other types (string, number), create a text input
-            //         if (key === 'Description') {
-            //             input = add_div();
-            //             input.innerHTML = value
-            //         } else {
-            //             input = document.createElement('input');
-            //             input.type = 'text';
-            //             input.name = key;
-            //             input.id = key;
-            //             input.value = value;
-
-            //             switch (key.toLocaleLowerCase()) {
-            //                 case 'theme': {
-            //                     // console.log('running theme')
-            //                     input = document.createElement('select');
-            //                     let options = ['Light', 'Dark']
-            //                     options.forEach((option, i) => {
-            //                         let option_select = document.createElement('option');
-            //                         option_select.text = option
-            //                         option_select.value = option
-            //                         input.append(option_select);
-
-            //                         if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
-            //                             option_select.selected = true
-            //                         }
-            //                     })
-
-            //                     // console.log('selecting ', value)
-
-
-            //                     input.addEventListener('change', (e) => {
-            //                         ipcRenderer.send('change_theme', input.value);
-            //                         ipcRenderer.send('update_settings', key, input.value)
-            //                     })
-
-            //                     settings_item.append(label, input)
-            //                     break;
-            //                 }
-            //                 case 'terminal': {
-            //                     input.addEventListener('change', (e) => {
-            //                         ipcRenderer.send('update_settings', key, input.value)
-            //                     })
-            //                     settings_item.append(label, input);
-            //                     break;
-            //                 }
-            //                 case 'disk utility': {
-            //                     input.addEventListener('change', (e) => {
-            //                         ipcRenderer.send('update_settings', key, input.value)
-            //                     })
-            //                     settings_item.append(label, input);
-            //                     break;
-            //                 }
-            //                 default: {
-            //                     settings_item.append(label, input);
-            //                     input.disabled = true;
-            //                     break;
-            //                 }
-
-            //             }
-            //         }
-            //     }
-
-            //     // settings_item.append(label, input);
-            //     form.appendChild(settings_item);
-
             }
 
         });
-
-
-
-        // for (let setting in settings.keyboard_shortcuts) {
-        //     let input = document.getElementById(`${setting}`)
-        //     input.addEventListener('change', (e) => {
-        //         // Need some Input validation
-        //         ipcRenderer.send('update_settings', setting, input.value)
-        //     })
-
-        // };
 
     }
 
@@ -527,7 +433,6 @@ class SettingsManager {
 class Utilities {
 
     constructor() {
-        console.log('running utilities')
         this.location = document.querySelector('.location');
         this.timeout_id = 0;
         this.msg_timeout_id = 0;
@@ -701,7 +606,6 @@ class Utilities {
                 if (e.ctrlKey) {
                     fileOperation.paste(file.href);
                 } else {
-                    console.log('moving to', file.href);
                     fileOperation.move(file.href);
                 }
             } else {
@@ -714,8 +618,6 @@ class Utilities {
         ctime.append(getDateTime(file.ctime));
         atime.append(getDateTime(file.atime));
         type.append(file.content_type);
-
-        // console.log(file.content_type)
 
         icon.append(img);
         header.append(href, input);
@@ -944,10 +846,7 @@ class Utilities {
      */
     dragSelect () {
 
-        console.log('running drag select');
-
         const selectionRectangle = document.getElementById('selection-rectangle');
-        console.log(selectionRectangle);
         let isSelecting = false;
         let startPosX = 0;
         let startPosY = 0;
@@ -1088,7 +987,7 @@ class Utilities {
      * Clear Folder Size
      */
     clearFolderSize(href) {
-        console.log('clearing folder size')
+        // console.log('clearing folder size')
         localStorage.removeItem(href);
     }
 
@@ -1100,7 +999,7 @@ class Utilities {
     isDate(dateString) {
         // Attempt to create a new date object from the provided string
         const date = new Date(Date.parse(dateString));
-        console.log(dateString,date)
+        // console.log(dateString,date)
         // Check if the date is valid and not equal to the default "Invalid Date"
         return date instanceof Date && !isNaN(date);
     }
@@ -1253,7 +1152,7 @@ class Utilities {
                 folder_icon_path = folder_icon + `folder${ext}`;
             }
 
-            console.log('folder_icon', folder_icon_path)
+            // console.log('folder_icon', folder_icon_path)
             return folder_icon_path
 
         });
@@ -1269,7 +1168,7 @@ class IconManager {
     }
 
     getIconSize() {
-        console.log('getting icon size')
+        // console.log('getting icon size')
         let icon_size = "";
         if (view === 'grid') {
             if (localStorage.getItem('icon_size') === null) {
@@ -1295,7 +1194,7 @@ class IconManager {
     }
 
     resizeIcons(icon_size) {
-        console.log('resizing icons to', icon_size)
+        // console.log('resizing icons to', icon_size)
         let cards = document.querySelectorAll('.card');
         cards.forEach(card => {
             // if (!card.classList.contains('list')) {
@@ -1310,7 +1209,6 @@ class IconManager {
             localStorage.setItem('list_icon_size', icon_size);
         }
         this.slider.value = icon_size;
-        console.log(view)
     }
 
 }
@@ -1683,7 +1581,7 @@ class Navigation {
                 popup.style.top = triggerTop - popupHeight + 'px';
             } else {
                 // Handle cases where neither direction has enough space
-                console.warn('Not enough space to display popup!');
+                // console.warn('Not enough space to display popup!');
             }
             popup.style.left = triggerRect.left + 10 + 'px';
 
@@ -1691,7 +1589,7 @@ class Navigation {
             const nav_menu = document.querySelector('.nav_menu');
             nav_menu.appendChild(popup);
 
-            console.log(this.historyArr)
+            // console.log(this.historyArr)
 
         })
 
@@ -1707,7 +1605,7 @@ class Navigation {
         popup.classList.add('autocomplete-popup'); // Add a CSS class for styling
 
         let val0 = this.location.value;
-        console.log('val', val0)
+        // console.log('val', val0)
         this.location.addEventListener('input', (e) => {
 
             if (e.key !== 'Backspace') {
@@ -1847,7 +1745,7 @@ class Navigation {
 
     // Navigate left
     left() {
-        console.log('running left')
+        // console.log('running left')
         if (this.history_idx > 0) {
             this.history_idx--;
             viewManager.getView(this.historyArr[this.history_idx]);
@@ -1856,7 +1754,7 @@ class Navigation {
 
     // Navigate right
     right() {
-        console.log('right')
+        // console.log('right')
         if (this.history_idx < this.historyArr.length - 1) {
             this.history_idx++;
             viewManager.getView(this.historyArr[this.history_idx]);
@@ -1868,7 +1766,7 @@ class TabManager {
 
     constructor() {
 
-        console.log('running tab manager');
+        // console.log('running tab manager');
 
         this.main = document.querySelector('.main')
         this.id = 0;
@@ -2045,7 +1943,7 @@ class ViewManager {
 
     constructor() {
 
-        console.log('running view manager')
+        // console.log('running view manager')
 
         window.addEventListener('resize', this.resize);
 
@@ -2104,7 +2002,7 @@ class ViewManager {
 
     resize() {
 
-        console.log('running resize')
+        // console.log('running resize')
         let container = document.querySelector('.container');
         let header_container = document.querySelector('.header_container');
         let main = document.querySelector('.main');
@@ -2121,7 +2019,7 @@ class ViewManager {
     getView(dir, tab = 0) {
 
         show_loader();
-        console.log('running get view');
+        // console.log('running get view');
         ipcRenderer.send('get_files', dir, tab);
         clearHighlight();
 
@@ -2152,7 +2050,7 @@ class ViewManager {
      * Grid View
      */
     gridView() {
-        console.log('running grid view')
+        // console.log('running grid view')
         let tabs_content = document.querySelectorAll('.tab-content');
         tabs_content.forEach((tab_content, idx) => {
 
@@ -2208,10 +2106,10 @@ class ViewManager {
      */
     listView() {
 
-        console.log('running list view')
+        // console.log('running list view')
 
         let tabs_content = document.querySelectorAll('.tab-content');
-        console.log(tabs_content)
+        // console.log(tabs_content)
         tabs_content.forEach(tab_content => {
 
             let header_row = tab_content.querySelector('.header_row');
@@ -2222,7 +2120,7 @@ class ViewManager {
             let grids = ['.folder_grid', '.file_grid', '.hidden_folder_grid', '.hidden_file_grid'];
             grids.forEach(grid => {
 
-                console.log(grid)
+                // console.log(grid)
 
                 let grid_views = document.querySelectorAll(grid);
                 grid_views.forEach(grid_view => {
@@ -2315,7 +2213,7 @@ class ViewManager {
                                     let count = card.querySelector('.count');
                                     count.classList.add('hidden');
                                 }
-                                console.log(key);
+                                // console.log(key);
                             }
                         }
 
@@ -2336,7 +2234,7 @@ class ViewManager {
 
     // Lazy load images
     lazyload() {
-        console.log('running lazyload');
+        // console.log('running lazyload');
         // Lazy load images
         let lazyImages = [].slice.call(document.querySelectorAll(".lazy"))
         // CHECK IF WINDOW
@@ -2453,7 +2351,7 @@ class ViewManager {
 
                     if (key === th.innerText && settings.Captions[key] === false) {
                         // th.classList.add('hidden');
-                        console.log(key, idx);
+                        // console.log(key, idx);
                         return;
                     }
                 }
@@ -2461,7 +2359,7 @@ class ViewManager {
                 for (let i = 0; i < rows.length; i++) {
 
                     let td = rows[i].querySelector(`td:nth-child(${idx})`);
-                    console.log(idx, td)
+                    // console.log(idx, td)
                     if (td != null) {
                         td.classList.add('hidden')
                     }
@@ -2871,7 +2769,7 @@ class FileOperation {
 
             viewManager.resize();
 
-            console.log('time', (new Date().getTime() - st));
+            // console.log('time', (new Date().getTime() - st));
             hide_loader();
 
         })
@@ -2879,7 +2777,7 @@ class FileOperation {
         // Edit Mode
         ipcRenderer.on('edit', (e, source) => {
 
-            console.log('running new edit', source)
+            // console.log('running new edit', source)
 
             let active_tab_content = document.querySelector('.active-tab-content');
             let card = active_tab_content.querySelector(`[data-href="${source}"]`);
@@ -2892,13 +2790,12 @@ class FileOperation {
                 header_link.classList.add('hidden');
                 input.classList.remove('hidden');
 
-                input.select();
                 ipcRenderer.invoke('path:extname', href).then(extname => {
                     input.setSelectionRange(0, input.value.length - extname.length)
                 })
-                input.focus();
 
-                // main.removeEventListener('keydown', quickSearch);
+                input.select();
+                input.focus();
 
                 input.addEventListener('change', (e) => {
                     e.preventDefault();
@@ -3030,7 +2927,7 @@ class FileOperation {
 
     // New Folder
     newFolder() {
-        console.log('running new folder');
+        // console.log('running new folder');
         let location = document.querySelector('.location')
         ipcRenderer.send('new_folder', location.value);
     }
@@ -3055,7 +2952,7 @@ class FileOperation {
         getSelectedFiles();
         let size = 0;
         size = utilities.getSelectedSize();
-        console.log(size)
+        // console.log(size)
         ipcRenderer.send('compress', location.value, type, size);
         clear();
     }
@@ -3208,7 +3105,7 @@ class WorkspaceManager {
     editWorkspace () {
 
         let workspace = document.querySelector('.workspace');
-        console.log(workspace)
+        // console.log(workspace)
         if (workspace) {
 
             let workspace_item = workspace.querySelector('.workspace_item');
@@ -3804,7 +3701,7 @@ ipcRenderer.on('get_view', (e, href) => {
     let settingsManager = new SettingsManager()
     settingsManager.getSettings(updated_settings => {
         settings = updated_settings;
-        console.log(settings)
+        // console.log(settings)
         viewManager.getView(href);
     })
 })
@@ -5192,13 +5089,13 @@ function getPermissions(unixMode) {
 // Get Properties View
 function getProperties(properties_arr) {
 
-    console.log('properties_arr', properties_arr);
+    // console.log('properties_arr', properties_arr);
 
     // if (!tab_exists) {
     tabManager.addTab('Properties');
     // }
     let tab_content = document.querySelector('.active-tab-content');
-    console.log(tab_content)
+    // console.log(tab_content)
 
     let properties_div = add_div();
 
@@ -5270,7 +5167,7 @@ function getProperties(properties_arr) {
                     if (file.is_dir) {
 
                         utilities.getFolderIcon(file).then(folder_icon => {
-                            console.log('folder_icon', folder_icon)
+                            // console.log('folder_icon', folder_icon)
                             let icon_img = add_img(folder_icon);
                             icon_img.classList.add('icon48');
                             icon.append(icon_img);
@@ -5292,7 +5189,7 @@ function getProperties(properties_arr) {
                             spinner.style = 'width: 12px; height: 12px;'
 
                             folder_count.append(`Calculating `, spinner);
-                            console.log('getting folder size')
+                            // console.log('getting folder size')
                             ipcRenderer.send('get_folder_size', file.href);
 
                         } else {
@@ -6438,6 +6335,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
 
         // Settings
         settings.forEach(btn_settings => {
+            // console.log(settings)
             btn_settings.addEventListener('click', (e) => {
                 const settingsManager = new SettingsManager();
                 settingsManager.settingsView();
