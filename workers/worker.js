@@ -1166,6 +1166,13 @@ parentPort.on('message', data => {
             }
         }, 1000);
 
+        let msg = {
+            cmd: 'msg',
+            msg: `Compressing "${path.basename(file_path)}"`,
+            has_timeout: 0
+        }
+        parentPort.postMessage(msg);
+
         exec(cmd, (err, stdout) => {
             if (err) {
                 let msg = {

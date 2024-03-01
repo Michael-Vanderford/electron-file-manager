@@ -1379,6 +1379,12 @@ ipcMain.on('compress', (e, location, type, size) => {
                 msg: ''
             }
             win.send('set_progress', close_progress);
+
+            let msg = {
+                msg: `Done Compressing Files`
+            }
+            win.send('msg', msg.msg, 1);
+
         }
     })
 
@@ -2637,7 +2643,7 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
 })
 
 // Delete Confirmed
-ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
+ipcMain.on('delete_confirmed', (e, selected_files_arr1) => {
 
     // Send array to worker
     let worker = new Worker(path.join(__dirname, 'workers/worker.js'));
@@ -2676,6 +2682,8 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
     }
     worker.postMessage(delete_confirmed);
 
+    selected_files_arr = [];
+
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
 
@@ -2683,6 +2691,7 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr) => {
 
 // Delete Canceled
 ipcMain.on('delete_canceled', (e) => {
+    selected_files_arr = [];
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
 })
@@ -2925,11 +2934,20 @@ function sort_menu() {
 
 }
 
+function enablePaste(menu) {
+    if (selected_files_arr.length > 0) {
+        menu.getMenuItemById('paste').enabled = true;
+    } else {
+        menu.getMenuItemById('paste').enabled = false;
+    }
+    console.log('selected_files_arr', selected_files_arr)
+}
+
 // Main Menu
 let main_menu = null;
 ipcMain.on('main_menu', (e, destination) => {
 
-    // console.log('dest', destination)
+    console.log('dest', destination)
 
     is_main = 1;
 
@@ -2963,7 +2981,7 @@ ipcMain.on('main_menu', (e, destination) => {
                             type: 'separator'
                         }
                     }
-                }],
+            }],
         },
         {
             type: 'separator'
@@ -3003,6 +3021,7 @@ ipcMain.on('main_menu', (e, destination) => {
             type: 'separator'
         },
         {
+            id: 'paste',
             label: 'Paste',
             icon: path.join(__dirname, 'assets/icons/menu/paste.png'),
             accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.Paste : settings.keyboard_shortcuts.Paste,
@@ -3055,6 +3074,8 @@ ipcMain.on('main_menu', (e, destination) => {
 
     // Create menu
     main_menu = Menu.buildFromTemplate(template)
+
+    enablePaste(main_menu);
 
     let sort_menu_item = main_menu.getMenuItemById('sort_menu');
     let sort_submenu_items = sort_menu_item.submenu.items
