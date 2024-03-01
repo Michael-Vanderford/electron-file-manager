@@ -1322,6 +1322,7 @@ class Navigation {
                         sb_view.classList.remove('hidden');
                         this.initSidebar();
                         mb_item.classList.add('active')
+                        localStorage.setItem('sidebar', 1);
                         break;
                     }
                     case 'mb_workspace': {
@@ -1998,6 +1999,27 @@ class ViewManager {
 
         })
 
+        this.showSidebar();
+
+    }
+
+    showSidebar() {
+
+        let sidebar = document.querySelector('.sidebar');
+        let show_sidebar = localStorage.getItem('sidebar');
+        console.log(show_sidebar)
+        if (show_sidebar === null || show_sidebar === undefined) {
+            show_sidebar = localStorage.getItem('sidebar');
+            sidebar.classList.remove('hidden');
+        } else {
+            if (show_sidebar === '1') {
+                sidebar.classList.remove('hidden');
+                console.log('remove hidden');
+            } else {
+                sidebar.classList.add('hidden');
+            }
+        }
+
     }
 
     resize() {
@@ -2011,7 +2033,7 @@ class ViewManager {
 
         main.style.height = container.clientHeight - header_container.clientHeight + 'px';
         sidebar.style.height = container.clientHeight - header_container.clientHeight + 'px';
-        sb_view.style.height = container.clientHeight - header_container.clientHeight - 50 + 'px';
+        // sb_view.style.height = container.clientHeight - header_container.clientHeight - 50 + 'px';
 
     }
 
@@ -3145,7 +3167,7 @@ class WorkspaceManager {
 
 // Get reference to File Operations
 let fileOperation = new FileOperation();
-let viewManager = new ViewManager();
+let viewManager = null; //new ViewManager();
 let settings = null;
 let settingsManager = null;
 let iconManager = null;
@@ -3155,6 +3177,7 @@ let utilities = new Utilities();
 let workspaceManager = null;
 
 window.addEventListener('DOMContentLoaded', (e) => {
+    viewManager = new ViewManager();
     settingsManager = new SettingsManager();
     iconManager = new IconManager();
     tabManager = new TabManager();
@@ -6246,18 +6269,18 @@ window.addEventListener('DOMContentLoaded', (e) => {
         // }
 
         // Handle Sidebar
-        if (localStorage.getItem('sidebar') !== null) {
-            show_sidebar = localStorage.getItem('sidebar');
-        } else {
-            show_sidebar = 1;
-            localStorage.setItem('sidebar', show_sidebar);
-        }
+        // if (localStorage.getItem('sidebar') !== null) {
+        //     show_sidebar = localStorage.getItem('sidebar');
+        // } else {
+        //     show_sidebar = 1;
+        //     localStorage.setItem('sidebar', show_sidebar);
+        // }
 
-        if (parseInt(show_sidebar)) {
-            sidebar.classList.remove('hidden');
-        } else {
-            sidebar.classList.add('hidden');
-        }
+        // if (parseInt(show_sidebar)) {
+        //     sidebar.classList.remove('hidden');
+        // } else {
+        //     sidebar.classList.add('hidden');
+        // }
 
         ///////////////////////////////////////////////////////////////
 
