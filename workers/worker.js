@@ -605,7 +605,7 @@ parentPort.on('message', data => {
 
             let size = parseFloat(res.toString().replace(/[^0-9.]/g, ''));
             size = size * 1024;
-            console.log('size', size);
+            // console.log('size', size);
 
             let worker_data = {
                 cmd: 'folder_size_done',
@@ -866,7 +866,7 @@ parentPort.on('message', data => {
                     }
 
                     if (cpc === dirents.length) {
-                        console.log('done deleting files');
+                        // console.log('done deleting files');
                         data = {
                             id: data.id,
                             cmd: 'delete_done',
@@ -911,7 +911,7 @@ parentPort.on('message', data => {
     // Past Files
     if (data.cmd === 'paste') {
 
-        console.log('running paste')
+        // console.log('running paste')
 
         let idx = 0;
         let copy_arr = data.copy_arr
@@ -1051,7 +1051,7 @@ parentPort.on('message', data => {
 
                             if (cpc === dirents.length) {
 
-                                console.log('done copying files');
+                                // console.log('done copying files');
                                 let data = {
                                     cmd: 'copy_done',
                                     destination: destination
@@ -1200,7 +1200,7 @@ parentPort.on('message', data => {
     // Extract
     if (data.cmd === 'extract') {
 
-        console.log('running extract')
+        // console.log('running extract')
 
         let location = data.location;
         // let selected_files_arr = data.files_arr;

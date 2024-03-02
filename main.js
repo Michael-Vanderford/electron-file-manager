@@ -473,7 +473,7 @@ worker.on('message', (data) => {
             break;
         }
         case 'rename_done': {
-            console.log('rename_done');
+            // console.log('rename_done');
             if (watcher_failed) {
                 win.send('remove_card', data.source);
                 let file = gio.get_file(data.destination);
@@ -727,7 +727,7 @@ worker.on('message', (data) => {
 function get_properties (href) {
     if (href !== '/' && path.basename(href) !== 'Recent') {
         let selected_files_arr = [];
-        console.log('get_properties', href);
+        // console.log('get_properties', href);
         selected_files_arr.push(href);
         let cmd = {
             cmd: 'properties',
@@ -2649,7 +2649,7 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr1) => {
     let worker = new Worker(path.join(__dirname, 'workers/worker.js'));
     worker.on('message', (data) => {
 
-        console.log('del_conf cmd', data.cmd);
+        // console.log('del_conf cmd', data.cmd);
 
         switch (data.cmd) {
 
@@ -2940,7 +2940,7 @@ function enablePaste(menu) {
     } else {
         menu.getMenuItemById('paste').enabled = false;
     }
-    console.log('selected_files_arr', selected_files_arr)
+    // console.log('selected_files_arr', selected_files_arr)
 }
 
 // Main Menu

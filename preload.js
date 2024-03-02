@@ -2793,6 +2793,7 @@ class FileOperation {
 
             // console.log('time', (new Date().getTime() - st));
             hide_loader();
+            viewManager.clearHighlight();
 
         })
 
