@@ -18,7 +18,15 @@ parentPort.on('message', data => {
                             parentPort.postMessage({cmd: 'msg', err: err});
                             return;
                         }
-                        parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
+                        let file = gio.get_file(data.source);
+                        let cmd = {
+                            cmd: 'ls_done',
+                            dirents: dirents,
+                            source: data.source,
+                            display_name: file.display_name, // for tab name
+                            tab: data.tab
+                        }
+                        parentPort.postMessage(cmd);
                     })
                 } catch (err) {
 

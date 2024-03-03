@@ -24,9 +24,6 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 
-
-
-
 using namespace std;
 
 namespace gio {
@@ -223,6 +220,7 @@ namespace gio {
         GError *error = NULL;
         GList *mounts, *iter;
         GList *volumes;
+        int c = 0;
 
         // Initialize GLib
         g_type_init();
@@ -233,8 +231,8 @@ namespace gio {
         mounts = g_volume_monitor_get_mounts(monitor);
         volumes = g_volume_monitor_get_volumes(monitor);
 
-
-        int c = 0;
+        // Create a hashtable to store mount information
+        GHashTable* mountHash = g_hash_table_new(g_str_hash, g_str_equal);
 
         // Iterate over the volumes
         for (iter = volumes; iter != NULL; iter = iter->next) {
@@ -247,7 +245,7 @@ namespace gio {
             if (mount != NULL) {
                 GFile *mount_path = g_mount_get_root(mount);
                 if (mount_path != NULL) {
-                    path = g_file_get_uri(mount_path);
+                    path = g_file_get_path(mount_path);
                     g_object_unref(mount_path);
                 }
                 g_object_unref(mount);
@@ -273,6 +271,9 @@ namespace gio {
             Nan::Set(resultArray, c, deviceObj);
             ++c;
 
+            // Store volume name in hashtable
+            g_hash_table_insert(mountHash, (gpointer)name, (gpointer)volume);
+
         }
 
         // Iterate over mounts
@@ -287,10 +288,11 @@ namespace gio {
 
             if (mount != NULL) {
 
-                GVolume* volume = g_mount_get_volume(mount);
+                // GVolume* volume = g_mount_get_volume(mount);
+                name = g_mount_get_name(mount);
+                GVolume* volume = (GVolume*)g_hash_table_lookup(mountHash, name);
                 GFile *mount_path = g_mount_get_root(mount);
 
-                name = g_mount_get_name(mount);
                 if (mount_path != NULL) {
                     path = g_file_get_uri(mount_path);
                 }
@@ -306,8 +308,6 @@ namespace gio {
                     if (activation_root != NULL) {
                         root = g_file_get_uri(activation_root);
                     }
-
-
 
                 }
 
@@ -711,10 +711,16 @@ namespace gio {
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Isolate* isolate = info.GetIsolate();
 
+        Nan::Callback callback(info[1].As<v8::Function>());
+
         // Get the current context from the execution context
         v8::Local<v8::Context> context = isolate->GetCurrentContext();
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
         v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+        if (!g_file_test(*sourceFile, G_FILE_TEST_IS_REGULAR) && !g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+            return Nan::ThrowError("Error: File does not exist.");
+        }
 
         GFile* src = g_file_new_for_path(*sourceFile);
 
@@ -731,7 +737,7 @@ namespace gio {
                                                 &error);
 
         if (!file_info) {
-            return;
+            return Nan::ThrowError("Error: Could not get file info.");
         }
 
         if (error != NULL) {
@@ -742,29 +748,30 @@ namespace gio {
         const char* filename = g_file_info_get_name(file_info);
         if (filename != nullptr) {
 
+            const char* display_name = g_file_info_get_display_name(file_info);
             const char* href = g_file_get_path(src);
             gboolean is_hidden = g_file_info_get_is_hidden(file_info);
             gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
             const char* mimetype = g_file_info_get_content_type(file_info);
             GFile* parent = g_file_get_parent(src);
-            const char* location = g_file_get_path(parent);
             gboolean is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
-
-            // gboolean is_readable = true;
-            // if (access(location, R_OK) != 0) {
-            //     is_readable = false;
-            // }
             gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+            Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
 
+            if (parent != nullptr) {
+                const char* location = g_file_get_uri(parent);
+                if (location != nullptr) {
+                    Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
+                }
+            }
 
             const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
             if (!owner) {
@@ -830,6 +837,11 @@ namespace gio {
 
         }
 
+        // g_object_unref(src);
+
+        // v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+        // callback.Call(2, argv);
+
     }
 
     NAN_METHOD(ls) {
@@ -893,6 +905,7 @@ namespace gio {
         while ((file_info = g_file_enumerator_next_file(enumerator, NULL, &error)) != NULL) {
 
             const char* filename = g_file_info_get_name(file_info);
+            const char* display_name = g_file_info_get_display_name(file_info);
             GFile* file = g_file_get_child(src, filename);
             const char* href = g_file_get_path(file);
             GFile* parent = g_file_get_parent(file);
@@ -906,6 +919,7 @@ namespace gio {
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+            Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
             Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));

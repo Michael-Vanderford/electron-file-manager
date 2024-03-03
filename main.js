@@ -414,7 +414,8 @@ ls.on('message', (data) => {
             break;
         }
         case 'ls_done': {
-            win.send('ls', data.dirents, data.source, data.tab);
+            // win.send('ls', data.dirents, data.source, data.tab);
+            win.send('ls', data);
             get_disk_space(data.source);
             break;
         }

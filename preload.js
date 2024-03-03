@@ -478,8 +478,8 @@ class Utilities {
 
         // Populate values
         href.href = file.href;
-        href.innerHTML = file.name;
-        input.value = file.name;
+        href.innerHTML = file.display_name;
+        input.value = file.display_name;
         card.dataset.name = file.name;
 
 
@@ -496,6 +496,20 @@ class Utilities {
         card.dataset.mtime = file.mtime;
         card.dataset.size = file.size;
 
+        // Check file values
+        if (file.size) {
+            card.dataset.size = file.size;
+        }
+        if (file.mtime) {
+            mtime.append(getDateTime(file.mtime));
+        }
+        if (file.ctime) {
+            ctime.append(getDateTime(file.ctime));
+        }
+        if (file.atime) {
+            atime.append(getDateTime(file.atime));
+        }
+
         card.querySelectorAll('.item').forEach(item => {
             item.draggable = false;
         })
@@ -509,7 +523,7 @@ class Utilities {
 
             card.classList.add('highlight');
             title =
-                'Name: ' + file.name +
+                'Name: ' + file.display_name +
                 '\n' +
                 'Location: ' + file.location +
                 '\n' +
@@ -616,10 +630,10 @@ class Utilities {
 
         })
 
-        mtime.append(getDateTime(file.mtime));
-        ctime.append(getDateTime(file.ctime));
-        atime.append(getDateTime(file.atime));
-        type.append(file.content_type);
+        // mtime.append(getDateTime(file.mtime));
+        // ctime.append(getDateTime(file.ctime));
+        // atime.append(getDateTime(file.atime));
+        // type.append(file.content_type);
 
         icon.append(img);
         header.append(href, input);
@@ -2434,9 +2448,17 @@ class FileOperation {
         this.cut_flag = 0;
 
         // On ls - Get Directory
-        ipcRenderer.on('ls', (e, dirents, source, tab) => {
+        // ipcRenderer.on('ls', (e, dirents, source, tab) => {
+        ipcRenderer.on('ls', (e, data) => {
 
             let st = new Date().getTime();
+
+            let dirents = data.dirents;
+            let source = data.source;
+            let tab = data.tab;
+            let display_name = data.display_name;
+
+            console.log(data)
 
             show_loader();
 
@@ -2477,7 +2499,7 @@ class FileOperation {
             sidebar_items.forEach(item => {
                 let sidebar_item = item.querySelector('a');
                 if (sidebar_item) {
-                    if (item.title === source) {
+                    if (item.title === display_name) {
                         item.classList.add('highlight_select')
                     } else {
                         item.classList.remove('highlight_select', 'active')
@@ -2487,11 +2509,11 @@ class FileOperation {
 
             // Add new tab if tab = 1
             if (tab) {
-                tabManager.addTab(source);
+                tabManager.addTab(display_name);
             }
 
             if (tabs.length === 0) {
-                tabManager.addTab(source);
+                tabManager.addTab(display_name);
             }
 
             let active_tab = document.querySelector('.active-tab');
@@ -2512,9 +2534,12 @@ class FileOperation {
                 active_tab_content.append(empty_msg);
             }
 
-            ipcRenderer.invoke('basename', source).then(basename => {
-                active_label.innerHTML = basename;
-            })
+            active_label.innerHTML = display_name;
+
+            // // Set active label name
+            // ipcRenderer.invoke('basename', display_name).then(basename => {
+            //     active_label.innerHTML = basename;
+            // })
 
             let location = document.querySelector('.location');
             let slider = document.querySelector('.slider');
@@ -5169,7 +5194,7 @@ function getProperties(properties_arr) {
                     icon.classList.add('icon');
                     card.append(icon);
 
-                    content.append(add_item('Name:'), add_item(file.name));
+                    content.append(add_item('Name:'), add_item(file.display_name));
 
                     let folder_count = add_div();
                     folder_count.classList.add('item', 'folder_count');
@@ -5203,14 +5228,14 @@ function getProperties(properties_arr) {
                             let spinner = add_img('assets/icons/spinner.gif');
                             spinner.style = 'width: 12px; height: 12px;'
 
-                            size.append(`Calculating `, spinner);
+                            size.append(spinner, ` Calculating...`);
                             ipcRenderer.send('get_folder_count', file.href);
 
                             // Calculate Folder Size
                             spinner = add_img('assets/icons/spinner.gif');
                             spinner.style = 'width: 12px; height: 12px;'
 
-                            folder_count.append(`Calculating `, spinner);
+                            folder_count.append(spinner, ` Calculating...`);
                             // console.log('getting folder size')
                             ipcRenderer.send('get_folder_size', file.href);
 
