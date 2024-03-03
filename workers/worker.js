@@ -782,7 +782,7 @@ parentPort.on('message', data => {
                     if (err) {
                         console.log(err);
                         parentPort.postMessage({cmd: 'msg', msg: err});
-                        return;
+                        // return;
                     }
 
                     let cpc = 0;
