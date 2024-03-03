@@ -780,9 +780,18 @@ parentPort.on('message', data => {
                 get_files_arr(del_item, del_item, (err, dirents) => {
 
                     if (err) {
-                        console.log(err);
+
                         parentPort.postMessage({cmd: 'msg', msg: err});
-                        // return;
+
+                        let progress = {
+                            id: data.id,
+                            cmd: 'progress',
+                            msg: ``,
+                            max: 0,
+                            value: 0
+                        }
+                        parentPort.postMessage(progress);
+                        return;
                     }
 
                     let cpc = 0;
