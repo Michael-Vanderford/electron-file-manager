@@ -10,62 +10,42 @@ const gio = require('../gio/build/Release/obj.target/gio')
 parentPort.on('message', data => {
     // List Files
     if (data.cmd === 'ls') {
+
         try {
-            // if (gio.exists(data.source)) {
-                try {
-                    gio.ls(data.source, (err, dirents) => {
-                        if (err) {
-                            parentPort.postMessage({cmd: 'msg', err: err});
-                            return;
-                        }
-                        let file = gio.get_file(data.source);
-                        let cmd = {
-                            cmd: 'ls_done',
-                            dirents: dirents,
-                            source: data.source,
-                            display_name: file.display_name, // for tab name
-                            tab: data.tab
-                        }
-                        parentPort.postMessage(cmd);
-                    })
-                } catch (err) {
-
-                    let msg = {
-                        cmd: 'msg',
-                        msg: err.message
-                    }
-                    parentPort.postMessage(msg);
-
-                    let cmd = {
-                        cmd: 'remove_history',
-                        href: data.source
-                    }
-                    parentPort.postMessage(cmd);
-
-                    // parentPort.postMessage({cmd: 'msg', err: err.message});
+            gio.ls(data.source, (err, dirents) => {
+                if (err) {
+                    parentPort.postMessage({cmd: 'msg', err: err});
+                    return;
                 }
-            // } else {
-
-            //     let msg = {
-            //         cmd: 'msg',
-            //         msg: 'Error: Directory does not exist'
-            //     }
-            //     parentPort.postMessage(msg);
-
-            //     let cmd = {
-            //         cmd: 'remove_history',
-            //         href: data.source
-            //     }
-            //     parentPort.postMessage(cmd);
-
-            // }
+                let file = gio.get_file(data.source);
+                let cmd = {
+                    cmd: 'ls_done',
+                    dirents: dirents,
+                    source: data.source,
+                    display_name: file.display_name, // for tab name
+                    tab: data.tab
+                }
+                parentPort.postMessage(cmd);
+            })
         } catch (err) {
 
             let msg = {
                 cmd: 'msg',
-                msg: err
+                msg: err.message
             }
             parentPort.postMessage(msg);
+
+            let cmd = {
+                cmd: 'remove_history',
+                href: data.source
+            }
+            parentPort.postMessage(cmd);
+
+            cmd = {
+                cmd: 'clear'
+            }
+            parentPort.postMessage(cmd);
+            return;
 
         }
 

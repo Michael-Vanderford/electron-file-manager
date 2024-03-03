@@ -718,9 +718,9 @@ namespace gio {
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
         v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
 
-        if (!g_file_test(*sourceFile, G_FILE_TEST_IS_REGULAR) && !g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
-            return Nan::ThrowError("Error: File does not exist.");
-        }
+        // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_REGULAR) && !g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+        //     return Nan::ThrowError("Error: File does not exist.");
+        // }
 
         GFile* src = g_file_new_for_path(*sourceFile);
 
@@ -767,7 +767,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
 
             if (parent != nullptr) {
-                const char* location = g_file_get_uri(parent);
+                const char* location = g_file_get_path(parent);
                 if (location != nullptr) {
                     Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
                 }
@@ -862,9 +862,9 @@ namespace gio {
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
         v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
 
-        if (!g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
-            return Nan::ThrowError("Error: Directory does not exist.");
-        }
+        // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+        //     return Nan::ThrowError("Error: Directory does not exist.");
+        // }
 
         GFile* src = g_file_new_for_path(*sourceFile);
 
@@ -884,10 +884,9 @@ namespace gio {
         if (enumerator == NULL) {
             // Error handling
             if (error != NULL) {
-                g_print("Error occurred: %s\n", error->message);
-                g_error_free(error); // Free the GError object
+                return Nan::ThrowError(error->message);
             } else {
-                g_print("Unknown error occurred\n");
+                return Nan::ThrowError("Unknown error occurred");
             }
 
             // Clean up resources

@@ -75,6 +75,7 @@ class FileManager {
                                 }
                             }
                         } catch (err) {
+                            win.send('msg', 'watcher error: ' + err.message);
                             console.log(err)
                         }
                     }
@@ -566,6 +567,11 @@ worker.on('message', (data) => {
             win.send('properties', data.properties_arr);
             break;
         }
+        case 'clear': {
+            win.send('clear');
+            break;
+        }
+
 
     }
 

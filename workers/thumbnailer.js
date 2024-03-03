@@ -75,7 +75,7 @@ function get_images(source, start, offset, callback) {
             }
         })
     } catch (err) {
-        console.log('ls worker', err.message)
+        // console.log('ls worker', err.message)
     }
 }
 
@@ -100,7 +100,7 @@ parentPort.on('message', data => {
                         sort = data.sort;
                         try {
                             gio.thumbnail(image.href, thumbnail);
-                        } catch (err) { 
+                        } catch (err) {
                         }
                         parentPort.postMessage({cmd: 'thumbnail_chunk_done', href: image.href, thumbnail: thumbnail})
                     }

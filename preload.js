@@ -2814,7 +2814,7 @@ class FileOperation {
 
             // console.log('time', (new Date().getTime() - st));
             hide_loader();
-            clearHighlight();
+            clear();
 
         })
 
@@ -4849,7 +4849,19 @@ function clearHighlight() {
 
     let cards = document.querySelectorAll('.highlight, .highlight_select, .highlight_target')
     cards.forEach(item => {
+
         item.classList.remove('highlight', 'highlight_select', 'highlight_target')
+
+        let href = item.querySelector('a');
+        let input = item.querySelector('input');
+
+        if (href) {
+            href.classList.remove('hidden');
+        }
+        if (input) {
+            input.classList.add('hidden');
+        }
+
     })
     utilities.msg('');
 }
