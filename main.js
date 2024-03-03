@@ -100,7 +100,7 @@ class FileManager {
         // Call ls worker to get file data
         ls.postMessage({ cmd: 'ls', source: source, tab: tab });
 
-        get_disk_space(source);
+        // get_disk_space(source);
 
         this.source0 = source;
 
@@ -415,6 +415,7 @@ ls.on('message', (data) => {
         }
         case 'ls_done': {
             win.send('ls', data.dirents, data.source, data.tab);
+            get_disk_space(data.source);
             break;
         }
         case 'remove_history': {
@@ -997,6 +998,11 @@ function get_files_arr(source, destination, callback) {
     cp_recursive++
     file_arr.push({ type: 'directory', source: source, destination: destination })
     gio.ls(source, (err, dirents) => {
+
+        if (err) {
+            console.log('get_files_arr err', err);
+        }
+
         for (let i = 0; i < dirents.length; i++) {
             let file = dirents[i]
             if (file.is_dir) {

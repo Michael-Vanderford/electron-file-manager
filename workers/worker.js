@@ -564,32 +564,6 @@ parentPort.on('message', data => {
     // Get Folder Size for properties view
     if (data.cmd === 'get_folder_size') {
 
-        // try {
-        //     du_cmd = `cd "${data.source}"; du -s`;
-        //     exec(du_cmd, (err, stdout, stderr) => {
-        //         if (err) {
-        //             console.log(err.message);
-        //             let msg = {
-        //                 cmd: 'msg',
-        //                 msg: err.message
-        //             }
-        //             parentPort.postMessage(msg);
-        //         }
-        //         let size = parseFloat(stdout.replace(/[^0-9.]/g, ''));
-        //         size = (size * 1024);
-        //         let worker_data = {
-        //             cmd: 'folder_size_done',
-        //             source: data.source,
-        //             folder_size: size
-        //         }
-        //         parentPort.postMessage(worker_data);
-        //     })
-
-        // } catch (error) {
-        //     console.error('folder_size', error);
-        //     return 0;
-        // }
-
         let cmd = `du -s "${data.source}"`;
         gio.exec(cmd, (err, res) => {
 

@@ -11,7 +11,7 @@ parentPort.on('message', data => {
     // List Files
     if (data.cmd === 'ls') {
         try {
-            if (gio.exists(data.source)) {
+            // if (gio.exists(data.source)) {
                 try {
                     gio.ls(data.source, (err, dirents) => {
                         if (err) {
@@ -21,23 +21,36 @@ parentPort.on('message', data => {
                         parentPort.postMessage({cmd: 'ls_done', dirents: dirents, source: data.source, tab: data.tab});
                     })
                 } catch (err) {
-                    parentPort.postMessage({cmd: 'msg', err: err.message});
-                }
-            } else {
 
-                let msg = {
-                    cmd: 'msg',
-                    msg: 'Error: Directory does not exist'
-                }
-                parentPort.postMessage(msg);
+                    let msg = {
+                        cmd: 'msg',
+                        msg: err.message
+                    }
+                    parentPort.postMessage(msg);
 
-                let cmd = {
-                    cmd: 'remove_history',
-                    href: data.source
-                }
-                parentPort.postMessage(cmd);
+                    let cmd = {
+                        cmd: 'remove_history',
+                        href: data.source
+                    }
+                    parentPort.postMessage(cmd);
 
-            }
+                    // parentPort.postMessage({cmd: 'msg', err: err.message});
+                }
+            // } else {
+
+            //     let msg = {
+            //         cmd: 'msg',
+            //         msg: 'Error: Directory does not exist'
+            //     }
+            //     parentPort.postMessage(msg);
+
+            //     let cmd = {
+            //         cmd: 'remove_history',
+            //         href: data.source
+            //     }
+            //     parentPort.postMessage(cmd);
+
+            // }
         } catch (err) {
 
             let msg = {

@@ -405,6 +405,17 @@
     "want_separate_host_toolset": 1,
     "nodedir": "/home/michael/.cache/node-gyp/26.2.2",
     "standalone_static_library": 1,
-    "target": "26.2.2"
+    "target": "26.2.2",
+    "userconfig": "/home/michael/.npmrc",
+    "cache": "/home/michael/.npm",
+    "local_prefix": "/home/michael/source/repos/string-file-manager",
+    "globalconfig": "/etc/npmrc",
+    "init_module": "/home/michael/.npm-init.js",
+    "globalignorefile": "/etc/npmignore",
+    "prefix": "/usr/local",
+    "user_agent": "npm/9.2.0 node/v18.19.0 linux x64 workspaces/false",
+    "metrics_registry": "https://registry.npmjs.org/",
+    "node_gyp": "/usr/share/nodejs/node-gyp/bin/node-gyp.js",
+    "global_prefix": "/usr/local"
   }
 }

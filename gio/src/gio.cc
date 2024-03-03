@@ -850,6 +850,10 @@ namespace gio {
         v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
         v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
 
+        if (!g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+            return Nan::ThrowError("Error: Directory does not exist.");
+        }
+
         GFile* src = g_file_new_for_path(*sourceFile);
 
         const char *src_scheme = g_uri_parse_scheme(*sourceFile);
@@ -866,12 +870,17 @@ namespace gio {
                                                                 &error);
 
         if (enumerator == NULL) {
-            GError *enum_err;
-            enum_err = g_error_new_literal(G_FILE_ERROR,
-                                            G_FILE_ERROR_FAILED,
-                                            "Failed to get child file");
+            // Error handling
+            if (error != NULL) {
+                g_print("Error occurred: %s\n", error->message);
+                g_error_free(error); // Free the GError object
+            } else {
+                g_print("Unknown error occurred\n");
+            }
 
-            return Nan::ThrowError(enum_err->message);
+            // Clean up resources
+            g_object_unref(src);
+            return; // Return an error code
         }
 
         if (error != NULL) {
@@ -950,7 +959,7 @@ namespace gio {
         }
 
         g_object_unref(enumerator);
-        // g_object_unref(src);
+        g_object_unref(src);
 
         v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
         callback.Call(2, argv);

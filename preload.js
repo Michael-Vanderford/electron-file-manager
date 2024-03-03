@@ -582,8 +582,10 @@ class Utilities {
 
                 if (e.ctrlKey) {
                     e.dataTransfer.dropEffect = "copy";
+                    this.msg('Copy to ' + file.href);
                 } else {
                     e.dataTransfer.dropEffect = "move";
+                    this.msg('Move to ' + file.href);
                 }
 
             }
@@ -1097,19 +1099,13 @@ class Utilities {
     getFolderSizes() {
         let tabs_content = document.querySelectorAll('.tab-content');
         tabs_content.forEach(tab_content => {
-            let folder_grid = tab_content.querySelector('.folder_grid', '.hidden_folder_grid');
-            let cards = folder_grid.querySelectorAll('.card');
-            cards.forEach(card => {
-                let href = card.dataset.href;
-                // this.clearFolderSize(href);
-                // if (localStorage.getItem(href) !== null) {
-                //     let size = localStorage.getItem(href);
-                //     let size_div = card.querySelector('.size');
-                //     size_div.innerHTML = getFileSize(size);
-                //     card.dataset.size = parseInt(size);
-                // } else {
+            let folder_grid = tab_content.querySelectorAll('.folder_grid, .hidden_folder_grid');
+            folder_grid.forEach(grid => {
+                let cards = grid.querySelectorAll('.card');
+                cards.forEach(card => {
+                    let href = card.dataset.href;
                     ipcRenderer.send('get_folder_size', href);
-                // }
+                })
             })
         })
 
@@ -2793,7 +2789,7 @@ class FileOperation {
 
             // console.log('time', (new Date().getTime() - st));
             hide_loader();
-            viewManager.clearHighlight();
+            clearHighlight();
 
         })
 
@@ -3026,9 +3022,11 @@ class DeviceManager {
                     href_div.classList.add('ellipsis');
                     href_div.style = 'width: 70%';
 
+                    let device_path = device.path.replace('file://', '');
+
                     let a = document.createElement('a');
                     a.preventDefault = true;
-                    a.href = device.path; //item.href;
+                    a.href = device_path; // device.path; //item.href;
                     a.innerHTML = device.name;
 
                     let umount_icon = add_icon('eject-fill');
@@ -3067,11 +3065,11 @@ class DeviceManager {
                             e.stopPropagation();
 
                             if (e.ctrlKey) {
-                                viewManager.getView(`${device.path}`, 1);
+                                viewManager.getView(`${device_path}`, 1);
                             } else {
-                                viewManager.getView(`${device.path}`);
+                                viewManager.getView(`${device_path}`);
                             }
-                            navigation.addHistory(device.path);
+                            navigation.addHistory(device_path);
 
                         })
 
@@ -3087,7 +3085,7 @@ class DeviceManager {
                     }
 
                     item.addEventListener('mouseover', (e) => {
-                        item.title = device.path;
+                        item.title = device_path;
                     })
 
                     item.addEventListener('contextmenu', (e) => {
@@ -3577,7 +3575,7 @@ ipcRenderer.on('recent_files', (e, dirents) => {
     getRecentView(dirents);
 })
 
-// Get Folder Size for properties
+// Get Folder Size
 ipcRenderer.on('folder_size', (e, source, folder_size) => {
     // console.log('setting folder size', folder_size)
     let tab_content = document.querySelector('.active-tab-content');
