@@ -753,6 +753,12 @@ parentPort.on('message', data => {
 
         function delete_next() {
 
+            let msg = {
+                cmd: 'msg',
+                msg: `Gathering files...<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`
+            }
+            parentPort.postMessage(msg);
+
             if (idx === del_arr.length) {
 
                 let close_progress = {
@@ -770,7 +776,6 @@ parentPort.on('message', data => {
             idx++
 
             let is_dir = gio.is_dir(del_item);
-
             if (is_dir) {
                 get_files_arr(del_item, del_item, (err, dirents) => {
 
@@ -781,6 +786,12 @@ parentPort.on('message', data => {
                     }
 
                     let cpc = 0;
+
+                    let msg = {
+                        cmd: 'msg',
+                        msg: '',
+                    }
+                    parentPort.postMessage(msg);
 
                     // Delete files
                     for (let i = 0; i < dirents.length; i++) {
@@ -891,6 +902,12 @@ parentPort.on('message', data => {
         let copy_arr = data.copy_arr
         function copy_next() {
 
+            let msg = {
+                cmd: 'msg',
+                msg: `Gathering files...<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`,
+            }
+            parentPort.postMessage(msg);
+
             // Check if copy_arr is done processing
             if (idx === copy_arr.length) {
 
@@ -903,7 +920,6 @@ parentPort.on('message', data => {
                 }
                 // console.log(data)
                 parentPort.postMessage(close_progress);
-
                 return;
             }
 
@@ -954,6 +970,12 @@ parentPort.on('message', data => {
                                 parentPort.postMessage({cmd: 'msg', msg: err});
                                 return;
                             }
+
+                            let msg = {
+                                cmd: 'msg',
+                                msg: '',
+                            }
+                            parentPort.postMessage(msg);
 
                             for (let i = 0; i < dirents.length; i++) {
                                 if (dirents[i].type === 'file') {

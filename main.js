@@ -2190,23 +2190,21 @@ function createWindow() {
 
     });
 
-    win.on('close', (e) => {
-
-        if (is_active) {
-                const choice = dialog.showMessageBoxSync(mainWindow, {
-                type: 'warning',
-                buttons: ['Cancel', 'Close Anyway'],
-                title: 'Warning',
-                message: 'An operation is still active. Are you sure you want to close?',
-                defaultId: 1,
-                cancelId: 0
-            });
-
-            if (choice === 0) {
-            e.preventDefault(); // Prevent the window from closing
-            }
-        }
-    })
+    // win.on('close', (e) => {
+        // if (is_active) {
+        //         const choice = dialog.showMessageBoxSync(mainWindow, {
+        //         type: 'warning',
+        //         buttons: ['Cancel', 'Close Anyway'],
+        //         title: 'Warning',
+        //         message: 'An operation is still active. Are you sure you want to close?',
+        //         defaultId: 1,
+        //         cancelId: 0
+        //     });
+        //     if (choice === 0) {
+        //     e.preventDefault(); // Prevent the window from closing
+        //     }
+        // }
+    // })
 
     win.on('closed', () => {
         windows.delete(win);
