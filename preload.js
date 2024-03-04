@@ -2458,8 +2458,6 @@ class FileOperation {
             let tab = data.tab;
             let display_name = data.display_name;
 
-            console.log(data)
-
             show_loader();
 
             // if (source !== 'Recent') {
@@ -2598,9 +2596,7 @@ class FileOperation {
             hidden_folder_grid.draggable = false;
 
             location.value = source;
-            ipcRenderer.invoke('basename', location.value).then(basename => {
-                document.title = basename;
-            })
+            document.title = display_name;
 
             let header = active_tab_content.querySelector('.header_row')
             if (!header) {
@@ -3035,7 +3031,7 @@ class DeviceManager {
 
                 device_arr.forEach(device => {
 
-                    // console.log(device)
+                    console.log(device)
 
                     let item = add_div();
                     let icon_div = add_div();
@@ -3047,7 +3043,9 @@ class DeviceManager {
                     href_div.classList.add('ellipsis');
                     href_div.style = 'width: 70%';
 
-                    let device_path = device.path.replace('file://', '');
+                    let device_path = device.path //.replace('file://', '');
+
+
 
                     let a = document.createElement('a');
                     a.preventDefault = true;
@@ -3090,8 +3088,10 @@ class DeviceManager {
                             e.stopPropagation();
 
                             if (e.ctrlKey) {
+                                console.log(device_path)
                                 viewManager.getView(`${device_path}`, 1);
                             } else {
+                                console.log(device_path)
                                 viewManager.getView(`${device_path}`);
                             }
                             navigation.addHistory(device_path);

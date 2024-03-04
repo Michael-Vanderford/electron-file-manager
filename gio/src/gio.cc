@@ -294,7 +294,7 @@ namespace gio {
                 GFile *mount_path = g_mount_get_root(mount);
 
                 if (mount_path != NULL) {
-                    path = g_file_get_uri(mount_path);
+                    path = g_file_get_path(mount_path);
                 }
 
                 if (volume != NULL) {

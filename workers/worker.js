@@ -753,7 +753,7 @@ parentPort.on('message', data => {
 
             let msg = {
                 cmd: 'msg',
-                msg: `<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Gathering files...`
+                msg: `<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Getting files for delete operation...`
             }
             parentPort.postMessage(msg);
 
@@ -911,7 +911,7 @@ parentPort.on('message', data => {
 
             let msg = {
                 cmd: 'msg',
-                msg: `<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Gathering files...`,
+                msg: `<img src="assets/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Getting files for copy operation...`,
             }
             parentPort.postMessage(msg);
 
