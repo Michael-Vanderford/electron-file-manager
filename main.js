@@ -2958,7 +2958,7 @@ function enablePaste(menu) {
 let main_menu = null;
 ipcMain.on('main_menu', (e, destination) => {
 
-    console.log('dest', destination)
+    // console.log('dest', destination)
 
     is_main = 1;
 
