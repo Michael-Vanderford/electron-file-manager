@@ -287,17 +287,17 @@ function get_files_arr (source, destination, callback) {
 
         for (let i = 0; i < dirents.length; i++) {
 
-            // parentPort.postMessage({cmd: 'msg', msg: 'Calculating Files..', has_timeout: 0});
             let file = dirents[i]
-            // parentPort.postMessage({cmd: 'msg', msg: `Getting Folders and Files.`, has_timeout: 0});
-            if (file.is_dir) {
+            if (file.is_dir && !file.is_symlink) {
                 get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
             } else {
                 let file_obj = {
                     type: 'file',
                     source: file.href,
                     destination: path.format({dir: destination, base: file.name}),
-                    size: file.size
+                    size: file.size,
+                    is_symlink: file.is_symlink,
+                    file: file
                 }
                 file_arr.push(file_obj)
             }
@@ -808,12 +808,23 @@ parentPort.on('message', data => {
                             try {
                                 gio.rm(f.source)
                             } catch (err) {
+
+                                let progress = {
+                                    id: data.id,
+                                    cmd: 'progress',
+                                    msg: ``,
+                                    max: 0,
+                                    value: 0
+                                }
+                                parentPort.postMessage(progress);
+
                                 let msg = {
                                     cmd: 'msg',
                                     msg: err.message,
                                     has_timeout: 0
                                 }
                                 parentPort.postMessage(msg);
+
                                 return true;
                             }
 

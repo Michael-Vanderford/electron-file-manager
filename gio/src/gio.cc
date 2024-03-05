@@ -1414,6 +1414,10 @@ namespace gio {
 
         g_object_unref(src);
 
+        if (error) {
+            return Nan::ThrowError(error->message);
+        }
+
         if (res == FALSE) {
             return Nan::ThrowError(error->message);
         }
