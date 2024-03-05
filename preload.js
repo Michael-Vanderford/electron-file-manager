@@ -2120,6 +2120,9 @@ class ViewManager {
                         let ctime = card.querySelector('.ctime');
                         ctime.classList.add('hidden');
 
+                        let count = card.querySelector('.count');
+                        count.classList.add('hidden')
+
                     })
                 })
 
