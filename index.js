@@ -142,6 +142,11 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.right();
         })
 
+         // Left
+         mt.bind(shortcut.Left.toLocaleLowerCase(), (e) => {
+            e.preventDefault();
+            window.api.left();
+        })
 
     })
 

@@ -1843,34 +1843,66 @@ class Navigation {
     }
 
     right() {
-        // let cards = document.querySelectorAll('.card');
 
-        // // If nav_idx is null, set it to 0 to highlight the first card
-        // if (this.nav_idx === null) {
-        //     this.nav_idx = 0;
-        //     cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
-        //     let href = cards[this.nav_idx].querySelector('.header a');
-        //     href.focus(); // Focus on the link inside the first card
-        //     console.log(this.main_width, this.nav_idx);
-        //     return; // Exit the function to avoid further execution
-        // }
+        let cards = document.querySelectorAll('.card');
 
-        // // Calculate the index of the next card
-        // let next_nav_idx = (this.nav_idx + this.nav_inc) % cards.length;
+        // If nav_idx is null, set it to 0 to highlight the first card
+        if (this.nav_idx === null) {
+            this.nav_idx = 0;
+            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
+            let href = cards[this.nav_idx].querySelector('.header a');
+            href.focus(); // Focus on the link inside the first card
+            console.log(this.main_width, this.nav_idx);
+            return; // Exit the function to avoid further execution
+        }
 
-        // // Remove highlight from the current card
-        // cards[this.nav_idx].classList.remove('highlight_select');
+        // Calculate the index of the next card
+        let next_nav_idx = (this.nav_idx + 1) % cards.length;
 
-        // // Highlight the next card
-        // this.nav_idx = next_nav_idx;
-        // cards[this.nav_idx].classList.add('highlight_select');
+        // Remove highlight from the current card
+        cards[this.nav_idx].classList.remove('highlight_select');
 
-        // // Focus on the link inside the next card
-        // let href = cards[this.nav_idx].querySelector('.header a');
-        // href.focus();
+        // Highlight the next card
+        this.nav_idx = next_nav_idx;
+        cards[this.nav_idx].classList.add('highlight_select');
+
+        // Focus on the link inside the next card
+        let href = cards[this.nav_idx].querySelector('.header a');
+        href.focus();
 
         // console.log(this.main_width, this.nav_idx);
     }
+
+    left() {
+        let cards = document.querySelectorAll('.card');
+
+        // If nav_idx is null, set it to the last card
+        if (this.nav_idx === null) {
+            this.nav_idx = cards.length - 1;
+            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the last card
+            let href = cards[this.nav_idx].querySelector('.header a');
+            href.focus(); // Focus on the link inside the last card
+            console.log(this.main_width, this.nav_idx);
+            return; // Exit the function to avoid further execution
+        }
+
+        // Calculate the index of the previous card
+        let prev_nav_idx = (this.nav_idx - 1 + cards.length) % cards.length;
+
+        // Remove highlight from the current card
+        cards[this.nav_idx].classList.remove('highlight_select');
+
+        // Highlight the previous card
+        this.nav_idx = prev_nav_idx;
+        cards[this.nav_idx].classList.add('highlight_select');
+
+        // Focus on the link inside the previous card
+        let href = cards[this.nav_idx].querySelector('.header a');
+        href.focus();
+
+        console.log(this.main_width, this.nav_idx);
+    }
+
 
 }
 
@@ -3401,6 +3433,9 @@ contextBridge.exposeInMainWorld('api', {
     },
     right: () => {
         navigation.right();
+    },
+    left: () => {
+        navigation.left();
     }
 
 })
