@@ -124,6 +124,24 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.goBack();
         })
 
+        // Up
+        mt.bind(shortcut.Up.toLocaleLowerCase(), (e) => {
+            e.preventDefault();
+            window.api.up();
+        })
+
+        // Down
+        mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
+            e.preventDefault();
+            window.api.down();
+        })
+
+        // Right
+        mt.bind(shortcut.Right.toLocaleLowerCase(), (e) => {
+            e.preventDefault();
+            window.api.right();
+        })
+
 
     })
 

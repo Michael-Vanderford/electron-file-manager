@@ -538,7 +538,7 @@ class Utilities {
                 'Type: ' + file.content_type
 
             card.title = title;
-            href.focus();
+            // href.focus();
 
         })
 
@@ -1227,10 +1227,14 @@ class Navigation {
 
     constructor() {
 
+        this.location = document.querySelector('.location');
+
+        this.card_count_arr = [];
         this.historyArr = [];
         this.history_idx = -1;  // Start at -1 to indicate no current history entry
         this.autocomplete_idx = 0;
-        this.location = document.querySelector('.location');
+        this.nav_idx = null;
+        this.nav_inc = 0;
 
         ipcRenderer.invoke('get_history').then(history => {
             this.historyArr = history;
@@ -1600,6 +1604,10 @@ class Navigation {
             const nav_menu = document.querySelector('.nav_menu');
             nav_menu.appendChild(popup);
 
+            let clear_history = add_div(['item']);
+            clear_history.textContent = 'Clear History';
+            popup.append(clear_history);
+
             // console.log(this.historyArr)
 
         })
@@ -1771,6 +1779,99 @@ class Navigation {
             viewManager.getView(this.historyArr[this.history_idx]);
         }
     }
+
+    setIncrement() {
+        let main_width = document.body.offsetWidth;
+        if (main_width <= 768) {
+            this.nav_inc = 2
+        } else if (main_width <= 1024) {
+            this.nav_inc = 3
+        } else if (main_width > 1024) {
+            this.nav_inc = 4
+        }
+    }
+
+    getCardCount () {
+
+        let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
+        grids.forEach(grid => {
+            let grid_item = (document.querySelector(`.${grid}`));
+            if (grid_item) {
+                let card_count = grid_item.querySelectorAll('.card').length;
+                this.card_count_arr.push(card_count);
+            }
+        })
+
+    }
+
+    up() {
+        this.setIncrement();
+        let cards = document.querySelectorAll('.card');
+        if (this.nav_idx === null) {
+            this.nav_idx = cards.length - 1;
+            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the last card
+            let href = cards[this.nav_idx].querySelector('.header a');
+            href.focus();
+            return;
+        }
+
+        cards[this.nav_idx].classList.remove('highlight_select');
+        this.nav_idx = (this.nav_idx - this.nav_inc + cards.length) % cards.length; // Calculate the index of the previous card
+        cards[this.nav_idx].classList.add('highlight_select');
+        let href = cards[this.nav_idx].querySelector('.header a');
+        href.focus();
+    }
+
+    down() {
+
+        this.setIncrement();
+        let cards = document.querySelectorAll('.card');
+        if (this.nav_idx === null) {
+            this.nav_idx = 0;
+            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
+            let href = cards[this.nav_idx].querySelector('.header a');
+            href.focus();
+            return;
+        }
+
+        cards[this.nav_idx].classList.remove('highlight_select');
+        this.nav_idx = (this.nav_idx + this.nav_inc) % cards.length;
+        cards[this.nav_idx].classList.add('highlight_select');
+        let href = cards[this.nav_idx].querySelector('.header a');
+        href.focus();
+
+    }
+
+    right() {
+        // let cards = document.querySelectorAll('.card');
+
+        // // If nav_idx is null, set it to 0 to highlight the first card
+        // if (this.nav_idx === null) {
+        //     this.nav_idx = 0;
+        //     cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
+        //     let href = cards[this.nav_idx].querySelector('.header a');
+        //     href.focus(); // Focus on the link inside the first card
+        //     console.log(this.main_width, this.nav_idx);
+        //     return; // Exit the function to avoid further execution
+        // }
+
+        // // Calculate the index of the next card
+        // let next_nav_idx = (this.nav_idx + this.nav_inc) % cards.length;
+
+        // // Remove highlight from the current card
+        // cards[this.nav_idx].classList.remove('highlight_select');
+
+        // // Highlight the next card
+        // this.nav_idx = next_nav_idx;
+        // cards[this.nav_idx].classList.add('highlight_select');
+
+        // // Focus on the link inside the next card
+        // let href = cards[this.nav_idx].querySelector('.header a');
+        // href.focus();
+
+        // console.log(this.main_width, this.nav_idx);
+    }
+
 }
 
 class TabManager {
@@ -1802,6 +1903,8 @@ class TabManager {
         tab.dataset.id = this.id;
         tab.dataset.href = location.value;
         tab_content.dataset.id = this.id;
+
+        // tab_content.style.overflow = 'auto';
 
         tab.draggable = true;
 
@@ -2767,22 +2870,22 @@ class FileOperation {
                 document.removeEventListener('keyup', quickSearch)
             })
 
-            let nav_idx = 0;
-            main.addEventListener('keydown', (e) => {
+            // let nav_idx = 0;
+            // main.addEventListener('keydown', (e) => {
 
-                // console.log(e.key)
-                let cards = active_tab_content.querySelectorAll('.card');
-                if (e.key === 'ArrowDown') {
-                    nav_idx = (nav_idx + 4) % cards.length;
-                    for (let i = 0; i < cards.length; i++) {
-                        if (i === nav_idx) {
-                            cards[i].classList.add('highlight_select');
-                        } else {
-                            cards[i].classList.remove('highlight_select');
-                        }
-                    }
-                }
-            })
+            //     // console.log(e.key)
+            //     let cards = active_tab_content.querySelectorAll('.card');
+            //     if (e.key === 'ArrowDown') {
+            //         nav_idx = (nav_idx + 4) % cards.length;
+            //         for (let i = 0; i < cards.length; i++) {
+            //             if (i === nav_idx) {
+            //                 cards[i].classList.add('highlight_select');
+            //             } else {
+            //                 cards[i].classList.remove('highlight_select');
+            //             }
+            //         }
+            //     }
+            // })
 
             // if (view === 'grid') {
                 active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
@@ -2810,6 +2913,9 @@ class FileOperation {
             utilities.getFolderSizes();
 
             viewManager.resize();
+
+            // get number of cards in each div for keyboard navigation
+            navigation.getCardCount();
 
             // console.log('time', (new Date().getTime() - st));
             hide_loader();
@@ -3286,6 +3392,15 @@ contextBridge.exposeInMainWorld('api', {
     },
     goBack: () => {
         navigation.left();
+    },
+    up: () => {
+        navigation.up();
+    },
+    down: () => {
+        navigation.down();
+    },
+    right: () => {
+        navigation.right();
     }
 
 })
@@ -5281,6 +5396,16 @@ function getProperties(properties_arr) {
                             }
                         })
 
+                    }
+
+                    if (!file.mtime) {
+                        file.mtime = "";
+                    }
+                    if (!file.atime) {
+                        file.atime = "";
+                    }
+                    if (!file.ctime) {
+                        file.ctime = "";
                     }
 
                     content.append(add_item(`Modified:`), add_item(getDateTime(file.mtime)));
