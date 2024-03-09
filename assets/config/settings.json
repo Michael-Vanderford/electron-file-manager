@@ -13,7 +13,7 @@
         "Count": true
     },
     "File Menu": {
-        "show": true
+        "show": false
     },
     "Header Menu": {
         "show": false
