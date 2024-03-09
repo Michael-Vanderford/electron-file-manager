@@ -119,9 +119,14 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.AddWorkspace();
         })
 
+        // // Forward
+        // mt.bind(shortcut.Forward.toLocaleLowerCase(), (e) => {
+        //     window.api.forward();
+        // })
+
         // Go Back
         mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
-            window.api.goBack();
+            window.api.back();
         })
 
         // Up

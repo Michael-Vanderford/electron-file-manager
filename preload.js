@@ -1230,11 +1230,17 @@ class Navigation {
         this.location = document.querySelector('.location');
 
         this.card_count_arr = [];
+
+        this.cardGroups = [];
+        this.currentGroupIndex = 0;
+        this.currentCardIndex = 0;
+
         this.historyArr = [];
         this.history_idx = -1;  // Start at -1 to indicate no current history entry
         this.autocomplete_idx = 0;
         this.nav_idx = null;
         this.nav_inc = 0;
+        this.nav_group = 0;
 
         ipcRenderer.invoke('get_history').then(history => {
             this.historyArr = history;
@@ -1763,7 +1769,7 @@ class Navigation {
     }
 
     // Navigate left
-    left() {
+    back() {
         // console.log('running left')
         if (this.history_idx > 0) {
             this.history_idx--;
@@ -1772,7 +1778,7 @@ class Navigation {
     }
 
     // Navigate right
-    right() {
+    forward() {
         // console.log('right')
         if (this.history_idx < this.historyArr.length - 1) {
             this.history_idx++;
@@ -1781,126 +1787,223 @@ class Navigation {
     }
 
     setIncrement() {
-        let main_width = document.body.offsetWidth;
-        if (main_width <= 768) {
-            this.nav_inc = 2
-        } else if (main_width <= 1024) {
-            this.nav_inc = 3
-        } else if (main_width > 1024) {
-            this.nav_inc = 4
+
+        if (view === 'list') {
+            this.nav_inc = 1;
+        } else if (view === 'grid') {
+            let main_width = document.body.offsetWidth;
+            if (main_width <= 768) {
+                this.nav_inc = 2
+            } else if (main_width <= 1024) {
+                this.nav_inc = 3
+            } else if (main_width > 1024) {
+                this.nav_inc = 4
+            }
         }
     }
 
     getCardCount () {
 
+        // note: this gets called every time the directory changes
+        this.card_count_arr = [];
+        this.nav_idx = null;
+
+        let active_tab_content = document.querySelector('.active-tab-content');
         let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
         grids.forEach(grid => {
-            let grid_item = (document.querySelector(`.${grid}`));
+            let grid_item = (active_tab_content.querySelector(`.${grid}`));
             if (grid_item) {
                 let card_count = grid_item.querySelectorAll('.card').length;
-                this.card_count_arr.push(card_count);
+                if (card_count > 0) {
+                    this.card_count_arr.push(card_count);
+                }
             }
         })
+
+        console.log(this.card_count_arr);
+
+    }
+
+    getCardGroups () {
+
+        this.cardGroups = [];
+
+        let active_tab_content = document.querySelector('.active-tab-content');
+        let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
+        grids.forEach(grid => {
+            let grid_item = (active_tab_content.querySelector(`.${grid}`));
+            if (grid_item && !grid_item.classList.contains('hidden')) {
+                let cards = grid_item.querySelectorAll('.card');
+                if (cards.length > 0) {
+                    this.cardGroups.push(cards);
+                }
+            }
+        })
+
+        console.log(this.cardGroups);
 
     }
 
     up() {
-        this.setIncrement();
-        let cards = document.querySelectorAll('.card');
-        if (this.nav_idx === null) {
-            this.nav_idx = cards.length - 1;
-            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the last card
-            let href = cards[this.nav_idx].querySelector('.header a');
-            href.focus();
-            return;
-        }
-
-        cards[this.nav_idx].classList.remove('highlight_select');
-        this.nav_idx = (this.nav_idx - this.nav_inc + cards.length) % cards.length; // Calculate the index of the previous card
-        cards[this.nav_idx].classList.add('highlight_select');
-        let href = cards[this.nav_idx].querySelector('.header a');
-        href.focus();
-    }
-
-    down() {
 
         this.setIncrement();
-        let cards = document.querySelectorAll('.card');
+
         if (this.nav_idx === null) {
             this.nav_idx = 0;
-            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
-            let href = cards[this.nav_idx].querySelector('.header a');
-            href.focus();
+            this.nav_group = 0;
+
+            this.highlightSelectedCard();
             return;
         }
 
-        cards[this.nav_idx].classList.remove('highlight_select');
-        this.nav_idx = (this.nav_idx + this.nav_inc) % cards.length;
-        cards[this.nav_idx].classList.add('highlight_select');
-        let href = cards[this.nav_idx].querySelector('.header a');
-        href.focus();
+        this.removeHighlightFromCurrentCard();
+
+        if (this.nav_idx === 0 && this.nav_group === 0) {
+
+            // If already at the first card of the first group, wrap to the last card of the last group
+            this.nav_group = this.cardGroups.length - 1;
+            this.nav_idx = this.cardGroups[this.nav_group].length - 1;
+            this.highlightSelectedCard();
+
+        } else if (this.nav_idx === 0) {
+
+            // Move to the last card of the previous group
+            this.nav_group--;
+            this.nav_idx = this.cardGroups[this.nav_group].length - 1;
+            this.highlightSelectedCard();
+
+        } else {
+            // Move up within the current group
+            this.nav_idx = Math.max(0, this.nav_idx - this.nav_inc);
+            this.highlightSelectedCard();
+        }
+
+    }
+
+    down () {
+
+        this.setIncrement();
+
+        if (this.nav_idx === null) {
+            this.nav_idx = 0;
+            this.nav_group = 0;
+
+            this.highlightSelectedCard();
+            return;
+        }
+
+        this.removeHighlightFromCurrentCard();
+
+        if (this.nav_idx === this.cardGroups[this.nav_group].length - 1 && this.nav_group === this.cardGroups.length - 1) {
+
+            // If already at the last card of the last group, wrap to the first card of the first group
+            this.nav_group = 0;
+            this.nav_idx = 0;
+            this.highlightSelectedCard();
+
+        } else if (this.nav_idx + this.nav_inc > this.cardGroups[this.nav_group].length - 1) {
+
+            // Move to the first card of the next group
+            if (this.nav_group == this.cardGroups.length - 1) {
+                this.nav_group = 0;
+            } else {
+                this.nav_group++;
+            }
+
+            this.nav_idx = 0;
+            this.highlightSelectedCard();
+
+        } else {
+
+            // Move to the next card within the current group
+            this.nav_idx =  Math.min(this.cardGroups[this.nav_group].length - 1, this.nav_idx + this.nav_inc);
+            this.highlightSelectedCard();
+
+        }
 
     }
 
     right() {
 
-        let cards = document.querySelectorAll('.card');
-
-        // If nav_idx is null, set it to 0 to highlight the first card
         if (this.nav_idx === null) {
             this.nav_idx = 0;
-            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the first card
-            let href = cards[this.nav_idx].querySelector('.header a');
-            href.focus(); // Focus on the link inside the first card
-            console.log(this.main_width, this.nav_idx);
-            return; // Exit the function to avoid further execution
+            this.nav_group = 0;
+
+            this.highlightSelectedCard();
+            return;
         }
 
-        // Calculate the index of the next card
-        let next_nav_idx = (this.nav_idx + 1) % cards.length;
+        this.removeHighlightFromCurrentCard();
 
-        // Remove highlight from the current card
-        cards[this.nav_idx].classList.remove('highlight_select');
+        if (this.nav_idx === this.cardGroups[this.nav_group].length - 1 && this.nav_group === this.cardGroups.length - 1) {
+            // If already at the last card of the last group, wrap to the first card of the first group
+            this.nav_group = 0;
+            this.nav_idx = 0;
+            this.highlightSelectedCard();
+        } else if (this.nav_idx === this.cardGroups[this.nav_group].length - 1) {
 
-        // Highlight the next card
-        this.nav_idx = next_nav_idx;
-        cards[this.nav_idx].classList.add('highlight_select');
+            // Move to the first card of the next group
+            if (this.nav_group == this.cardGroups.length - 1) {
+                this.nav_group = 0;
+            } else {
+                this.nav_group++;
+            }
 
-        // Focus on the link inside the next card
-        let href = cards[this.nav_idx].querySelector('.header a');
-        href.focus();
+            this.nav_idx = 0;
+            this.highlightSelectedCard();
 
-        // console.log(this.main_width, this.nav_idx);
+        } else {
+            // Move to the next card within the current group
+            this.nav_idx++;
+            this.highlightSelectedCard();
+        }
+
     }
 
     left() {
-        let cards = document.querySelectorAll('.card');
 
-        // If nav_idx is null, set it to the last card
         if (this.nav_idx === null) {
-            this.nav_idx = cards.length - 1;
-            cards[this.nav_idx].classList.add('highlight_select'); // Highlight the last card
-            let href = cards[this.nav_idx].querySelector('.header a');
-            href.focus(); // Focus on the link inside the last card
-            console.log(this.main_width, this.nav_idx);
-            return; // Exit the function to avoid further execution
+            this.nav_idx = 0;
+            this.nav_group = 0;
+
+            this.highlightSelectedCard();
+            return;
         }
 
-        // Calculate the index of the previous card
-        let prev_nav_idx = (this.nav_idx - 1 + cards.length) % cards.length;
+        this.removeHighlightFromCurrentCard();
 
-        // Remove highlight from the current card
-        cards[this.nav_idx].classList.remove('highlight_select');
+        if (this.nav_idx === 0 && this.nav_group === 0) {
 
-        // Highlight the previous card
-        this.nav_idx = prev_nav_idx;
-        cards[this.nav_idx].classList.add('highlight_select');
+            // If already at the first card of the first group, wrap to the last card of the last group
+            this.nav_group = this.cardGroups.length - 1;
+            this.nav_idx = this.cardGroups[this.nav_group].length - 1;
+            this.highlightSelectedCard();
 
-        // Focus on the link inside the previous card
-        let href = cards[this.nav_idx].querySelector('.header a');
+        } else if (this.nav_idx === 0) {
+
+            // Move to the last card of the previous group
+            this.nav_group--;
+            this.nav_idx = this.cardGroups[this.nav_group].length - 1;
+            this.highlightSelectedCard();
+
+        } else {
+            // Move up within the current group
+            this.nav_idx--;
+            this.highlightSelectedCard();
+        }
+
+    }
+
+    highlightSelectedCard() {
+        let card = this.cardGroups[this.nav_group][this.nav_idx];
+        card.classList.add('highlight_select');
+        let href = card.querySelector('.header a');
         href.focus();
+    }
 
-        console.log(this.main_width, this.nav_idx);
+    removeHighlightFromCurrentCard() {
+        let card = this.cardGroups[this.nav_group][this.nav_idx];
+        card.classList.remove('highlight_select');
     }
 
 
@@ -1911,7 +2014,6 @@ class TabManager {
     constructor() {
 
         // console.log('running tab manager');
-
         this.main = document.querySelector('.main')
         this.id = 0;
         this.tabs = [];
@@ -1998,6 +2100,8 @@ class TabManager {
             tab.classList.add('active-tab');
             tab_content.classList.add('active-tab-content');
             tab_content.classList.remove('hidden');
+            navigation.getCardCount(); // get new card count for navigation
+            navigation.getCardGroups();
         })
 
         let tabs = document.querySelectorAll('.tab');
@@ -2057,6 +2161,9 @@ class TabManager {
             });
 
         })
+
+        navigation.getCardCount(); // get new card count for navigation
+        navigation.getCardGroups();
 
     }
 
@@ -2948,6 +3055,7 @@ class FileOperation {
 
             // get number of cards in each div for keyboard navigation
             navigation.getCardCount();
+            navigation.getCardGroups();
 
             // console.log('time', (new Date().getTime() - st));
             hide_loader();
@@ -3172,7 +3280,7 @@ class DeviceManager {
 
                 device_arr.forEach(device => {
 
-                    console.log(device)
+                    // console.log(device)
 
                     let item = add_div();
                     let icon_div = add_div();
@@ -3422,8 +3530,11 @@ contextBridge.exposeInMainWorld('api', {
         ipcRenderer.send('add_workspace', selected_files_arr);
         clear()
     },
-    goBack: () => {
-        navigation.left();
+    forward: () => {
+        navigation.forward();
+    },
+    back: () => {
+        navigation.back();
     },
     up: () => {
         navigation.up();
