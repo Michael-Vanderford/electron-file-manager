@@ -2821,11 +2821,11 @@ class FileOperation {
             let location = document.querySelector('.location');
             let slider = document.querySelector('.slider');
 
-            let folder_grid_label = add_div(['label']);
-            folder_grid_label.innerHTML = 'Folders';
+            // let folder_grid_label = add_div(['label']);
+            // folder_grid_label.innerHTML = 'Folders';
 
-            let file_grid_label = add_div(['label']);
-            file_grid_label.innerHTML = 'Files';
+            // let file_grid_label = add_div(['label']);
+            // file_grid_label.innerHTML = 'Files';
 
             let folder_grid = active_tab_content.querySelector('.folder_grid');
             if (!folder_grid) {
@@ -3067,7 +3067,7 @@ class FileOperation {
             // })
 
             // if (view === 'grid') {
-                active_tab_content.append(folder_grid_label, folder_grid, hidden_folder_grid, file_grid_label, file_grid, hidden_file_grid);
+                active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
                 main.append(active_tab_content)
             // }
 

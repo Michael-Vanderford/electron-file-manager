@@ -97,6 +97,7 @@ parentPort.on('message', data => {
 
                     let thumbnail = `${path.join(destination, `${image.mtime}_${path.basename(image.href)}`)}`
                     if (!gio.exists(thumbnail)) {
+                        console.log('creating thumbnail', thumbnail);
                         sort = data.sort;
                         try {
                             gio.thumbnail(image.href, thumbnail);
