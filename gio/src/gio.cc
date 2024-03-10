@@ -268,6 +268,13 @@ namespace gio {
             Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
             Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
             Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
+
+            // get type of volume
+            const char* type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+            if (type != NULL) {
+                Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
+            }
+
             Nan::Set(resultArray, c, deviceObj);
             ++c;
 
@@ -318,8 +325,8 @@ namespace gio {
                     Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
-                    Nan::Set(resultArray, c, deviceObj);
 
+                    Nan::Set(resultArray, c, deviceObj);
                     ++c;
                 }
 

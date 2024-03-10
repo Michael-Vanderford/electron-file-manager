@@ -150,6 +150,27 @@ progress {
     width: 100%;
 }
 
+
+.device_progress_container {
+    margin-left: 15px;
+    width: 100%;
+}
+
+.device_progress {
+    border-radius: 5px;
+    background: #1b557c;
+    height: 2px;
+    width: 75%;
+}
+
+.size_warming {
+    background-color: var(--warning);
+}
+
+.size_danger {
+    background-color: var(--danger);
+}
+
 th {
     text-align: left;
 }
@@ -583,6 +604,14 @@ th {
 .folder_grid {
     /* box-sizing: border-box; */
     /* padding: 5px; */
+    /* border-bottom: 1px solid var(--border); */
+    width: 100%;
+}
+
+.hidden_folder_grid {
+    /* box-sizing: border-box; */
+    /* padding: 5px; if this is turned on then it will drag the entire file grid if the cursor passed over it. */
+    /* border-bottom: 1px solid var(--border); */
     width: 100%;
 }
 
@@ -592,11 +621,6 @@ th {
     width: 100%;
 }
 
-.hidden_folder_grid {
-    /* box-sizing: border-box; */
-    /* padding: 5px; if this is turned on then it will drag the entire file grid if the cursor passed over it. */
-    width: 100%;
-}
 
 .hidden_file_grid {
     /* box-sizing: border-box; */
@@ -1317,6 +1341,8 @@ input[type=text]:focus {
         --black: #000000;
         --white: #FFFFFF;
         --warning: #FFA500;
+        --danger: #ff2b2b;
+        --error: #ff2b2b;
         --green: #008000;
         --blue: #233654;
         --lightblue: #506585;
@@ -1403,7 +1429,10 @@ input[type=text]:focus {
 
         --black: #000000;
         --white: #FFFFFF;
-        --warning: #960000;
+        /* --warning: #960000; */
+        --warning: #FFA500;
+        --danger: #ff2b2b;
+        --error: #ff2b2b;
         --green: #008000;
         --blue: #233654;
         --lightblue: #506585;

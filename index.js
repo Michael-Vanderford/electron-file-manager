@@ -135,10 +135,22 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.up();
         })
 
+        // Shift Up
+        mt.bind(`shift+${shortcut.Up.toLocaleLowerCase()}`, (e) => {
+            e.preventDefault();
+            window.api.up(1);
+        })
+
         // Down
         mt.bind(shortcut.Down.toLocaleLowerCase(), (e) => {
             e.preventDefault();
             window.api.down();
+        })
+
+        // Shift Down
+        mt.bind(`shift+${shortcut.Down.toLocaleLowerCase()}`, (e) => {
+            e.preventDefault();
+            window.api.down(1);
         })
 
         // Right
@@ -147,10 +159,22 @@ document.addEventListener("DOMContentLoaded", (e) => {
             window.api.right();
         })
 
+        // Shift Right
+        mt.bind(`shift+${shortcut.Right.toLocaleLowerCase()}`, (e) => {
+            e.preventDefault();
+            window.api.right(1);
+        })
+
         // Left
         mt.bind(shortcut.Left.toLocaleLowerCase(), (e) => {
             e.preventDefault();
             window.api.left();
+        })
+
+        // Shift Left
+        mt.bind(`shift+${shortcut.Left.toLocaleLowerCase()}`, (e) => {
+            e.preventDefault();
+            window.api.left(1);
         })
 
     })

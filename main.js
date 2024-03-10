@@ -1881,8 +1881,19 @@ ipcMain.handle('get_devices', async (e) => {
     return new Promise((resolve, reject) => {
         try {
             let device_arr = gio.get_mounts();
-            // console.log(device_arr)
             let filter_arr = device_arr.filter(x => x.name != 'mtp')
+
+            for (let i = 0; i < filter_arr.length; i++) {
+                // get device size using df
+                // if (filter_arr[i].type != undefined && (filter_arr[i].type === 'device')) {
+                if (filter_arr[i].root === '') {
+                    let cmd = `df "${filter_arr[i].path}"`;
+                    let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
+                    filter_arr[i].size_total = size.split(' ')[0];
+                    filter_arr[i].size_used = size.split(' ')[1];
+                }
+            }
+            // console.log(filter_arr);
             resolve(filter_arr);
         } catch (err) {
             console.log(err);

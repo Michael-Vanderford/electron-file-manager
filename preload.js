@@ -1844,7 +1844,7 @@ class Navigation {
 
     }
 
-    up() {
+    up(is_shift) {
 
         this.setIncrement();
 
@@ -1856,7 +1856,9 @@ class Navigation {
             return;
         }
 
-        this.removeHighlightFromCurrentCard();
+        if (!is_shift) {
+            this.removeHighlightFromCurrentCard();
+        }
 
         if (this.nav_idx === 0 && this.nav_group === 0) {
 
@@ -1884,7 +1886,7 @@ class Navigation {
 
     }
 
-    down () {
+    down (is_shift) {
 
         this.setIncrement();
 
@@ -1896,7 +1898,9 @@ class Navigation {
             return;
         }
 
-        this.removeHighlightFromCurrentCard();
+        if (!is_shift) {
+            this.removeHighlightFromCurrentCard();
+        }
 
         if (this.nav_idx === this.cardGroups[this.nav_group].length - 1 && this.nav_group === this.cardGroups.length - 1) {
 
@@ -1947,8 +1951,6 @@ class Navigation {
 
     right(is_shift = 0) {
 
-        let active_tab_content = document.querySelector('.active-tab-content');
-
         if (this.nav_idx === null) {
             this.nav_idx = 0;
             this.nav_group = 0;
@@ -1986,11 +1988,9 @@ class Navigation {
             this.highlightSelectedCard();
         }
 
-        // console.log(this.nav_group, this.nav_idx, this.nav_inc)
-
     }
 
-    left() {
+    left(is_shift = 0) {
 
         if (this.nav_idx === null) {
             this.nav_idx = 0;
@@ -2000,7 +2000,9 @@ class Navigation {
             return;
         }
 
-        this.removeHighlightFromCurrentCard();
+        if (!is_shift) {
+            this.removeHighlightFromCurrentCard();
+        }
 
         if (this.nav_idx === 0 && this.nav_group === 0) {
 
@@ -2022,7 +2024,7 @@ class Navigation {
             this.highlightSelectedCard();
         }
 
-        console.log(this.nav_group, this.nav_idx, this.nav_inc)
+        // console.log(this.nav_group, this.nav_idx, this.nav_inc)
 
     }
 
@@ -2291,7 +2293,7 @@ class ViewManager {
 
         let sidebar = document.querySelector('.sidebar');
         let show_sidebar = localStorage.getItem('sidebar');
-        console.log(show_sidebar)
+        // console.log(show_sidebar)
         if (show_sidebar === null || show_sidebar === undefined) {
             show_sidebar = localStorage.getItem('sidebar');
             sidebar.classList.remove('hidden');
@@ -2819,6 +2821,12 @@ class FileOperation {
             let location = document.querySelector('.location');
             let slider = document.querySelector('.slider');
 
+            let folder_grid_label = add_div(['label']);
+            folder_grid_label.innerHTML = 'Folders';
+
+            let file_grid_label = add_div(['label']);
+            file_grid_label.innerHTML = 'Files';
+
             let folder_grid = active_tab_content.querySelector('.folder_grid');
             if (!folder_grid) {
                 folder_grid = add_div()
@@ -3059,7 +3067,7 @@ class FileOperation {
             // })
 
             // if (view === 'grid') {
-                active_tab_content.append(folder_grid, hidden_folder_grid, file_grid, hidden_file_grid);
+                active_tab_content.append(folder_grid_label, folder_grid, hidden_folder_grid, file_grid_label, file_grid, hidden_file_grid);
                 main.append(active_tab_content)
             // }
 
@@ -3302,10 +3310,12 @@ class DeviceManager {
             devices.append(document.createElement('hr'))
             ipcRenderer.invoke('get_devices').then(device_arr => {
 
+                console.log('running get devices', device_arr)
+
                 // let connect_btn = add_link('', 'Connect to Server')
                 // connect_btn.classList.add('button');
-
                 // console.log('running get devices', device_arr)
+
                 device_arr.sort((a, b) => {
                     return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
                 })
@@ -3325,8 +3335,6 @@ class DeviceManager {
                     href_div.style = 'width: 70%';
 
                     let device_path = device.path //.replace('file://', '');
-
-
 
                     let a = document.createElement('a');
                     a.preventDefault = true;
@@ -3369,10 +3377,10 @@ class DeviceManager {
                             e.stopPropagation();
 
                             if (e.ctrlKey) {
-                                console.log(device_path)
+                                // console.log(device_path)
                                 viewManager.getView(`${device_path}`, 1);
                             } else {
-                                console.log(device_path)
+                                // console.log(device_path)
                                 viewManager.getView(`${device_path}`);
                             }
                             navigation.addHistory(device_path);
@@ -3381,7 +3389,7 @@ class DeviceManager {
 
                     }
 
-                    let type = this.get_type(device.path);
+                    let type = device.type //this.get_type(device.path);
                     if (type === 'phone') {
                         icon_div.append(add_icon('phone'), a);
                     } else if (type === 'network') {
@@ -3404,6 +3412,37 @@ class DeviceManager {
 
                     item.append(icon_div, href_div, umount_div);
                     devices.append(item);
+
+                    if (device.size_total) {
+
+                        let device_progress_container = add_div(['device_progress_container']);
+                        let device_progress = add_div(['device_progress']);
+
+                        let width = (parseInt(device.size_used) / parseInt(device.size_total)) * 100;
+                        device_progress.style = `width: ${width}%`;
+
+                        device_progress_container.append(device_progress);
+                        devices.append(device_progress_container);
+
+                        console.log(width)
+                        if (width > 80) {
+                            device_progress.classList.add('size_warming');
+                        }
+
+                        if (width > 90) {
+                            device_progress.classList.add('size_danger');
+                        }
+
+                        item.addEventListener('mouseover', (e) => {
+                            item.title = `${device_path}\n Total: ${getFileSize(device.size_total * 1024)}\n Used: ${getFileSize(device.size_used * 1024)}`;
+                        })
+
+                        // progress.classList.add('device_progress');
+                        // progress.max = parseInt(device.size_total);
+                        // progress.value = parseInt(device.size_used);
+                        // devices.append(progress);
+
+                    }
 
                 })
 
@@ -3568,17 +3607,17 @@ contextBridge.exposeInMainWorld('api', {
     back: () => {
         navigation.back();
     },
-    up: () => {
-        navigation.up();
+    up: (is_shift) => {
+        navigation.up(is_shift);
     },
-    down: () => {
-        navigation.down();
+    down: (is_shift) => {
+        navigation.down(is_shift);
     },
-    right: (e) => {
-        navigation.right(e);
+    right: (is_shift) => {
+        navigation.right(is_shift);
     },
-    left: () => {
-        navigation.left();
+    left: (is_shift) => {
+        navigation.left(is_shift);
     }
 
 })
@@ -5122,7 +5161,7 @@ function toggleHidden() {
 // Clear Items
 function clear() {
 
-    console.log('running clear');
+    // console.log('running clear');
     clearHighlight();
     utilities.msg('');
 
