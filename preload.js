@@ -1228,7 +1228,6 @@ class Navigation {
     constructor() {
 
         this.location = document.querySelector('.location');
-
         this.card_count_arr = [];
 
         this.cardGroups = [];
@@ -1241,6 +1240,10 @@ class Navigation {
         this.nav_idx = null;
         this.nav_inc = 0;
         this.nav_group = 0;
+
+        window.addEventListener('resize', (e) => {
+            this.setIncrement();
+        })
 
         ipcRenderer.invoke('get_history').then(history => {
             this.historyArr = history;
@@ -1788,10 +1791,11 @@ class Navigation {
 
     setIncrement() {
 
+        let main_width = document.body.offsetWidth;
+
         if (view === 'list') {
             this.nav_inc = 1;
         } else if (view === 'grid') {
-            let main_width = document.body.offsetWidth;
             if (main_width <= 768) {
                 this.nav_inc = 2
             } else if (main_width <= 1024) {
@@ -1800,6 +1804,7 @@ class Navigation {
                 this.nav_inc = 4
             }
         }
+
     }
 
     getCardCount () {
@@ -1820,14 +1825,11 @@ class Navigation {
             }
         })
 
-        console.log(this.card_count_arr);
-
     }
 
     getCardGroups () {
 
         this.cardGroups = [];
-
         let active_tab_content = document.querySelector('.active-tab-content');
         let grids = ['folder_grid', 'hidden_folder_grid', 'file_grid', 'hidden_file_grid'];
         grids.forEach(grid => {
@@ -1839,8 +1841,6 @@ class Navigation {
                 }
             }
         })
-
-        console.log(this.cardGroups);
 
     }
 
@@ -1865,7 +1865,7 @@ class Navigation {
             this.nav_idx = this.cardGroups[this.nav_group].length - 1;
             this.highlightSelectedCard();
 
-        } else if (this.nav_idx === 0) {
+        } else if (this.nav_group > 0 && this.nav_idx - this.nav_inc < 0) {
 
             // Move to the last card of the previous group
             this.nav_group--;
@@ -1873,10 +1873,14 @@ class Navigation {
             this.highlightSelectedCard();
 
         } else {
+
             // Move up within the current group
             this.nav_idx = Math.max(0, this.nav_idx - this.nav_inc);
             this.highlightSelectedCard();
+
         }
+
+        // console.log(this.nav_group, this.nav_idx, this.nav_inc, this.cardGroups[this.nav_group].length)
 
     }
 
@@ -1907,10 +1911,26 @@ class Navigation {
             if (this.nav_group == this.cardGroups.length - 1) {
                 this.nav_group = 0;
             } else {
+
+                // get number of rows
+                let card_count = this.cardGroups[this.nav_group].length;
+                let adj = this.nav_inc - (card_count % this.nav_inc);
+                let offset = this.nav_inc - ((this.cardGroups[this.nav_group].length) - this.nav_idx)
+
+                if (adj == this.nav_inc) {
+                    this.nav_idx = offset;
+                } else {
+                    this.nav_idx = offset - adj;
+                    if (this.nav_idx < 0) {
+                        this.nav_idx = 0;
+                    }
+                }
+
                 this.nav_group++;
+                // console.log('adj', adj, 'offset', offset, 'inc', this.nav_inc, 'len', this.cardGroups[this.nav_group].length, 'idx', this.nav_idx)
+
             }
 
-            this.nav_idx = 0;
             this.highlightSelectedCard();
 
         } else {
@@ -1921,9 +1941,13 @@ class Navigation {
 
         }
 
+        // console.log('group', this.nav_group, 'idx', this.nav_idx, 'inc', this.nav_inc, 'len', this.cardGroups[this.nav_group].length)
+
     }
 
-    right() {
+    right(is_shift = 0) {
+
+        let active_tab_content = document.querySelector('.active-tab-content');
 
         if (this.nav_idx === null) {
             this.nav_idx = 0;
@@ -1933,13 +1957,17 @@ class Navigation {
             return;
         }
 
-        this.removeHighlightFromCurrentCard();
+        if (!is_shift) {
+            this.removeHighlightFromCurrentCard();
+        }
 
         if (this.nav_idx === this.cardGroups[this.nav_group].length - 1 && this.nav_group === this.cardGroups.length - 1) {
+
             // If already at the last card of the last group, wrap to the first card of the first group
             this.nav_group = 0;
             this.nav_idx = 0;
             this.highlightSelectedCard();
+
         } else if (this.nav_idx === this.cardGroups[this.nav_group].length - 1) {
 
             // Move to the first card of the next group
@@ -1957,6 +1985,8 @@ class Navigation {
             this.nav_idx++;
             this.highlightSelectedCard();
         }
+
+        // console.log(this.nav_group, this.nav_idx, this.nav_inc)
 
     }
 
@@ -1991,6 +2021,8 @@ class Navigation {
             this.nav_idx--;
             this.highlightSelectedCard();
         }
+
+        console.log(this.nav_group, this.nav_idx, this.nav_inc)
 
     }
 
@@ -3542,8 +3574,8 @@ contextBridge.exposeInMainWorld('api', {
     down: () => {
         navigation.down();
     },
-    right: () => {
-        navigation.right();
+    right: (e) => {
+        navigation.right(e);
     },
     left: () => {
         navigation.left();
