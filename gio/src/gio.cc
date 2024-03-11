@@ -313,7 +313,7 @@ namespace gio {
                     }
 
                     if (activation_root != NULL) {
-                        root = g_file_get_uri(activation_root);
+                        root = g_file_get_path(activation_root);
                     }
 
                 }

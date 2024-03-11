@@ -158,8 +158,9 @@ progress {
 
 .device_progress {
     border-radius: 5px;
-    background: #1b557c;
-    height: 2px;
+    background: linear-gradient(to right, var(--success), var(--main));
+    /* background: var(--success); */
+    height: 1px;
     width: 75%;
 }
 
@@ -403,7 +404,7 @@ th {
 }
 
 .progress_bar {
-    columns: var(--green);
+    columns: var(--success);
     height: 20px;
 }
 
@@ -1343,7 +1344,7 @@ input[type=text]:focus {
         --warning: #FFA500;
         --danger: #ff2b2b;
         --error: #ff2b2b;
-        --green: #008000;
+        --success: #008000;
         --blue: #233654;
         --lightblue: #506585;
         --yellow: #FFFF00;
@@ -1387,7 +1388,7 @@ input[type=text]:focus {
         --black: #000000;
         --white: #FFFFFF;
         --warning: #a31515;
-        --green: #008000;
+        --success: #008000;
         --blue: #007acc;
         --lightblue: #3f7ebe;
         --yellow: #a31515;
@@ -1433,7 +1434,7 @@ input[type=text]:focus {
         --warning: #FFA500;
         --danger: #ff2b2b;
         --error: #ff2b2b;
-        --green: #008000;
+        --success: #008000;
         --blue: #233654;
         --lightblue: #506585;
         --yellow: #FFFF00;
@@ -1471,7 +1472,7 @@ input[type=text]:focus {
         --black: #000000;
         --white: #FFFFFF;
         --warning: #960000;
-        --green: #008000;
+        --success: #008000;
         --blue: #233654;
         --lightblue: #506585;
         --yellow: #FFFF00;
