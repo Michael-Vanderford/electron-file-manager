@@ -1972,7 +1972,11 @@ ipcMain.on('mkdir', (e, href) => {
 
 // Open File in Native Application
 ipcMain.on('open', (e, href) => {
-    shell.openPath(href);
+    // gio.open(href);
+    shell.openPath(href).then(result => {
+        console.log(result);
+    });
+    // shell.openExternal(href);
     win.send('clear');
 })
 

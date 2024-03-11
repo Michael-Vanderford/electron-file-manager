@@ -1700,6 +1700,31 @@ namespace gio {
 
     }
 
+    NAN_METHOD(open) {
+
+        // Open a file with the default application
+        if (info.Length() < 1) {
+            return Nan::ThrowError("Wrong number of arguments");
+        }
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Isolate* isolate = info.GetIsolate();
+        v8::String::Utf8Value sourceFile(isolate, sourceString);
+        GFile* src = g_file_new_for_path(*sourceFile);
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+        GError* error = NULL;
+        gboolean res = g_app_info_launch_default_for_uri(src_scheme, NULL, &error);
+        g_object_unref(src);
+        if (res == FALSE) {
+            return Nan::ThrowError(error->message);
+        }
+        info.GetReturnValue().Set(Nan::True());
+
+    }
+
     // NAN_METHOD(extract) {
     //     if (info.Length() < 2) {
     //         return Nan::ThrowError("Wrong number of arguments");
@@ -1788,6 +1813,7 @@ namespace gio {
         Nan::Export(target, "get_mounts", get_mounts);
         Nan::Export(target, "connect_network_drive", connect_network_drive);
         Nan::Export(target, "exec", exec);
+        Nan::Export(target, "open", open);
     }
 
     NAN_MODULE_WORKER_ENABLED(gio, init)

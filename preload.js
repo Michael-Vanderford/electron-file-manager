@@ -3424,7 +3424,7 @@ class DeviceManager {
                         device_progress_container.append(device_progress);
                         devices.append(device_progress_container);
 
-                        console.log(width)
+                        // console.log(width)
                         if (width > 80) {
                             device_progress.classList.add('size_warming');
                         }
