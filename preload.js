@@ -2280,8 +2280,10 @@ class TabManager {
     tabHistoryBack() {
         ++this.tab_history_idx;
         let arr_length = this.tab_history_arr.length;
-        let href = this.tab_history_arr[arr_length - this.tab_history_idx].location;
-        console.log('href', href)
+        if (arr_length - this.tab_history_idx >= 0) {
+            let href = this.tab_history_arr[arr_length - this.tab_history_idx].location;
+            console.log('href', href)
+        }
         // let active_tab = document.querySelector('.active-tab');
         // let tab_id = active_tab.dataset.id;
         // let tab_history = this.getTabHistory(tab_id);
