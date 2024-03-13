@@ -1701,28 +1701,66 @@ namespace gio {
     }
 
     NAN_METHOD(open) {
+        
+        Nan::HandleScope scope;
 
-        // Open a file with the default application
         if (info.Length() < 1) {
             return Nan::ThrowError("Wrong number of arguments");
         }
 
         v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
         v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
+        v8::Local<v8::Context> context = isolate->GetCurrentContext();
+        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+
         GFile* src = g_file_new_for_path(*sourceFile);
         const char *src_scheme = g_uri_parse_scheme(*sourceFile);
         if (src_scheme != NULL) {
             src = g_file_new_for_uri(*sourceFile);
         }
+
+        // print file name
+        printf("%s\n", g_file_get_path(src));
+
         GError* error = NULL;
-        gboolean res = g_app_info_launch_default_for_uri(src_scheme, NULL, &error);
-        g_object_unref(src);
-        if (res == FALSE) {
+        GFileInfo* file_info = g_file_query_info(src,
+                                                "*",
+                                                G_FILE_QUERY_INFO_NONE,
+                                                NULL,
+                                                &error);
+
+        const char *content_type = g_file_info_get_content_type(file_info);
+
+        printf("Content type: %s\n", content_type);
+
+        if (error != NULL) {
+            g_error_free(error);
+            g_object_unref(src);
             return Nan::ThrowError(error->message);
         }
-        info.GetReturnValue().Set(Nan::True());
 
+        // create a glist for files
+        GList *fileList = NULL;
+        fileList = g_list_append(fileList, g_strdup(g_file_get_path(src)));
+
+        GAppInfo *app_info = g_app_info_get_default_for_type(content_type, FALSE);
+        if (!app_info) {
+            g_list_free_full(fileList, g_free); // Free the list and its data
+            g_object_unref(src);
+            return Nan::ThrowError("No default application found for this file type");
+        }
+
+        gboolean res = g_app_info_launch(app_info, fileList, NULL, &error);
+        g_object_unref(app_info); // Release the GAppInfo reference
+        g_list_free_full(fileList, g_free); // Free the list and its data
+
+        if (!res) {
+            g_error_free(error);
+            g_object_unref(src);
+            return Nan::ThrowError(error->message);
+        }
+
+        g_object_unref(src);
     }
 
     // NAN_METHOD(extract) {

@@ -657,8 +657,10 @@ class Utilities {
                     return;
                 }
 
-                location.value = file.href;
+                tabManager.addTabHistory();
                 navigation.addHistory(file.href);
+
+                location.value = file.href;
                 if (e.ctrlKey) {
                     ipcRenderer.send('get_files', file.href, 1);
                 } else {
@@ -677,8 +679,10 @@ class Utilities {
                     return;
                 }
 
-                location.value = file.href;
+                tabManager.addTabHistory();
                 navigation.addHistory(file.href);
+
+                location.value = file.href;
                 if (e.ctrlKey) {
                     ipcRenderer.send('get_files', file.href, 1);
                 } else {
@@ -1250,8 +1254,8 @@ class Navigation {
             this.history_idx = history.length - 1;
         })
 
-        const left = document.getElementById('left');
-        const right = document.getElementById('right');
+        this.back_btn = document.getElementById('left');
+        this.forward_btn = document.getElementById('right');
 
         this.initNavItems();
         this.initSidebar();
@@ -1372,21 +1376,26 @@ class Navigation {
             })
         })
 
-        left.title = `Back \n Right Click for History`;
-        right.title = `Forward`;
+        this.back_btn.title = `Back \n Right Click for History`;
+        this.forward_btn.title = `Forward`;
 
         // Handle left and right navigation
-        left.addEventListener('click', (e) => {
-            this.left();
+        this.back_btn.addEventListener('click', (e) => {
+            this.back();
         });
 
-        left.addEventListener('contextmenu', (e) => {
+        this.back_btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             this.getHistory();
         })
 
-        right.addEventListener('click', (e) => {
-            this.right();
+        this.forward_btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            this.getHistory();
+        })
+
+        this.forward_btn.addEventListener('click', (e) => {
+            this.forward();
         });
 
         // this.location.addEventListener('input', (e) => {
@@ -1554,11 +1563,14 @@ class Navigation {
         this.history_idx = this.historyArr.length - 1;
         ipcRenderer.send('add_history', location);
 
-
     }
 
     // Show back button history
     getHistory() {
+
+        let active_tab = document.querySelector('.active-tab');
+        let tab_id = active_tab.dataset.id;
+        let history_arr = tabManager.getTabHistory(tab_id)
 
         // Create the popup element
         const popup = document.createElement('div');
@@ -2040,20 +2052,37 @@ class Navigation {
         card.classList.remove('highlight_select');
     }
 
-
 }
 
 class TabManager {
 
     constructor() {
 
+        this.tabs = [];
+        this.tab_history_arr = [];
+
+        this.location0 = "";
+        this.location = document.querySelector('.location');
+
         // console.log('running tab manager');
         this.main = document.querySelector('.main')
         this.id = 0;
-        this.tabs = [];
         this.tabHeader = document.querySelector('.tab-header'); //add_div(['tab-header','flex']);
         this.tabHeader.classList.add('flex')
         this.main.append(this.tabHeader);
+
+        let items = document.querySelectorAll('[data-href]');
+        console.log(items.length)
+
+        this.back_btn = document.querySelector('.back');
+        this.forward_btn = document.querySelector('.forward');
+
+        this.back_btn.style = 'pointer-events: none';
+
+        this.tab_history_idx = 0;
+        this.back_btn.addEventListener('click', (e) => {
+            this.tabHistoryBack();
+        })
 
     }
 
@@ -2201,12 +2230,6 @@ class TabManager {
 
     }
 
-    // Add Tab Content
-    addTabContent(html) {
-        let active_tab_content = document.querySelector('.active-tab-content')
-        active_tab_content.innerHTML = html
-    }
-
     // Clear Active Tab
     clearActiveTabs() {
         let tabs = this.tabHeader.querySelectorAll('.tab');
@@ -2217,6 +2240,62 @@ class TabManager {
             tab_content[i].classList.add('hidden');
         })
     }
+
+    addTabHistory() {
+
+        let tab = document.querySelector('.active-tab');
+        let tab_id = tab.dataset.id;
+
+        this.tab_history_arr.forEach((item, i) => {
+            if (item.tab_id === tab_id && item.location === this.location.value) {
+                this.tab_history_arr.splice(i, 1);
+                return;
+            }
+        })
+
+        let history_obj = {
+            tab_id: this.id,
+            location: this.location.value
+        }
+
+        if (this.id > 0) {
+            this.tab_history_arr.push(history_obj);
+            console.log('location', this.location.value, 'arr', this.tab_history_arr)
+        }
+
+        // check for history
+        let tab_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.id));
+        console.log('tab arr', tab_arr)
+        if (tab_arr.length > 0) {
+            this.back_btn.style = 'pointer-events: auto';
+        }
+
+    }
+
+    getTabHistory(tab_id) {
+        let tab_history = this.tab_history_arr.filter(item => item.tab_id === parseInt(tab_id));
+        return tab_history;
+    }
+
+    tabHistoryBack() {
+        ++this.tab_history_idx;
+        let arr_length = this.tab_history_arr.length;
+        let href = this.tab_history_arr[arr_length - this.tab_history_idx].location;
+        console.log('href', href)
+        // let active_tab = document.querySelector('.active-tab');
+        // let tab_id = active_tab.dataset.id;
+        // let tab_history = this.getTabHistory(tab_id);
+        // console.log('tab history', tab_history)
+
+    }
+
+    tabHistoryForward() {
+        let active_tab = document.querySelector('.active-tab');
+        let tab_id = active_tab.dataset.id;
+        let tab_history = this.getTabHistory(tab_id);
+        console.log('tab history', tab_history)
+    }
+
 
 }
 
@@ -3377,10 +3456,8 @@ class DeviceManager {
                             e.stopPropagation();
 
                             if (e.ctrlKey) {
-                                // console.log(device_path)
                                 viewManager.getView(`${device_path}`, 1);
                             } else {
-                                // console.log(device_path)
                                 viewManager.getView(`${device_path}`);
                             }
                             navigation.addHistory(device_path);
@@ -3680,7 +3757,6 @@ ipcRenderer.on('merge_files', (e, merge_arr, is_move) => {
         }).then(data => {
 
             // let tm = new TabManager();
-            // tm.addTabContent(data)
             tabManager.addTab('Merge');
             let active_content = document.querySelector('.active-tab-content');
             active_content.innerHTML = data;
@@ -6171,8 +6247,10 @@ function getWorkspace(callback) {
 
                 if (file.is_dir) {
                     if (e.ctrlKey) {
+                        tabManager.addTabHistory();
                         viewManager.getView(file.href, 1);
                     } else {
+                        tabManager.addTabHistory();
                         viewManager.getView(file.href);
                     }
                 } else {

@@ -447,6 +447,7 @@ th {
     border: 1px solid var(--border);
     height: 23px;
     background: var(--input);
+    /* border-radius: 5px; */
     color: var(--text);
     display: block;
     margin-bottom: 15px;
