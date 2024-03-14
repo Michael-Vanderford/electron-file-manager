@@ -657,8 +657,8 @@ class Utilities {
                     return;
                 }
 
-                tabManager.addTabHistory();
                 navigation.addHistory(file.href);
+                tabManager.addTabHistory(file.href);
 
                 location.value = file.href;
                 if (e.ctrlKey) {
@@ -679,7 +679,7 @@ class Utilities {
                     return;
                 }
 
-                tabManager.addTabHistory();
+                tabManager.addTabHistory(file.href);
                 navigation.addHistory(file.href);
 
                 location.value = file.href;
@@ -1380,9 +1380,9 @@ class Navigation {
         this.forward_btn.title = `Forward`;
 
         // Handle left and right navigation
-        this.back_btn.addEventListener('click', (e) => {
-            this.back();
-        });
+        // this.back_btn.addEventListener('click', (e) => {
+        //     this.back();
+        // });
 
         this.back_btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -1394,9 +1394,9 @@ class Navigation {
             this.getHistory();
         })
 
-        this.forward_btn.addEventListener('click', (e) => {
-            this.forward();
-        });
+        // this.forward_btn.addEventListener('click', (e) => {
+        //     this.forward();
+        // });
 
         // this.location.addEventListener('input', (e) => {
         //     this.showAutoComplete();
@@ -2061,6 +2061,8 @@ class TabManager {
         this.tabs = [];
         this.tab_history_arr = [];
 
+        this.tab_id = 0;
+
         this.location0 = "";
         this.location = document.querySelector('.location');
 
@@ -2074,6 +2076,9 @@ class TabManager {
         let items = document.querySelectorAll('[data-href]');
         console.log(items.length)
 
+        this.back_idx = 0;
+        this.forward_idx = 0;
+
         this.back_btn = document.querySelector('.back');
         this.forward_btn = document.querySelector('.forward');
 
@@ -2082,6 +2087,10 @@ class TabManager {
         this.tab_history_idx = 0;
         this.back_btn.addEventListener('click', (e) => {
             this.tabHistoryBack();
+        })
+
+        this.forward_btn.addEventListener('click', (e) => {
+            this.tabHistoryForward();
         })
 
     }
@@ -2165,6 +2174,12 @@ class TabManager {
             tab_content.classList.remove('hidden');
             navigation.getCardCount(); // get new card count for navigation
             navigation.getCardGroups();
+
+            this.tab_id = parseInt(tab.dataset.id);
+
+            console.log('tab idx', this.tab_id)
+            this.tab_history_idx = 0;
+
         })
 
         let tabs = document.querySelectorAll('.tab');
@@ -2241,30 +2256,31 @@ class TabManager {
         })
     }
 
-    addTabHistory() {
+    addTabHistory(href) {
 
         let tab = document.querySelector('.active-tab');
-        let tab_id = tab.dataset.id;
+        this.tab_id = parseInt(tab.dataset.id);
 
         this.tab_history_arr.forEach((item, i) => {
-            if (item.tab_id === tab_id && item.location === this.location.value) {
+            if (item.tab_id === this.tab_id && item.location === href) {
                 this.tab_history_arr.splice(i, 1);
+                console.log('location', location.value)
                 return;
             }
         })
 
         let history_obj = {
-            tab_id: this.id,
-            location: this.location.value
+            tab_id: this.tab_id,
+            location: href
         }
 
-        if (this.id > 0) {
-            this.tab_history_arr.push(history_obj);
-            console.log('location', this.location.value, 'arr', this.tab_history_arr)
+        if (this.tab_id > 0) {
+            this.tab_history_arr.unshift(history_obj);
+            console.log('href', href, 'arr', this.tab_history_arr)
         }
 
         // check for history
-        let tab_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.id));
+        let tab_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.tab_id));
         console.log('tab arr', tab_arr)
         if (tab_arr.length > 0) {
             this.back_btn.style = 'pointer-events: auto';
@@ -2278,24 +2294,46 @@ class TabManager {
     }
 
     tabHistoryBack() {
-        ++this.tab_history_idx;
-        let arr_length = this.tab_history_arr.length;
-        if (arr_length - this.tab_history_idx >= 0) {
-            let href = this.tab_history_arr[arr_length - this.tab_history_idx].location;
-            console.log('href', href)
+
+        if (this.tab_history_idx === 0) {
+            this.tab_history_arr.push(this.location.value);
         }
+
+        let filter_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.tab_id));
+        ++this.tab_history_idx;
+        let href = filter_arr[this.tab_history_idx].location;
+        this.location.value = href;
+
+        viewManager.getView(href);
+
+        console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr)
+
+    }
+
+    /**
+     * Go forward in tab history by tab id
+     */
+    tabHistoryForward() {
+
+        let filter_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.tab_id));
+
+        --this.tab_history_idx;
+        console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
+        let href = filter_arr[this.tab_history_idx].location;
+        this.location.value = href;
+
+        if (this.tab_history_idx < 0) {
+            return;
+            // this.tab_history_idx = filter_arr.length - 1;
+        }
+
+        viewManager.getView(href);
+
         // let active_tab = document.querySelector('.active-tab');
         // let tab_id = active_tab.dataset.id;
         // let tab_history = this.getTabHistory(tab_id);
         // console.log('tab history', tab_history)
 
-    }
-
-    tabHistoryForward() {
-        let active_tab = document.querySelector('.active-tab');
-        let tab_id = active_tab.dataset.id;
-        let tab_history = this.getTabHistory(tab_id);
-        console.log('tab history', tab_history)
     }
 
 
@@ -3684,7 +3722,8 @@ contextBridge.exposeInMainWorld('api', {
         navigation.forward();
     },
     back: () => {
-        navigation.back();
+        // navigation.back();
+        tabManager.tabHistoryBack();
     },
     up: (is_shift) => {
         navigation.up(is_shift);

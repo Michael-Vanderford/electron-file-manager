@@ -243,6 +243,18 @@ th {
     font-weight: bold;
 }
 
+.nav_menu .back:hover {
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: var(--highlight);
+}
+
+.nav_menu .forward:hover {
+    cursor: pointer;
+    border-radius: 5px;
+    background-color: var(--highlight);
+}
+
 .nav_menu .disk_space {
     /* border: 1px solid red; */
     display: flex;
