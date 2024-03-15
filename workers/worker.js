@@ -1380,10 +1380,14 @@ parentPort.on('message', data => {
 
         for (let i = 0; i < filter_arr.length; i++) {
             if (filter_arr[i].root === '') {
-                let cmd = `df "${filter_arr[i].path}"`;
-                let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
-                filter_arr[i].size_total = size.split(' ')[0];
-                filter_arr[i].size_used = size.split(' ')[1];
+                try {
+                    let cmd = `df "${filter_arr[i].path}"`;
+                    let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
+                    filter_arr[i].size_total = size.split(' ')[0];
+                    filter_arr[i].size_used = size.split(' ')[1];
+                } catch(err) {
+                    // console.log(err);
+                }
             }
         }
 
