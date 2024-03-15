@@ -1421,20 +1421,28 @@ class Navigation {
             sb_home = add_div();
             sb_home.classList.add('sb_home', 'sb_view');
 
+            let home_view = add_div(['home_view']);
+            let workspace_view = add_div(['workspace_view']);
+            let device_view = add_div(['device_view']);
+
+
             // Get Home
             this.getHome(home => {
-                sb_home.append(home)
+                home_view.append(home)
             })
 
             // Workspace
             getWorkspace(workspace => {
-                sb_home.append(workspace)
+                workspace_view.append(workspace)
             })
 
+            // moved this to device manager
             // Get Device
-            deviceManager.getDevices(devices => {
-                sb_home.append(devices)
-            })
+            // deviceManager.getDevices(devices => {
+            //     sb_home.append(devices)
+            // })
+
+            sb_home.append(home_view, workspace_view, device_view);
 
             let sidebar = document.querySelector('.sidebar');
             sidebar.append(sb_home);
@@ -3409,6 +3417,18 @@ class FileOperation {
 
 class DeviceManager {
 
+    constructor() {
+        this.device_arr = [];
+        ipcRenderer.send('get_devices');
+        ipcRenderer.on('devices', (e, devices) => {
+            devices.forEach(device => {
+                this.device_arr.push(device);
+            });
+            this.getDevices();
+
+        });
+    }
+
     get_type (path) {
         let type = '';
         if (path.match('mtp://')) {
@@ -3421,27 +3441,28 @@ class DeviceManager {
 
     getDevices(callback) {
 
-        let location = document.getElementById('location');
-        let devices = document.querySelector('device_view')
-        if (!devices) {
-            devices = add_div()
-            devices.classList.add('device_view')
-            devices.append(document.createElement('hr'))
-            ipcRenderer.invoke('get_devices').then(device_arr => {
+        // let location = document.getElementById('location');
+        let device_view = document.querySelector('.device_view');
+        device_view.innerHTML = '';
 
-                console.log('running get devices', device_arr)
+        // console.log('running get devices', device_view)
+        if (device_view) {
 
+            // device_view = add_div(['device_view']);
+            device_view.append(document.createElement('hr'))
+            // ipcRenderer.invoke('get_devices').then(device_arr => {
+                // console.log('running get devices', this.device_arr)
                 // let connect_btn = add_link('', 'Connect to Server')
                 // connect_btn.classList.add('button');
                 // console.log('running get devices', device_arr)
 
-                device_arr.sort((a, b) => {
+                this.device_arr.sort((a, b) => {
                     return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
                 })
 
-                device_arr.forEach(device => {
+                this.device_arr.forEach(device => {
 
-                    // console.log(device)
+                    // console.log('dev', device)
 
                     let item = add_div();
                     let icon_div = add_div();
@@ -3528,7 +3549,7 @@ class DeviceManager {
                     umount_div.append(umount_icon);
 
                     item.append(icon_div, href_div, umount_div);
-                    devices.append(item);
+                    device_view.append(item);
 
                     if (device.size_total) {
 
@@ -3539,7 +3560,7 @@ class DeviceManager {
                         device_progress.style = `width: ${width}%`;
 
                         device_progress_container.append(device_progress);
-                        devices.append(device_progress_container);
+                        device_view.append(device_progress_container);
 
                         // console.log(width)
                         if (width > 80) {
@@ -3563,17 +3584,20 @@ class DeviceManager {
 
                 })
 
+                this.device_arr = [];
+
                 // connect_btn.addEventListener('click', (e) => {
                 //     ipcRenderer.send('connect_dialog');
                 // })
 
                 // devices.append(document.createElement('br'), connect_btn)
 
-                return callback(devices)
+                // return callback(devices)
+                // return device_view;
 
-            }).catch(err => {
-                console.log(err);
-            })
+            // }).catch(err => {
+            //     console.log(err);
+            // })
         }
     }
 
@@ -3976,16 +4000,18 @@ ipcRenderer.invoke('get_thumbnails_directory').then(res => {
     thumbnail_dir = res
 })
 
-// Get Devices
-ipcRenderer.on('get_devices', (e) => {
-    // console.log('getting devices');
-    const deviceManager = new DeviceManager();
-    let device_view = document.querySelector('.device_view');
-    deviceManager.getDevices(devices => {
-        device_view.innerHTML = '';
-        device_view.append(devices);
-    })
-})
+// // Get Devices
+// ipcRenderer.on('get_devices', (e) => {
+
+    // const deviceManager = new DeviceManager();
+    // deviceManager.getDevices();
+    // const deviceManager = new DeviceManager();
+    // let device_view = document.querySelector('.device_view');
+    // deviceManager.getDevices(devices => {
+    //     device_view.innerHTML = '';
+    //     device_view.append(devices);
+    // })
+// })
 
 // On Search Results
 ipcRenderer.on('search_results', (e, find_arr) => {
@@ -4190,9 +4216,10 @@ ipcRenderer.on('count', (e, source, item_count) => {
 // Unmount Device
 ipcRenderer.on('unmount_device', (e) => {
     const deviceManager = new DeviceManager();
-    let devices = document.getElementById('devices');
-    let device_arr = deviceManager.getDevices();
-    devices.innerHTML = device_arr;
+    deviceManager.getDevices();
+    // let devices = document.getElementById('devices');
+    // let device_arr = deviceManager.getDevices();
+    // devices.innerHTML = device_arr;
 })
 
 // Get View
