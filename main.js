@@ -31,7 +31,8 @@ const home = app.getPath('home');
 gio.monitor(data => {
     if (data) {
         // console.log(data)
-        win.send('get_devices');
+        // win.send('get_devices');
+        worker.postMessage({ cmd: 'get_devices'});
     }
 });
 
@@ -569,6 +570,10 @@ worker.on('message', (data) => {
         }
         case 'clear': {
             win.send('clear');
+            break;
+        }
+        case 'devices': {
+            win.send('devices', data.devices);
             break;
         }
 
@@ -1867,39 +1872,35 @@ ipcMain.on('clip', (e, href) => {
     clipboard.write()
 })
 
-// ipcMain.on('ondragstart', (e, href) => {
-//     const icon = path.join(__dirname, 'assets/icons/dd.png');
-//     e.sender.startDrag({
-//         file: href,
-//         icon: icon
-//     })
-// })
-
 // Get Devices
-ipcMain.handle('get_devices', async (e) => {
-
-    return new Promise((resolve, reject) => {
-        try {
-            let device_arr = gio.get_mounts();
-            let filter_arr = device_arr.filter(x => x.name != 'mtp')
-
-            for (let i = 0; i < filter_arr.length; i++) {
-                // get device size using df
-                // if (filter_arr[i].type != undefined && (filter_arr[i].type === 'device')) {
-                if (filter_arr[i].root === '') {
-                    let cmd = `df "${filter_arr[i].path}"`;
-                    let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
-                    filter_arr[i].size_total = size.split(' ')[0];
-                    filter_arr[i].size_used = size.split(' ')[1];
-                }
-            }
-            // console.log(filter_arr);
-            resolve(filter_arr);
-        } catch (err) {
-            console.log(err);
-        }
-    });
+ipcMain.on('get_devices', (e) => {
+    worker.postMessage({ cmd: 'get_devices'});
 })
+
+// ipcMain.handle('get_devices', async (e) => {
+
+//     return new Promise((resolve, reject) => {
+//         try {
+//             let device_arr = gio.get_mounts();
+//             let filter_arr = device_arr.filter(x => x.name != 'mtp')
+
+//             for (let i = 0; i < filter_arr.length; i++) {
+//                 // get device size using df
+//                 // if (filter_arr[i].type != undefined && (filter_arr[i].type === 'device')) {
+//                 if (filter_arr[i].root === '') {
+//                     let cmd = `df "${filter_arr[i].path}"`;
+//                     let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
+//                     filter_arr[i].size_total = size.split(' ')[0];
+//                     filter_arr[i].size_used = size.split(' ')[1];
+//                 }
+//             }
+//             // console.log(filter_arr);
+//             resolve(filter_arr);
+//         } catch (err) {
+//             console.log(err);
+//         }
+//     });
+// })
 
 // Add Workspace
 ipcMain.on('add_workspace', (e, selected_files_arr) => {
