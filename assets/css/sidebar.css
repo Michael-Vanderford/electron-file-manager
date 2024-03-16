@@ -34,7 +34,7 @@
 }
 
 .sidebar a {
-    color: var(--text); 
+    color: var(--text);
     text-decoration: none;
 }
 
@@ -213,6 +213,14 @@
 
 .search.input {
     width: 95%;
+}
+
+.workspace_accordion:hover {
+    cursor: pointer;
+}
+
+.workspace_div {
+    margin-left:15px;
 }
 
 .workspace.active {
