@@ -1123,6 +1123,34 @@ function copyOverwrite(copy_overwrite_arr) {
 // IPC ////////////////////////////////////////////////////
 /** */
 
+// Add tab history
+ipcMain.on('add_tab_history', (e, history_obj) => {
+    let history_file = path.join(app.getPath('userData'), 'tab_history.json');
+    let history_data = [];
+    if (!gio.exists(history_file)) {
+        fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+    }
+    history_data = JSON.parse(fs.readFileSync(history_file, 'utf8'));
+    // for (let i = 0; i < history_data.length; i++) {
+    //     if (history_data[i] === location) {
+    //         history_data.splice(i, 1);
+    //     }
+    // }
+    history_data.push(history_obj);
+    fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+})
+
+// Get tab history
+ipcMain.handle('get_tab_history', async (e) => {
+    let history_file = path.join(app.getPath('userData'), 'tab_history.json');
+    if (!gio.exists(history_file)) {
+        let history_data = [];
+        fs.writeFileSync(history_file, JSON.stringify(history_data, null, 4));
+    }
+    let history_items = JSON.parse(fs.readFileSync(history_file, 'utf-8'));
+    return history_items;
+})
+
 // Add history
 ipcMain.on('add_history', (e, location) => {
 

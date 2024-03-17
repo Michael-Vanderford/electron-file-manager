@@ -245,14 +245,18 @@ th {
 
 .nav_menu .back:hover {
     cursor: pointer;
+    background: var(--highlight);
+    color: var(--button-text);
     border-radius: 5px;
-    background-color: var(--highlight);
+    /* background-color: var(--highlight); */
 }
 
 .nav_menu .forward:hover {
     cursor: pointer;
+    background: var(--highlight);
+    color: var(--button-text);
     border-radius: 5px;
-    background-color: var(--highlight);
+    /* background-color: var(--highlight); */
 }
 
 .nav_menu .disk_space {
@@ -281,8 +285,8 @@ th {
 .nav_menu .history-popup {
     border: 1px solid var(--border);
     background-color: var(--menu);
-    padding: 5px;
-    border-radius: 5px;
+    padding: 10px;
+    border-radius: 10px;
     position: fixed;
     top: 0;
     left: 0;
@@ -469,6 +473,10 @@ th {
 .input:focus {
     outline: none;
     border: 1px solid var(--input-focus) !important;
+}
+
+.show_connect {
+    width: 50px !important;
 }
 
 .connect .button {

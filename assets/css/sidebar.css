@@ -73,7 +73,7 @@
     float:left;
     background-color: var(--minibar);
     color: var(--text);
-    border-right: 1px solid var(--border);
+    /* border-right: 1px solid var(--border); */
     height:100%;
     z-index: 3;
 }
@@ -220,7 +220,7 @@
 }
 
 .workspace_div {
-    margin-left:15px;
+    /* margin-left:15px; */
 }
 
 .workspace.active {
