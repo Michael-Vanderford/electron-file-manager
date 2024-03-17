@@ -11,16 +11,25 @@
     npm start
 
 ### Grid View
-![Screenshot 1](assets/screenshots/screenshot1.png?raw=true)
+![Screenshot 1](assets/screenshots/Grid1.png?raw=true)
 ### Properties
-![Screenshot 2](assets/screenshots/Properties.png?raw=true)
+![Screenshot 2](assets/screenshots/Properties1.png?raw=true)
 ### Merge
-![Screenshot 3](assets/screenshots/Merge.png?raw=true)
+![Screenshot 3](assets/screenshots/Merge1.png?raw=true)
 <!-- ![Screenshot 2](/screenshots/screenshot_2.png?raw=true)
 
 ![Screenshot 3](/screenshots/screenshot_3.png?raw=true) -->
 
 ## Changelog
+
+### Version 1.0.74 (2024-03-17)
+- Added keyboard navigation / select for cards
+- Added Location history per tab
+- Removed persistent location history
+- Collapse workspace
+- Added visual for disk size on devices
+- Updated screen shots
+
 
 ### Version 1.0.73 (2024-02-25)
 - Videos now have a thumbnail
