@@ -220,6 +220,7 @@ namespace gio {
         GError *error = NULL;
         GList *mounts, *iter;
         GList *volumes;
+        const char* type;
         int c = 0;
 
         // Initialize GLib
@@ -258,19 +259,19 @@ namespace gio {
                 g_object_unref(activation_root);
             }
 
-            const char* uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
-            if (uuid == NULL) {
-                uuid = g_strdup("");
-            }
+            // const char* uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
+            // if (uuid == NULL) {
+            //     uuid = g_strdup("");
+            // }
 
             v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
             Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
             Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
-            Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
+            // Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
             Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
 
             // get type of volume
-            const char* type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+            type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
             if (type != NULL) {
                 Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
             }
@@ -308,9 +309,9 @@ namespace gio {
                     GFile *activation_root = g_volume_get_activation_root(volume);
                     uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
 
-                    if (uuid == NULL) {
-                        uuid = "";
-                    }
+                    // if (uuid == NULL) {
+                    //     uuid = "";
+                    // }
 
                     if (activation_root != NULL) {
                         root = g_file_get_path(activation_root);
@@ -325,6 +326,12 @@ namespace gio {
                     Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
+
+                    // g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+                    // printf("Type: %s\n", type);
+                    // if (type != NULL) {
+                    //     Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
+                    // }
 
                     Nan::Set(resultArray, c, deviceObj);
                     ++c;
@@ -1701,7 +1708,7 @@ namespace gio {
     }
 
     NAN_METHOD(open) {
-        
+
         Nan::HandleScope scope;
 
         if (info.Length() < 1) {

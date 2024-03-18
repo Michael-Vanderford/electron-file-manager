@@ -3613,8 +3613,6 @@ class DeviceManager {
 
                 this.device_arr.forEach(device => {
 
-                    // console.log('dev', device)
-
                     let item = add_div();
                     let icon_div = add_div();
                     let href_div = add_div();
