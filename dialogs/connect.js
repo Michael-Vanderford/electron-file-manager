@@ -126,9 +126,9 @@ ipcRenderer.on('connect', (e) => {
                 use_ssh_key: use_ssh_key.checked,
             }
 
-            ipcRenderer.invoke('connect', cmd).then(res => {
+            ipcRenderer.invoke('connect', cmd).then(res => {z
 
-                // Note using this anymore !!!
+                // Note: not using this anymore !!!
                 // console.log('response', res)
                 // if (res === 1) {
                 //     // console.log('connection success')

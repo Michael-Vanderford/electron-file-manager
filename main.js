@@ -365,12 +365,45 @@ class IconManager {
 
 }
 
+class NetworkManager {
+
+    constructor () {
+
+        ipcMain.on('set_network_settings', (e, network_settings) => {
+            this.setNetworkSettings(network_settings);
+        })
+
+    }
+
+    // Save network settings to network.json
+    setNetworkSettings(network_settings) {
+        let network_file = path.join(app.getPath('userData'), 'network.json');
+        fs.writeFileSync(network_file, JSON.stringify(network_settings, null, 4));
+    }
+
+    // Get network settings from network.json
+    getNetworkSettings() {
+        let network_file = path.join(app.getPath('userData'), 'network.json');
+        let network_settings = {};
+        try {
+            network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+        } catch (err) {
+            fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
+            network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+        }
+        return network_settings;
+    }
+
+}
+
 const fileManager = new FileManager();
 const utilities = new Utilities();
 const theme_watcher = new watcher();
 const dialogs = new Dialogs();
 const settingsManger = new SettingsManager();
 const iconManager = new IconManager();
+const networkManager = new NetworkManager();
+
 
 let window_settings = settingsManger.getWindowSetting();
 let settings = settingsManger.getSettings();
@@ -1636,6 +1669,9 @@ ipcMain.handle('connect', async (e, cmd) => {
             msg.message = `Connected to ${cmd.server}`;
             msg.error = 0;
             connect_win.send('msg_connect', msg);
+
+            // networkManager.setNetworkSettings(cmd);
+
         } catch (err) {
             console.log(err);
             msg.message = err.message;
