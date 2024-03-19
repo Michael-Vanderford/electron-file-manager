@@ -77,7 +77,7 @@ class FileManager {
                             }
                         } catch (err) {
                             win.send('msg', 'watcher error: ' + err.message);
-                            console.log(err)
+                            // console.log(err)
                         }
                     }
 
@@ -1122,6 +1122,12 @@ function copyOverwrite(copy_overwrite_arr) {
 
 // IPC ////////////////////////////////////////////////////
 /** */
+
+// copy image to clipboard
+ipcMain.on('copy_to_clipboard', (e, href) => {
+    let img = nativeImage.createFromPath(href);
+    clipboard.writeImage(img);
+})
 
 // Add tab history
 ipcMain.on('add_tab_history', (e, history_obj) => {

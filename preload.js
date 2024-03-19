@@ -495,6 +495,7 @@ class Utilities {
         card.dataset.href = file.href;
         card.dataset.mtime = file.mtime;
         card.dataset.size = file.size;
+        card.dataset.type = file.content_type;
 
         // Check file values
         if (file.size) {
@@ -579,6 +580,7 @@ class Utilities {
 
         card.addEventListener('dragstart', (e) => {
             // e.stopPropagation();
+            ipcRenderer.send('copy_to_clipboard', file.href);
             getSelectedFiles();
         })
 
@@ -6273,9 +6275,13 @@ function getSelectedFiles() {
     let active_tab_content = document.querySelector('.active-tab-content');
     let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select'));
     selected_items.forEach(item => {
-        // console.log(item)
+
         selected_files_arr.push(item.dataset.href);
-        // selected_files_arr.push(item.dataset.search_href);
+
+        if (item.dataset.type.indexOf('image/' === 0)) {
+            ipcRenderer.send('copy_to_clipboard', item.dataset.href);
+        }
+
     })
     if (selected_files_arr.length == 1) {
         // utilities.msg(`${selected_files_arr.length} Item Selected`);
