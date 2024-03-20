@@ -369,16 +369,29 @@ class NetworkManager {
 
     constructor () {
 
+        this.network_settings_arr = []
+
         ipcMain.on('set_network_settings', (e, network_settings) => {
             this.setNetworkSettings(network_settings);
         })
+
+        this.connectNetwork();
 
     }
 
     // Save network settings to network.json
     setNetworkSettings(network_settings) {
-        let network_file = path.join(app.getPath('userData'), 'network.json');
-        fs.writeFileSync(network_file, JSON.stringify(network_settings, null, 4));
+
+        if (network_settings.save_connection) {
+            try {
+                this.network_settings_arr.push(network_settings);
+                let network_file = path.join(app.getPath('userData'), 'network.json');
+                fs.writeFileSync(network_file, JSON.stringify(this.network_settings_arr, null, 4));
+            } catch (err) {
+                console.log(err);
+            }
+        }
+
     }
 
     // Get network settings from network.json
@@ -392,6 +405,27 @@ class NetworkManager {
             network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
         }
         return network_settings;
+    }
+
+    removeNetworkSettings(href) {
+
+        try {
+            let network_file = path.join(app.getPath('userData'), 'network.json');
+            let network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+            let new_network_settings = network_settings.filter(network_setting => network_setting.mount_point.includes(href) === false);
+            fs.writeFileSync(network_file, JSON.stringify(new_network_settings, null, 4));
+        } catch (err) {
+            console.log(err);
+        }
+
+    }
+
+    connectNetwork () {
+        let cmd = {
+            cmd: 'connect_network',
+            network_settings: this.getNetworkSettings()
+        }
+        worker.postMessage(cmd);
     }
 
 }
@@ -1625,10 +1659,16 @@ ipcMain.on('mount', (e, device) => {
 })
 
 ipcMain.on('umount', (e, href) => {
+
     exec(`gio mount -u -f ${href}`, (err, stderr, stdout) => {
         if (err) {
             win.send('msg', err);
+            return
         }
+
+        // remove device from history.json
+        networkManager.removeNetworkSettings(href);
+
     });
 })
 
@@ -1670,7 +1710,7 @@ ipcMain.handle('connect', async (e, cmd) => {
             msg.error = 0;
             connect_win.send('msg_connect', msg);
 
-            // networkManager.setNetworkSettings(cmd);
+            networkManager.setNetworkSettings(cmd);
 
         } catch (err) {
             console.log(err);

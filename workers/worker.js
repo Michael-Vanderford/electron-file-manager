@@ -4,6 +4,7 @@ const path = require('path');
 const gio_utils = require('../utils/gio');
 const gio = require('../gio/build/Release/obj.target/gio')
 
+
 class FileOperation {
 
     constructor() {
@@ -268,7 +269,23 @@ class FileOperation {
 
 }
 
-const fileoperation = new FileOperation();
+// class NetworkManager {
+    // // Get network settings from network.json
+    // getNetworkSettings() {
+    //     let network_file = path.join(app.getPath('userData'), 'network.json');
+    //     let network_settings = {};
+    //     try {
+    //         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+    //     } catch (err) {
+    //         fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
+    //         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+    //     }
+    //     return network_settings;
+    // }
+// }
+
+const fileOperation = new FileOperation();
+// const networkManager = new NetworkManager();
 
 let file_arr = [];
 let cp_recursive = 0;
@@ -676,10 +693,10 @@ parentPort.on('message', data => {
 
             if (data.destination.indexOf('mtp:') > -1) {
                 let copy_arr = [{source: data.source, destination: data.destination}];
-                fileoperation.paste(copy_arr);
+                fileOperation.paste(copy_arr);
 
                 let delete_arr = [data.source];
-                fileoperation.delete(delete_arr);
+                fileOperation.delete(delete_arr);
             } else {
                 gio.mv(data.source, data.destination);
             }
@@ -1402,6 +1419,36 @@ parentPort.on('message', data => {
             console.log(err);
         }
 
+    }
+
+    if (data.cmd === 'connect_network') {
+
+        let network_settings = data.network_settings; //networkManager.getNetworkSettings();
+
+        network_settings.forEach(cmd => {
+
+            let msg = {
+                message: '',
+                error: 0
+            }
+
+            if (cmd.type.toLocaleLowerCase() === 'sshfs') {
+                let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+                try {
+                    execSync(sshfs_cmd);
+                } catch (err) {
+                    console.log(err.message);
+                }
+            } else {
+                gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
+                    console.log(error);
+                    if (error) {
+
+                    }
+                });
+            }
+
+        })
     }
 
 })

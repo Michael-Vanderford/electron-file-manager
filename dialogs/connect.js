@@ -27,6 +27,7 @@ ipcRenderer.on('connect', (e) => {
     let server = document.getElementById('txt_server');
     let username = document.getElementById('txt_username');
     let use_ssh_key = document.getElementById('chk_pk');
+    let save_connection = document.getElementById('chk_pk');
 
     btn_connect.tabIndex = 1
 
@@ -124,22 +125,14 @@ ipcRenderer.on('connect', (e) => {
                 username: username.value,
                 password: password.value,
                 use_ssh_key: use_ssh_key.checked,
+                save_connection: save_connection.checked
             }
 
-            ipcRenderer.invoke('connect', cmd).then(res => {z
-
-                // Note: not using this anymore !!!
-                // console.log('response', res)
-                // if (res === 1) {
-                //     // console.log('connection success')
-                //     msg_connect.classList.replace('msg_connect', 'msg_connect_success');
-                //     msg_connect.innerHTML = `Connected to ${connection_type[connection_type.options.selectedIndex].text} Server.`;
-                // } else {
-                //     msg_connect.classList.replace('msg_connect', 'msg_connect_error');
-                //     msg_connect.innerHTML = res;
-                // }
+            ipcRenderer.invoke('connect', cmd).then(res => {
 
             })
+
+
 
         }
 

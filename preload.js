@@ -5092,7 +5092,7 @@ function find_files() {
     } else {
 
         sb_search = add_div();
-        sb_search.classList.add('sb_search', 'sb_view');
+        sb_search.classList.add('sb_search');
         let search_view = document.querySelector('.search_view');
         if (!search_view) {
             search_view = add_div();
@@ -5107,7 +5107,9 @@ function find_files() {
                 })
                 .then(search_html => {
 
+                    search_view.innerHTML = '';
                     search_view.innerHTML = search_html;
+
                     sb_search.innerHTML = search_view.innerHTML;
                     sidebar.append(sb_search);
 
