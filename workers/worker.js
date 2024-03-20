@@ -1425,30 +1425,35 @@ parentPort.on('message', data => {
 
         let network_settings = data.network_settings; //networkManager.getNetworkSettings();
 
-        network_settings.forEach(cmd => {
+        if (network_settings.length > 0) {
 
-            let msg = {
-                message: '',
-                error: 0
-            }
+            network_settings.forEach(cmd => {
 
-            if (cmd.type.toLocaleLowerCase() === 'sshfs') {
-                let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
-                try {
-                    execSync(sshfs_cmd);
-                } catch (err) {
-                    console.log(err.message);
+                let msg = {
+                    message: '',
+                    error: 0
                 }
-            } else {
-                gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
-                    console.log(error);
-                    if (error) {
 
+                if (cmd.type.toLocaleLowerCase() === 'sshfs') {
+                    let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+                    try {
+                        execSync(sshfs_cmd);
+                    } catch (err) {
+                        console.log(err.message);
                     }
-                });
-            }
+                } else {
+                    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
+                        console.log(error);
+                        if (error) {
 
-        })
+                        }
+                    });
+                }
+
+            })
+
+        }
+
     }
 
 })
