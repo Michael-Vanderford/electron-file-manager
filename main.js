@@ -401,7 +401,9 @@ class NetworkManager {
         try {
             network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
         } catch (err) {
-            fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
+            // fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
+            let network_setting = [];
+            fs.writeFileSync(network_file, JSON.stringify(network_settings, null, 4));
             network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
         }
         return network_settings;
