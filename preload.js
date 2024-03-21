@@ -169,14 +169,20 @@ class ProgressManager {
 class SettingsManager {
 
     constructor () {
-        this.settings = '';
+        this.settings = [];
         this.showHeaderMenu();
         // this.moveNavMenu();
+
+        this.getSettings(settings_data => {
+            this.settings = settings_data;
+            settings = settings_data;
+        })
+
     }
 
     getSettings(callback) {
         ipcRenderer.invoke('settings').then(settings => {
-            console.log('settings', settings);
+            // console.log('settings', settings);
             this.settings = settings;
             return callback(settings);
         })
@@ -811,7 +817,7 @@ class Utilities {
 
             card.classList.add('list');
             content.classList.add('list');
-
+            // console.log(settings.Captions)
             for (const key in settings.Captions) {
 
                 if (settings.Captions[key]) {
@@ -2513,7 +2519,6 @@ class ViewManager {
     constructor() {
 
         // console.log('running view manager')
-
         window.addEventListener('resize', this.resize);
 
         // this.utils = new Utilities();
@@ -2527,7 +2532,9 @@ class ViewManager {
 
         // Register listener for columns
         ipcRenderer.on('columns', (e) => {
+
             ipcRenderer.invoke('settings').then(settings => {
+                console.log('settings', settings)
                 let list = document.querySelector('.columns_list');
                 for (const key in settings.Captions) {
                     const item = add_div(['item']);
@@ -3165,9 +3172,6 @@ class FileOperation {
                 let colNames = [];
                 let colClasses = [];
 
-                // console.log('col'. this.settings)
-                ipcRenderer.invoke('settings').then(settings => {
-
                 for (const key in settings.Captions) {
                     if (settings.Captions[key] === true) {
                         colNames.push(key)
@@ -3208,7 +3212,6 @@ class FileOperation {
                 header.append(...headerRow);
                 active_tab_content.append(header)
 
-                })
             }
 
             if (view == 'list') {
