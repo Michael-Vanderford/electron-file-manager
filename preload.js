@@ -176,6 +176,7 @@ class SettingsManager {
 
     getSettings(callback) {
         ipcRenderer.invoke('settings').then(settings => {
+            console.log('settings', settings);
             this.settings = settings;
             return callback(settings);
         })
@@ -3174,7 +3175,6 @@ class FileOperation {
                 })
                 let colNames = [];
                 let colClasses = [];
-                console.log('settings', settings)
                 if (settings.Captions) {
                     for (const key in settings.Captions) {
                         if (settings.Captions[key] === true) {
