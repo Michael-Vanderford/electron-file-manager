@@ -3094,19 +3094,8 @@ class FileOperation {
 
             active_label.innerHTML = display_name;
 
-            // // Set active label name
-            // ipcRenderer.invoke('basename', display_name).then(basename => {
-            //     active_label.innerHTML = basename;
-            // })
-
             let location = document.querySelector('.location');
             let slider = document.querySelector('.slider');
-
-            // let folder_grid_label = add_div(['label']);
-            // folder_grid_label.innerHTML = 'Folders';
-
-            // let file_grid_label = add_div(['label']);
-            // file_grid_label.innerHTML = 'Files';
 
             let folder_grid = active_tab_content.querySelector('.folder_grid');
             if (!folder_grid) {
@@ -3175,15 +3164,17 @@ class FileOperation {
                 })
                 let colNames = [];
                 let colClasses = [];
-                console.log('col'. settings.Captions)
-                if (settings.Captions) {
-                    for (const key in settings.Captions) {
-                        if (settings.Captions[key] === true) {
-                            colNames.push(key)
-                            colClasses.push(key.toLowerCase());
-                        }
+
+                // console.log('col'. this.settings)
+                ipcRenderer.invoke('settings').then(settings => {
+
+                for (const key in settings.Captions) {
+                    if (settings.Captions[key] === true) {
+                        colNames.push(key)
+                        colClasses.push(key.toLowerCase());
                     }
                 }
+
                 // let colNames = ['Name', 'Modified', 'Size', 'Items'];
                 // let colClasses = ['name', 'date', 'size', 'items'];
                 let sort_by = '_desc'
@@ -3216,6 +3207,8 @@ class FileOperation {
                 });
                 header.append(...headerRow);
                 active_tab_content.append(header)
+
+                })
             }
 
             if (view == 'list') {
@@ -3824,11 +3817,6 @@ window.addEventListener('DOMContentLoaded', (e) => {
     tabManager = new TabManager();
     navigation = new Navigation();
     // utilities = new Utilities();
-    settingsManager.getSettings(res => {
-        console.log('settings', res)
-        settings = res;
-    })
-
     // utilities.autoComplete();
     workspaceManager = new WorkspaceManager();
 
