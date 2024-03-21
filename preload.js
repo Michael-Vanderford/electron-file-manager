@@ -3174,10 +3174,13 @@ class FileOperation {
                 })
                 let colNames = [];
                 let colClasses = [];
-                for (const key in settings.Captions) {
-                    if (settings.Captions[key] === true) {
-                        colNames.push(key)
-                        colClasses.push(key.toLowerCase());
+                console.log('settings', settings)
+                if (settings.Captions) {
+                    for (const key in settings.Captions) {
+                        if (settings.Captions[key] === true) {
+                            colNames.push(key)
+                            colClasses.push(key.toLowerCase());
+                        }
                     }
                 }
                 // let colNames = ['Name', 'Modified', 'Size', 'Items'];
