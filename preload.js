@@ -3824,6 +3824,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
     navigation = new Navigation();
     // utilities = new Utilities();
     settingsManager.getSettings(res => {
+        console.log('settings', res)
         settings = res;
     })
 
