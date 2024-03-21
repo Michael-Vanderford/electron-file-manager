@@ -3175,6 +3175,7 @@ class FileOperation {
                 })
                 let colNames = [];
                 let colClasses = [];
+                console.log('col'. settings.Captions)
                 if (settings.Captions) {
                     for (const key in settings.Captions) {
                         if (settings.Captions[key] === true) {
