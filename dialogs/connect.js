@@ -283,5 +283,5 @@ ipcRenderer.on('msg_connect', (e, msg) => {
     } else {
         msg_connect.classList.replace('msg_connect', 'msg_connect_success');
     }
-    msg_connect.innerHTML = msg.message;
+    msg_connect.innerHTML = msg;
 })

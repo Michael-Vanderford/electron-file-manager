@@ -1422,38 +1422,55 @@ parentPort.on('message', data => {
     }
 
     if (data.cmd === 'connect_network') {
-
         let network_settings = data.network_settings; //networkManager.getNetworkSettings();
-
         if (network_settings.length > 0) {
-
             network_settings.forEach(cmd => {
-
-                let msg = {
-                    message: '',
-                    error: 0
-                }
-
                 if (cmd.type.toLocaleLowerCase() === 'sshfs') {
                     let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
                     try {
                         execSync(sshfs_cmd);
+                        let msg = {
+                            cmd: 'msg_connection',
+                            msg: `Connected to ${cmd.server}`,
+                            error: 0
+                        }
+                        parentPort.postMessage(msg);
+
+                        if (cmd.save_connection) {
+                            let connection_cmd = {
+                                cmd: 'save_connection',
+                                network_settings: cmd
+                            }
+                            parentPort.postMessage(connection_cmd);
+                        }
                     } catch (err) {
                         console.log(err.message);
                     }
                 } else {
-                    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
-                        console.log(error);
-                        if (error) {
+                    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (err) => {
+                        if (err) {
+                            console.log(err);
+                            return;
+                        }
+                        let msg = {
+                            cmd: 'msg_connection',
+                            msg: `Connected to ${cmd.server}`,
+                            error: 0
+                        }
+                        parentPort.postMessage(msg);
 
+                        if (cmd.save_connection) {
+
+                            let connection_cmd = {
+                                cmd: 'save_connection',
+                                network_settings: cmd
+                            }
+                            parentPort.postMessage(connection_cmd);
                         }
                     });
                 }
-
             })
-
         }
-
     }
 
 })

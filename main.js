@@ -382,6 +382,7 @@ class NetworkManager {
     // Save network settings to network.json
     setNetworkSettings(network_settings) {
 
+        console.log(network_settings)
         if (network_settings.save_connection) {
             try {
                 this.network_settings_arr.push(network_settings);
@@ -644,7 +645,13 @@ worker.on('message', (data) => {
             win.send('devices', data.devices);
             break;
         }
-
+        case 'save_connection': {
+            networkManager.setNetworkSettings(data.network_settings);
+            break;
+        }
+        case 'msg_connection': {
+            connect_win.send('msg_connect', data.msg);
+        }
 
     }
 
@@ -1697,42 +1704,52 @@ ipcMain.on('connect_dialog', (e) => {
 // Connect
 ipcMain.handle('connect', async (e, cmd) => {
 
-    let msg = {
-        message: '',
-        error: 0
+    let network_settings = [];
+    network_settings.push(cmd);
+
+    let network_connect = {
+        cmd: 'connect_network',
+        network_settings: network_settings
     }
+    worker.postMessage(network_connect);
 
-    // const { stdout, stderr } = await exec(cmd);
-    if (cmd.type.toLocaleLowerCase() === 'sshfs') {
-        let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
-        try {
-            execSync(sshfs_cmd);
-            msg.message = `Connected to ${cmd.server}`;
-            msg.error = 0;
-            connect_win.send('msg_connect', msg);
+    // let msg = {
+    //     message: '',
+    //     error: 0
+    // }
 
-            networkManager.setNetworkSettings(cmd);
+    // // const { stdout, stderr } = await exec(cmd);
+    // if (cmd.type.toLocaleLowerCase() === 'sshfs') {
+    //     let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+    //     try {
 
-        } catch (err) {
-            console.log(err);
-            msg.message = err.message;
-            msg.error = 1;
-            connect_win.send('msg_connect', msg);
-        }
-    } else {
-        gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
-            console.log(error);
-            if (error) {
-                msg.message = error.message;
-                msg.error = 1;
-                connect_win.send('msg_connect', msg);
-            } else {
-                msg.message = `Connected to ${cmd.server}`;
-                msg.error = 0;
-                connect_win.send('msg_connect', msg);
-            }
-        });
-    }
+    //         execSync(sshfs_cmd);
+    //         msg.message = `Connected to ${cmd.server}`;
+    //         msg.error = 0;
+    //         connect_win.send('msg_connect', msg);
+
+    //         networkManager.setNetworkSettings(cmd);
+
+    //     } catch (err) {
+    //         console.log(err);
+    //         msg.message = err.message;
+    //         msg.error = 1;
+    //         connect_win.send('msg_connect', msg);
+    //     }
+    // } else {
+    //     gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (error) => {
+    //         console.log(error);
+    //         if (error) {
+    //             msg.message = error.message;
+    //             msg.error = 1;
+    //             connect_win.send('msg_connect', msg);
+    //         } else {
+    //             msg.message = `Connected to ${cmd.server}`;
+    //             msg.error = 0;
+    //             connect_win.send('msg_connect', msg);
+    //         }
+    //     });
+    // }
 
 })
 
