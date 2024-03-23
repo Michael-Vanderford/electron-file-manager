@@ -650,8 +650,14 @@ worker.on('message', (data) => {
             break;
         }
         case 'msg_connection': {
-            connect_win.send('msg_connect', data.msg);
+            connect_win.send('msg_connect', data);
+            break;
         }
+        case 'connection_error': {
+            connect_win.send('msg_connect', data);
+            break;
+        }
+
 
     }
 

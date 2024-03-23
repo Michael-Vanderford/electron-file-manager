@@ -276,12 +276,15 @@ ipcRenderer.on('connect', (e) => {
 })
 
 // Connect to network message
-ipcRenderer.on('msg_connect', (e, msg) => {
+ipcRenderer.on('msg_connect', (e, data) => {
     let msg_connect = document.querySelector('.msg_connect');
-    if (msg.error) {
-        msg_connect.classList.replace('msg_connect', 'msg_connect_error');
+    if (data.error) {
+        msg_connect.classList.add('msg_connect_error');
+        msg_connect.classList.remove('msg_connect_success');
     } else {
-        msg_connect.classList.replace('msg_connect', 'msg_connect_success');
+        msg_connect.classList.add('msg_connect_success');
+        msg_connect.classList.remove('msg_connect_error');
     }
-    msg_connect.innerHTML = msg;
+    msg_connect.innerHTML = data.msg;
+
 })

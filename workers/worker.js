@@ -1444,12 +1444,24 @@ parentPort.on('message', data => {
                             parentPort.postMessage(connection_cmd);
                         }
                     } catch (err) {
+                        let connection_err = {
+                            cmd: 'connection_error',
+                            msg: err.message,
+                            error: 1
+                        }
+                        parentPort.postMessage(connection_err);
                         console.log(err.message);
                     }
                 } else {
                     gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (err) => {
                         if (err) {
-                            console.log(err);
+                            let connection_err = {
+                                cmd: 'connection_error',
+                                msg: err.message,
+                                error: 1
+                            }
+                            parentPort.postMessage(connection_err);
+                            console.log(err.message);
                             return;
                         }
                         let msg = {
