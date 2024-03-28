@@ -1137,14 +1137,6 @@ parentPort.on('message', data => {
         copy_next();
     }
 
-    if (data.cmd === 'monitor') {
-
-        // gio.monitor(function(device) {
-        //     // console.log('connected');
-        // })
-
-    }
-
     // Compress Files
     if (data.cmd === 'compress') {
 

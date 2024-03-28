@@ -3571,15 +3571,18 @@ class FileOperation {
 class DeviceManager {
 
     constructor() {
+
         this.device_arr = [];
+
         ipcRenderer.send('get_devices');
+
         ipcRenderer.on('devices', (e, devices) => {
             devices.forEach(device => {
                 this.device_arr.push(device);
             });
             this.getDevices();
-
         });
+
     }
 
     get_type (path) {
@@ -3812,6 +3815,7 @@ let tabManager = null;
 let navigation = null;
 let utilities = new Utilities();
 let workspaceManager = null;
+let deviceManager = null;
 
 window.addEventListener('DOMContentLoaded', (e) => {
     viewManager = new ViewManager();
@@ -3822,6 +3826,7 @@ window.addEventListener('DOMContentLoaded', (e) => {
     // utilities = new Utilities();
     // utilities.autoComplete();
     workspaceManager = new WorkspaceManager();
+    deviceManager = new DeviceManager();
 
 })
 
@@ -4363,7 +4368,7 @@ ipcRenderer.on('count', (e, source, item_count) => {
 
 // Unmount Device
 ipcRenderer.on('unmount_device', (e) => {
-    const deviceManager = new DeviceManager();
+    // const deviceManager = new DeviceManager();
     deviceManager.getDevices();
     // let devices = document.getElementById('devices');
     // let device_arr = deviceManager.getDevices();

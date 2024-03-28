@@ -27,15 +27,6 @@ const find = new Worker(path.join(__dirname, 'workers/find.js'));
 
 const home = app.getPath('home');
 
-// Monitor USB Devices
-gio.monitor(data => {
-    if (data) {
-        // console.log(data)
-        // win.send('get_devices');
-        worker.postMessage({ cmd: 'get_devices'});
-    }
-});
-
 let win;
 let connect_win;
 let window_id = 0;
@@ -54,11 +45,11 @@ class FileManager {
     }
 
     // Get files array
-    get_files(source, tab) {
+    get_files(href, tab) {
 
         watcher_failed = 1;
         try {
-            gio.watcher(source, (watcher) => {
+            gio.watcher(href, (watcher) => {
                 watcher_failed = 0;
                 if (watcher.event !== 'unknown') {
                     if (watcher.event === 'deleted') {
@@ -82,7 +73,7 @@ class FileManager {
                     }
 
                     win.send('clear_folder_size', path.dirname(watcher.filename));
-                    get_disk_space(source);
+                    get_disk_space(href);
                 }
             })
         } catch (err) {
@@ -93,18 +84,17 @@ class FileManager {
 
         // Call create thumbnails
         let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
-        if (source.indexOf('mtp') > -1 || source.indexOf('thumbnails') > -1) {
-            thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+        if (href.indexOf('mtp') > -1 || href.indexOf('thumbnails') > -1) {
+            thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
         } else {
-            thumb.postMessage({ cmd: 'create_thumbnail', source: source, destination: thumb_dir, sort: sort });
+            thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
         }
 
         // Call ls worker to get file data
-        ls.postMessage({ cmd: 'ls', source: source, tab: tab });
+        ls.postMessage({ cmd: 'ls', source: href, tab: tab });
 
         // get_disk_space(source);
-
-        this.source0 = source;
+        // this.source0 = source;
 
     }
 }
@@ -140,6 +130,15 @@ class watcher {
             win.webContents.reloadIgnoringCache();
             win.reload();
         })
+
+        // Monitor USB Devices
+        gio.monitor(data => {
+            if (data) {
+                if (data != 'mtp') {
+                    worker.postMessage({ cmd: 'get_devices'});
+                }
+            }
+        });
 
     }
 
@@ -375,7 +374,7 @@ class NetworkManager {
             this.setNetworkSettings(network_settings);
         })
 
-        this.connectNetwork();
+        // this.connectNetwork();
 
     }
 
@@ -443,9 +442,6 @@ const networkManager = new NetworkManager();
 
 let window_settings = settingsManger.getWindowSetting();
 let settings = settingsManger.getSettings();
-
-worker.postMessage({ cmd: 'monitor' });
-
 let recent_files_path = path.join(app.getPath('userData'), 'recent_files.json');
 
 // Set window id
@@ -2421,9 +2417,12 @@ app.on('activate', () => {
 });
 
 ipcMain.on('get_files', (e, source, tab) => {
-    fileManager.get_files(source, tab)
-    // worker.postMessage({cmd: 'preload', source: source});
 
+    // console.log('source', source);
+
+    fileManager.get_files(source, tab)
+
+    // worker.postMessage({cmd: 'preload', source: source});
     // let du = gio.du(source);
     // // console.log('disk usage', getFileSize(Math.abs(du)));
 })

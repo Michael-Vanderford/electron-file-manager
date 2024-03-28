@@ -486,17 +486,23 @@ namespace gio {
 
     // This handles mtp connections
     void on_mount_added(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
+        // Call your Nan module's function here
         Nan::HandleScope scope;
-        const gchar* mountName = g_mount_get_name(mount);
-        v8::Local<v8::String> v8MountName = Nan::New<v8::String>(mountName).ToLocalChecked();
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-        Nan::TryCatch tryCatch;
-        const unsigned argc = 1;
-        v8::Local<v8::Value> argv[argc] = { v8MountName };
-        callback->Call(argc, argv);
-        if (tryCatch.HasCaught()) {
-            Nan::FatalException(tryCatch); // Handle the exception if occurred
-        }
+        const char* deviceName = g_mount_get_name(mount);
+        v8::Local<v8::Value> argv[1] = { Nan::New(deviceName).ToLocalChecked() };
+        callback->Call(1, argv);
+        // Nan::HandleScope scope;
+        // const char* mountName = g_mount_get_name(mount);
+        // v8::Local<v8::String> v8MountName = Nan::New<v8::String>(mountName).ToLocalChecked();
+        // Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        // Nan::TryCatch tryCatch;
+        // const unsigned argc = 1;
+        // v8::Local<v8::Value> argv[argc] = { v8MountName };
+        // callback->Call(argc, argv);
+        // if (tryCatch.HasCaught()) {
+        //     Nan::FatalException(tryCatch); // Handle the exception if occurred
+        // }
     }
 
     void on_mount_removed(GVolumeMonitor* monitor, GMount* mount, gpointer user_data) {
