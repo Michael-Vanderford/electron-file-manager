@@ -164,12 +164,19 @@ progress {
     width: 75%;
 }
 
+/* .size_success { */
+    /* background-color: var(--success); */
+    /* background: linear-gradient(to right, var(--success), var(--main)); */
+/* } */
+
 .size_warming {
-    background-color: var(--warning);
+    /* background-color: var(--warning) !important; */
+    background: linear-gradient(to right, var(--warning), var(--main));
 }
 
 .size_danger {
-    background-color: var(--danger);
+    /* background-color: var(--danger); */
+    background: linear-gradient(to right, var(--danger), var(--main));
 }
 
 th {

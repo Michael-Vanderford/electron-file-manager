@@ -1422,9 +1422,6 @@ class Navigation {
 
         let mb = document.getElementById('mb_home');
         mb.classList.add('active');
-
-        const deviceManager = new DeviceManager();
-
         let sb_home = document.querySelector('.sb_home')
         if (sb_home) {
             sb_home.classList.remove('hidden')
@@ -2614,7 +2611,7 @@ class ViewManager {
     // Get View
     getView(dir, tab = 0) {
 
-        show_loader();
+        // show_loader();
         // console.log('running get view');
         ipcRenderer.send('get_files', dir, tab);
         clearHighlight();
@@ -3577,10 +3574,16 @@ class DeviceManager {
         ipcRenderer.send('get_devices');
 
         ipcRenderer.on('devices', (e, devices) => {
-            devices.forEach(device => {
-                this.device_arr.push(device);
-            });
+
+            this.device_arr = devices;
+
+            // console.log(devices)
+            // devices.forEach(device => {
+            //     this.device_arr.push(device);
+            // });
+
             this.getDevices();
+
         });
 
     }
@@ -3605,15 +3608,13 @@ class DeviceManager {
         if (device_view) {
 
             // device_view = add_div(['device_view']);
-            device_view.append(document.createElement('hr'))
-            // ipcRenderer.invoke('get_devices').then(device_arr => {
-                // console.log('running get devices', this.device_arr)
-                // let connect_btn = add_link('', 'Connect to Server')
-                // connect_btn.classList.add('button');
-                // console.log('running get devices', device_arr)
+            device_view.append(document.createElement('hr'));
 
                 this.device_arr.sort((a, b) => {
-                    return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+                    // First, compare by 'type'
+                    if (a.type < b.type) return -1;
+                    if (a.type > b.type) return 1;
+                    // return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
                 })
 
                 this.device_arr.forEach(device => {
@@ -3640,47 +3641,10 @@ class DeviceManager {
                     umount_icon.style = 'position: absolute; right: -30px;';
                     item.classList.add('item');
 
-                    if (device.path === '') {
-
-                        // Mount
-                        umount_div.classList.add('inactive');
-                        umount_div.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            ipcRenderer.send('mount', device)
-                        })
-
-                        item.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            let root = device.root;
-                            ipcRenderer.send('mount', device)
-                        })
-
-                    } else {
-
-                        // Unmount
-                        umount_div.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            ipcRenderer.send('umount', device.path);
-                        })
-
-                        // Get view
-                        item.addEventListener('click', (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-
-                            if (e.ctrlKey) {
-                                viewManager.getView(`${device_path}`, 1);
-                            } else {
-                                viewManager.getView(`${device_path}`);
-                            }
-                            // navigation.addHistory(device_path);
-                            tabManager.addTabHistory(device_path);
-
-                        })
-
-                    }
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        viewManager.getView(device.path);
+                    })
 
                     let type = device.type //this.get_type(device.path);
                     if (type === 'phone') {
@@ -3717,8 +3681,8 @@ class DeviceManager {
                         device_progress_container.append(device_progress);
                         device_view.append(device_progress_container);
 
-                        // console.log(width)
-                        if (width > 80) {
+                        console.log(width)
+                        if (width > 70) {
                             device_progress.classList.add('size_warming');
                         }
 

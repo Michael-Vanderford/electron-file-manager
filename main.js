@@ -83,15 +83,19 @@ class FileManager {
         }
 
         // Call create thumbnails
-        let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
-        if (href.indexOf('mtp') > -1 || href.indexOf('thumbnails') > -1) {
-            thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
-        } else {
-            thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
-        }
+        try {
+            let thumb_dir = path.join(app.getPath('userData'), 'thumbnails');
+            if (href.indexOf('mtp') > -1 || href.indexOf('thumbnails') > -1) {
+                thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
+            } else {
+                thumb.postMessage({ cmd: 'create_thumbnail', source: href, destination: thumb_dir, sort: sort });
+            }
+            // Call ls worker to get file data
+            ls.postMessage({ cmd: 'ls', source: href, tab: tab });
 
-        // Call ls worker to get file data
-        ls.postMessage({ cmd: 'ls', source: href, tab: tab });
+        } catch (err) {
+            win.send('msg', err);
+        }
 
         // get_disk_space(source);
         // this.source0 = source;
@@ -131,14 +135,14 @@ class watcher {
             win.reload();
         })
 
-        // Monitor USB Devices
-        gio.monitor(data => {
-            if (data) {
-                if (data != 'mtp') {
-                    worker.postMessage({ cmd: 'get_devices'});
-                }
-            }
-        });
+        // // Monitor USB Devices
+        // gio.monitor(data => {
+        //     if (data) {
+        //         if (data != 'mtp') {
+        //             worker.postMessage({ cmd: 'get_devices'});
+        //         }
+        //     }
+        // });
 
     }
 
@@ -2004,7 +2008,21 @@ ipcMain.on('clip', (e, href) => {
 
 // Get Devices
 ipcMain.on('get_devices', (e) => {
+
     worker.postMessage({ cmd: 'get_devices'});
+    // setTimeout(() => {
+
+        // Monitor USB Devices
+        gio.monitor(data => {
+            if (data) {
+                if (data != 'mtp') {
+                    worker.postMessage({ cmd: 'get_devices'});
+                }
+            }
+        });
+
+    // }, 5000);
+
 })
 
 // ipcMain.handle('get_devices', async (e) => {
@@ -2417,14 +2435,7 @@ app.on('activate', () => {
 });
 
 ipcMain.on('get_files', (e, source, tab) => {
-
-    // console.log('source', source);
-
     fileManager.get_files(source, tab)
-
-    // worker.postMessage({cmd: 'preload', source: source});
-    // let du = gio.du(source);
-    // // console.log('disk usage', getFileSize(Math.abs(du)));
 })
 
 // Dialogs ////////////////////////////////////////////////////////////

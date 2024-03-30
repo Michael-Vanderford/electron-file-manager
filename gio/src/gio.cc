@@ -213,14 +213,89 @@ namespace gio {
         g_object_unref(dest);
     }
 
+    NAN_METHOD(get_drives) {
+
+        Nan::HandleScope scope;
+        if (info.Length() < 1 || !info[0]->IsFunction()) {
+            return Nan::ThrowError("Wrong arguments. Expected callback function.");
+        }
+        Nan::Callback callback(info[0].As<v8::Function>());
+        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+        GVolumeMonitor* monitor = g_volume_monitor_get();
+        GList* iter;
+        GList *network_mounts;
+        GList* mounts; // = g_volume_monitor_get_mounts(monitor);
+        GMount* mount;
+        GList* drives;
+        GDrive* drive;
+        GList* volumes;
+        GVolume* volume;
+        GFile *root;
+        char *type = nullptr, *identifier = nullptr, *path = nullptr, *name = nullptr;
+        int c = 0;
+
+        mounts = g_volume_monitor_get_mounts(monitor);
+        for (iter = mounts; iter != NULL; iter = iter->next) {
+
+            mount = G_MOUNT(iter->data);
+            if (mount != NULL) {
+
+                if (g_mount_is_shadowed (mount)) {
+                    continue;
+                }
+
+                volume = g_mount_get_volume (mount);
+
+                root = g_mount_get_default_location (mount);
+                path = g_file_get_uri (root);
+                name = g_mount_get_name(mount);
+
+                // printf("name: %s, uri: %s  \n", name, path);
+
+                v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+                Nan::Set(dataObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+                Nan::Set(dataObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
+
+                if (volume != NULL) {
+                    type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+                }
+                if (type == NULL) {
+                    type = "network";
+                }
+                Nan::Set(dataObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
+                Nan::Set(resultArray, c, dataObj);
+                c++;
+
+            }
+
+        }
+
+        g_list_free_full(mounts, g_object_unref);
+        g_object_unref(monitor);
+
+        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+        callback.Call(2, argv);
+
+    }
+
     NAN_METHOD(get_mounts) {
+
+        Nan::HandleScope scope;
+
+        if (info.Length() < 1 || !info[0]->IsFunction()) {
+            return Nan::ThrowError("Wrong arguments. Expected callback function.");
+        }
+
+        Nan::Callback callback(info[0].As<v8::Function>());
 
         v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
 
         GError *error = NULL;
         GList *mounts, *iter;
         GList *volumes;
-        const char* type;
+        const char* type = nullptr;
+        const char* uuid = nullptr;
         int c = 0;
 
         // Initialize GLib
@@ -240,47 +315,53 @@ namespace gio {
 
             gchar *path = "";
             GVolume *volume = G_VOLUME(iter->data);
-            const gchar *name = g_volume_get_name(volume);
 
-            GMount* mount = g_volume_get_mount(volume);
-            if (mount != NULL) {
-                GFile *mount_path = g_mount_get_root(mount);
-                if (mount_path != NULL) {
-                    path = g_file_get_path(mount_path);
-                    g_object_unref(mount_path);
+            if (volume != nullptr) {
+
+                const gchar *name = g_volume_get_name(volume);
+
+                GMount* mount = g_volume_get_mount(volume);
+                if (mount != NULL) {
+                    GFile *mount_path = g_mount_get_root(mount);
+                    if (mount_path != NULL) {
+                        path = g_file_get_path(mount_path);
+                        g_object_unref(mount_path);
+                    }
+                    g_object_unref(mount);
                 }
-                g_object_unref(mount);
+
+                const char* root = "";
+                GFile* activation_root = g_volume_get_activation_root(volume);
+                if (activation_root != NULL) {
+                    root = g_file_get_uri(activation_root);
+                    printf("root: %s\n", root);
+                    g_object_unref(activation_root);
+                }
+
+                // uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
+
+                v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
+                Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
+                Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
+                // Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
+
+                // if (uuid != NULL) {
+                //     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
+                // }
+
+                // get type of volume
+                type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+                if (type != NULL) {
+                    Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
+                }
+
+                Nan::Set(resultArray, c, deviceObj);
+                ++c;
+
+                // Store volume name in hashtable
+                g_hash_table_insert(mountHash, (gpointer)name, (gpointer)volume);
+
             }
-
-            const char* root = "";
-            GFile* activation_root = g_volume_get_activation_root(volume);
-            if (activation_root != NULL) {
-                root = g_file_get_uri(activation_root);
-                g_object_unref(activation_root);
-            }
-
-            // const char* uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
-            // if (uuid == NULL) {
-            //     uuid = g_strdup("");
-            // }
-
-            v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
-            Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
-            Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
-            // Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
-            Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
-
-            // get type of volume
-            type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
-            if (type != NULL) {
-                Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
-            }
-
-            Nan::Set(resultArray, c, deviceObj);
-            ++c;
-
-            // Store volume name in hashtable
-            g_hash_table_insert(mountHash, (gpointer)name, (gpointer)volume);
 
         }
 
@@ -288,6 +369,10 @@ namespace gio {
         for (iter = mounts; iter != NULL; iter = iter->next) {
 
             GMount* mount = G_MOUNT(iter->data);
+
+            if (g_mount_is_shadowed (mount))
+			    continue;
+
             const char* name = "";
             const char* fs = "";
             const char* path = "";
@@ -309,9 +394,6 @@ namespace gio {
                     GFile *activation_root = g_volume_get_activation_root(volume);
                     uuid = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_UUID);
 
-                    // if (uuid == NULL) {
-                    //     uuid = "";
-                    // }
 
                     if (activation_root != NULL) {
                         root = g_file_get_path(activation_root);
@@ -321,18 +403,18 @@ namespace gio {
 
                 // If uuid and root = "" then assume its a netowrk mount
                 if (uuid == "" && root == "") {
+
                     v8::Local<v8::Object> deviceObj = Nan::New<v8::Object>();
                     Nan::Set(deviceObj, Nan::New("name").ToLocalChecked(), Nan::New(name).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("path").ToLocalChecked(), Nan::New(path).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("uuid").ToLocalChecked(), Nan::New(uuid).ToLocalChecked());
                     Nan::Set(deviceObj, Nan::New("root").ToLocalChecked(), Nan::New(root).ToLocalChecked());
 
-                    // g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
-                    // printf("Type: %s\n", type);
-                    // if (type != NULL) {
-                    //     Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
-                    // }
-
+                    type = g_volume_get_identifier(volume, G_VOLUME_IDENTIFIER_KIND_CLASS);
+                    if (type == nullptr) {
+                        type = "network";
+                    }
+                    Nan::Set(deviceObj, Nan::New("type").ToLocalChecked(), Nan::New(type).ToLocalChecked());
                     Nan::Set(resultArray, c, deviceObj);
                     ++c;
                 }
@@ -346,7 +428,10 @@ namespace gio {
         g_list_free_full(volumes, g_object_unref);
         g_object_unref(monitor);
 
-        info.GetReturnValue().Set(resultArray);
+        // return callback for results
+        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+        callback.Call(2, argv);
+        // info.GetReturnValue().Set(resultArray);
 
     }
 
@@ -1862,6 +1947,7 @@ namespace gio {
         Nan::Export(target, "monitor", monitor);
         Nan::Export(target, "watcher", watcher);
         Nan::Export(target, "get_mounts", get_mounts);
+        Nan::Export(target, "get_drives", get_drives);
         Nan::Export(target, "connect_network_drive", connect_network_drive);
         Nan::Export(target, "exec", exec);
         Nan::Export(target, "open", open);
