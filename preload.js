@@ -598,7 +598,8 @@ class Utilities {
 
         card.addEventListener('dragover', (e) => {
             e.preventDefault();
-
+            let cards = document.querySelectorAll('.highlight_select');
+            let count = cards.length;
             if (is_dir && !card.classList.contains('highlight')) {
 
                 card.classList.add('highlight_target');
@@ -608,7 +609,7 @@ class Utilities {
                     this.msg('Copy to ' + file.href);
                 } else {
                     e.dataTransfer.dropEffect = "move";
-                    this.msg('Move to ' + file.href);
+                    this.msg(`Move ${count} items to ${file.href}`);
                 }
 
             }
@@ -1247,6 +1248,8 @@ class Navigation {
         this.currentGroupIndex = 0;
         this.currentCardIndex = 0;
 
+        this.suggestions = [];
+
         this.historyArr = [];
         this.history_idx = -1;  // Start at -1 to indicate no current history entry
         this.autocomplete_idx = 0;
@@ -1353,7 +1356,9 @@ class Navigation {
 
                 clearViews();
 
-                let sb_view;
+                let sb_view = document.querySelector('.sb_home');
+                let search_view = document.querySelector('.search_view');
+                let home_view = document.querySelector('.home_view');
                 switch (mb_item.id) {
                     case 'mb_home': {
                         sb_view = document.querySelector('.sb_home');
@@ -1361,6 +1366,9 @@ class Navigation {
                         this.initSidebar();
                         mb_item.classList.add('active')
                         localStorage.setItem('sidebar', 1);
+
+                        search_view.classList.add('hidden');
+
                         break;
                     }
                     case 'mb_workspace': {
@@ -1372,8 +1380,14 @@ class Navigation {
                         break;
                     }
                     case 'mb_find': {
+
                         mb_item.classList.add('active')
                         find_files(res => { })
+
+                        if (search_view) {
+                            search_view.classList.remove('hidden');
+                        }
+
                         break;
                     }
                     case 'mb_info': {
@@ -1575,13 +1589,15 @@ class Navigation {
     }
 
     // Add history
-    addHistory(location) {
+    // addHistory(location) {
 
-        this.historyArr.push(location);  // Always push new location
-        this.history_idx = this.historyArr.length - 1;
-        ipcRenderer.send('add_history', location);
+    //     console.log(location)
 
-    }
+    //     this.historyArr.push(location);  // Always push new location
+    //     this.history_idx = this.historyArr.length - 1;
+    //     ipcRenderer.send('add_history', location);
+
+    // }
 
     // Show back button history
     getHistory() {
@@ -1729,18 +1745,19 @@ class Navigation {
 
         this.location.addEventListener('keydown', (e) => {
 
-            let suggestions = popup.querySelectorAll('.item');
+            this.suggestions = popup.querySelectorAll('.item');
+            console.log('suggestions', this.suggestions)
 
             switch (e.key) {
                 case 'ArrowDown': {
 
-                    this.autocomplete_idx = (this.autocomplete_idx + 1) % suggestions.length;
-                    for (let i = 0; i < suggestions.length; i++) {
+                    this.autocomplete_idx = (this.autocomplete_idx + 1) % this.suggestions.length;
+                    for (let i = 0; i < this.suggestions.length; i++) {
                         if (i === this.autocomplete_idx) {
-                            suggestions[i].classList.add('highlight_select');
-                            this.location.value = suggestions[i].innerText;
+                            this.suggestions[i].classList.add('highlight_select');
+                            this.location.value = this.suggestions[i].innerText;
                         } else {
-                            suggestions[i].classList.remove('highlight_select');
+                            this.suggestions[i].classList.remove('highlight_select');
                         }
                     }
 
@@ -1748,13 +1765,13 @@ class Navigation {
                 }
                 case 'ArrowUp': {
 
-                    this.autocomplete_idx = (this.autocomplete_idx - 1 + suggestions.length) % suggestions.length;
-                    for (let i = 0; i < suggestions.length; i++) {
+                    this.autocomplete_idx = (this.autocomplete_idx - 1 + this.suggestions.length) % this.suggestions.length;
+                    for (let i = 0; i < this.suggestions.length; i++) {
                         if (i === this.autocomplete_idx) {
-                            suggestions[i].classList.add('highlight_select');
-                            this.location.value = suggestions[i].innerText;
+                            this.suggestions[i].classList.add('highlight_select');
+                            this.location.value = this.suggestions[i].innerText;
                         } else {
-                            suggestions[i].classList.remove('highlight_select');
+                            this.suggestions[i].classList.remove('highlight_select');
                         }
                     }
 
@@ -1762,17 +1779,15 @@ class Navigation {
                 }
                 case 'Enter': {
                     // clearTimeout(this.timeout_id);
-                    if (suggestions.length > 0) {
-                        suggestions.forEach(item => {
+                    if (this.suggestions.length > 0) {
+                        this.suggestions.forEach(item => {
                             if (item.classList.contains('highlight_select')) {
                                 viewManager.getView(item.innerText);
-                                popup.remove();
                             } else {
                                 viewManager.getView(this.location.value);
-                                popup.remove();
                             }
                         })
-                        viewManager.getView(this.location.value);
+                        popup.innerHTML = '';
                         popup.remove();
                     } else {
                     }
@@ -1784,12 +1799,17 @@ class Navigation {
                     break;
                 }
                 case 'Tab': {
-                    e.preventDefault()
-                    for (let i = 0; i < suggestions.length; i++) {
-                        if (suggestions[i].classList.contains('highlight_select')) {
-                            this.location.value = suggestions[i].innerText;
-                            popup.remove();
-                            break;
+                    if (this.suggestions.length > 0) {
+                        console.log('tab', this.suggestions.length)
+                        e.preventDefault()
+                        for (let i = 0; i < this.suggestions.length; i++) {
+                            if (this.suggestions[i].classList.contains('highlight_select')) {
+                                this.location.value = this.suggestions[i].innerText;
+                                tabManager.addTabHistory(this.location.value);
+                                popup.innerHTML = '';
+                                popup.remove();
+                                break;
+                            }
                         }
                     }
                     break;
@@ -2294,6 +2314,8 @@ class TabManager {
 
     addTabHistory(href) {
 
+        console.log('add history', href)
+
         let history_obj = {
             tab_id: this.tab_id,
             location: href
@@ -2446,13 +2468,17 @@ class TabManager {
         }
         this.tab_history_idx += 1;
 
-        let href = filter_arr[this.tab_history_idx].location;
-        this.location.value = href;
-        viewManager.getView(href);
+        if (filter_arr.length > 1) {
 
-        // update tab history idx
-        this.setTabHistoryIdx(this.tab_id, this.tab_history_idx);
-        console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
+            let href = filter_arr[this.tab_history_idx].location;
+            this.location.value = href;
+            viewManager.getView(href);
+
+            // update tab history idx
+            this.setTabHistoryIdx(this.tab_id, this.tab_history_idx);
+            console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
+
+        }
 
     }
 
@@ -2481,24 +2507,6 @@ class TabManager {
 
         // update tab history idx
         this.setTabHistoryIdx(this.tab_id, this.tab_history_idx);
-
-        // let filter_arr = this.tab_history_arr.filter(item => item.tab_id === parseInt(this.tab_id));
-        // --this.tab_history_idx;
-        // console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
-        // let href = filter_arr[this.tab_history_idx].location;
-        // this.location.value = href;
-
-        // if (this.tab_history_idx < 0) {
-        //     return;
-        //     // this.tab_history_idx = filter_arr.length - 1;
-        // }
-
-        // viewManager.getView(href);
-
-        // let active_tab = document.querySelector('.active-tab');
-        // let tab_id = active_tab.dataset.id;
-        // let tab_history = this.getTabHistory(tab_id);
-        // console.log('tab history', tab_history)
 
     }
 
@@ -3614,7 +3622,7 @@ class DeviceManager {
                     // First, compare by 'type'
                     if (a.type < b.type) return -1;
                     if (a.type > b.type) return 1;
-                    // return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
+                    return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
                 })
 
                 this.device_arr.forEach(device => {

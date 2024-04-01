@@ -1337,7 +1337,8 @@ input[type=text]:focus {
         --sidebar: #262626;
         --input: #484848;
         --input-focus: #1b557c;
-        --main: #2c2c2c;
+        /* --main: #2c2c2c; */
+        --main: #222;
         --minibar: #222222;
         --border: #333333;
         --msg: #222222;

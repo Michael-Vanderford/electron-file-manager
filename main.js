@@ -2010,7 +2010,7 @@ ipcMain.on('clip', (e, href) => {
 ipcMain.on('get_devices', (e) => {
 
     worker.postMessage({ cmd: 'get_devices'});
-    // setTimeout(() => {
+    setTimeout(() => {
 
         // Monitor USB Devices
         gio.monitor(data => {
@@ -2021,7 +2021,7 @@ ipcMain.on('get_devices', (e) => {
             }
         });
 
-    // }, 5000);
+    }, 5000);
 
 })
 
