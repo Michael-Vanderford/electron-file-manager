@@ -258,12 +258,15 @@ ipcRenderer.on('connect', (e) => {
                 break;
             }
             case 'Tab': {
-                e.preventDefault();
-                for (let i = 0; i < suggestions.length; i++) {
-                    if (suggestions[i].classList.contains('highlight_select')) {
-                        mount_point.value = suggestions[i].innerText;
-                        popup.remove();
-                        break;
+                if (suggestions.length > 0) {
+                    e.preventDefault();
+                    for (let i = 0; i < suggestions.length; i++) {
+                        if (suggestions[i].classList.contains('highlight_select')) {
+                            mount_point.value = suggestions[i].innerText;
+                            popup.innerHTML = '';
+                            popup.remove();
+                            break;
+                        }
                     }
                 }
                 break;
