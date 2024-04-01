@@ -3584,12 +3584,6 @@ class DeviceManager {
         ipcRenderer.on('devices', (e, devices) => {
 
             this.device_arr = devices;
-
-            // console.log(devices)
-            // devices.forEach(device => {
-            //     this.device_arr.push(device);
-            // });
-
             this.getDevices();
 
         });
@@ -3647,8 +3641,51 @@ class DeviceManager {
                     let umount_icon = add_icon('eject-fill');
                     umount_div.title = 'Unmount Drive'
                     umount_icon.style = 'position: absolute; right: -30px;';
-                    item.classList.add('item');
 
+                    if (device.path === '') {
+
+                        // Mount
+                        umount_div.classList.add('inactive');
+                        umount_div.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            ipcRenderer.send('mount', device)
+                        })
+
+                        item.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            let root = device.root;
+                            ipcRenderer.send('mount', device)
+                        })
+
+                    } else {
+
+                        // Unmount
+                        umount_div.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            ipcRenderer.send('umount', device.path);
+                        })
+
+                        // Get view
+                        item.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            if (e.ctrlKey) {
+                                viewManager.getView(`${device_path}`, 1);
+                            } else {
+                                viewManager.getView(`${device_path}`);
+                            }
+                            // navigation.addHistory(device_path);
+                            tabManager.addTabHistory(device_path);
+
+                        })
+
+                    }
+
+
+                    item.classList.add('item');
                     item.addEventListener('click', (e) => {
                         e.preventDefault();
                         viewManager.getView(device.path);
@@ -3689,7 +3726,6 @@ class DeviceManager {
                         device_progress_container.append(device_progress);
                         device_view.append(device_progress_container);
 
-                        console.log(width)
                         if (width > 70) {
                             device_progress.classList.add('size_warming');
                         }
