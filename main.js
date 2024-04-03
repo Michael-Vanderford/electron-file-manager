@@ -1884,7 +1884,8 @@ ipcMain.handle('get_thumbnails_directory', async (e) => {
     return thumbnails_dir;
 })
 
-ipcMain.handle('get_thumbnail', (e, file) => {
+ipcMain.handle('get_thumbnail', (e, href) => {
+    let file = gio.get_file(href);
     let thumbnail_dir = path.join(app.getPath('userData'), 'thumbnails')
     let thumbnail = `${path.join(thumbnail_dir, `${file.mtime}_${path.basename(file.href)}`)}`
     if (!gio.exists(thumbnail)) {

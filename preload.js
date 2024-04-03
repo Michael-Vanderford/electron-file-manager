@@ -733,19 +733,22 @@ class Utilities {
                     } else if (file.content_type === 'image/gif') {
                         img.src = file.href;
                     } else {
+                        img.classList.add('lazy')
                         img.src = './assets/icons/image-generic.svg';
 
-                        if (file.href.indexOf('thumbnails') > 1) {
-                            img.src = file.href
-                        } else if (file.href.indexOf('mtp') > -1) {
-                            ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
-                                img.src = thumbnail;
-                            })
-                        } else {
-                            ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
-                                img.src = thumbnail;
-                            })
-                        }
+                        img.dataset.src = file.href;
+
+                        // if (file.href.indexOf('thumbnails') > 1) {
+                        //     img.src = file.href
+                        // } else if (file.href.indexOf('mtp') > -1) {
+                        //     ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
+                        //         img.src = thumbnail;
+                        //     })
+                        // } else {
+                        //     ipcRenderer.invoke('get_thumbnail', file).then(thumbnail => {
+                        //         img.src = thumbnail;
+                        //     })
+                        // }
 
                     }
                 } else if (file.content_type.indexOf('video/') > -1) {
@@ -2850,7 +2853,25 @@ class ViewManager {
                     if (e.isIntersecting) {
 
                         let img = e.target;
-                        img.src = img.dataset.src;
+                        let href = img.dataset.src
+
+                        if (!href) {
+                            return;
+                        }
+
+                        if (href.indexOf('thumbnails') > 1) {
+                            img.src = href;
+                        } else if (href.indexOf('mtp') > -1) {
+                            ipcRenderer.invoke('get_thumbnail', href).then(thumbnail => {
+                                img.src = thumbnail;
+                            })
+                        } else {
+                            ipcRenderer.invoke('get_thumbnail', href).then(thumbnail => {
+                                img.src = thumbnail;
+                            })
+                        }
+
+                        // img.src = img.dataset.src;
                         img.classList.remove("lazy");
                         lazyImageObserver.unobserve(img);
                     }
