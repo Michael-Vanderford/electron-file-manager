@@ -2317,7 +2317,7 @@ class TabManager {
 
     addTabHistory(href) {
 
-        console.log('add history', href)
+        // console.log('add history', href)
 
         let history_obj = {
             tab_id: this.tab_id,

@@ -378,7 +378,7 @@ class NetworkManager {
             this.setNetworkSettings(network_settings);
         })
 
-        // this.connectNetwork();
+        this.connectNetwork();
 
     }
 

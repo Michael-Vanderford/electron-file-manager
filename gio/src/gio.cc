@@ -24,6 +24,9 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 
+// fuse
+#include <fuse.h>
+
 using namespace std;
 
 namespace gio {
@@ -1711,6 +1714,7 @@ namespace gio {
         GMountOperation *mount_operation = g_mount_operation_new();
 
         int is_sftp = strncmp(hostname, "sftp://", 7);
+        int is_sshfs = strncmp(hostname, "sshfs", 5);
 
         // Prioritize SSH key if provided
         if (is_sftp == 0 && ssh_key) {

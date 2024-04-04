@@ -1470,6 +1470,11 @@ parentPort.on('message', data => {
         let network_settings = data.network_settings; //networkManager.getNetworkSettings();
         if (network_settings.length > 0) {
             network_settings.forEach(cmd => {
+
+                if (gio.exists(cmd.mount_point)) {
+                    return;
+                }
+
                 if (cmd.type.toLocaleLowerCase() === 'sshfs') {
                     let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
                     try {
