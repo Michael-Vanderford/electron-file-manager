@@ -1471,40 +1471,33 @@ parentPort.on('message', data => {
         if (network_settings.length > 0) {
             network_settings.forEach(cmd => {
 
-                if (gio.exists(cmd.mount_point)) {
-                    return;
+                const mount_data = execSync('mount').toString();
+                if (cmd.mount_point.endsWith('/')) {
+                    cmd.mount_point = cmd.mount_point.slice(0, -1);
                 }
+                let is_mounted = mount_data.includes(cmd.mount_point);
 
-                if (cmd.type.toLocaleLowerCase() === 'sshfs') {
-                    let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
-                    try {
-                        execSync(sshfs_cmd);
-                        let msg = {
-                            cmd: 'msg_connection',
-                            msg: `Connected to ${cmd.server}`,
-                            error: 0
-                        }
-                        parentPort.postMessage(msg);
+                if (is_mounted == '') {
 
-                        if (cmd.save_connection) {
-                            let connection_cmd = {
-                                cmd: 'save_connection',
-                                network_settings: cmd
+                    if (cmd.type.toLocaleLowerCase() === 'sshfs') {
+                        let sshfs_cmd = `sshfs ${cmd.username}@${cmd.server}:/ ${cmd.mount_point}`;
+                        try {
+                            execSync(sshfs_cmd);
+                            let msg = {
+                                cmd: 'msg_connection',
+                                msg: `Connected to ${cmd.server}`,
+                                error: 0
                             }
-                            parentPort.postMessage(connection_cmd);
-                        }
-                    } catch (err) {
-                        let connection_err = {
-                            cmd: 'connection_error',
-                            msg: err.message,
-                            error: 1
-                        }
-                        parentPort.postMessage(connection_err);
-                        console.log(err.message);
-                    }
-                } else {
-                    gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (err) => {
-                        if (err) {
+                            parentPort.postMessage(msg);
+
+                            if (cmd.save_connection) {
+                                let connection_cmd = {
+                                    cmd: 'save_connection',
+                                    network_settings: cmd
+                                }
+                                parentPort.postMessage(connection_cmd);
+                            }
+                        } catch (err) {
                             let connection_err = {
                                 cmd: 'connection_error',
                                 msg: err.message,
@@ -1512,25 +1505,38 @@ parentPort.on('message', data => {
                             }
                             parentPort.postMessage(connection_err);
                             console.log(err.message);
-                            return;
                         }
-                        let msg = {
-                            cmd: 'msg_connection',
-                            msg: `Connected to ${cmd.server}`,
-                            error: 0
-                        }
-                        parentPort.postMessage(msg);
-
-                        if (cmd.save_connection) {
-
-                            let connection_cmd = {
-                                cmd: 'save_connection',
-                                network_settings: cmd
+                    } else {
+                        gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (err) => {
+                            if (err) {
+                                let connection_err = {
+                                    cmd: 'connection_error',
+                                    msg: err.message,
+                                    error: 1
+                                }
+                                parentPort.postMessage(connection_err);
+                                console.log(err.message);
+                                return;
                             }
-                            parentPort.postMessage(connection_cmd);
-                        }
-                    });
+                            let msg = {
+                                cmd: 'msg_connection',
+                                msg: `Connected to ${cmd.server}`,
+                                error: 0
+                            }
+                            parentPort.postMessage(msg);
+
+                            if (cmd.save_connection) {
+
+                                let connection_cmd = {
+                                    cmd: 'save_connection',
+                                    network_settings: cmd
+                                }
+                                parentPort.postMessage(connection_cmd);
+                            }
+                        });
+                    }
                 }
+
             })
         }
     }
