@@ -718,6 +718,7 @@ class Utilities {
 
                     // Load generic icon
                     img.src = './assets/icons/image-generic.svg';
+                    img.dataset.content_type = file.content_type;
 
                     if (file.content_type === 'image/x-xcf') {
                         img.classList.remove('lazy')
@@ -1260,6 +1261,8 @@ class Navigation {
         this.nav_inc = 0;
         this.nav_group = 0;
 
+        this.quick_search_sting = '';
+
         window.addEventListener('resize', (e) => {
             this.setIncrement();
         })
@@ -1276,9 +1279,56 @@ class Navigation {
         this.initSidebar();
 
         document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey && e.key.toLocaleLowerCase() === 'l') {
-                this.location.focus();
+
+            if (document.activeElement.tagName.toLowerCase() !== 'input') {
+
+                if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                    if (e.ctrlKey && e.key.toLocaleLowerCase() === 'l') {
+                        this.location.focus();
+                    }
+                } else {
+
+                    // check if key is a letter or number
+                    // filter anything that is not a letter or number
+                    let c = 0;
+                    if (e.key.length === 1 && e.key.match(/[a-z0-9-_]/i)) {
+                        this.quick_search_sting += e.key;
+                        let cards = document.querySelectorAll('.card')
+                        cards.forEach((card) => {
+
+                            // if (card.dataset.href.toLocaleLowerCase().indexOf(this.quick_search_sting) > -1) {
+                            if (card.dataset.name.toLocaleLowerCase().startsWith(this.quick_search_sting)) {
+                                card.classList.add('highlight_select');
+
+                                if (c === 0) {
+                                    let active_href = card.querySelector('.header a');
+                                    active_href.focus();
+                                }
+                                ++c
+
+                            } else {
+                                card.classList.remove('highlight_select');
+                            }
+                        })
+                        utilities.msg(this.quick_search_sting)
+                        // setTimeout(() => {
+                        //     this.quick_search_sting = '';
+                        // }, 5000);
+                    }
+
+                    if (this.quick_search_sting != '' && e.key === 'Backspace') {
+                        this.quick_search_sting = this.quick_search_sting.slice(0, -1);
+                        utilities.msg(this.quick_search_sting)
+                    }
+
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                        this.quick_search_sting = '';
+                    }
+
+                }
+
             }
+
         });
 
         // Handle Location
@@ -2093,6 +2143,53 @@ class Navigation {
         card.classList.remove('highlight_select');
     }
 
+    quickSearch(e) {
+
+        let main = document.querySelector('.main');
+        let quicksearch = add_div(['quicksearch', 'bottom', 'right']); //document.querySelector('.quicksearch');
+        let txt_quicksearch = document.createElement('input'); //document.getElementById('txt_quicksearch');
+
+        txt_quicksearch.id = 'txt_quicksearch';
+        txt_quicksearch.classList.add('input');
+        txt_quicksearch.type = 'text';
+
+        quicksearch.append(txt_quicksearch);
+        quicksearch.classList.remove('hidden');
+        main.append(quicksearch);
+
+        txt_quicksearch.focus();
+
+        txt_quicksearch.addEventListener('keydown', (e) => {
+            if (/^[A-Za-z]$/.test(e.key)) {
+                // txt_quicksearch.value = e.key
+            }
+
+            if (e.key === 'Enter') {
+
+                let c = 0;
+                let cards = document.querySelectorAll('.card')
+                cards.forEach(card => {
+                    if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
+                        card.classList.add('highlight');
+                        if (c === 0) {
+                            let href = card.querySelector('.header a');
+                            href.focus();
+                        }
+                        ++c;
+                    }
+                })
+                quicksearch.classList.add('hidden');
+                txt_quicksearch.value = '';
+            }
+
+            if (e.key === 'Escape') {
+                quicksearch.classList.add('hidden')
+            }
+
+        })
+
+    }
+
 }
 
 class TabManager {
@@ -2859,6 +2956,11 @@ class ViewManager {
                             return;
                         }
 
+                        if (img.dataset.content_type === 'image/svg+xml') {
+                            img.src = href;
+                            return;
+                        }
+
                         if (href.indexOf('thumbnails') > 1) {
                             img.src = href;
                         } else if (href.indexOf('mtp') > -1) {
@@ -3352,7 +3454,7 @@ class FileOperation {
             })
 
             main.addEventListener('mouseleave', (e) => {
-                document.removeEventListener('keyup', quickSearch)
+                // document.removeEventListener('keyup', quickSearch)
             })
 
             // let nav_idx = 0;
@@ -3896,7 +3998,9 @@ contextBridge.exposeInMainWorld('api', {
         fileOperation.newFolder()
     },
     find_files,
-    quickSearch,
+    quickSearch: () => {
+        navigation.quickSearch();
+    },
     newWindow: () => {
         ipcRenderer.send('new_window');
     },
@@ -6426,50 +6530,50 @@ function clearContextMenu(e) {
 //     }
 // }
 
-function quickSearch(e) {
-    let main = document.querySelector('.main');
-    let quicksearch = add_div(['quicksearch', 'bottom', 'right']); //document.querySelector('.quicksearch');
-    let txt_quicksearch = document.createElement('input'); //document.getElementById('txt_quicksearch');
+// function quickSearch(e) {
+//     let main = document.querySelector('.main');
+//     let quicksearch = add_div(['quicksearch', 'bottom', 'right']); //document.querySelector('.quicksearch');
+//     let txt_quicksearch = document.createElement('input'); //document.getElementById('txt_quicksearch');
 
-    txt_quicksearch.id = 'txt_quicksearch';
-    txt_quicksearch.classList.add('input');
-    txt_quicksearch.type = 'text';
+//     txt_quicksearch.id = 'txt_quicksearch';
+//     txt_quicksearch.classList.add('input');
+//     txt_quicksearch.type = 'text';
 
-    quicksearch.append(txt_quicksearch);
-    quicksearch.classList.remove('hidden');
-    main.append(quicksearch);
+//     quicksearch.append(txt_quicksearch);
+//     quicksearch.classList.remove('hidden');
+//     main.append(quicksearch);
 
-    txt_quicksearch.focus();
+//     txt_quicksearch.focus();
 
-    txt_quicksearch.addEventListener('keydown', (e) => {
-        if (/^[A-Za-z]$/.test(e.key)) {
-            // txt_quicksearch.value = e.key
-        }
+//     txt_quicksearch.addEventListener('keydown', (e) => {
+//         if (/^[A-Za-z]$/.test(e.key)) {
+//             // txt_quicksearch.value = e.key
+//         }
 
-        if (e.key === 'Enter') {
+//         if (e.key === 'Enter') {
 
-            let c = 0;
-            let cards = document.querySelectorAll('.card')
-            cards.forEach(card => {
-                if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
-                    card.classList.add('highlight');
-                    if (c === 0) {
-                        let href = card.querySelector('.header a');
-                        href.focus();
-                    }
-                    ++c;
-                }
-            })
-            quicksearch.classList.add('hidden');
-            txt_quicksearch.value = '';
-        }
+//             let c = 0;
+//             let cards = document.querySelectorAll('.card')
+//             cards.forEach(card => {
+//                 if (card.dataset.href.toLocaleLowerCase().indexOf(txt_quicksearch.value) > -1) {
+//                     card.classList.add('highlight');
+//                     if (c === 0) {
+//                         let href = card.querySelector('.header a');
+//                         href.focus();
+//                     }
+//                     ++c;
+//                 }
+//             })
+//             quicksearch.classList.add('hidden');
+//             txt_quicksearch.value = '';
+//         }
 
-        if (e.key === 'Escape') {
-            quicksearch.classList.add('hidden')
-        }
+//         if (e.key === 'Escape') {
+//             quicksearch.classList.add('hidden')
+//         }
 
-    })
-}
+//     })
+// }
 
 function clearViews() {
 

@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
         // Quick Search
         mt.bind(shortcut.QuickSearch.toLowerCase(), (e) => {
-            window.api.quickSearch(e);
+            // window.api.quickSearch(e);
         })
 
         // New Window
