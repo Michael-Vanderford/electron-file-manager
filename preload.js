@@ -172,6 +172,7 @@ class SettingsManager {
         this.settings = [];
         this.showHeaderMenu();
         // this.moveNavMenu();
+        this.showMinibar();
 
         this.getSettings(settings_data => {
             this.settings = settings_data;
@@ -195,6 +196,17 @@ class SettingsManager {
                 header_menu.classList.remove('hidden')
             } else {
                 header_menu.classList.add('hidden')
+            }
+        })
+    }
+
+    showMinibar () {
+        const minibar = document.querySelector('.minibar');
+        this.getSettings(settings => {
+            if (settings['Minibar'].show) {
+                minibar.classList.remove('hidden')
+            } else {
+                minibar.classList.add('hidden')
             }
         })
     }
@@ -376,6 +388,10 @@ class SettingsManager {
                                     }
                                     case 'Navigation Menu': {
                                         this.moveNavMenu();
+                                        break;
+                                    }
+                                    case 'Minibar': {
+                                        this.showMinibar();
                                         break;
                                     }
                                 }
@@ -1291,7 +1307,7 @@ class Navigation {
                     // check if key is a letter or number
                     // filter anything that is not a letter or number
                     let c = 0;
-                    if (e.key.length === 1 && e.key.match(/[a-z0-9-_]/i)) {
+                    if (e.key.length === 1 && e.key.match(/[a-z0-9-_.]/i)) {
                         this.quick_search_sting += e.key;
                         let cards = document.querySelectorAll('.card')
                         cards.forEach((card) => {

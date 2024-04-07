@@ -18,6 +18,9 @@
     "Header Menu": {
         "show": false
     },
+    "Minibar": {
+        "show": true
+    },
     "keyboard_shortcuts": {
         "Backspace": "Backspace",
         "ShowHome": "Alt+H",
