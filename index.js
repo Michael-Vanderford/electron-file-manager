@@ -126,6 +126,7 @@ document.addEventListener("DOMContentLoaded", (e) => {
 
         // Go Back
         mt.bind(shortcut.Backspace.toLocaleLowerCase(), (e) => {
+            e.preventDefault();
             window.api.back();
         })
 

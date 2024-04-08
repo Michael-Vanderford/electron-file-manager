@@ -1256,7 +1256,7 @@ class IconManager {
     }
 
 }
-
+let is_quick_search = 0;
 class Navigation {
 
     constructor() {
@@ -1276,9 +1276,7 @@ class Navigation {
         this.nav_idx = null;
         this.nav_inc = 0;
         this.nav_group = 0;
-
         this.quick_search_sting = '';
-
         window.addEventListener('resize', (e) => {
             this.setIncrement();
         })
@@ -1296,9 +1294,11 @@ class Navigation {
 
         document.addEventListener('keydown', (e) => {
 
+            e.stopPropagation();
+
             if (document.activeElement.tagName.toLowerCase() !== 'input') {
 
-                if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) {
                     if (e.ctrlKey && e.key.toLocaleLowerCase() === 'l') {
                         this.location.focus();
                     }
@@ -1308,6 +1308,7 @@ class Navigation {
                     // filter anything that is not a letter or number
                     let c = 0;
                     if (e.key.length === 1 && e.key.match(/[a-z0-9-_.]/i)) {
+                        is_quick_search = 1;
                         this.quick_search_sting += e.key;
                         let cards = document.querySelectorAll('.card')
                         cards.forEach((card) => {
@@ -1332,12 +1333,17 @@ class Navigation {
                         // }, 5000);
                     }
 
-                    if (this.quick_search_sting != '' && e.key === 'Backspace') {
+                    if (this.quick_search_sting !== '' && e.key === 'Backspace') {
                         this.quick_search_sting = this.quick_search_sting.slice(0, -1);
                         utilities.msg(this.quick_search_sting)
                     }
 
+                    if (this.quick_search_sting === '') {
+                        is_quick_search = 0;
+                    }
+
                     if (e.key === 'Enter' || e.key === 'Escape') {
+                        is_quick_search = 0;
                         this.quick_search_sting = '';
                     }
 
@@ -1892,7 +1898,6 @@ class Navigation {
 
     // Navigate left
     back() {
-        // console.log('running left')
         if (this.history_idx > 0) {
             this.history_idx--;
             viewManager.getView(this.historyArr[this.history_idx]);
@@ -2573,6 +2578,10 @@ class TabManager {
     tabHistoryBack() {
 
         console.log('tab history back', this.tab_id);
+
+        if (is_quick_search === 1) {
+            return;
+        }
 
         // get tab history idx from array
         this.tab_history_idx = this.getTabHistoryIdx(this.tab_id);
