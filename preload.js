@@ -3652,7 +3652,7 @@ class FileOperation {
             })
             input.focus();
 
-            main.removeEventListener('keydown', quickSearch);
+            // main.removeEventListener('keydown', quickSearch);
 
             input.addEventListener('change', (e) => {
                 e.preventDefault();

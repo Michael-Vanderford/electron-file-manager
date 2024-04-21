@@ -24,6 +24,8 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <glib.h>
 
+#include <chrono>
+
 // fuse
 #include <fuse.h>
 
@@ -864,6 +866,7 @@ namespace gio {
             GFile* parent = g_file_get_parent(src);
             gboolean is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
             gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
+            gboolean is_symlink = g_file_info_get_is_symlink(file_info);
 
             v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
             Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
@@ -873,6 +876,7 @@ namespace gio {
             Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
             Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
             Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
+            Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
 
             if (parent != nullptr) {
                 const char* location = g_file_get_path(parent);
@@ -1361,6 +1365,79 @@ namespace gio {
 
         }
 
+        info.GetReturnValue().Set(Nan::True());
+
+    }
+
+    // copy file using asyn stream
+    NAN_METHOD(cp_stream) {
+
+        Nan:: HandleScope scope;
+
+        if (info.Length() < 2) {
+            return Nan::ThrowError("Wrong number of arguments");
+        }
+
+        Nan::Callback* callback = new Nan::Callback(info[2].As<v8::Function>());
+
+        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+        v8::Isolate* isolate = info.GetIsolate();
+        v8::String::Utf8Value sourceFile(isolate, sourceString);
+        v8::String::Utf8Value destFile(isolate, destString);
+
+        GFile* src = g_file_new_for_path(*sourceFile);
+        GFile* dest = g_file_new_for_path(*destFile);
+
+        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+        const char *dest_scheme = g_uri_parse_scheme(*destFile);
+        if (src_scheme != NULL) {
+            src = g_file_new_for_uri(*sourceFile);
+        }
+        if (dest_scheme != NULL) {
+            dest = g_file_new_for_uri(*destFile);
+        }
+
+        GError* error = nullptr;
+        GFileInputStream* input_stream = g_file_read(src, nullptr, &error);
+        if (error) {
+            return Nan::ThrowError(error->message);
+        }
+
+        GFileOutputStream* output_stream = g_file_replace(dest, nullptr, FALSE, G_FILE_CREATE_NONE, nullptr, &error);
+        if (error) {
+            return Nan::ThrowError(error->message);
+        }
+
+        int64_t bytes_read = 0;
+        char buffer[4096];
+
+        while ((bytes_read = g_input_stream_read(G_INPUT_STREAM(input_stream), buffer, sizeof(buffer), nullptr, &error)) > 0) {
+
+            g_output_stream_write(G_OUTPUT_STREAM(output_stream), buffer, bytes_read, nullptr, &error);
+
+            if (error) {
+                return Nan::ThrowError(error->message);
+            }
+
+            printf("Bytes read: %ld\n", bytes_read);
+
+            v8::Local<v8::Object> resultObj = Nan::New<v8::Object>();
+            Nan::Set(resultObj, Nan::New("bytes_read").ToLocalChecked(), Nan::New<v8::Number>(bytes_read));
+            v8::Local<v8::Value> argv[] = { Nan::Null(), resultObj };
+            callback->Call(2, argv);
+
+        }
+
+        if (error) {
+            return Nan::ThrowError(error->message);
+        }
+
+        g_object_unref(input_stream);
+        g_object_unref(output_stream);
+        g_object_unref(src);
+        g_object_unref(dest);
 
         info.GetReturnValue().Set(Nan::True());
 
@@ -1452,11 +1529,35 @@ namespace gio {
 
     }
 
+    // this is worthless
+    void cp_progress_callback(goffset bytes_copied,
+                          goffset total_bytes,
+                          gpointer user_data) {
+
+        Nan::HandleScope scope;
+        if (user_data == NULL) {
+            printf("User data is NULL\n");
+            return;
+        }
+
+        goffset bytes_copied0 = bytes_copied;
+
+        v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+        Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(bytes_copied));
+        Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
+
+        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+        const unsigned argc = 1;
+        v8::Local<v8::Value> argv[argc] = { dataObj };
+        callback->Call(argc, argv);
+
+    }
+
     NAN_METHOD(cp_async) {
 
         Nan:: HandleScope scope;
 
-        if (info.Length() < 2) {
+        if (info.Length() < 3) {
             return Nan::ThrowError("Wrong number of arguments");
         }
 
@@ -1479,19 +1580,22 @@ namespace gio {
             dest = g_file_new_for_uri(*destFile);
         }
 
-        g_file_copy_async(src, dest,
-                        G_FILE_COPY_NONE,
-                        G_PRIORITY_DEFAULT,
-                        NULL,
-                        NULL,
-                        NULL,
-                        NULL,
-                        NULL);
+        // note: this works but the progress does not process until the operation has completed
+        GError** error = nullptr;
+        g_file_copy(src,
+                    dest,
+                    G_FILE_COPY_ALL_METADATA,
+                    NULL,
+                    (GFileProgressCallback) cp_progress_callback,
+                    new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
+                    error);
 
         g_object_unref(src);
         g_object_unref(dest);
 
     }
+
+
 
     NAN_METHOD(cp_write) {
         Nan:: HandleScope scope;
@@ -1944,6 +2048,7 @@ namespace gio {
         Nan::Export(target, "ls", ls);
         Nan::Export(target, "mkdir", mkdir);
         Nan::Export(target, "cp", cp);
+        Nan::Export(target, "cp_stream", cp_stream);
         Nan::Export(target, "cp_async", cp_async);
         Nan::Export(target, "mv", mv);
         Nan::Export(target, "rm", rm);

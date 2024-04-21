@@ -1,5 +1,6 @@
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync, exec } = require('child_process')
+const fs = require('fs');
 const path = require('path');
 const gio_utils = require('../utils/gio');
 const gio = require('../gio/build/Release/obj.target/gio')
@@ -932,8 +933,8 @@ parentPort.on('message', data => {
     if (data.cmd === 'paste') {
 
         // console.log('running paste')
-
         let idx = 0;
+        let chunk_size = 0;
         let copy_arr = data.copy_arr
         function copy_next() {
 
@@ -1019,6 +1020,7 @@ parentPort.on('message', data => {
                             }
 
                             let cpc = 0;
+                            let chunk_size = 0;
                             for (let i = 0; i < dirents.length; i++) {
                                 let f = dirents[i]
                                 if (f.type == 'directory') {
@@ -1057,7 +1059,47 @@ parentPort.on('message', data => {
                                         // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
                                     } else {
                                         try {
+
+                                            // const rs = fs.createReadStream(f.source);
+                                            // const ws = fs.createWriteStream(f.destination);
+
+                                            // rs.on('error', err => {
+                                            //     parentPort.postMessage({cmd: 'msg', err: err});
+                                            // })
+
+                                            // ws.on('error', err => {
+                                            //     parentPort.postMessage({cmd: 'msg', err: err});
+                                            // })
+
+                                            // rs.on('data', chunk => {
+                                            //     chunk_size += chunk.length;
+                                            //     data = {
+                                            //         id: data.id,
+                                            //         cmd: 'progress',
+                                            //         // msg: `Copying "${path.basename(destination)}" ${cpc} of ${dirents.length}`,
+                                            //         msg: `Copying "${path.basename(destination)}" `,
+                                            //         max: max,
+                                            //         value: chunk_size
+                                            //     }
+                                            //     // console.log(data)
+                                            //     parentPort.postMessage(data);
+
+                                            //     if (chunk_size >= max) {
+                                            //         console.log('done copying files');
+                                            //         let data = {
+                                            //             cmd: 'copy_done',
+                                            //             destination: destination
+                                            //         }
+                                            //         parentPort.postMessage(data);
+                                            //         copy_next();
+                                            //     }
+
+                                            // })
+
+                                            // rs.pipe(ws);
+
                                             gio.cp(f.source, f.destination, 0)
+
                                         } catch (err) {
                                             let msg = {
                                                 cmd: 'msg',
@@ -1067,6 +1109,7 @@ parentPort.on('message', data => {
                                             parentPort.postMessage(msg);
                                         }
                                     }
+
                                     data = {
                                         id: data.id,
                                         cmd: 'progress',
@@ -1106,6 +1149,44 @@ parentPort.on('message', data => {
                             }
                             parentPort.postMessage(data);
                             parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
+
+                            // const rs = fs.createReadStream(copy_item.source);
+                            // const ws = fs.createWriteStream(copy_item.destination);
+
+                            // rs.on('error', err => {
+                            //     parentPort.postMessage({cmd: 'msg', err: err});
+                            // })
+
+                            // ws.on('error', err => {
+                            //     parentPort.postMessage({cmd: 'msg', err: err});
+                            // })
+
+                            // rs.on('data', chunk => {
+                            //     chunk_size += chunk.length;
+                            //     data = {
+                            //         id: data.id,
+                            //         cmd: 'progress',
+                            //         msg: `Copying "${path.basename(destination)}" `,  // ${path.basename(f.source)}`,
+                            //         max: max,
+                            //         value: chunk_size
+                            //     }
+                            //     // console.log(data)
+                            //     parentPort.postMessage(data);
+
+                            //     // if (chunk_size >= max) {
+                            //     //     chunk_size = 0;
+                            //     //     console.log('done copying files');
+                            //     //     let data = {
+                            //     //         cmd: 'copy_done',
+                            //     //         destination: destination
+                            //     //     }
+                            //     //     parentPort.postMessage(data);
+                            //     //     copy_next();
+                            //     // }
+
+                            // })
+
+                            // rs.pipe(ws);
 
                         } catch (err) {
                             console.log(err.message);
