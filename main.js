@@ -2152,6 +2152,21 @@ ipcMain.on('paste', (e, destination) => {
                 win.send('set_progress', data);
                 break;
             }
+            case 'get_card': {
+                if (is_main) {
+                    let file = gio.get_file(data.destination);
+                    win.send('remove_card', data.destination);
+                    win.send('get_card_gio', file);
+                } else {
+                    if (!is_main) {
+                        win.send('get_folder_count', path.dirname(data.destination));
+                        win.send('get_folder_size', path.dirname(data.destination));
+                    }
+                }
+                win.send('lazyload');
+                win.send('clear');
+                break
+            }
             case 'copy_done': {
                 if (is_main) {
                     let file = gio.get_file(data.destination);

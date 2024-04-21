@@ -1530,7 +1530,9 @@ namespace gio {
     }
 
     // this is worthless
-    void cp_progress_callback(goffset bytes_copied,
+    goffset bytes_copied0 = 0;
+    goffset bytes_copied = 0;
+    void cp_progress_callback(goffset current_num_bytes,
                           goffset total_bytes,
                           gpointer user_data) {
 
@@ -1540,7 +1542,9 @@ namespace gio {
             return;
         }
 
-        goffset bytes_copied0 = bytes_copied;
+        // convert current bytes to bytes_copied
+        bytes_copied = current_num_bytes - bytes_copied0;
+        bytes_copied0 = current_num_bytes;
 
         v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
         Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(bytes_copied));
@@ -1589,6 +1593,9 @@ namespace gio {
                     (GFileProgressCallback) cp_progress_callback,
                     new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
                     error);
+
+        bytes_copied0 = 0;
+        bytes_copied = 0;
 
         g_object_unref(src);
         g_object_unref(dest);

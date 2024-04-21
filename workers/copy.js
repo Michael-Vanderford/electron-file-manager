@@ -23,6 +23,12 @@ class Utilities {
         let file = gio.get_file(source);
 
         let destination = path.join(base_destination, path.basename(source));
+
+        // Check if destination exists
+        while (fs.existsSync(destination)) {
+            destination = `${destination} (Copy)`;
+        }
+
         file.destination = destination;
 
         this.file_arr.push(file);
@@ -194,120 +200,36 @@ parentPort.on('message', async data => {
         })
 
         progress_id = data.id;
-        let chunk_size = 0;
-
         let total_bytes0 = 0;
         let total_bytes = 0;
-        let new_total_bytes = 0;
-        let bytes_copied0 = 0;
         let bytes_copied = 0;
-        let new_bytes0 = 0;
-        let new_bytes = 0;
 
         files_arr.forEach((file, idx) => {
             if (file.is_dir) {
-              if (!fs.existsSync(file.destination)) {
-                fs.mkdirSync(file.destination);
-              }
+
+                if (!fs.existsSync(file.destination)) {
+                    fs.mkdirSync(file.destination);
+                }
+
             } else {
 
                 const destination = path.join(file.destination, path.basename(file.source));
-
-                // utilities.copy(file.source, destination);
-                // gio.cp_stream(file.source, destination, (err, data) => {
-                //     if (err) {
-                //         parentPort.postMessage({cmd: 'msg', err: err});
-                //     }
-                //     console.log(data);
-                //     chunk_size += data.bytes_read;
-                //     let progress = {
-                //         id: progress_id,
-                //         cmd: 'progress',
-                //         msg: `Copying `,  // ${path.basename(f.source)}`,
-                //         max: max,
-                //         value: chunk_size
-                //     }
-                //     parentPort.postMessage(progress);
-                // });
-
-                // chunk_size += chunk.length;
-                // let data = {
-                //     id: progress_id,
-                //     cmd: 'progress',
-                //     msg: `Copying `,  // ${path.basename(f.source)}`,
-                //     max: files_arr.length, //max,
-                //     value: idx //chunk_size
-                // }
-                // parentPort.postMessage(data);
-
-                // gio.cp(file.source, destination);
-                // let data = {
-                //     id: progress_id,
-                //     cmd: 'progress',
-                //     msg: `Copying ${idx} of ${files_arr.length} `,  // ${path.basename(f.source)}`,
-                //     max: files_arr.length,
-                //     value: idx
-                // }
-                // parentPort.postMessage(data);
-
-                // if (idx === files_arr.length - 1) {
-                //     console.log('done copying files');
-
-                //     // Send copy_done message for each item in
-                //     // selected_files_arr to update file stats
-                //     for (let i = 0; i < selected_files_arr.length; i++) {
-                //         let data = {
-                //             cmd: 'copy_done',
-                //             destination: path.join(root_destination, path.basename(selected_files_arr[i]))
-                //         }
-                //         parentPort.postMessage(data);
-                //     }
-
-                //     let close_progress = {
-                //         id: progress_id,
-                //         cmd: 'progress',
-                //         msg: ``,
-                //         max: 0,
-                //         value: 0
-                //     }
-                //     parentPort.postMessage(close_progress);
-                // }
-
-                // this is worthless
                 gio.cp_async(file.source, destination, (res) => {
 
-                    bytes_copied0 = bytes_copied;
-                    bytes_copied = parseInt(res.bytes_copied);
-
-                    new_bytes0 = new_bytes;
-                    new_bytes += bytes_copied - bytes_copied0;
-
                     total_bytes0 = total_bytes;
-                    total_bytes = parseInt(res.total_bytes);
-
-                    if (total_bytes0 !== total_bytes && total_bytes > 0) {
-                        console.log('adding', total_bytes0, total_bytes)
-                        new_bytes = new_bytes0 + new_bytes;
-                        new_total_bytes = total_bytes + total_bytes0;
-                    }
-
-
-                    // bytes_copied = parseInt(res.bytes_copied);
-                    // total_bytes = parseInt(res.total_bytes);
-
-                    // chunk_size += new_bytes;
-                    // console.log('chunk', new_bytes, new_total_bytes, max);
+                    total_bytes = res.total_bytes;
+                    bytes_copied += parseInt(res.bytes_copied);
 
                     let data = {
                         id: progress_id,
                         cmd: 'progress',
                         msg: `Copying `,  // ${path.basename(f.source)}`,
                         max: max,
-                        value: new_bytes
+                        value: bytes_copied
                     }
                     parentPort.postMessage(data);
 
-                    if (new_bytes >= max) {
+                    if (bytes_copied >= max) {
                         let close_progress = {
                             id: progress_id,
                             cmd: 'progress',
@@ -316,93 +238,29 @@ parentPort.on('message', async data => {
                             value: 0
                         }
                         parentPort.postMessage(close_progress);
-                        chunk_size = 0;
-                        total_bytes = 0;
+                        bytes_copied = 0;
+                        max = 0;
+
+                        // update cards
+                        selected_files_arr.forEach((f, i) => {
+                            let source = f;
+                            let destination = path.join(root_destination, path.basename(source));
+                            let update_card = {
+                                cmd: 'get_card',
+                                destination: destination
+                            }
+                            parentPort.postMessage(update_card);
+                        })
 
                     }
 
 
-
-                    // }
 
                 });
 
             }
 
         });
-
-        // files_arr.sort((a,b) => {
-        //     return a.source.length - b.source.length;
-        // })
-
-        // copy files
-        // files_arr.forEach((file, idx) => {
-
-            // let destination = path.join(base_destination, path.basename(file.destination));
-            // if (file.is_dir) {
-            //     if (!fs.existsSync(file.destination)) {
-            //         fs.mkdirSync(file.destination);
-            //     }
-            // } else {
-
-            //     let destination = path.join(file.destination, path.basename(file.source));
-
-            //     // Create stream readers and writers
-            //     const rs = fs.createReadStream(file.source);
-            //     const ws = fs.createWriteStream(destination);
-            //     rs.on('error', err => {
-            //         parentPort.postMessage({cmd: 'msg', err: err});
-            //     })
-            //     ws.on('error', err => {
-            //         parentPort.postMessage({cmd: 'msg', err: err});
-            //     })
-
-            //     rs.on('data', chunk => {
-
-            //         let data_id = data.id;
-
-            //         // Progress
-            //         chunk_size += chunk.length;
-            //         data = {
-            //             id: data_id,
-            //             cmd: 'progress',
-            //             msg: `Copying "${file.name}" `,  // ${path.basename(f.source)}`,
-            //             max: max,
-            //             value: chunk_size
-            //         }
-            //         parentPort.postMessage(data);
-
-            //         // Hide progress if done
-            //         if (chunk_size >= max) {
-            //             console.log('done copying files');
-
-            //             // Send copy_done message for each item in
-            //             // selected_files_arr to update file stats
-            //             for (let i = 0; i < selected_files_arr.length; i++) {
-            //                 let data = {
-            //                     cmd: 'copy_done',
-            //                     destination: path.join(root_destination, path.basename(selected_files_arr[i]))
-            //                 }
-            //                 parentPort.postMessage(data);
-            //             }
-
-            //             let close_progress = {
-            //                 id: data_id,
-            //                 cmd: 'progress',
-            //                 msg: ``,
-            //                 max: 0,
-            //                 value: 0
-            //             }
-            //             parentPort.postMessage(close_progress);
-
-            //         }
-            //     })
-
-            //     rs.pipe(ws);
-
-            // }
-
-        // })
 
     }
 
