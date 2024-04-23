@@ -1529,9 +1529,14 @@ namespace gio {
 
     }
 
-    // this is worthless
-    goffset bytes_copied0 = 0;
-    goffset bytes_copied = 0;
+    class progress_data {
+        public:
+        goffset bytes_copied;
+        goffset bytes_copied0;
+    };
+
+    static progress_data progress_data;
+
     void cp_progress_callback(goffset current_num_bytes,
                           goffset total_bytes,
                           gpointer user_data) {
@@ -1543,11 +1548,15 @@ namespace gio {
         }
 
         // convert current bytes to bytes_copied
-        bytes_copied = current_num_bytes - bytes_copied0;
-        bytes_copied0 = current_num_bytes;
+        // bytes_copied = current_num_bytes - bytes_copied0;
+        // bytes_copied0 = current_num_bytes;
+
+        progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
+        progress_data.bytes_copied0 = current_num_bytes;
 
         v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
-        Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(bytes_copied));
+        Nan::Set(dataObj, Nan::New("current_num_bytes").ToLocalChecked(), Nan::New<v8::Number>(current_num_bytes));
+        Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(progress_data.bytes_copied));
         Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
 
         Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
@@ -1594,8 +1603,8 @@ namespace gio {
                     new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
                     error);
 
-        bytes_copied0 = 0;
-        bytes_copied = 0;
+        progress_data.bytes_copied0 = 0;
+        progress_data.bytes_copied = 0;
 
         g_object_unref(src);
         g_object_unref(dest);

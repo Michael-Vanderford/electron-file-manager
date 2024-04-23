@@ -118,6 +118,13 @@ parentPort.on('message', async data => {
 
         let progress_id = data.id;
 
+        let total_bytes0 = 0;
+        let total_bytes = 0;
+        let bytes_copied = 0;
+
+        let current_num_bytes = 0;
+        let current_num_bytes0 = 0;
+
         // get all files and directories to copy
         for (let i = 0; i < selected_files_arr.length; i++) {
 
@@ -162,8 +169,6 @@ parentPort.on('message', async data => {
         //     return b.source - a.source;
         // })
 
-
-
         files_arr.forEach((file, idx) => {
 
             // directory
@@ -176,16 +181,25 @@ parentPort.on('message', async data => {
             // file
             } else {
 
-                let total_bytes0 = 0;
-                let total_bytes = 0;
-                let bytes_copied = 0;
-
                 const destination = path.join(file.destination, path.basename(file.source));
+
                 gio.cp_async(file.source, destination, (res) => {
 
                     total_bytes0 = total_bytes;
                     total_bytes = res.total_bytes;
                     bytes_copied += parseInt(res.bytes_copied);
+
+                    // if (bytes_copied < 0) {
+                    //    console.log('Error:', res);
+                    // }
+
+                    // bytes_copied = current_num_bytes - bytes_copied0;
+                    // bytes_copied0 = current_num_bytes;
+
+                    current_num_bytes = parseInt(res.current_num_bytes) - current_num_bytes0;
+                    current_num_bytes0 = parseInt(res.current_num_bytes);
+
+                    // console.log(current_num_bytes, total_bytes, bytes_copied, max)
 
                     let progress_data = {
                         id: data.id,
@@ -196,31 +210,47 @@ parentPort.on('message', async data => {
                     }
                     parentPort.postMessage(progress_data);
 
-                    if (bytes_copied >= max) {
-                        let close_progress = {
-                            id: data.id,
-                            cmd: 'progress',
-                            msg: ``,
-                            max: 0,
-                            value: 0
-                        }
-                        parentPort.postMessage(close_progress);
-                        bytes_copied = 0;
-                        max = 0;
+                    if (bytes_copied >= max && bytes_copied > 0 && max > 0) {
+
+                        //let close_progress = {
+                        //    id: data.id,
+                        //    cmd: 'progress',
+                        //    msg: ``,
+                        //    max: 0,
+                        //    value: 0
+                        //}
+                        // parentPort.postMessage(close_progress);
 
                         // update cards
-                        selected_files_arr.forEach((f, i) => {
-                            let source = f;
-                            let destination = path.join(root_destination, path.basename(source));
-                            let update_card = {
-                                cmd: 'get_card',
-                                destination: destination
-                            }
-                            parentPort.postMessage(update_card);
-                        })
+                        //selected_files_arr.forEach((f, i) => {
+                        //    let source = f;
+                        //    let destination = path.join(root_destination, path.basename(source));
+                        //    let update_card = {
+                        //        cmd: 'get_card',
+                        //        destination: destination
+                        //    }
+                        //    parentPort.postMessage(update_card);
+                        //})
 
                         // clear selected files array
-                        selected_files_arr = [];
+                        // selected_files_arr = [];
+
+                        let copy_done = {
+                            id: data.id,
+                            cmd: 'copy_done',
+                            bytes_copied: bytes_copied,
+                            total_bytes: total_bytes,
+                            max: max
+                        }
+                        parentPort.postMessage(copy_done);
+
+                        // cleanup
+                        bytes_copied = 0;
+                        max = 0;
+                        current_num_bytes = 0;
+                        total_bytes = 0;
+
+                        console.log(max, bytes_copied, current_num_bytes, total_bytes, data.id)
 
                     }
 
