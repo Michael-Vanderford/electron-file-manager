@@ -16,23 +16,33 @@ class Utilities {
         this.cancel_get_files = false;
     }
 
+    getDate() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const ms = String(now.getMilliseconds()).padStart(3, '0');
+
+        return `${year}-${day}-${month} ${hours}:${minutes}:${seconds}.${ms}`;
+    }
+
     get_files_arr (source, base_destination, callback) {
 
         this.cp_recursive++
 
+        // Check if source exists
         let file = gio.get_file(source);
-
-        let destination = path.join(base_destination, path.basename(source));
-
-        // Check if destination exists
-        while (fs.existsSync(destination)) {
-            destination = `${destination} (Copy)`;
+        if (!file) {
+            return callback('File not found');
         }
 
+        let destination = base_destination; //path.join(base_destination, path.basename(source));
         file.destination = destination;
 
         this.file_arr.push(file);
-
         gio.ls(source, (err, dirents) => {
 
             if (err) {
@@ -44,13 +54,7 @@ class Utilities {
                 let file = dirents[i];
 
                 if (file.is_dir && !file.is_symlink) {
-
-                    // add top level directory
-                    // this.file_arr.push({type: 'directory', source: source, destination: destination});
-
-                    // get files in directory
                     this.get_files_arr(file.href, destination, callback)
-
                 } else {
 
                     let file_obj = {
@@ -98,67 +102,6 @@ class Utilities {
         });
     }
 
-    copy(sourcePath, destinationPath) { // 64KB chunks by default
-
-        // let bytesCopied = 0;
-        // const totalSize = fs.statSync(sourcePath).size;
-
-
-        const readStream = fs.createReadStream(sourcePath, {highWaterMark: 1024 }); // Double the chunk size for buffer
-        const writeStream = fs.createWriteStream(destinationPath, {highWaterMark: 1024  });
-
-        readStream.on('error', (error) => {
-            console.error('Error reading source file:', error);
-            // Handle errors gracefully, e.g., log, notify user, retry with backoff
-            parentPort.postMessage({ cmd: 'msg', err: error }); // Send error message to parent
-        });
-
-        writeStream.on('error', (error) => {
-            // Handle errors gracefully, e.g., log, notify user, retry with backoff
-            // parentPort.postMessage({ cmd: 'msg', err: error }); // Send error message to parent
-            let file = gio.get_file(sourcePath);
-            console.error('Error writing to destination file:', error);
-            // return;
-        });
-
-        readStream.on('data', (chunk) => {
-
-            readStream.pause();
-
-            // // setTimeout(() => {
-            if (!writeStream.write(chunk)) {
-                readStream.resume();
-            }
-            // // }, 1000);
-
-            // Progress
-            chunk_size += chunk.length;
-            let data = {
-                id: progress_id,
-                cmd: 'progress',
-                msg: `Copying `,  // ${path.basename(f.source)}`,
-                max: max,
-                value: chunk_size
-            }
-            parentPort.postMessage(data);
-
-        });
-
-        writeStream.on('drain', () => {
-            readStream.resume();
-        });
-
-        writeStream.on('finish', () => {
-            console.log(`File copied successfully: ${path.basename(sourcePath)}`);
-            parentPort.postMessage({ cmd: 'copy_done', destination: destinationPath }); // Send copy_done message
-        });
-
-        readStream.on('end', () => {
-            writeStream.end();
-        });
-
-    }
-
 }
 
 const utilities = new Utilities();
@@ -168,9 +111,12 @@ parentPort.on('message', async data => {
     // Copy Files
     if (data.cmd === 'copy') {
 
+        let c = 0;
         let files_arr = [];
         let selected_files_arr = data.selected_files_arr;
         let root_destination = data.destination
+
+        let progress_id = data.id;
 
         // get all files and directories to copy
         for (let i = 0; i < selected_files_arr.length; i++) {
@@ -178,12 +124,29 @@ parentPort.on('message', async data => {
             let source = selected_files_arr[i];
             let file = gio.get_file(source);
 
+            let destination = path.join(root_destination, path.basename(source));
+
+            // Check if destination exists
+            if (source === destination) {
+                if (file.is_dir) {
+                    while (fs.existsSync(destination)) {
+                        destination = `${destination} (copy)`;
+                    }
+                    fs.mkdirSync(file.destination);
+
+                }
+            }
+
+            // check directory
             if (file.is_dir) {
-                const dir_files = await utilities.get_files_promise(source, root_destination)
-                files_arr.push(...dir_files)
+                const dir_files = await utilities.get_files_promise(source, destination);
+                files_arr.push(...dir_files);
+
+            // files
             } else {
                 file.source = file.href;
-                file.destination = root_destination;
+                // remove file name since its getting added back on further down
+                file.destination = path.dirname(destination);
                 files_arr.push(file);
             }
         }
@@ -195,23 +158,27 @@ parentPort.on('message', async data => {
         }
 
         // sort files by folder length
-        files_arr.sort((a, b) => {
-            return b.source - a.source;
-        })
+        // files_arr.sort((a, b) => {
+        //     return b.source - a.source;
+        // })
 
-        progress_id = data.id;
-        let total_bytes0 = 0;
-        let total_bytes = 0;
-        let bytes_copied = 0;
+
 
         files_arr.forEach((file, idx) => {
+
+            // directory
             if (file.is_dir) {
 
                 if (!fs.existsSync(file.destination)) {
                     fs.mkdirSync(file.destination);
                 }
 
+            // file
             } else {
+
+                let total_bytes0 = 0;
+                let total_bytes = 0;
+                let bytes_copied = 0;
 
                 const destination = path.join(file.destination, path.basename(file.source));
                 gio.cp_async(file.source, destination, (res) => {
@@ -220,18 +187,18 @@ parentPort.on('message', async data => {
                     total_bytes = res.total_bytes;
                     bytes_copied += parseInt(res.bytes_copied);
 
-                    let data = {
-                        id: progress_id,
+                    let progress_data = {
+                        id: data.id,
                         cmd: 'progress',
                         msg: `Copying `,  // ${path.basename(f.source)}`,
                         max: max,
                         value: bytes_copied
                     }
-                    parentPort.postMessage(data);
+                    parentPort.postMessage(progress_data);
 
                     if (bytes_copied >= max) {
                         let close_progress = {
-                            id: progress_id,
+                            id: data.id,
                             cmd: 'progress',
                             msg: ``,
                             max: 0,
@@ -252,9 +219,10 @@ parentPort.on('message', async data => {
                             parentPort.postMessage(update_card);
                         })
 
+                        // clear selected files array
+                        selected_files_arr = [];
+
                     }
-
-
 
                 });
 

@@ -998,7 +998,6 @@ parentPort.on('message', data => {
                             }
                         }
 
-                        let max = 0;
                         get_files_arr(copy_item.source, destination, (err, dirents) => {
 
                             if (err) {
@@ -1013,6 +1012,7 @@ parentPort.on('message', data => {
                             }
                             parentPort.postMessage(msg);
 
+                            let max = 0;
                             for (let i = 0; i < dirents.length; i++) {
                                 if (dirents[i].type === 'file') {
                                     max += parseInt(dirents[i].size);
@@ -1027,17 +1027,18 @@ parentPort.on('message', data => {
                                     cpc++
                                     if (!gio.exists(f.destination)) {
                                         try {
+
                                             gio.cp(f.source, f.destination);
-                                            // gio.mkdir(f.destination)
-                                            data = {
-                                                id: data.id,
-                                                cmd: 'progress',
-                                                msg: `Creating Directory ${path.basename(destination)} ${i} of ${dirents.length}`, //${path.basename(f.source)}`,
-                                                max: dirents.length,
-                                                value: cpc
-                                            }
-                                            // console.log(data)
-                                            parentPort.postMessage(data);
+                                            // // gio.mkdir(f.destination)
+                                            // data = {
+                                            //     id: data.id,
+                                            //     cmd: 'progress',
+                                            //     msg: `Creating Directory ${path.basename(destination)} ${i} of ${dirents.length}`, //${path.basename(f.source)}`,
+                                            //     max: dirents.length,
+                                            //     value: cpc
+                                            // }
+                                            // // console.log(data)
+                                            // parentPort.postMessage(data);
 
                                         } catch (err) {
                                             let msg = {
@@ -1060,43 +1061,22 @@ parentPort.on('message', data => {
                                     } else {
                                         try {
 
-                                            // const rs = fs.createReadStream(f.source);
-                                            // const ws = fs.createWriteStream(f.destination);
-
-                                            // rs.on('error', err => {
-                                            //     parentPort.postMessage({cmd: 'msg', err: err});
-                                            // })
-
-                                            // ws.on('error', err => {
-                                            //     parentPort.postMessage({cmd: 'msg', err: err});
-                                            // })
-
-                                            // rs.on('data', chunk => {
-                                            //     chunk_size += chunk.length;
-                                            //     data = {
+                                            // let total_bytes = 0;
+                                            // let total_bytes0 = 0;
+                                            // let bytes_copied = 0;
+                                            // gio.cp_async(f.source, f.destination, (res) => {
+                                            //     total_bytes0 = total_bytes;
+                                            //     total_bytes = res.total_bytes;
+                                            //     bytes_copied += parseInt(res.bytes_copied);
+                                            //     let progress_data = {
                                             //         id: data.id,
                                             //         cmd: 'progress',
-                                            //         // msg: `Copying "${path.basename(destination)}" ${cpc} of ${dirents.length}`,
-                                            //         msg: `Copying "${path.basename(destination)}" `,
+                                            //         msg: `Copying `,  // ${path.basename(f.source)}`,
                                             //         max: max,
-                                            //         value: chunk_size
+                                            //         value: bytes_copied
                                             //     }
-                                            //     // console.log(data)
-                                            //     parentPort.postMessage(data);
-
-                                            //     if (chunk_size >= max) {
-                                            //         console.log('done copying files');
-                                            //         let data = {
-                                            //             cmd: 'copy_done',
-                                            //             destination: destination
-                                            //         }
-                                            //         parentPort.postMessage(data);
-                                            //         copy_next();
-                                            //     }
-
+                                            //     parentPort.postMessage(progress_data);
                                             // })
-
-                                            // rs.pipe(ws);
 
                                             gio.cp(f.source, f.destination, 0)
 

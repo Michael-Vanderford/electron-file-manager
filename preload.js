@@ -6438,8 +6438,8 @@ function getSelectedFiles() {
     selected_items.forEach(item => {
 
         selected_files_arr.push(item.dataset.href);
-
-        if (item.dataset.type.indexOf('image/' === 0)) {
+        if (item.dataset.type.startsWith('image/')) {
+            console.log(item.dataset.type)
             ipcRenderer.send('copy_to_clipboard', item.dataset.href);
         }
 

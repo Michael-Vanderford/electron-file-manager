@@ -2132,23 +2132,17 @@ ipcMain.handle('get_icon', async (e, href) => {
 
 ipcMain.on('paste', (e, destination) => {
 
-    progress_id += 1;
-
-    let cmd = {
-        cmd: 'copy',
-        destination: destination,
-        selected_files_arr: selected_files_arr,
-        id: progress_id
-    }
-    copy.postMessage(cmd);
-
-    copy.on('message', (data) => {
+    let copy_worker = new Worker(path.join(__dirname, 'workers/copy.js'));
+    copy_worker.on('message', (data) => {
         switch (data.cmd) {
             case 'msg': {
                 win.send('msg', data.msg, data.has_timeout);
                 break;
             }
             case 'progress': {
+
+                console.log(data)
+
                 win.send('set_progress', data);
                 break;
             }
@@ -2185,6 +2179,17 @@ ipcMain.on('paste', (e, destination) => {
         }
 
     })
+
+    progress_id += 1;
+    let cmd = {
+        id: progress_id,
+        cmd: 'copy',
+        destination: destination,
+        selected_files_arr: selected_files_arr
+    }
+    copy_worker.postMessage(cmd);
+
+    selected_files_arr = [];
 
     // let copy_arr = [];
     // let copy_overwrite_arr = []
