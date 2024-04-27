@@ -12,6 +12,7 @@
 #include <string>
 #include <array>
 #include <sstream>
+#include <mutex>
 
 // Node includes
 #include <nan.h>
@@ -40,183 +41,686 @@ namespace gio {
     using v8::String;
     using v8::Value;
 
-    // Sets the execute bit on a file
-    NAN_METHOD(set_execute) {
+    class gio {
 
-        if (info.Length() < 1) {
-            Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
-            return;
+        public:
+
+        static NAN_METHOD(ls) {
+
+            Nan::HandleScope scope;
+
+            if (info.Length() < 2 || !info[1]->IsFunction()) {
+                return Nan::ThrowError("Wrong arguments. Expected callback function.");
+            }
+
+            Nan::Callback callback(info[1].As<v8::Function>());
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+
+            // Get the current context from the execution context
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+            v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+            // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+            //     return Nan::ThrowError("Error: Directory does not exist.");
+            // }
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            GError* error = NULL;
+            guint index = 0;
+            GFileEnumerator* enumerator = g_file_enumerate_children(src,
+                                                                    "*",
+                                                                    G_FILE_QUERY_INFO_NONE,
+                                                                    NULL,
+                                                                    &error);
+
+            if (enumerator == NULL) {
+                // Error handling
+                if (error != NULL) {
+                    return Nan::ThrowError(error->message);
+                } else {
+                    return Nan::ThrowError("Unknown error occurred");
+                }
+
+                // Clean up resources
+                g_object_unref(src);
+                return; // Return an error code
+            }
+
+            if (error != NULL) {
+                g_error_free(error);
+                g_object_unref(src);
+                return Nan::ThrowError(error->message);
+            }
+
+            GFileInfo* file_info = NULL;
+            while ((file_info = g_file_enumerator_next_file(enumerator, NULL, &error)) != NULL) {
+
+                const char* filename = g_file_info_get_name(file_info);
+                const char* display_name = g_file_info_get_display_name(file_info);
+                GFile* file = g_file_get_child(src, filename);
+                const char* href = g_file_get_path(file);
+                GFile* parent = g_file_get_parent(file);
+                const char* location = g_file_get_path(parent);
+                gboolean is_hidden = g_file_info_get_is_hidden(file_info);
+                gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
+                const char* mimetype = g_file_info_get_content_type(file_info);
+                gboolean is_symlink = g_file_info_get_is_symlink(file_info);
+                gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+                gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
+
+                v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
+                Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
+                Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
+                Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
+                Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
+                Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
+
+                if (mimetype != nullptr) {
+                    Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+                }
+
+                gint64 size = g_file_info_get_size(file_info);
+                Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
+
+                // GTimeVal mtime_val;
+                GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
+                if (mtime_dt != NULL) {
+                    gint64 mtime = g_date_time_to_unix(mtime_dt);
+                    Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
+                    g_date_time_unref(mtime_dt);
+                }
+
+                // Get the access time (atime)
+                GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
+                if (atime_dt != NULL) {
+                    gint64 atime = g_date_time_to_unix(atime_dt);
+                    Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
+                    g_date_time_unref(atime_dt);
+                }
+
+                // // Get the change time (ctime)
+                GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
+                if (ctime_dt != NULL) {
+                    gint64 ctime = g_date_time_to_unix(ctime_dt);
+                    Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
+                    g_date_time_unref(ctime_dt);
+                }
+
+                Nan::Set(resultArray, index++, fileObj);
+
+                g_object_unref(file);
+                g_object_unref(parent);
+                g_object_unref(file_info);
+
+            }
+
+            if (error != NULL) {
+                g_error_free(error);
+                return Nan::ThrowError(error->message);
+            }
+
+            g_object_unref(enumerator);
+            g_object_unref(src);
+
+            v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+            callback.Call(2, argv);
+
         }
 
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
+        static NAN_METHOD(get_file) {
 
-        // Get the current context from the execution context
-        v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+            Nan::HandleScope scope;
 
-        GFile* src = g_file_new_for_path(*sourceFile);
+            if (info.Length() < 1) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
 
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+
+            Nan::Callback callback(info[1].As<v8::Function>());
+
+            // Get the current context from the execution context
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+            v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+            // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_REGULAR) && !g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
+            //     return Nan::ThrowError("Error: File does not exist.");
+            // }
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            GError* error = NULL;
+            GFileInfo* file_info = g_file_query_info(src,
+                                                    "*",
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    NULL,
+                                                    &error);
+
+            if (!file_info) {
+                return Nan::ThrowError("Error: Could not get file info.");
+            }
+
+            if (error != NULL) {
+                g_object_unref(src);
+                return Nan::ThrowError(error->message);
+            }
+
+            const char* filename = g_file_info_get_name(file_info);
+            if (filename != nullptr) {
+
+                const char* display_name = g_file_info_get_display_name(file_info);
+                const char* href = g_file_get_path(src);
+                gboolean is_hidden = g_file_info_get_is_hidden(file_info);
+                gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
+                const char* mimetype = g_file_info_get_content_type(file_info);
+                GFile* parent = g_file_get_parent(src);
+                gboolean is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
+                gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
+                gboolean is_symlink = g_file_info_get_is_symlink(file_info);
+
+                v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
+                Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
+                Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
+                Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
+                Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
+                Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
+                Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
+
+                if (parent != nullptr) {
+                    const char* location = g_file_get_path(parent);
+                    if (location != nullptr) {
+                        Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
+                    }
+                }
+
+                const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
+                if (!owner) {
+                    owner = "Unknown";
+                }
+                Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
+
+                const char* group = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_GROUP);
+                if (!group) {
+                    group = "Unknown";
+                }
+                Nan::Set(fileObj, Nan::New("group").ToLocalChecked(), Nan::New(group).ToLocalChecked());
+
+                gint32 permissions;
+                permissions = g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_UNIX_MODE);
+                // permissions & (S_IRWXU | S_IRWXG | S_IRWXO);
+                Nan::Set(fileObj, Nan::New("permissions").ToLocalChecked(), Nan::New<v8::Int32>(permissions));
+
+                // Check if execution bit is set
+                gboolean is_execute = g_file_info_get_attribute_boolean(file_info,
+                                                                        G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE);
+
+                Nan::Set(fileObj, Nan::New("is_execute").ToLocalChecked(), Nan::New<v8::Boolean>(is_execute));
+
+                // // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
+                // // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+                if (mimetype != nullptr) {
+                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
+                } else {
+                    Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::Null());
+                }
+
+                gint64 size = g_file_info_get_size(file_info);
+                Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
+
+                // GTimeVal mtime_val;
+                GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
+                if (mtime_dt != NULL) {
+                    gint64 mtime = g_date_time_to_unix(mtime_dt);
+                    Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
+                    g_date_time_unref(mtime_dt);
+                }
+
+                // Get the access time (atime)
+                GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
+                if (atime_dt != NULL) {
+                    gint64 atime = g_date_time_to_unix(atime_dt);
+                    Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
+                    g_date_time_unref(atime_dt);
+                }
+
+                // // Get the change time (ctime)
+                GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
+                if (ctime_dt != NULL) {
+                    gint64 ctime = g_date_time_to_unix(ctime_dt);
+                    Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
+                    g_date_time_unref(ctime_dt);
+                }
+
+                g_object_unref(file_info);
+                g_object_unref(src);
+                info.GetReturnValue().Set(fileObj);
+
+            }
+
+            // g_object_unref(src);
+
+            // v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+            // callback.Call(2, argv);
+
         }
 
-        // Get the GFileInfo for the file
-        GFileInfo* file_info = g_file_query_info(src,
-                                                 "*",
-                                                 G_FILE_QUERY_INFO_NONE,
-                                                 NULL,
-                                                 NULL);
+        static NAN_METHOD(mkdir) {
 
-        if (file_info) {
+            Nan:: HandleScope scope;
 
-            guint32 permissions;
-            permissions = g_file_info_get_attribute_uint32(file_info,
-                                                            G_FILE_ATTRIBUTE_UNIX_MODE);
+            if (info.Length() < 1) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
 
-            // Add the execute bit to the permissions
-            permissions |= S_IXUSR | S_IXGRP | S_IXOTH;
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
 
-            // Set the modified permissions back to the file
-            g_file_set_attribute (src,
-                                G_FILE_ATTRIBUTE_UNIX_MODE,
-                                G_FILE_ATTRIBUTE_TYPE_UINT32,
-                                &permissions,
-                                G_FILE_QUERY_INFO_NONE,
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::String::Utf8Value sourceFile(isolate, sourceString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            GError* error = NULL;
+            gboolean res;
+
+            res = g_file_make_directory_with_parents(src, NULL, &error);
+            g_object_unref(src);
+
+            if (res == FALSE) {
+                return Nan::ThrowError(error->message);
+            }
+
+        }
+
+        static NAN_METHOD(exec) {
+
+            if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
+                return Nan::ThrowTypeError("Invalid arguments");
+            }
+
+            v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
+            Nan::Utf8String command(info[0]->ToString(context).ToLocalChecked());
+
+            Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
+
+            std::array<char, 128> buffer;
+            std::string result;
+            std::shared_ptr<FILE> pipe(popen(*command, "r"), pclose);
+            if (!pipe) {
+                return Nan::ThrowError("popen() failed!");
+            }
+            while (!feof(pipe.get())) {
+                if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
+                    result += buffer.data();
+                }
+            }
+
+            v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+            size_t index = 0;
+            size_t pos = 0;
+            while (true) {
+                size_t found = result.find("\n", pos);
+                if (found == std::string::npos) {
+                    break;
+                }
+                resultArray->Set(context, index++, Nan::New<v8::String>(result.substr(pos, found - pos).c_str()).ToLocalChecked());
+                pos = found + 1;
+            }
+
+            v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
+            callback->Call(2, argv);
+
+        }
+
+        static NAN_METHOD(open) {
+
+            Nan::HandleScope scope;
+
+            if (info.Length() < 1) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            // print file name
+            printf("%s\n", g_file_get_path(src));
+
+            GError* error = NULL;
+            GFileInfo* file_info = g_file_query_info(src,
+                                                    "*",
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    NULL,
+                                                    &error);
+
+            const char *content_type = g_file_info_get_content_type(file_info);
+
+            printf("Content type: %s\n", content_type);
+
+            if (error != NULL) {
+                g_error_free(error);
+                g_object_unref(src);
+                return Nan::ThrowError(error->message);
+            }
+
+            // create a glist for files
+            GList *fileList = NULL;
+            fileList = g_list_append(fileList, g_strdup(g_file_get_path(src)));
+
+            GAppInfo *app_info = g_app_info_get_default_for_type(content_type, FALSE);
+            if (!app_info) {
+                g_list_free_full(fileList, g_free); // Free the list and its data
+                g_object_unref(src);
+                return Nan::ThrowError("No default application found for this file type");
+            }
+
+            gboolean res = g_app_info_launch(app_info, fileList, NULL, &error);
+            g_object_unref(app_info); // Release the GAppInfo reference
+            g_list_free_full(fileList, g_free); // Free the list and its data
+
+            if (!res) {
+                g_error_free(error);
+                g_object_unref(src);
+                return Nan::ThrowError(error->message);
+            }
+
+            g_object_unref(src);
+
+        }
+
+        // Sets the execute bit on a file
+        static NAN_METHOD(set_execute) {
+
+            if (info.Length() < 1) {
+                Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
+                return;
+            }
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+
+            // Get the current context from the execution context
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+            v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            // Get the GFileInfo for the file
+            GFileInfo* file_info = g_file_query_info(src,
+                                                    "*",
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    NULL,
+                                                    NULL);
+
+            if (file_info) {
+
+                guint32 permissions;
+                permissions = g_file_info_get_attribute_uint32(file_info,
+                                                                G_FILE_ATTRIBUTE_UNIX_MODE);
+
+                // Add the execute bit to the permissions
+                permissions |= S_IXUSR | S_IXGRP | S_IXOTH;
+
+                // Set the modified permissions back to the file
+                g_file_set_attribute (src,
+                                    G_FILE_ATTRIBUTE_UNIX_MODE,
+                                    G_FILE_ATTRIBUTE_TYPE_UINT32,
+                                    &permissions,
+                                    G_FILE_QUERY_INFO_NONE,
+                                    NULL,
+                                    NULL);
+
+
+                // Release the GFileInfo
+                g_object_unref(file_info);
+            }
+
+            // Release the GFile
+            g_object_unref(src);
+
+        }
+
+        // Clear execute bit
+        static NAN_METHOD(clear_execute) {
+
+            if (info.Length() < 1) {
+                Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
+                return;
+            }
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+
+            // Get the current context from the execution context
+            v8::Local<v8::Context> context = isolate->GetCurrentContext();
+            v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
+            v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            // Get the GFileInfo for the file
+            GFileInfo* file_info = g_file_query_info(src,
+                                                    "*",
+                                                    G_FILE_QUERY_INFO_NONE,
+                                                    NULL,
+                                                    NULL);
+
+            if (file_info) {
+
+                guint32 permissions;
+                permissions = g_file_info_get_attribute_uint32(file_info,
+                                                                G_FILE_ATTRIBUTE_UNIX_MODE);
+
+                // Add the execute bit to the permissions
+                permissions &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
+
+                // Set the modified permissions back to the file
+                g_file_set_attribute (src,
+                                    G_FILE_ATTRIBUTE_UNIX_MODE,
+                                    G_FILE_ATTRIBUTE_TYPE_UINT32,
+                                    &permissions,
+                                    G_FILE_QUERY_INFO_NONE,
+                                    NULL,
+                                    NULL);
+
+
+                // Release the GFileInfo
+                g_object_unref(file_info);
+            }
+
+            // Release the GFile
+            g_object_unref(src);
+
+        }
+
+        static NAN_METHOD(thumbnail) {
+
+            if (info.Length() < 2) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::String::Utf8Value sourceFile(isolate, sourceString);
+            v8::String::Utf8Value destFile(isolate, destString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+            GFile* dest = g_file_new_for_path(*destFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            const char *dest_scheme = g_uri_parse_scheme(*destFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+
+            if (dest_scheme != NULL) {
+                dest = g_file_new_for_uri(*destFile);
+            }
+
+            GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
+            if (inputPixbuf == nullptr) {
+                return;
+            }
+            int thumbnailWidth = 75;  // Adjust the width as per your requirements
+            int thumbnailHeight = 75; // Adjust the height as per your requirements
+
+            GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
+            GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf,
+                                                                thumbnailWidth,
+                                                                thumbnailHeight,
+                                                                GDK_INTERP_BILINEAR);
+
+            if (thumbnailPixbuf == nullptr) {
+                return;
+            }
+
+            GError* error = NULL;
+            GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
+            if (fileType != NULL) {
+                // const char *outputFile = dest; // Adjust the file extension as per your requirements
+                gdk_pixbuf_save(thumbnailPixbuf,
+                                g_file_get_path(dest),
+                                gdk_pixbuf_format_get_name(fileType),
                                 NULL,
-                                NULL);
-
-
-            // Release the GFileInfo
-            g_object_unref(file_info);
-        }
-
-        // Release the GFile
-        g_object_unref(src);
-
-    }
-
-    // Clear execute bit
-    NAN_METHOD(clear_execute) {
-
-        if (info.Length() < 1) {
-            Nan::ThrowTypeError("Invalid arguments. Expected a string for the target directory.");
-            return;
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
-
-        // Get the current context from the execution context
-        v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-
-        // Get the GFileInfo for the file
-        GFileInfo* file_info = g_file_query_info(src,
-                                                 "*",
-                                                 G_FILE_QUERY_INFO_NONE,
-                                                 NULL,
-                                                 NULL);
-
-        if (file_info) {
-
-            guint32 permissions;
-            permissions = g_file_info_get_attribute_uint32(file_info,
-                                                            G_FILE_ATTRIBUTE_UNIX_MODE);
-
-            // Add the execute bit to the permissions
-            permissions &= ~(S_IXUSR | S_IXGRP | S_IXOTH);
-
-            // Set the modified permissions back to the file
-            g_file_set_attribute (src,
-                                G_FILE_ATTRIBUTE_UNIX_MODE,
-                                G_FILE_ATTRIBUTE_TYPE_UINT32,
-                                &permissions,
-                                G_FILE_QUERY_INFO_NONE,
                                 NULL,
-                                NULL);
+                                &error);
 
+                // g_object_unref(thumbnailPixbuf);
+            }
 
-            // Release the GFileInfo
-            g_object_unref(file_info);
+            g_object_unref(oriented_pixbuf);
+            g_object_unref(thumbnailPixbuf);
+            g_object_unref(inputPixbuf);
+            g_object_unref(src);
+            g_object_unref(dest);
         }
 
-        // Release the GFile
-        g_object_unref(src);
+        static thread_local goffset bytes_copied;
+        static thread_local goffset bytes_copied0;
 
-    }
+        static void
+        cp_progress_callback(goffset current_num_bytes,
+                        goffset total_bytes,
+                        gpointer user_data) {
 
-    NAN_METHOD(thumbnail) {
+            Nan::HandleScope scope;
+            if (user_data == NULL) {
+                printf("User data is NULL\n");
+                return;
+            }
 
-        if (info.Length() < 2) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
-        v8::String::Utf8Value destFile(isolate, destString);
+            bytes_copied = current_num_bytes - bytes_copied0;
+            bytes_copied0 = current_num_bytes;
 
-        GFile* src = g_file_new_for_path(*sourceFile);
-        GFile* dest = g_file_new_for_path(*destFile);
+            v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+            Nan::Set(dataObj, Nan::New("current_num_bytes").ToLocalChecked(), Nan::New<v8::Number>(current_num_bytes));
+            Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(bytes_copied));
+            Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
 
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        const char *dest_scheme = g_uri_parse_scheme(*destFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
+            Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+            const unsigned argc = 1;
+            v8::Local<v8::Value> argv[argc] = { dataObj };
+            callback->Call(argc, argv);
 
-        if (dest_scheme != NULL) {
-            dest = g_file_new_for_uri(*destFile);
-        }
-
-        GdkPixbuf *inputPixbuf = gdk_pixbuf_new_from_file(g_file_get_path(src), NULL);
-        if (inputPixbuf == nullptr) {
-            return;
-        }
-        int thumbnailWidth = 75;  // Adjust the width as per your requirements
-        int thumbnailHeight = 75; // Adjust the height as per your requirements
-
-        GdkPixbuf* oriented_pixbuf = gdk_pixbuf_apply_embedded_orientation(inputPixbuf);
-        GdkPixbuf *thumbnailPixbuf = gdk_pixbuf_scale_simple(oriented_pixbuf,
-                                                            thumbnailWidth,
-                                                            thumbnailHeight,
-                                                            GDK_INTERP_BILINEAR);
-
-        if (thumbnailPixbuf == nullptr) {
-            return;
         }
 
-        GError* error = NULL;
-        GdkPixbufFormat* fileType = gdk_pixbuf_get_file_info(g_file_get_path(src), NULL, NULL);
-        if (fileType != NULL) {
-            // const char *outputFile = dest; // Adjust the file extension as per your requirements
-            gdk_pixbuf_save(thumbnailPixbuf,
-                            g_file_get_path(dest),
-                            gdk_pixbuf_format_get_name(fileType),
-                            NULL,
-                            NULL,
-                            &error);
+        static NAN_METHOD(cp_async) {
 
-            // g_object_unref(thumbnailPixbuf);
+            Nan:: HandleScope scope;
+
+            if (info.Length() < 3) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::String::Utf8Value sourceFile(isolate, sourceString);
+            v8::String::Utf8Value destFile(isolate, destString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+            GFile* dest = g_file_new_for_path(*destFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            const char *dest_scheme = g_uri_parse_scheme(*destFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+            if (dest_scheme != NULL) {
+                dest = g_file_new_for_uri(*destFile);
+            }
+
+            GCancellable* cancellable = g_cancellable_new();
+
+            GError** error = nullptr;
+            g_file_copy(src,
+                        dest,
+                        G_FILE_COPY_ALL_METADATA,
+                        cancellable,
+                        (GFileProgressCallback) gio::cp_progress_callback,
+                        new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
+                        error);
+
+            bytes_copied0 = 0;
+            bytes_copied = 0;
+
+            g_object_unref(src);
+            g_object_unref(dest);
+
         }
 
-        g_object_unref(oriented_pixbuf);
-        g_object_unref(thumbnailPixbuf);
-        g_object_unref(inputPixbuf);
-        g_object_unref(src);
-        g_object_unref(dest);
-    }
+        private:
+
+    };
+
+    thread_local goffset gio::bytes_copied = 0;
+    thread_local goffset gio::bytes_copied0 = 0;
 
     NAN_METHOD(get_drives) {
 
@@ -376,7 +880,7 @@ namespace gio {
             GMount* mount = G_MOUNT(iter->data);
 
             if (g_mount_is_shadowed (mount))
-			    continue;
+                continue;
 
             const char* name = "";
             const char* fs = "";
@@ -810,287 +1314,6 @@ namespace gio {
 
     }
 
-    NAN_METHOD(get_file) {
-
-        Nan::HandleScope scope;
-
-        if (info.Length() < 1) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
-
-        Nan::Callback callback(info[1].As<v8::Function>());
-
-        // Get the current context from the execution context
-        v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-
-        // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_REGULAR) && !g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
-        //     return Nan::ThrowError("Error: File does not exist.");
-        // }
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-
-        GError* error = NULL;
-        GFileInfo* file_info = g_file_query_info(src,
-                                                "*",
-                                                G_FILE_QUERY_INFO_NONE,
-                                                NULL,
-                                                &error);
-
-        if (!file_info) {
-            return Nan::ThrowError("Error: Could not get file info.");
-        }
-
-        if (error != NULL) {
-            g_object_unref(src);
-            return Nan::ThrowError(error->message);
-        }
-
-        const char* filename = g_file_info_get_name(file_info);
-        if (filename != nullptr) {
-
-            const char* display_name = g_file_info_get_display_name(file_info);
-            const char* href = g_file_get_path(src);
-            gboolean is_hidden = g_file_info_get_is_hidden(file_info);
-            gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
-            const char* mimetype = g_file_info_get_content_type(file_info);
-            GFile* parent = g_file_get_parent(src);
-            gboolean is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
-            gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
-            gboolean is_symlink = g_file_info_get_is_symlink(file_info);
-
-            v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
-            Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
-            Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
-            Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
-            Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
-            Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
-
-            if (parent != nullptr) {
-                const char* location = g_file_get_path(parent);
-                if (location != nullptr) {
-                    Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
-                }
-            }
-
-            const char* owner = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_USER);
-            if (!owner) {
-                owner = "Unknown";
-            }
-            Nan::Set(fileObj, Nan::New("owner").ToLocalChecked(), Nan::New(owner).ToLocalChecked());
-
-            const char* group = g_file_info_get_attribute_as_string(file_info, G_FILE_ATTRIBUTE_OWNER_GROUP);
-            if (!group) {
-                group = "Unknown";
-            }
-            Nan::Set(fileObj, Nan::New("group").ToLocalChecked(), Nan::New(group).ToLocalChecked());
-
-            gint32 permissions;
-            permissions = g_file_info_get_attribute_uint32 (file_info, G_FILE_ATTRIBUTE_UNIX_MODE);
-            // permissions & (S_IRWXU | S_IRWXG | S_IRWXO);
-            Nan::Set(fileObj, Nan::New("permissions").ToLocalChecked(), Nan::New<v8::Int32>(permissions));
-
-            // Check if execution bit is set
-            gboolean is_execute = g_file_info_get_attribute_boolean(file_info,
-                                                                     G_FILE_ATTRIBUTE_ACCESS_CAN_EXECUTE);
-
-            Nan::Set(fileObj, Nan::New("is_execute").ToLocalChecked(), Nan::New<v8::Boolean>(is_execute));
-
-            // // Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writable));
-            // // Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
-            if (mimetype != nullptr) {
-               Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
-            } else {
-                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::Null());
-            }
-
-            gint64 size = g_file_info_get_size(file_info);
-            Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
-
-            // GTimeVal mtime_val;
-            GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
-            if (mtime_dt != NULL) {
-                gint64 mtime = g_date_time_to_unix(mtime_dt);
-                Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
-                g_date_time_unref(mtime_dt);
-            }
-
-            // Get the access time (atime)
-            GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
-            if (atime_dt != NULL) {
-                gint64 atime = g_date_time_to_unix(atime_dt);
-                Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
-                g_date_time_unref(atime_dt);
-            }
-
-            // // Get the change time (ctime)
-            GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
-            if (ctime_dt != NULL) {
-                gint64 ctime = g_date_time_to_unix(ctime_dt);
-                Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
-                g_date_time_unref(ctime_dt);
-            }
-
-            g_object_unref(file_info);
-            g_object_unref(src);
-            info.GetReturnValue().Set(fileObj);
-
-        }
-
-        // g_object_unref(src);
-
-        // v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
-        // callback.Call(2, argv);
-
-    }
-
-    NAN_METHOD(ls) {
-
-        Nan::HandleScope scope;
-
-        if (info.Length() < 2 || !info[1]->IsFunction()) {
-            return Nan::ThrowError("Wrong arguments. Expected callback function.");
-        }
-
-        Nan::Callback callback(info[1].As<v8::Function>());
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
-
-        // Get the current context from the execution context
-        v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-
-        // if (!g_file_test(*sourceFile, G_FILE_TEST_IS_DIR)) {
-        //     return Nan::ThrowError("Error: Directory does not exist.");
-        // }
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-
-        GError* error = NULL;
-        guint index = 0;
-        GFileEnumerator* enumerator = g_file_enumerate_children(src,
-                                                                "*",
-                                                                G_FILE_QUERY_INFO_NONE,
-                                                                NULL,
-                                                                &error);
-
-        if (enumerator == NULL) {
-            // Error handling
-            if (error != NULL) {
-                return Nan::ThrowError(error->message);
-            } else {
-                return Nan::ThrowError("Unknown error occurred");
-            }
-
-            // Clean up resources
-            g_object_unref(src);
-            return; // Return an error code
-        }
-
-        if (error != NULL) {
-            g_error_free(error);
-            g_object_unref(src);
-            return Nan::ThrowError(error->message);
-        }
-
-        GFileInfo* file_info = NULL;
-        while ((file_info = g_file_enumerator_next_file(enumerator, NULL, &error)) != NULL) {
-
-            const char* filename = g_file_info_get_name(file_info);
-            const char* display_name = g_file_info_get_display_name(file_info);
-            GFile* file = g_file_get_child(src, filename);
-            const char* href = g_file_get_path(file);
-            GFile* parent = g_file_get_parent(file);
-            const char* location = g_file_get_path(parent);
-            gboolean is_hidden = g_file_info_get_is_hidden(file_info);
-            gboolean is_directory = g_file_info_get_file_type(file_info) == G_FILE_TYPE_DIRECTORY;
-            const char* mimetype = g_file_info_get_content_type(file_info);
-            gboolean is_symlink = g_file_info_get_is_symlink(file_info);
-            gboolean  is_writeable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_WRITE);
-            gboolean is_readable = g_file_info_get_attribute_boolean(file_info, G_FILE_ATTRIBUTE_ACCESS_CAN_READ);
-
-            v8::Local<v8::Object> fileObj = Nan::New<v8::Object>();
-            Nan::Set(fileObj, Nan::New("name").ToLocalChecked(), Nan::New(filename).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("display_name").ToLocalChecked(), Nan::New(display_name).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("href").ToLocalChecked(), Nan::New(href).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("location").ToLocalChecked(), Nan::New(location).ToLocalChecked());
-            Nan::Set(fileObj, Nan::New("is_dir").ToLocalChecked(), Nan::New<v8::Boolean>(is_directory));
-            Nan::Set(fileObj, Nan::New("is_hidden").ToLocalChecked(), Nan::New<v8::Boolean>(is_hidden));
-            Nan::Set(fileObj, Nan::New("is_readable").ToLocalChecked(), Nan::New<v8::Boolean>(is_readable));
-            Nan::Set(fileObj, Nan::New("is_writable").ToLocalChecked(), Nan::New<v8::Boolean>(is_writeable));
-            Nan::Set(fileObj, Nan::New("is_symlink").ToLocalChecked(), Nan::New<v8::Boolean>(is_symlink));
-
-            if (mimetype != nullptr) {
-                Nan::Set(fileObj, Nan::New("content_type").ToLocalChecked(), Nan::New(mimetype).ToLocalChecked());
-            }
-
-            gint64 size = g_file_info_get_size(file_info);
-            Nan::Set(fileObj, Nan::New("size").ToLocalChecked(), Nan::New<v8::Number>(size));
-
-            // GTimeVal mtime_val;
-            GDateTime* mtime_dt = g_file_info_get_modification_date_time(file_info);
-            if (mtime_dt != NULL) {
-                gint64 mtime = g_date_time_to_unix(mtime_dt);
-                Nan::Set(fileObj, Nan::New("mtime").ToLocalChecked(), Nan::New<v8::Number>(mtime));
-                g_date_time_unref(mtime_dt);
-            }
-
-            // Get the access time (atime)
-            GDateTime* atime_dt = g_file_info_get_access_date_time(file_info);
-            if (atime_dt != NULL) {
-                gint64 atime = g_date_time_to_unix(atime_dt);
-                Nan::Set(fileObj, Nan::New("atime").ToLocalChecked(), Nan::New<v8::Number>(atime));
-                g_date_time_unref(atime_dt);
-            }
-
-            // // Get the change time (ctime)
-            GDateTime* ctime_dt = g_file_info_get_creation_date_time(file_info);
-            if (ctime_dt != NULL) {
-                gint64 ctime = g_date_time_to_unix(ctime_dt);
-                Nan::Set(fileObj, Nan::New("ctime").ToLocalChecked(), Nan::New<v8::Number>(ctime));
-                g_date_time_unref(ctime_dt);
-            }
-
-            Nan::Set(resultArray, index++, fileObj);
-
-            g_object_unref(file);
-            g_object_unref(parent);
-            g_object_unref(file_info);
-
-        }
-
-        if (error != NULL) {
-            g_error_free(error);
-            return Nan::ThrowError(error->message);
-        }
-
-        g_object_unref(enumerator);
-        g_object_unref(src);
-
-        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
-        callback.Call(2, argv);
-
-    }
-
     NAN_METHOD(exists) {
 
         Nan::HandleScope scope;
@@ -1443,175 +1666,91 @@ namespace gio {
 
     }
 
-    void cpdir_recursive(GFile *source, GFile *destination) {
-        GError *error = NULL;
-        gboolean is_directory = g_file_query_file_type(source, G_FILE_QUERY_INFO_NONE, NULL) == G_FILE_TYPE_DIRECTORY;
+    // class progress_data {
+    //     public:
+    //     goffset bytes_copied;
+    //     goffset bytes_copied0;
+    // };
 
-        if (is_directory) {
-            // Create the destination directory if it doesn't exist
-            g_file_make_directory_with_parents(destination, NULL, &error);
+    // static progress_data progress_data;
 
-            if (error) {
-                g_print("Error creating destination directory: %s\n", error->message);
-                g_error_free(error);
-                // return;
-            }
+    // void cp_progress_callback(goffset current_num_bytes,
+    //                     goffset total_bytes,
+    //                     gpointer user_data) {
 
-            GFileEnumerator *enumerator = g_file_enumerate_children(source, G_FILE_ATTRIBUTE_STANDARD_NAME, G_FILE_QUERY_INFO_NONE, NULL, &error);
+    //     Nan::HandleScope scope;
+    //     if (user_data == NULL) {
+    //         printf("User data is NULL\n");
+    //         return;
+    //     }
 
-            if (error) {
-                g_print("Error enumerating source directory contents: %s\n", error->message);
-                g_error_free(error);
-                // return;
-            }
+    //     // if (current_num_bytes > progress_data.bytes_copied0) {
+    //     //     progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
+    //     //     progress_data.bytes_copied0 = current_num_bytes;
+    //     // } else {
+    //     //     progress_data.bytes_copied = current_num_bytes;
+    //     //     progress_data.bytes_copied0 = 0;
+    //     // }
 
-            GFileInfo *info = NULL;
+    //     progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
+    //     progress_data.bytes_copied0 = current_num_bytes;
 
-            while ((info = g_file_enumerator_next_file(enumerator, NULL, &error))) {
-                const char *name = g_file_info_get_name(info);
-                GFile *source_child = g_file_get_child(source, name);
-                GFile *destination_child = g_file_get_child(destination, name);
+    //     v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+    //     Nan::Set(dataObj, Nan::New("current_num_bytes").ToLocalChecked(), Nan::New<v8::Number>(current_num_bytes));
+    //     Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(progress_data.bytes_copied));
+    //     Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
 
-                cpdir_recursive(source_child, destination_child);
+    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+    //     const unsigned argc = 1;
+    //     v8::Local<v8::Value> argv[argc] = { dataObj };
+    //     callback->Call(argc, argv);
 
-                g_object_unref(source_child);
-                g_object_unref(destination_child);
-                g_object_unref(info);
-            }
+    // }
 
-            g_file_enumerator_close(enumerator, NULL, NULL);
-            g_object_unref(enumerator);
-        } else {
-            // Copy individual file
-            gboolean success = g_file_copy(source, destination, G_FILE_COPY_ALL_METADATA, NULL, NULL, NULL, &error);
+    // NAN_METHOD(cp_async) {
 
-            if (!success) {
-                g_print("Error copying file: %s\n", error->message);
-                g_error_free(error);
-            }
-        }
-    }
+    //     Nan:: HandleScope scope;
 
-    NAN_METHOD(cpdir) {
+    //     if (info.Length() < 3) {
+    //         return Nan::ThrowError("Wrong number of arguments");
+    //     }
 
-        Nan:: HandleScope scope;
+    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
 
-        if (info.Length() < 2) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
+    //     v8::Isolate* isolate = info.GetIsolate();
+    //     v8::String::Utf8Value sourceFile(isolate, sourceString);
+    //     v8::String::Utf8Value destFile(isolate, destString);
 
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+    //     GFile* src = g_file_new_for_path(*sourceFile);
+    //     GFile* dest = g_file_new_for_path(*destFile);
 
-        int overwrite_flag = Nan::To<int>(info[2]).FromJust();
-        GFileCopyFlags flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS);
-        if (overwrite_flag == 1) {
-            flags = static_cast<GFileCopyFlags>(G_FILE_COPY_NOFOLLOW_SYMLINKS | G_FILE_COPY_OVERWRITE);
-        }
+    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+    //     const char *dest_scheme = g_uri_parse_scheme(*destFile);
+    //     if (src_scheme != NULL) {
+    //         src = g_file_new_for_uri(*sourceFile);
+    //     }
+    //     if (dest_scheme != NULL) {
+    //         dest = g_file_new_for_uri(*destFile);
+    //     }
 
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
-        v8::String::Utf8Value destFile(isolate, destString);
+    //     // note: this works but the progress does not process until the operation has completed
+    //     GError** error = nullptr;
+    //     g_file_copy(src,
+    //                 dest,
+    //                 G_FILE_COPY_ALL_METADATA,
+    //                 NULL,
+    //                 (GFileProgressCallback) cp_progress_callback,
+    //                 new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
+    //                 error);
 
-        GFile* source = g_file_new_for_path(*sourceFile);
-        GFile* destination = g_file_new_for_path(*destFile);
+    //     progress_data.bytes_copied0 = 0;
+    //     // progress_data.bytes_copied = 0;
 
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        const char *dest_scheme = g_uri_parse_scheme(*destFile);
-        if (src_scheme != NULL) {
-            source = g_file_new_for_uri(*sourceFile);
-        }
-        if (dest_scheme != NULL) {
-            destination = g_file_new_for_uri(*destFile);
-        }
+    //     g_object_unref(src);
+    //     g_object_unref(dest);
 
-        cpdir_recursive(source, destination);
-
-    }
-
-    class progress_data {
-        public:
-        goffset bytes_copied;
-        goffset bytes_copied0;
-    };
-
-    static progress_data progress_data;
-
-    void cp_progress_callback(goffset current_num_bytes,
-                          goffset total_bytes,
-                          gpointer user_data) {
-
-        Nan::HandleScope scope;
-        if (user_data == NULL) {
-            printf("User data is NULL\n");
-            return;
-        }
-
-        // convert current bytes to bytes_copied
-        // bytes_copied = current_num_bytes - bytes_copied0;
-        // bytes_copied0 = current_num_bytes;
-
-        progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
-        progress_data.bytes_copied0 = current_num_bytes;
-
-        v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
-        Nan::Set(dataObj, Nan::New("current_num_bytes").ToLocalChecked(), Nan::New<v8::Number>(current_num_bytes));
-        Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(progress_data.bytes_copied));
-        Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
-
-        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-        const unsigned argc = 1;
-        v8::Local<v8::Value> argv[argc] = { dataObj };
-        callback->Call(argc, argv);
-
-    }
-
-    NAN_METHOD(cp_async) {
-
-        Nan:: HandleScope scope;
-
-        if (info.Length() < 3) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
-        v8::String::Utf8Value destFile(isolate, destString);
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-        GFile* dest = g_file_new_for_path(*destFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        const char *dest_scheme = g_uri_parse_scheme(*destFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-        if (dest_scheme != NULL) {
-            dest = g_file_new_for_uri(*destFile);
-        }
-
-        // note: this works but the progress does not process until the operation has completed
-        GError** error = nullptr;
-        g_file_copy(src,
-                    dest,
-                    G_FILE_COPY_ALL_METADATA,
-                    NULL,
-                    (GFileProgressCallback) cp_progress_callback,
-                    new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
-                    error);
-
-        progress_data.bytes_copied0 = 0;
-        progress_data.bytes_copied = 0;
-
-        g_object_unref(src);
-        g_object_unref(dest);
-
-    }
-
-
+    // }
 
     NAN_METHOD(cp_write) {
         Nan:: HandleScope scope;
@@ -1690,38 +1829,6 @@ namespace gio {
 
         // Return the result as a boolean value
         info.GetReturnValue().Set(Nan::New<v8::Boolean>(isWritable != FALSE));
-
-    }
-
-    NAN_METHOD(mkdir) {
-
-        Nan:: HandleScope scope;
-
-        if (info.Length() < 1) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-
-        GError* error = NULL;
-        gboolean res;
-
-        res = g_file_make_directory_with_parents(src, NULL, &error);
-        g_object_unref(src);
-
-        if (res == FALSE) {
-            return Nan::ThrowError(error->message);
-        }
 
     }
 
@@ -1881,191 +1988,23 @@ namespace gio {
 
     }
 
-    // Function to execute shell command and return result as a v8::Array
-    NAN_METHOD(exec) {
-
-        if (info.Length() < 2 || !info[0]->IsString() || !info[1]->IsFunction()) {
-            return Nan::ThrowTypeError("Invalid arguments");
-        }
-
-        v8::Local<v8::Context> context = info.GetIsolate()->GetCurrentContext();
-        Nan::Utf8String command(info[0]->ToString(context).ToLocalChecked());
-
-        Nan::Callback* callback = new Nan::Callback(info[1].As<v8::Function>());
-
-        std::array<char, 128> buffer;
-        std::string result;
-        std::shared_ptr<FILE> pipe(popen(*command, "r"), pclose);
-        if (!pipe) {
-            return Nan::ThrowError("popen() failed!");
-        }
-        while (!feof(pipe.get())) {
-            if (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-                result += buffer.data();
-            }
-        }
-
-        v8::Local<v8::Array> resultArray = Nan::New<v8::Array>();
-        size_t index = 0;
-        size_t pos = 0;
-        while (true) {
-            size_t found = result.find("\n", pos);
-            if (found == std::string::npos) {
-                break;
-            }
-            resultArray->Set(context, index++, Nan::New<v8::String>(result.substr(pos, found - pos).c_str()).ToLocalChecked());
-            pos = found + 1;
-        }
-
-        v8::Local<v8::Value> argv[] = { Nan::Null(), resultArray };
-        callback->Call(2, argv);
-
-    }
-
-    NAN_METHOD(open) {
-
-        Nan::HandleScope scope;
-
-        if (info.Length() < 1) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::Local<v8::Context> context = isolate->GetCurrentContext();
-        v8::String::Utf8Value sourceFile(context->GetIsolate(), sourceString);
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-
-        // print file name
-        printf("%s\n", g_file_get_path(src));
-
-        GError* error = NULL;
-        GFileInfo* file_info = g_file_query_info(src,
-                                                "*",
-                                                G_FILE_QUERY_INFO_NONE,
-                                                NULL,
-                                                &error);
-
-        const char *content_type = g_file_info_get_content_type(file_info);
-
-        printf("Content type: %s\n", content_type);
-
-        if (error != NULL) {
-            g_error_free(error);
-            g_object_unref(src);
-            return Nan::ThrowError(error->message);
-        }
-
-        // create a glist for files
-        GList *fileList = NULL;
-        fileList = g_list_append(fileList, g_strdup(g_file_get_path(src)));
-
-        GAppInfo *app_info = g_app_info_get_default_for_type(content_type, FALSE);
-        if (!app_info) {
-            g_list_free_full(fileList, g_free); // Free the list and its data
-            g_object_unref(src);
-            return Nan::ThrowError("No default application found for this file type");
-        }
-
-        gboolean res = g_app_info_launch(app_info, fileList, NULL, &error);
-        g_object_unref(app_info); // Release the GAppInfo reference
-        g_list_free_full(fileList, g_free); // Free the list and its data
-
-        if (!res) {
-            g_error_free(error);
-            g_object_unref(src);
-            return Nan::ThrowError(error->message);
-        }
-
-        g_object_unref(src);
-    }
-
-    // NAN_METHOD(extract) {
-    //     if (info.Length() < 2) {
-    //         return Nan::ThrowError("Wrong number of arguments");
-    //     }
-    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-    //     v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-    //     v8::Isolate* isolate = info.GetIsolate();
-    //     v8::String::Utf8Value sourceFile(isolate, sourceString);
-    //     v8::String::Utf8Value destFile(isolate, destString);
-    //     GFile* src = g_file_new_for_path(*sourceFile);
-    //     GFile* dest = g_file_new_for_path(*destFile);
-    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-    //     const char *dest_scheme = g_uri_parse_scheme(*destFile);
-    //     if (src_scheme != NULL) {
-    //         src = g_file_new_for_uri(*sourceFile);
-    //     }
-    //     if (dest_scheme != NULL) {
-    //         dest = g_file_new_for_uri(*destFile);
-    //     }
-    //     // GFile *inputFile, *outputFile;
-    //     GInputStream *inputStream;
-    //     GOutputStream *outputStream;
-    //     // Initialize GIO
-    //     g_type_init();
-    //     // Open input file for reading
-    //     inputStream = G_INPUT_STREAM(g_file_read(src, NULL, NULL));
-    //     if (inputStream == NULL) {
-    //         g_object_unref(src);
-    //         g_object_unref(dest);
-    //         g_error("Error opening input file");
-    //     }
-    //     // Open output file for writing
-    //     outputStream = G_OUTPUT_STREAM(g_file_replace(dest, NULL, FALSE, G_FILE_CREATE_NONE, NULL, NULL));
-    //     if (outputStream == NULL) {
-    //         g_object_unref(src);
-    //         g_object_unref(dest);
-    //         g_object_unref(inputStream);
-    //         g_error("Error opening output file");
-    //     }
-    //     // Create a decompression stream
-    //     GZlibDecompressor *decompressor = g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP);
-    //     GFilterInputStream *filterInputStream = g_zlib_decompressor_new(g_object_ref(decompressor));
-    //     // Set the input stream for the decompressor
-    //     g_filter_input_stream_set_base_stream(filterInputStream, inputStream);
-    //     // Set the output stream for the decompressor
-    //     g_filter_output_stream_set_base_stream(G_FILTER_OUTPUT_STREAM(decompressor), outputStream);
-    //     // Copy the decompressed data from input to output
-    //     g_output_stream_splice(G_OUTPUT_STREAM(decompressor),
-    //         G_INPUT_STREAM(filterInputStream),
-    //         G_OUTPUT_STREAM_SPLICE_CLOSE_SOURCE,
-    //         NULL,
-    //         NULL);
-    //         // | G_OUTPUT_STREAM_SPLICE_CLOSE_TARGET
-    //     // Clean up resources
-    //     g_object_unref(decompressor);
-    //     g_object_unref(filterInputStream);
-    //     g_object_unref(inputStream);
-    //     g_object_unref(outputStream);
-    //     g_object_unref(src);
-    //     g_object_unref(dest);
-    //     info.GetReturnValue().Set(Nan::True());
-    // }
-
     NAN_MODULE_INIT(init) {
         Nan::Export(target, "on_theme_change", on_theme_change);
         Nan::Export(target, "is_dir", is_dir);
         Nan::Export(target, "get_icon", icon);
-        Nan::Export(target, "set_execute", set_execute);
-        Nan::Export(target, "clear_execute", clear_execute);
-        Nan::Export(target, "cpdir", cpdir);
-        Nan::Export(target, "thumbnail", thumbnail);
+        Nan::Export(target, "set_execute", gio::set_execute);
+        Nan::Export(target, "clear_execute", gio::clear_execute);
+        Nan::Export(target, "thumbnail", gio::thumbnail);
         Nan::Export(target, "open_with", open_with);
         Nan::Export(target, "du", du);
         Nan::Export(target, "count", count);
         Nan::Export(target, "exists", exists);
-        Nan::Export(target, "get_file", get_file);
-        Nan::Export(target, "ls", ls);
-        Nan::Export(target, "mkdir", mkdir);
+        Nan::Export(target, "get_file", gio::get_file);
+        Nan::Export(target, "ls", gio::ls);
+        Nan::Export(target, "mkdir", gio::mkdir);
         Nan::Export(target, "cp", cp);
         Nan::Export(target, "cp_stream", cp_stream);
-        Nan::Export(target, "cp_async", cp_async);
+        Nan::Export(target, "cp_async", gio::cp_async);
         Nan::Export(target, "mv", mv);
         Nan::Export(target, "rm", rm);
         Nan::Export(target, "is_writable", is_writable);
@@ -2074,12 +2013,13 @@ namespace gio {
         Nan::Export(target, "get_mounts", get_mounts);
         Nan::Export(target, "get_drives", get_drives);
         Nan::Export(target, "connect_network_drive", connect_network_drive);
-        Nan::Export(target, "exec", exec);
-        Nan::Export(target, "open", open);
+        Nan::Export(target, "exec", gio::exec);
+        Nan::Export(target, "open", gio::open);
     }
 
     NAN_MODULE_WORKER_ENABLED(gio, init)
     NODE_MODULE(gio, init)
+
 
 }
 

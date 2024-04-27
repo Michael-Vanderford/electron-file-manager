@@ -134,6 +134,8 @@ class ProgressManager {
 
     updateProgress(data) {
 
+        console.log(data);
+
         if (data.max === 0) {
             console.log('progress bar max is 0')
             this.progressMsg.remove();
@@ -154,6 +156,9 @@ class ProgressManager {
         if (estimatedTimeInSeconds > 3) {
             msg = `${data.msg} ${getFileSize(data.value)} (${formattedEstimatedTime})`;
         }
+
+        let progress = document.getElementById(`progress_${data.id}`);
+        
 
         this.progressMsg.innerHTML = msg;
         this.progressBar.value = data.value;
@@ -4743,6 +4748,7 @@ ipcRenderer.on('set_progress', (e, data) => {
         progressInstance = progressInstances.get(data.id);
     } else {
         // If not, create a new instance and store it in the Map
+        console.log('creating new instance');
         progressInstance = new ProgressManager('.progress_div', data);
         progressInstances.set(data.id, progressInstance);
     }

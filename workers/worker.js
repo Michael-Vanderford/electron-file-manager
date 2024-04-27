@@ -158,7 +158,7 @@ class FileOperation {
     // }
 
     // Delete
-    delete (del_arr) {
+    delete(del_arr) {
 
         this.progress_id += 1;
 
@@ -206,7 +206,7 @@ class FileOperation {
                         }
 
                         // Sort directories
-                        dirents.sort((a,b) => {
+                        dirents.sort((a, b) => {
                             return b.source.length - a.source.length;
                         })
 
@@ -271,18 +271,18 @@ class FileOperation {
 }
 
 // class NetworkManager {
-    // // Get network settings from network.json
-    // getNetworkSettings() {
-    //     let network_file = path.join(app.getPath('userData'), 'network.json');
-    //     let network_settings = {};
-    //     try {
-    //         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
-    //     } catch (err) {
-    //         fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
-    //         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
-    //     }
-    //     return network_settings;
-    // }
+// // Get network settings from network.json
+// getNetworkSettings() {
+//     let network_file = path.join(app.getPath('userData'), 'network.json');
+//     let network_settings = {};
+//     try {
+//         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+//     } catch (err) {
+//         fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
+//         network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+//     }
+//     return network_settings;
+// }
 // }
 
 const fileOperation = new FileOperation();
@@ -291,12 +291,13 @@ const fileOperation = new FileOperation();
 let file_arr = [];
 let cp_recursive = 0;
 let progress_id = 0;
+
 const cancel_get_files = false;
 
-function get_files_arr (source, destination, callback) {
+function get_files_arr(source, destination, callback) {
 
     cp_recursive++
-    file_arr.push({type: 'directory', source: source, destination: destination})
+    file_arr.push({ type: 'directory', source: source, destination: destination })
     gio.ls(source, (err, dirents) => {
 
         if (err) {
@@ -307,12 +308,12 @@ function get_files_arr (source, destination, callback) {
 
             let file = dirents[i]
             if (file.is_dir && !file.is_symlink) {
-                get_files_arr(file.href, path.format({dir: destination, base: file.name}), callback)
+                get_files_arr(file.href, path.format({ dir: destination, base: file.name }), callback)
             } else {
                 let file_obj = {
                     type: 'file',
                     source: file.href,
-                    destination: path.format({dir: destination, base: file.name}),
+                    destination: path.format({ dir: destination, base: file.name }),
                     size: file.size,
                     is_symlink: file.is_symlink,
                     file: file
@@ -363,7 +364,7 @@ parentPort.on('message', data => {
 
                 // Permission Denied
                 if (!dest_file.is_writable) {
-                    parentPort.postMessage({cmd: 'msg', msg: `Error: Permission Denied`});
+                    parentPort.postMessage({ cmd: 'msg', msg: `Error: Permission Denied` });
                     return;
                 }
 
@@ -373,7 +374,7 @@ parentPort.on('message', data => {
                     has_timeout: 0
                 }
                 parentPort.postMessage(msg);
-                parentPort.postMessage({cmd: 'show_loader'});
+                parentPort.postMessage({ cmd: 'show_loader' });
 
                 // Directory
                 if (src_file.is_dir) {
@@ -382,7 +383,7 @@ parentPort.on('message', data => {
 
                         if (err) {
                             console.log(err);
-                            parentPort.postMessage({cmd: 'msg', msg: `Merge err: ${err}`});
+                            parentPort.postMessage({ cmd: 'msg', msg: `Merge err: ${err}` });
                             // return;
                         }
 
@@ -450,7 +451,7 @@ parentPort.on('message', data => {
 
                     })
 
-                // Files
+                    // Files
                 } else {
 
                     let merge_obj = {
@@ -494,10 +495,10 @@ parentPort.on('message', data => {
             return b.source_date - a.source_date;
         })
 
-        parentPort.postMessage({'cmd':'merge_files', merge_arr: merge_arr});
-        parentPort.postMessage({cmd: 'msg', msg: ''});
+        parentPort.postMessage({ 'cmd': 'merge_files', merge_arr: merge_arr });
+        parentPort.postMessage({ cmd: 'msg', msg: '' });
         merge_arr = [];
-        parentPort.postMessage({cmd: 'hide_loader'});
+        parentPort.postMessage({ cmd: 'hide_loader' });
     }
 
     // Folder Size
@@ -614,15 +615,15 @@ parentPort.on('message', data => {
             if (item_count === undefined) {
                 item_count = ''
             }
-            parentPort.postMessage({cmd: 'count', source: data.source, count: item_count});
+            parentPort.postMessage({ cmd: 'count', source: data.source, count: item_count });
         } catch (err) {
-            parentPort.postMessage({cmd: 'msg', 'msg': err})
+            parentPort.postMessage({ cmd: 'msg', 'msg': err })
         }
     }
 
     if (data.cmd === 'exists') {
         let exists = gio.exists(data.source);
-        parentPort.postMessage({cmd: 'exists', exists: exists});
+        parentPort.postMessage({ cmd: 'exists', exists: exists });
     }
 
     if (data.cmd === 'mv') {
@@ -669,20 +670,22 @@ parentPort.on('message', data => {
 
                 } else {
                     gio.mv(f.source, f.destination);
-                    parentPort.postMessage({cmd: 'move_done', source: f.source, destination: f.destination });
-                    if (i === selected_files_arr.length - 1) {{
-                        parentPort.postMessage({cmd: 'msg', msg: `Done Moving Files`});
-                    }}
+                    parentPort.postMessage({ cmd: 'move_done', source: f.source, destination: f.destination });
+                    if (i === selected_files_arr.length - 1) {
+                        {
+                            parentPort.postMessage({ cmd: 'msg', msg: `Done Moving Files` });
+                        }
+                    }
                 }
 
             } catch (err) {
-                parentPort.postMessage({cmd: 'msg', msg: err.message});
+                parentPort.postMessage({ cmd: 'msg', msg: err.message });
             }
 
         }
 
         if (merge_arr.length > 0) {
-            parentPort.postMessage({cmd:'merge_files_move', merge_arr: merge_arr});
+            parentPort.postMessage({ cmd: 'merge_files_move', merge_arr: merge_arr });
             merge_arr = []
         }
 
@@ -693,7 +696,7 @@ parentPort.on('message', data => {
         try {
 
             if (data.destination.indexOf('mtp:') > -1) {
-                let copy_arr = [{source: data.source, destination: data.destination}];
+                let copy_arr = [{ source: data.source, destination: data.destination }];
                 fileOperation.paste(copy_arr);
 
                 let delete_arr = [data.source];
@@ -702,12 +705,12 @@ parentPort.on('message', data => {
                 gio.mv(data.source, data.destination);
             }
 
-            parentPort.postMessage({cmd: 'rename_done', source: data.source, destination: data.destination});
-            parentPort.postMessage({cmd: 'msg', msg: `Renamed "${path.basename(data.source)}" to "${path.basename(data.destination)}"`});
+            parentPort.postMessage({ cmd: 'rename_done', source: data.source, destination: data.destination });
+            parentPort.postMessage({ cmd: 'msg', msg: `Renamed "${path.basename(data.source)}" to "${path.basename(data.destination)}"` });
 
         } catch (err) {
-            parentPort.postMessage({cmd: 'clear'});
-            parentPort.postMessage({cmd: 'msg', msg: err.message});
+            parentPort.postMessage({ cmd: 'clear' });
+            parentPort.postMessage({ cmd: 'msg', msg: err.message });
         }
     }
 
@@ -715,7 +718,7 @@ parentPort.on('message', data => {
     if (data.cmd === 'mkdir') {
         try {
             gio.mkdir(data.destination);
-            parentPort.postMessage({cmd: 'mkdir_done', destination: data.destination});
+            parentPort.postMessage({ cmd: 'mkdir_done', destination: data.destination });
         } catch (err) {
             console.log(err);
         }
@@ -726,16 +729,16 @@ parentPort.on('message', data => {
         if (gio.exists(data.destination)) {
             try {
                 gio.cp(data.source, data.destination, data.overwrite_flag);
-                parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
+                parentPort.postMessage({ cmd: 'copy_done', destination: data.destination });
             } catch (err) {
-                parentPort.postMessage({cmd: 'msg', msg: err.message});
+                parentPort.postMessage({ cmd: 'msg', msg: err.message });
             }
         } else {
             try {
                 gio.cp(data.source, data.destination, 0);
-                parentPort.postMessage({cmd: 'copy_done', destination: data.destination});
+                parentPort.postMessage({ cmd: 'copy_done', destination: data.destination });
             } catch (err) {
-                parentPort.postMessage({cmd: 'msg', msg: err.message});
+                parentPort.postMessage({ cmd: 'msg', msg: err.message });
             }
         }
     }
@@ -752,9 +755,9 @@ parentPort.on('message', data => {
         } else {
             try {
                 gio.cp(data.source, data.destination, 0);
-                parentPort.postMessage({cmd: 'cp_template_done', destination: data.destination});
+                parentPort.postMessage({ cmd: 'cp_template_done', destination: data.destination });
             } catch (err) {
-                parentPort.postMessage({cmd: 'msg', msg: err.message});
+                parentPort.postMessage({ cmd: 'msg', msg: err.message });
             }
         }
     }
@@ -797,7 +800,7 @@ parentPort.on('message', data => {
 
                     if (err) {
 
-                        parentPort.postMessage({cmd: 'msg', msg: err});
+                        parentPort.postMessage({ cmd: 'msg', msg: err });
 
                         let progress = {
                             id: data.id,
@@ -859,7 +862,7 @@ parentPort.on('message', data => {
                     }
 
                     // Sort directories
-                    dirents.sort((a,b) => {
+                    dirents.sort((a, b) => {
                         return b.source.length - a.source.length;
                     })
 
@@ -934,8 +937,10 @@ parentPort.on('message', data => {
 
         // console.log('running paste')
         let idx = 0;
-        let chunk_size = 0;
         let copy_arr = data.copy_arr
+
+        progress_id += 1;
+
         function copy_next() {
 
             let msg = {
@@ -974,213 +979,240 @@ parentPort.on('message', data => {
             if (is_writable) {
 
                 // gio_utils.get_file(copy_item.source, file => {
-                    let file = gio.get_file(copy_item.source);
+                let file = gio.get_file(copy_item.source);
 
-                    if (file.is_dir || file.type === 'directory') {
+                if (file.is_dir || file.type === 'directory') {
 
-                        let c = 0;
-                        while(gio.exists(destination)) {
-                            ++c;
-                            var pattern = /\((\d+)\)$/;
-                            var match = pattern.exec(destination);
+                    let c = 0;
+                    while (gio.exists(destination)) {
+                        ++c;
+                        var pattern = /\((\d+)\)$/;
+                        var match = pattern.exec(destination);
 
-                            if (match) {
-                                let last_c = parseInt(match[1]);
-                                let next_c = last_c + 1;
-                                destination = destination.replace(pattern, `(${next_c})`);
-                            } else {
-                                destination = `${destination} (1)`
-                            }
+                        if (match) {
+                            let last_c = parseInt(match[1]);
+                            let next_c = last_c + 1;
+                            destination = destination.replace(pattern, `(${next_c})`);
+                        } else {
+                            destination = `${destination} (1)`
+                        }
 
-                            if (c > 10) {
-                                // Bail
-                                return;
+                        if (c > 10) {
+                            // Bail
+                            return;
+                        }
+                    }
+
+                    get_files_arr(copy_item.source, destination, (err, dirents) => {
+
+                        if (err) {
+                            console.log(err);
+                            parentPort.postMessage({ cmd: 'msg', msg: err });
+                            return;
+                        }
+
+                        let msg = {
+                            cmd: 'msg',
+                            msg: '',
+                        }
+                        parentPort.postMessage(msg);
+
+                        let max = 0;
+                        for (let i = 0; i < dirents.length; i++) {
+                            if (dirents[i].type === 'file') {
+                                max += parseInt(dirents[i].size);
                             }
                         }
 
-                        get_files_arr(copy_item.source, destination, (err, dirents) => {
+                        let cpc = 0;
+                        let chunk_size = 0;
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'directory') {
+                                cpc++
+                                if (!gio.exists(f.destination)) {
+                                    try {
 
-                            if (err) {
-                                console.log(err);
-                                parentPort.postMessage({cmd: 'msg', msg: err});
-                                return;
-                            }
+                                        gio.cp(f.source, f.destination);
+                                        // // gio.mkdir(f.destination)
+                                        // data = {
+                                        //     id: data.id,
+                                        //     cmd: 'progress',
+                                        //     msg: `Creating Directory ${path.basename(destination)} ${i} of ${dirents.length}`, //${path.basename(f.source)}`,
+                                        //     max: dirents.length,
+                                        //     value: cpc
+                                        // }
+                                        // // console.log(data)
+                                        // parentPort.postMessage(data);
 
-                            let msg = {
-                                cmd: 'msg',
-                                msg: '',
-                            }
-                            parentPort.postMessage(msg);
-
-                            let max = 0;
-                            for (let i = 0; i < dirents.length; i++) {
-                                if (dirents[i].type === 'file') {
-                                    max += parseInt(dirents[i].size);
-                                }
-                            }
-
-                            let cpc = 0;
-                            let chunk_size = 0;
-                            for (let i = 0; i < dirents.length; i++) {
-                                let f = dirents[i]
-                                if (f.type == 'directory') {
-                                    cpc++
-                                    if (!gio.exists(f.destination)) {
-                                        try {
-
-                                            gio.cp(f.source, f.destination);
-                                            // // gio.mkdir(f.destination)
-                                            // data = {
-                                            //     id: data.id,
-                                            //     cmd: 'progress',
-                                            //     msg: `Creating Directory ${path.basename(destination)} ${i} of ${dirents.length}`, //${path.basename(f.source)}`,
-                                            //     max: dirents.length,
-                                            //     value: cpc
-                                            // }
-                                            // // console.log(data)
-                                            // parentPort.postMessage(data);
-
-                                        } catch (err) {
-                                            let msg = {
-                                                cmd: 'msg',
-                                                msg: err.message,
-                                                has_timeout: 0
-                                            }
-                                            parentPort.postMessage(msg);
+                                    } catch (err) {
+                                        let msg = {
+                                            cmd: 'msg',
+                                            msg: err.message,
+                                            has_timeout: 0
                                         }
+                                        parentPort.postMessage(msg);
                                     }
                                 }
                             }
+                        }
 
-                            for (let i = 0; i < dirents.length; i++) {
-                                let f = dirents[i]
-                                if (f.type == 'file') {
-                                    cpc++
-                                    if (gio.exists(f.destination)) {
-                                        // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
-                                    } else {
-                                        try {
+                        let bytes_copied0 = 0;
+                        let bytes_copied = 0;
+                        progress_id = Math.floor(Math.random() * 100);
 
-                                            // let total_bytes = 0;
-                                            // let total_bytes0 = 0;
-                                            // let bytes_copied = 0;
-                                            // gio.cp_async(f.source, f.destination, (res) => {
-                                            //     total_bytes0 = total_bytes;
-                                            //     total_bytes = res.total_bytes;
-                                            //     bytes_copied += parseInt(res.bytes_copied);
-                                            //     let progress_data = {
-                                            //         id: data.id,
-                                            //         cmd: 'progress',
-                                            //         msg: `Copying `,  // ${path.basename(f.source)}`,
-                                            //         max: max,
-                                            //         value: bytes_copied
-                                            //     }
-                                            //     parentPort.postMessage(progress_data);
-                                            // })
+                        for (let i = 0; i < dirents.length; i++) {
+                            let f = dirents[i]
+                            if (f.type == 'file') {
+                                cpc++
+                                if (gio.exists(f.destination)) {
+                                    // gio.cp(f.source, f.destination, copy_item.overwrite_flag)
+                                } else {
+                                    try {
 
-                                            gio.cp(f.source, f.destination, 0)
+                                        gio.cp_async(f.source, f.destination, (res) => {
 
-                                        } catch (err) {
-                                            let msg = {
-                                                cmd: 'msg',
-                                                msg: err.message,
-                                                has_timeout: 0
+                                            bytes_copied0 = bytes_copied;
+
+                                            if (res.bytes_copied > 0) {
+                                                bytes_copied += parseInt(res.bytes_copied);
                                             }
-                                            parentPort.postMessage(msg);
+
+                                            let progress_data = {
+                                                id: progress_id,
+                                                cmd: 'progress',
+                                                msg: `Copying `,  // ${path.basename(f.source)}`,
+                                                max: max,
+                                                value: bytes_copied
+                                            }
+                                            parentPort.postMessage(progress_data);
+                                        })
+
+                                        if (bytes_copied >= max && bytes_copied > 0) {
+
+                                            let progress_done = {
+                                                id: progress_id,
+                                                cmd: 'progress',
+                                                msg: '',
+                                                max: 0,
+                                                value: 0
+                                            }
+                                            parentPort.postMessage(progress_done);
+
+                                            console.log('done copying files');
+
+                                            bytes_copied = 0;
+                                            
+
                                         }
-                                    }
 
-                                    data = {
-                                        id: data.id,
-                                        cmd: 'progress',
-                                        // msg: `Copied File ${i} of ${dirents.length}`,  // ${path.basename(f.source)}`,
-                                        msg: `Copying "${path.basename(destination)}" ${i} of ${dirents.length}`,  // ${path.basename(f.source)}`,
-                                        max: dirents.length,
-                                        value: cpc
+                                        // gio.cp(f.source, f.destination, 0)
+
+                                    } catch (err) {
+                                        let msg = {
+                                            cmd: 'msg',
+                                            msg: err.message,
+                                            has_timeout: 0
+                                        }
+                                        parentPort.postMessage(msg);
                                     }
-                                    // console.log(data)
-                                    parentPort.postMessage(data);
                                 }
+
+                                // data = {
+                                //     id: data.id,
+                                //     cmd: 'progress',
+                                //     // msg: `Copied File ${i} of ${dirents.length}`,  // ${path.basename(f.source)}`,
+                                //     msg: `Copying "${path.basename(destination)}" ${i} of ${dirents.length}`,  // ${path.basename(f.source)}`,
+                                //     max: dirents.length,
+                                //     value: cpc
+                                // }
+                                // // console.log(data)
+                                // parentPort.postMessage(data);
                             }
+                        }
 
-                            if (cpc === dirents.length) {
+                        if (cpc === dirents.length) {
 
-                                // console.log('done copying files');
-                                let data = {
-                                    cmd: 'copy_done',
-                                    destination: destination
+                            // console.log('done copying files');
+                            let data = {
+                                cmd: 'copy_done',
+                                destination: destination
+                            }
+                            parentPort.postMessage(data);
+
+                            copy_next();
+                        }
+
+                    })
+
+                    // File
+                } else {
+
+                    try {
+
+                        let bytes_copied = 0;
+                        let file = gio.get_file(copy_item.source);
+                        let max = file.size;
+                        progress_id = Math.floor(Math.random() * 100);
+
+                        gio.cp_async(copy_item.source, copy_item.destination, (res) => {
+
+                            bytes_copied = parseInt(res.current_num_bytes);
+
+                            let progress_data = {
+                                id: progress_id,
+                                cmd: 'progress',
+                                msg: `Copying ${path.basename(copy_item.source)}`,
+                                max: max,
+                                value: bytes_copied
+                            }
+                            parentPort.postMessage(progress_data);
+
+                            if (bytes_copied >= max && bytes_copied > 0 && max > 0) {
+
+                                let progress_done = {
+                                    id: progress_id,
+                                    cmd: 'progress',
+                                    msg: '',
+                                    max: 0,
+                                    value: 0
                                 }
-                                parentPort.postMessage(data);
+                                parentPort.postMessage(progress_done);
 
-                                copy_next();
+                                bytes_copied = 0;
+
+                                // let data = {
+                                //     cmd: 'copy_done',
+                                //     destination: copy_item.destination
+                                // }
+                                // parentPort.postMessage(data);
                             }
 
                         })
 
-                    // File
-                    } else {
+                        // gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
+                        // let data = {
+                        //     cmd: 'copy_done',
+                        //     destination: copy_item.destination
+                        // }
+                        // parentPort.postMessage(data);
+                        // parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
 
-                        try {
 
-                            gio.cp(copy_item.source, copy_item.destination, copy_item.overwrite_flag)
-                            let data = {
-                                cmd: 'copy_done',
-                                destination: copy_item.destination
-                            }
-                            parentPort.postMessage(data);
-                            parentPort.postMessage({cmd: 'msg', msg: `Copy Complete`});
 
-                            // const rs = fs.createReadStream(copy_item.source);
-                            // const ws = fs.createWriteStream(copy_item.destination);
-
-                            // rs.on('error', err => {
-                            //     parentPort.postMessage({cmd: 'msg', err: err});
-                            // })
-
-                            // ws.on('error', err => {
-                            //     parentPort.postMessage({cmd: 'msg', err: err});
-                            // })
-
-                            // rs.on('data', chunk => {
-                            //     chunk_size += chunk.length;
-                            //     data = {
-                            //         id: data.id,
-                            //         cmd: 'progress',
-                            //         msg: `Copying "${path.basename(destination)}" `,  // ${path.basename(f.source)}`,
-                            //         max: max,
-                            //         value: chunk_size
-                            //     }
-                            //     // console.log(data)
-                            //     parentPort.postMessage(data);
-
-                            //     // if (chunk_size >= max) {
-                            //     //     chunk_size = 0;
-                            //     //     console.log('done copying files');
-                            //     //     let data = {
-                            //     //         cmd: 'copy_done',
-                            //     //         destination: destination
-                            //     //     }
-                            //     //     parentPort.postMessage(data);
-                            //     //     copy_next();
-                            //     // }
-
-                            // })
-
-                            // rs.pipe(ws);
-
-                        } catch (err) {
-                            console.log(err.message);
-                            let msg = {
-                                cmd: 'msg',
-                                msg: err.message,
-                                has_timeout: 0
-                            }
-                            parentPort.postMessage(msg);
-                            return;
+                    } catch (err) {
+                        console.log(err.message);
+                        let msg = {
+                            cmd: 'msg',
+                            msg: err.message,
+                            has_timeout: 0
                         }
-                        copy_next();
-
+                        parentPort.postMessage(msg);
+                        return;
                     }
+                    copy_next();
+
+                }
 
                 // })
 
@@ -1227,7 +1259,7 @@ parentPort.on('message', data => {
             cmd = `cd '${location}'; tar czf '${destination}' ${file_list}`;
         }
 
-        let file_path = path.format({dir: location, base: destination});
+        let file_path = path.format({ dir: location, base: destination });
 
         const compressionRatio = 0.5;
         let setinterval_id = setInterval(() => {
@@ -1298,7 +1330,7 @@ parentPort.on('message', data => {
 
         let c = 0;
 
-        switch(true) {
+        switch (true) {
             case source.indexOf('.zip') > -1:
                 filename = source.replace('.zip', '')
                 c = 0
@@ -1393,7 +1425,7 @@ parentPort.on('message', data => {
 
         // THIS NEEDS WORK. CHECK IF DIRECTORY EXIST. NEED OPTION TO OVERWRITE
         exec(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER }, (err, stdout, stderr) => {
-        // execSync(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER })
+            // execSync(cmd, { maxBuffer: Number.MAX_SAFE_INTEGER })
 
             if (err) {
 
@@ -1464,12 +1496,12 @@ parentPort.on('message', data => {
                             filter_arr[i].size_total = size.split(' ')[0];
                             filter_arr[i].size_used = size.split(' ')[1];
                         }
-                    } catch(err) {
+                    } catch (err) {
                         console.log('');
                     }
                 }
 
-                let cmd ={
+                let cmd = {
                     cmd: 'devices',
                     devices: filter_arr
                 }
