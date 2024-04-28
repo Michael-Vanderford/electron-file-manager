@@ -619,7 +619,7 @@ class Utilities {
 
         card.addEventListener('dragstart', (e) => {
             // e.stopPropagation();
-            ipcRenderer.send('copy_to_clipboard', file.href);
+            // ipcRenderer.send('copy_to_clipboard', file.href);
             getSelectedFiles();
         })
 
