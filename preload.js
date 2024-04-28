@@ -80,17 +80,28 @@ class ProgressManager {
         this.progress = this.addDiv(['progress']);
         this.progressMsg = this.addDiv(['progress_msg']);
         this.progressBar = document.createElement('progress');
+        this.progressCancel = document.createElement('button');
 
         this.progress.id = `progress_${this.id}`;
         this.progressMsg.id = `progress_msg_${this.id}`;
         this.progressBar.id = `progress_bar_${this.id}`;
 
-        this.progress.append(this.progressMsg, this.progressBar);
+        this.progress.append(this.progressMsg, this.progressBar, this.progressCancel);
         this.container.append(this.progress);
+
+        this.progressCancel.textContent = 'Cancel';
 
         // this.progress.style.display = 'block';
         // this.progress.style.position = 'absolute';
         // this.progress.style.bottom = `${this.calculateBottomPosition()}px`; // Set the bottom property dynamically
+
+        this.progressCancel.addEventListener('click', () => {
+
+            ipcRenderer.send('cp_cancel', '/home/michael/Downloads/pdf)');
+            this.progress.remove();
+            this.hideProgress();
+
+        })
 
     }
 
@@ -158,7 +169,7 @@ class ProgressManager {
         }
 
         let progress = document.getElementById(`progress_${data.id}`);
-        
+
 
         this.progressMsg.innerHTML = msg;
         this.progressBar.value = data.value;

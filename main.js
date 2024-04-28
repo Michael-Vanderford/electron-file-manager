@@ -2193,7 +2193,7 @@ ipcMain.on('paste', (e, destination) => {
     // selected_files_arr = [];
 
     let copy_arr = [];
-    let copy_overwrite_arr = []
+    let copy_overwrite_arr = [];
     let overwrite = 0;
     let location = destination; //document.getElementById('location');
 
@@ -2249,7 +2249,6 @@ ipcMain.on('paste', (e, destination) => {
 
                     let paste_worker = new Worker(path.join(__dirname, 'workers/worker.js'));
                     paste_worker.on('message', (data) => {
-                        // console.log('paste cmd', data.cmd);
                         switch (data.cmd) {
                             case 'msg': {
                                 win.send('msg', data.msg, data.has_timeout);
@@ -2283,6 +2282,10 @@ ipcMain.on('paste', (e, destination) => {
                             }
 
                         }
+                    })
+
+                    ipcMain.on('cp_cancel', (e, href) => {
+                        paste_worker.postMessage({ cmd: 'cp_cancel', href: href });
                     })
 
                     progress_id += 1;

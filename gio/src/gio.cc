@@ -669,7 +669,10 @@ namespace gio {
 
         }
 
-        static NAN_METHOD(cp_async) {
+        static thread_local Nan::Persistent<v8::Object> persistentHandle;
+
+        static
+        NAN_METHOD(cp_async) {
 
             Nan:: HandleScope scope;
 
@@ -679,6 +682,7 @@ namespace gio {
 
             v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
             v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
 
             v8::Isolate* isolate = info.GetIsolate();
             v8::String::Utf8Value sourceFile(isolate, sourceString);
@@ -698,6 +702,10 @@ namespace gio {
 
             GCancellable* cancellable = g_cancellable_new();
 
+            v8::Local<v8::Object> obj = Nan::New<v8::Object>();
+            Nan::Set(obj, Nan::New("cancellable").ToLocalChecked(), Nan::New<v8::External>(cancellable));
+            persistentHandle.Reset(obj);
+
             GError** error = nullptr;
             g_file_copy(src,
                         dest,
@@ -715,10 +723,21 @@ namespace gio {
 
         }
 
+        static NAN_METHOD(cp_cancel) {
+            Nan::HandleScope scope;
+            v8::Local<v8::Object> obj = Nan::New(persistentHandle);
+            GCancellable* cancellable =
+                static_cast<GCancellable*>(v8::Local<v8::External>::Cast(Nan::Get(obj,
+                                            Nan::New("cancellable").ToLocalChecked()).ToLocalChecked())->Value());
+
+            g_cancellable_cancel(cancellable);
+        }
+
         private:
 
     };
 
+    thread_local Nan::Persistent<v8::Object> gio::persistentHandle;
     thread_local goffset gio::bytes_copied = 0;
     thread_local goffset gio::bytes_copied0 = 0;
 
@@ -2005,6 +2024,7 @@ namespace gio {
         Nan::Export(target, "cp", cp);
         Nan::Export(target, "cp_stream", cp_stream);
         Nan::Export(target, "cp_async", gio::cp_async);
+        Nan::Export(target, "cp_cancel", gio::cp_cancel);
         Nan::Export(target, "mv", mv);
         Nan::Export(target, "rm", rm);
         Nan::Export(target, "is_writable", is_writable);
