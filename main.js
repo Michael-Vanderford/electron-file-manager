@@ -52,11 +52,12 @@ class FileManager {
         try {
             gio.watcher(href, (watcher) => {
                 watcher_failed = 0;
+                // console.log('watcher_event', watcher.event)
                 if (watcher.event !== 'unknown') {
                     if (watcher.event === 'deleted') {
                         win.send('remove_card', watcher.filename);
                     }
-                    if (watcher.event === 'created') {
+                    if (watcher.event === 'created' || watcher.event === 'changed') {
                         try {
                             // console.log(watcher.event, watcher.filename);
                             let file = gio.get_file(watcher.filename);
@@ -69,7 +70,7 @@ class FileManager {
                             }
                         } catch (err) {
                             win.send('msg', 'watcher error: ' + err.message);
-                            // console.log(err)
+                            console.log('watcher error', err)
                         }
                     }
 
@@ -2323,9 +2324,11 @@ ipcMain.on('move', (e, destination) => {
     let copy_arr = [];
     if (selected_files_arr.length > 0) {
         for (let i = 0; i < selected_files_arr.length; i++) {
+            let file = gio.get_file(selected_files_arr[i]);
             let copy_data = {
                 source: selected_files_arr[i],
-                destination: path.format({ dir: destination, base: path.basename(selected_files_arr[i]) })
+                destination: path.format({ dir: destination, base: path.basename(selected_files_arr[i]) }),
+                size: file.size,
             }
             copy_arr.push(copy_data);
         }

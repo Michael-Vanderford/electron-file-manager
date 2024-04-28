@@ -644,7 +644,7 @@ namespace gio {
         static thread_local goffset bytes_copied0;
 
         static void
-        cp_progress_callback(goffset current_num_bytes,
+        progress_callback(goffset current_num_bytes,
                         goffset total_bytes,
                         gpointer user_data) {
 
@@ -711,7 +711,7 @@ namespace gio {
                         dest,
                         G_FILE_COPY_ALL_METADATA,
                         cancellable,
-                        (GFileProgressCallback) gio::cp_progress_callback,
+                        (GFileProgressCallback) gio::progress_callback,
                         new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
                         error);
 
@@ -731,6 +731,56 @@ namespace gio {
                                             Nan::New("cancellable").ToLocalChecked()).ToLocalChecked())->Value());
 
             g_cancellable_cancel(cancellable);
+        }
+
+        static NAN_METHOD(mv) {
+
+            if (info.Length() < 2) {
+                return Nan::ThrowError("Wrong number of arguments");
+            }
+
+            v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
+
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::String::Utf8Value sourceFile(isolate, sourceString);
+            v8::String::Utf8Value destFile(isolate, destString);
+
+            GFile* src = g_file_new_for_path(*sourceFile);
+            GFile* dest = g_file_new_for_path(*destFile);
+
+            const char *src_scheme = g_uri_parse_scheme(*sourceFile);
+            const char *dest_scheme = g_uri_parse_scheme(*destFile);
+            if (src_scheme != NULL) {
+                src = g_file_new_for_uri(*sourceFile);
+            }
+            if (dest_scheme != NULL) {
+                dest = g_file_new_for_uri(*destFile);
+            }
+
+            GError *error = NULL;
+            gboolean res = g_file_move(
+                src,
+                dest,
+                G_FILE_COPY_NONE,
+                NULL,
+                (GFileProgressCallback) gio::progress_callback,
+                new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
+                &error
+            );
+
+            bytes_copied0 = 0;
+            bytes_copied = 0;
+
+            g_object_unref(src);
+            g_object_unref(dest);
+
+            if (res == FALSE) {
+                return Nan::ThrowError(error->message);
+            }
+
+            info.GetReturnValue().Set(Nan::True());
+
         }
 
         private:
@@ -1011,6 +1061,18 @@ namespace gio {
     void directory_changed(GFileMonitor* monitor, GFile* file, GFile* other_file, GFileMonitorEvent event_type, gpointer user_data) {
         Nan::HandleScope scope;
 
+        // G_FILE_MONITOR_EVENT_CHANGED, 0
+        // G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT, 1
+        // G_FILE_MONITOR_EVENT_DELETED, 2
+        // G_FILE_MONITOR_EVENT_CREATED, 3
+        // G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED, 4
+        // G_FILE_MONITOR_EVENT_PRE_UNMOUNT, 5
+        // G_FILE_MONITOR_EVENT_UNMOUNTED, 6
+        // G_FILE_MONITOR_EVENT_MOVED, 7
+        // G_FILE_MONITOR_EVENT_RENAMED, 8
+        // G_FILE_MONITOR_EVENT_MOVED_IN, 9
+        // G_FILE_MONITOR_EVENT_MOVED_OUT 10
+
         const char* eventName = nullptr;
         if (event_type == G_FILE_MONITOR_EVENT_CREATED) {
             eventName = "created";
@@ -1018,6 +1080,22 @@ namespace gio {
             eventName = "deleted";
         } else if (event_type == G_FILE_MONITOR_EVENT_RENAMED) {
             eventName = "renamed";
+        } else if (event_type == G_FILE_MONITOR_EVENT_MOVED) {
+            eventName = "moved";
+        } else if (event_type == G_FILE_MONITOR_EVENT_MOVED_IN) {
+            eventName = "moved_in";
+        } else if (event_type == G_FILE_MONITOR_EVENT_MOVED_OUT) {
+            eventName = "moved_out";
+        } else if (event_type == G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED) {
+            eventName = "attribute_changed";
+        } else if (event_type == G_FILE_MONITOR_EVENT_CHANGED) {
+            eventName = "changed";
+        } else if (event_type == G_FILE_MONITOR_EVENT_CHANGES_DONE_HINT) {
+            eventName = "changes_done_hint";
+        } else if (event_type == G_FILE_MONITOR_EVENT_PRE_UNMOUNT) {
+            eventName = "pre_unmount";
+        } else if (event_type == G_FILE_MONITOR_EVENT_UNMOUNTED) {
+            eventName = "unmounted";
         } else {
             eventName = "unknown"; // Unknown event type, ignore
         }
@@ -1685,92 +1763,6 @@ namespace gio {
 
     }
 
-    // class progress_data {
-    //     public:
-    //     goffset bytes_copied;
-    //     goffset bytes_copied0;
-    // };
-
-    // static progress_data progress_data;
-
-    // void cp_progress_callback(goffset current_num_bytes,
-    //                     goffset total_bytes,
-    //                     gpointer user_data) {
-
-    //     Nan::HandleScope scope;
-    //     if (user_data == NULL) {
-    //         printf("User data is NULL\n");
-    //         return;
-    //     }
-
-    //     // if (current_num_bytes > progress_data.bytes_copied0) {
-    //     //     progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
-    //     //     progress_data.bytes_copied0 = current_num_bytes;
-    //     // } else {
-    //     //     progress_data.bytes_copied = current_num_bytes;
-    //     //     progress_data.bytes_copied0 = 0;
-    //     // }
-
-    //     progress_data.bytes_copied = current_num_bytes - progress_data.bytes_copied0;
-    //     progress_data.bytes_copied0 = current_num_bytes;
-
-    //     v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
-    //     Nan::Set(dataObj, Nan::New("current_num_bytes").ToLocalChecked(), Nan::New<v8::Number>(current_num_bytes));
-    //     Nan::Set(dataObj, Nan::New("bytes_copied").ToLocalChecked(), Nan::New<v8::Number>(progress_data.bytes_copied));
-    //     Nan::Set(dataObj, Nan::New("total_bytes").ToLocalChecked(), Nan::New<v8::Number>(total_bytes));
-
-    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
-    //     const unsigned argc = 1;
-    //     v8::Local<v8::Value> argv[argc] = { dataObj };
-    //     callback->Call(argc, argv);
-
-    // }
-
-    // NAN_METHOD(cp_async) {
-
-    //     Nan:: HandleScope scope;
-
-    //     if (info.Length() < 3) {
-    //         return Nan::ThrowError("Wrong number of arguments");
-    //     }
-
-    //     v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-    //     v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
-    //     v8::Isolate* isolate = info.GetIsolate();
-    //     v8::String::Utf8Value sourceFile(isolate, sourceString);
-    //     v8::String::Utf8Value destFile(isolate, destString);
-
-    //     GFile* src = g_file_new_for_path(*sourceFile);
-    //     GFile* dest = g_file_new_for_path(*destFile);
-
-    //     const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-    //     const char *dest_scheme = g_uri_parse_scheme(*destFile);
-    //     if (src_scheme != NULL) {
-    //         src = g_file_new_for_uri(*sourceFile);
-    //     }
-    //     if (dest_scheme != NULL) {
-    //         dest = g_file_new_for_uri(*destFile);
-    //     }
-
-    //     // note: this works but the progress does not process until the operation has completed
-    //     GError** error = nullptr;
-    //     g_file_copy(src,
-    //                 dest,
-    //                 G_FILE_COPY_ALL_METADATA,
-    //                 NULL,
-    //                 (GFileProgressCallback) cp_progress_callback,
-    //                 new Nan::Callback(info[info.Length() - 1].As<v8::Function>()),
-    //                 error);
-
-    //     progress_data.bytes_copied0 = 0;
-    //     // progress_data.bytes_copied = 0;
-
-    //     g_object_unref(src);
-    //     g_object_unref(dest);
-
-    // }
-
     NAN_METHOD(cp_write) {
         Nan:: HandleScope scope;
     }
@@ -1848,53 +1840,6 @@ namespace gio {
 
         // Return the result as a boolean value
         info.GetReturnValue().Set(Nan::New<v8::Boolean>(isWritable != FALSE));
-
-    }
-
-    NAN_METHOD(mv) {
-
-        if (info.Length() < 2) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
-
-        v8::Local<v8::String> sourceString = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> destString = Nan::To<v8::String>(info[1]).ToLocalChecked();
-
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value sourceFile(isolate, sourceString);
-        v8::String::Utf8Value destFile(isolate, destString);
-
-        GFile* src = g_file_new_for_path(*sourceFile);
-        GFile* dest = g_file_new_for_path(*destFile);
-
-        const char *src_scheme = g_uri_parse_scheme(*sourceFile);
-        const char *dest_scheme = g_uri_parse_scheme(*destFile);
-        if (src_scheme != NULL) {
-            src = g_file_new_for_uri(*sourceFile);
-        }
-        if (dest_scheme != NULL) {
-            dest = g_file_new_for_uri(*destFile);
-        }
-
-        GError *error = NULL;
-        gboolean res = g_file_move(
-            src,
-            dest,
-            G_FILE_COPY_NONE,
-            NULL,
-            NULL,
-            NULL,
-            &error
-        );
-
-        g_object_unref(src);
-        g_object_unref(dest);
-
-        if (res == FALSE) {
-            return Nan::ThrowError(error->message);
-        }
-
-        info.GetReturnValue().Set(Nan::True());
 
     }
 
@@ -2025,7 +1970,7 @@ namespace gio {
         Nan::Export(target, "cp_stream", cp_stream);
         Nan::Export(target, "cp_async", gio::cp_async);
         Nan::Export(target, "cp_cancel", gio::cp_cancel);
-        Nan::Export(target, "mv", mv);
+        Nan::Export(target, "mv", gio::mv);
         Nan::Export(target, "rm", rm);
         Nan::Export(target, "is_writable", is_writable);
         Nan::Export(target, "monitor", monitor);

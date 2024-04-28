@@ -622,6 +622,15 @@ parentPort.on('message', data => {
         case 'mv': {
             let merge_arr = [];
             let selected_files_arr = data.selected_items;
+
+            let bytes_copied = 0;
+            let max = 0;
+            progress_id = Math.floor(Math.random() * 100);
+
+            for (let i = 0; i < selected_files_arr.length; i++) {
+                max += selected_files_arr[i].size;
+            }
+
             for (let i = 0; i < selected_files_arr.length; i++) {
                 try {
                     let f = selected_files_arr[i];
@@ -662,13 +671,51 @@ parentPort.on('message', data => {
                         }
 
                     } else {
-                        gio.mv(f.source, f.destination);
-                        parentPort.postMessage({ cmd: 'move_done', source: f.source, destination: f.destination });
-                        if (i === selected_files_arr.length - 1) {
-                            {
-                                parentPort.postMessage({ cmd: 'msg', msg: `Done Moving Files` });
+                        gio.mv(f.source, f.destination, (progress_data) => {
+
+                            bytes_copied += parseInt(progress_data.bytes_copied);
+
+                            // update progress
+                            let progress = {
+                                id: progress_id,
+                                cmd: 'progress',
+                                msg: `Moving ${path.basename(f.source)}`,
+                                max: max,
+                                value: bytes_copied
                             }
-                        }
+                            parentPort.postMessage(progress);
+
+                            // update card
+                            if (bytes_copied >= progress_data.total_bytes) {
+
+                                let move_done = {
+                                    cmd: 'move_done',
+                                    source: f.source,
+                                    destination: f.destination
+                                }
+                                parentPort.postMessage(move_done);
+
+                            }
+
+                            // progress done
+                            if (bytes_copied >= max) {
+
+                                // close progress
+                                let progress_done = {
+                                    id: progress_id,
+                                    cmd: 'progress',
+                                    msg: '',
+                                    max: 0,
+                                    value: 0
+                                }
+                                parentPort.postMessage(progress_done);
+
+                                bytes_copied = 0;
+                                parentPort.postMessage({ cmd: 'msg', msg: `Done Moving Files` });
+
+                            }
+
+                        });
                     }
 
                 } catch (err) {
@@ -695,7 +742,7 @@ parentPort.on('message', data => {
                     let delete_arr = [data.source];
                     fileOperation.delete(delete_arr);
                 } else {
-                    gio.mv(data.source, data.destination);
+                    gio.mv(data.source, data.destination, () => {});
                 }
 
                 parentPort.postMessage({ cmd: 'rename_done', source: data.source, destination: data.destination });
@@ -1078,6 +1125,7 @@ parentPort.on('message', data => {
                                                     bytes_copied += parseInt(res.bytes_copied);
                                                 }
 
+                                                // update progress
                                                 let progress_data = {
                                                     id: progress_id,
                                                     cmd: 'progress',
@@ -1086,27 +1134,23 @@ parentPort.on('message', data => {
                                                     value: bytes_copied
                                                 }
                                                 parentPort.postMessage(progress_data);
-                                            })
 
-                                            // File Copy done
-                                            if (bytes_copied >= max && bytes_copied > 0) {
+                                                // File Copy done
+                                                if (bytes_copied >= max && bytes_copied > 0) {
 
-                                                let progress_done = {
-                                                    id: progress_id,
-                                                    cmd: 'progress',
-                                                    msg: '',
-                                                    max: 0,
-                                                    value: 0
+                                                    let progress_done = {
+                                                        id: progress_id,
+                                                        cmd: 'progress',
+                                                        msg: '',
+                                                        max: 0,
+                                                        value: 0
+                                                    }
+                                                    parentPort.postMessage(progress_done);
+                                                    bytes_copied = 0;
+
                                                 }
-                                                parentPort.postMessage(progress_done);
 
-                                                console.log('done copying files');
-
-                                                bytes_copied = 0;
-
-                                            }
-
-                                            console.log('cancel value', cancel_data)
+                                            })
 
                                             // Cancel Copy
                                             if (cancel_data.cancel) {
@@ -1131,6 +1175,7 @@ parentPort.on('message', data => {
 
                                                 break;
                                             }
+
 
                                             // gio.cp(f.source, f.destination, 0)
 

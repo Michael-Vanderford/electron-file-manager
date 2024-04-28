@@ -86,7 +86,7 @@ class ProgressManager {
         this.progressMsg.id = `progress_msg_${this.id}`;
         this.progressBar.id = `progress_bar_${this.id}`;
 
-        this.progress.append(this.progressMsg, this.progressBar, this.progressCancel);
+        this.progress.append(this.progressMsg, this.progressBar);
         this.container.append(this.progress);
 
         this.progressCancel.textContent = 'Cancel';
@@ -125,11 +125,23 @@ class ProgressManager {
     }
 
     formatEstimatedTime(seconds) {
-        // Implement your own logic for formatting the estimated time (HH:MM:SS or other format)
+        // // Implement your own logic for formatting the estimated time (HH:MM:SS or other format)
+        // const hours = Math.floor(seconds / 3600);
+        // const minutes = Math.floor((seconds % 3600) / 60);
+        // const remainingSeconds = Math.floor(seconds % 60);
+        // return `${hours} Hours ${minutes} Minutes ${remainingSeconds} Seconds`;
+
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
         const remainingSeconds = Math.floor(seconds % 60);
-        return `${hours}:${minutes}:${remainingSeconds}`;
+
+        // Pad single digit values with leading zeros
+        const formattedHours = String(hours).padStart(2, '0');
+        const formattedMinutes = String(minutes).padStart(2, '0');
+        const formattedSeconds = String(remainingSeconds).padStart(2, '0');
+
+        return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+
     }
 
     showProgress() {
@@ -145,8 +157,6 @@ class ProgressManager {
 
     updateProgress(data) {
 
-        console.log(data);
-
         if (data.max === 0) {
             console.log('progress bar max is 0')
             this.progressMsg.remove();
@@ -156,25 +166,51 @@ class ProgressManager {
             return;
         }
 
+        // Check for division by zero
+        if (data.value === 0) {
+            return;
+        }
+
         const currentTime = new Date();
         const elapsedTimeInSeconds = Math.floor((currentTime - this.startTime) / 1000);
-        const estimatedTimeInSeconds =
-            (elapsedTimeInSeconds / data.value) * (this.progressBar.max - data.value);
+
+        // Calculate average transfer rate
+        const averageTransferRate = data.value / elapsedTimeInSeconds;
+
+        // Calculate estimated time remaining
+        const estimatedTimeInSeconds = (data.max - data.value) / averageTransferRate;
 
         const formattedEstimatedTime = this.formatEstimatedTime(estimatedTimeInSeconds);
         let msg = `${data.msg} ${getFileSize(data.value)}`;
 
-        if (estimatedTimeInSeconds > 3) {
+        // Update message with estimated time
+        // if (estimatedTimeInSeconds > 3) {
             msg = `${data.msg} ${getFileSize(data.value)} (${formattedEstimatedTime})`;
-        }
+        // }
 
-        let progress = document.getElementById(`progress_${data.id}`);
-
-
+        // Update progress bar
         this.progressMsg.innerHTML = msg;
         this.progressBar.value = data.value;
         this.progressBar.max = data.max;
 
+        // const currentTime = new Date();
+        // const elapsedTimeInSeconds = Math.floor((currentTime - this.startTime) / 1000);
+        // const estimatedTimeInSeconds =
+        //     (elapsedTimeInSeconds / data.value) * (this.progressBar.max - data.value);
+
+        // const formattedEstimatedTime = this.formatEstimatedTime(estimatedTimeInSeconds);
+        // let msg = `${data.msg} ${getFileSize(data.value)}`;
+
+        // // if (estimatedTimeInSeconds > 3) {
+        //     msg = `${data.msg} ${getFileSize(data.value)} (${formattedEstimatedTime})`;
+        // // }
+
+        // let progress = document.getElementById(`progress_${data.id}`);
+
+
+        // this.progressMsg.innerHTML = msg;
+        // this.progressBar.value = data.value;
+        // this.progressBar.max = data.max;
 
     }
 
@@ -4681,6 +4717,18 @@ ipcRenderer.on('get_card_gio', (e, file) => {
             file_grid.prepend(card);
         }
         // viewManager.lazyload();
+    } else {
+        let card = active_tab_content.querySelector(`[data-href="${file.href}"]`);
+        let size = card.querySelector('.size');
+        size.innerHTML = '';
+
+        if (file.is_dir) {
+            getFolderCount(file.href);
+            utilities.getFolderSize(file.href);
+        } else {
+            size.innerHTML = getFileSize(file.size);
+        }
+
     }
 
     utilities.dragSelect();
