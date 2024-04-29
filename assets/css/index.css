@@ -834,7 +834,6 @@ th {
     flex-grow: 1;
     /* border: 1px solid var(--border); */
     width: 15%;
-
 }
 
 .list .item.size {
@@ -943,7 +942,7 @@ th {
 
 .header_row .date {
     margin-left: 10px;
-    text-align: left;
+    text-align: left
 }
 
 .header_row .size {

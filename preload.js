@@ -566,6 +566,9 @@ class Utilities {
         if (file.atime) {
             atime.append(getDateTime(file.atime));
         }
+        if (file.content_type) {
+            type.append(file.content_type);
+        }
 
         card.querySelectorAll('.item').forEach(item => {
             item.draggable = false;
