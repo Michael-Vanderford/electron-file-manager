@@ -193,25 +193,6 @@ class ProgressManager {
         this.progressBar.value = data.value;
         this.progressBar.max = data.max;
 
-        // const currentTime = new Date();
-        // const elapsedTimeInSeconds = Math.floor((currentTime - this.startTime) / 1000);
-        // const estimatedTimeInSeconds =
-        //     (elapsedTimeInSeconds / data.value) * (this.progressBar.max - data.value);
-
-        // const formattedEstimatedTime = this.formatEstimatedTime(estimatedTimeInSeconds);
-        // let msg = `${data.msg} ${getFileSize(data.value)}`;
-
-        // // if (estimatedTimeInSeconds > 3) {
-        //     msg = `${data.msg} ${getFileSize(data.value)} (${formattedEstimatedTime})`;
-        // // }
-
-        // let progress = document.getElementById(`progress_${data.id}`);
-
-
-        // this.progressMsg.innerHTML = msg;
-        // this.progressBar.value = data.value;
-        // this.progressBar.max = data.max;
-
     }
 
 

@@ -1119,6 +1119,8 @@ parentPort.on('message', data => {
 
                                             gio.cp_async(f.source, f.destination, (res) => {
 
+                                                const current_time = Date.now();
+
                                                 bytes_copied0 = bytes_copied;
 
                                                 if (res.bytes_copied > 0) {
