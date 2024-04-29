@@ -9,6 +9,7 @@
     "maintainer": "Michael Vanderford michael.vanderford@gmail.com",
     "scripts": {
         "start": "electron .",
+        "build": "npx electron-builder --linux",
         "debug": "electron --inspect-brk .",
         "pack": "electron-builder --dir",
         "dist": "build"
