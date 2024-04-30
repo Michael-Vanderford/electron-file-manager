@@ -2472,7 +2472,9 @@ class TabManager {
 
     addTabHistory(href) {
 
-
+        if (href === undefined || href === null) {
+            return;
+        }
 
         let history_obj = {
             tab_id: this.tab_id,

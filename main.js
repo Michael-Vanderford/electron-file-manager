@@ -70,8 +70,8 @@ class FileManager {
                                 }
                             }
                         } catch (err) {
-                            win.send('msg', 'watcher error: ' + err.message);
-                            console.log('watcher error', err)
+                            // win.send('msg', 'watcher error: ' + err.message);
+                            // console.log('watcher error', err)
                         }
                     }
 
@@ -1968,8 +1968,21 @@ ipcMain.on('paste', (e, destination) => {
             // Files
             } else {
                 if (source === destination) {
-                    // this is not building the filename correctly when a file extension has .tar.gz
-                    destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
+
+                    // check if destination file exists and loop until it doesn't
+                    while (gio.exists(destination)) {
+
+                        let file = gio.get_file(destination);
+                        let ext = path.extname(destination);
+                        let base = path.basename(destination, ext);
+                        let dir = path.dirname(destination);
+
+                        let new_base = base + ' (Copy)';
+                        destination = path.join(dir, new_base + ext);
+                    }
+
+                    // destination = path.dirname(destination) + '/' + path.basename(destination, path.extname(destination)) + ' (Copy)' + path.extname(destination);
+
                 } else {
                     if (gio.exists(destination)) {
                         // win.send('msg', 'Overwrite not yet implemented');
