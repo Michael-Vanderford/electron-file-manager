@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Global Arrays
 let selected_files_arr = [];
+let selected_files_delete_arr = [];
 let auto_complete_arr = [];
 
 let ds;
@@ -2471,12 +2472,14 @@ class TabManager {
 
     addTabHistory(href) {
 
-        // console.log('add history', href)
+
 
         let history_obj = {
             tab_id: this.tab_id,
             location: href
         }
+
+        console.log('tab history', history_obj)
 
         // reset tab history idx when the history changes
         this.tab_history_idx = 0;
@@ -2529,7 +2532,6 @@ class TabManager {
             const title = document.createElement('h2');
             title.textContent = 'Navigation History';
 
-            // this.historyArr = history;
             // Create the list of history items
             tab_history.forEach((item, idx) => {
 
@@ -2632,12 +2634,17 @@ class TabManager {
         if (filter_arr.length > 1) {
 
             let href = filter_arr[this.tab_history_idx].location;
-            this.location.value = href;
-            viewManager.getView(href);
 
-            // update tab history idx
-            this.setTabHistoryIdx(this.tab_id, this.tab_history_idx);
-            console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
+            if (href !== undefined || href !== null) {
+
+                this.location.value = href;
+                viewManager.getView(href);
+
+                // update tab history idx
+                this.setTabHistoryIdx(this.tab_id, this.tab_history_idx);
+                console.log('tab_history_idx', this.tab_history_idx, 'history_arr', filter_arr.length)
+
+            }
 
         }
 
@@ -3716,9 +3723,9 @@ class FileOperation {
 
     // Delete
     delete() {
-        getSelectedFiles();
-        if (selected_files_arr.length > 0) {
-            ipcRenderer.send('delete', (selected_files_arr));
+        getSelectedFilesDelete();
+        if (selected_files_delete_arr.length > 0) {
+            ipcRenderer.send('delete', (selected_files_delete_arr));
         }
         clear();
     }
@@ -5673,6 +5680,7 @@ function clear() {
 
     copy_arr = [];
     selected_files_arr = [];
+    selected_files_delete_arr = [];
 
     // global.gc()
 
@@ -6416,8 +6424,8 @@ function getWorkspace(callback) {
                     ipcRenderer.send('open', file.href);
                 }
 
-                tabManager.addTabHistory();
-                // navigation.addHistory(file.href);
+                tabManager.addTabHistory(file.href);
+
 
             })
 
@@ -6505,6 +6513,29 @@ function getSelectedFiles() {
 
     // console.log(selected_files_arr)
     ipcRenderer.send('get_selected_files', selected_files_arr);
+
+}
+
+function getSelectedFilesDelete() {
+    selected_files_delete_arr = [];
+    let active_tab_content = document.querySelector('.active-tab-content');
+    let selected_items = Array.from(active_tab_content.querySelectorAll('.highlight, .highlight_select'));
+    selected_items.forEach(item => {
+        selected_files_delete_arr.push(item.dataset.href);
+    })
+
+    if (selected_files_delete_arr.length == 1) {
+        // utilities.msg(`${selected_files_arr.length} Item Selected`);
+        utilities.getSelectedCopy();
+    } else if (selected_files_delete_arr.length > 1) {
+        // utilities.msg(`${selected_files_arr.length} Items Selected`);
+        utilities.getSelectedCopy();
+    } else {
+        utilities.msg(`No Items Selected`);
+    }
+
+    // console.log(selected_files_arr)
+    ipcRenderer.send('get_selected_files_delete', selected_files_delete_arr);
 
 }
 

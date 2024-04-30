@@ -38,6 +38,7 @@ let progress_id = 0;
 let is_active = 0;
 
 let selected_files_arr = []
+let selected_files_delete_arr = []
 
 class FileManager {
 
@@ -1691,6 +1692,11 @@ ipcMain.on('get_selected_files', (e, selected_files) => {
     // // console.log('selected files array', selected_files_arr);
 })
 
+// Populate global selected files delete array
+ipcMain.on('get_selected_files_delete', (e, selected_files_delete) => {
+    selected_files_delete_arr = selected_files_delete;
+})
+
 function isValidUTF8(str) {
     try {
         new TextDecoder("utf-8").decode(new TextEncoder().encode(str));
@@ -2562,7 +2568,7 @@ ipcMain.on('overwrite_canceled', (e) => {
 })
 
 // Create Delete Dialog
-ipcMain.on('delete', (e, selecte_files_arr) => {
+ipcMain.on('delete', (e, selected_files_delete_arr) => {
     let bounds = win.getBounds()
 
     let x = bounds.x + parseInt((bounds.width - 400) / 2);
@@ -2603,8 +2609,8 @@ ipcMain.on('delete', (e, selecte_files_arr) => {
         confirm.removeMenu();
         // confirm.webContents.openDevTools();
 
-        confirm.send('confirm_delete', selecte_files_arr);
-        selecte_files_arr = [];
+        confirm.send('confirm_delete', selected_files_delete_arr);
+        selected_files_delete_arr = [];
 
     })
 
@@ -2646,11 +2652,11 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr1) => {
     let delete_confirmed = {
         id: progress_id += 1,
         cmd: 'delete_confirmed',
-        files_arr: selected_files_arr
+        files_arr: selected_files_delete_arr
     }
     worker.postMessage(delete_confirmed);
 
-    selected_files_arr = [];
+    selected_files_delete_arr = [];
 
     let confirm = BrowserWindow.getFocusedWindow();
     confirm.hide();
@@ -2659,7 +2665,7 @@ ipcMain.on('delete_confirmed', (e, selected_files_arr1) => {
 
 // Delete Canceled
 ipcMain.on('delete_canceled', (e) => {
-    selected_files_arr = [];
+    selected_files_delete_arr = [];
     let confirm = BrowserWindow.getFocusedWindow()
     confirm.hide()
 })
