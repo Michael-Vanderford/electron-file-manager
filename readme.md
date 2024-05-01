@@ -27,6 +27,7 @@
 - Removed the need for ctrl+f for type ahead
 - Fixed file type not displaying in list view
 - Added "npm run build" script to run electron-builder for deb package
+- Added option to hide mini bar
 
 
 ### Version 1.0.74 (2024-03-17)
