@@ -22,6 +22,13 @@
 
 ## Changelog
 
+### Version 1.075 (2024-04-30)
+- Show progress based on bytes copied instead of counts for copy and move
+- Removed the need for ctrl+f for type ahead
+- Fixed file type not displaying in list view
+- Added "npm run build" script to run electron-builder for deb package
+
+
 ### Version 1.0.74 (2024-03-17)
 - Added keyboard navigation / select for cards
 - Added Location history per tab
