@@ -1657,7 +1657,7 @@ parentPort.on('message', data => {
                     if (cmd.mount_point.endsWith('/')) {
                         cmd.mount_point = cmd.mount_point.slice(0, -1);
                     }
-                    let is_mounted = mount_data.includes(cmd.mount_point);
+                    let is_mounted = mount_data.includes(cmd.server);
 
                     if (is_mounted == '') {
 
@@ -1689,17 +1689,40 @@ parentPort.on('message', data => {
                                 console.log(err.message);
                             }
                         } else {
-                            gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, (err) => {
-                                if (err) {
-                                    let connection_err = {
-                                        cmd: 'connection_error',
-                                        msg: err.message,
-                                        error: 1
-                                    }
-                                    parentPort.postMessage(connection_err);
-                                    console.log(err.message);
-                                    return;
-                                }
+                            try {
+
+                                // gio.connect_network_drive(cmd.server, cmd.username, cmd.password, cmd.use_ssh_key, cmd.type, (err, data) => {
+                                //     if (err) {
+                                //         let connection_err = {
+                                //             cmd: 'connection_error',
+                                //             msg: err.message,
+                                //             error: 1
+                                //         }
+                                //         parentPort.postMessage(connection_err);
+                                //         console.log(err.message);
+                                //         return;
+                                //     }
+                                //     let msg = {
+                                //         cmd: 'msg_connection',
+                                //         msg: `Connected to ${cmd.server}`,
+                                //         error: 0
+                                //     }
+                                //     parentPort.postMessage(msg);
+
+                                //     if (cmd.save_connection) {
+
+                                //         let connection_cmd = {
+                                //             cmd: 'save_connection',
+                                //             network_settings: cmd
+                                //         }
+                                //         parentPort.postMessage(connection_cmd);
+                                //     }
+                                // });
+
+                                // create a mount command using gio mount
+                                let mount_cmd = `gio mount ssh://${cmd.username}@${cmd.server}`;
+                                execSync(mount_cmd);
+
                                 let msg = {
                                     cmd: 'msg_connection',
                                     msg: `Connected to ${cmd.server}`,
@@ -1707,15 +1730,18 @@ parentPort.on('message', data => {
                                 }
                                 parentPort.postMessage(msg);
 
-                                if (cmd.save_connection) {
 
-                                    let connection_cmd = {
-                                        cmd: 'save_connection',
-                                        network_settings: cmd
-                                    }
-                                    parentPort.postMessage(connection_cmd);
+
+
+                            } catch (err) {
+                                let connection_err = {
+                                    cmd: 'connection_error',
+                                    msg: err.message,
+                                    error: 1
                                 }
-                            });
+                                parentPort.postMessage(connection_err);
+                                console.log(err.message);
+                            }
                         }
                     }
 

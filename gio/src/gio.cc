@@ -783,6 +783,126 @@ namespace gio {
 
         }
 
+        static void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+
+            Nan::HandleScope scope;
+
+            GError *error = nullptr;
+            GFile *location = G_FILE(source_object);
+            gboolean mounted = g_file_mount_enclosing_volume_finish(location,
+                                                                    res,
+                                                                    &error);
+
+            Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+
+            if (error) {
+
+                printf("Error mounting network drive: %s\n", error->message);
+                g_error_free(error);
+
+            } else {
+
+                const unsigned argc = 2;
+                v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+                Nan::Set(dataObj, Nan::New("name").ToLocalChecked(), Nan::New("connected").ToLocalChecked());
+                v8::Local<v8::Value> argv[argc] = { Nan::Null(), dataObj };
+                callback->Call(argc, argv);
+
+            }
+
+            g_object_unref(location);
+
+        }
+
+        static NAN_METHOD(connect_network_drive) {
+
+            Nan::HandleScope scope;
+
+            if (info.Length() < 7) {
+                printf("Wrong number of arguments\n");
+                // return Nan::ThrowError("Wrong number of arguments");
+            }
+
+            v8::Local<v8::String> v8_hostname = Nan::To<v8::String>(info[0]).ToLocalChecked();
+            v8::Local<v8::String> v8_username = Nan::To<v8::String>(info[1]).ToLocalChecked();
+            v8::Local<v8::String> v8_password = Nan::To<v8::String>(info[2]).ToLocalChecked();
+            v8::Local<v8::Int32> v8_ssh_key = Nan::To<v8::Int32>(info[3]).ToLocalChecked();
+            v8::Local<v8::String> v8_type = Nan::To<v8::String>(info[4]).ToLocalChecked();
+
+            v8::Isolate* isolate = info.GetIsolate();
+            v8::String::Utf8Value utf8_hostname(isolate, v8_hostname);
+            v8::String::Utf8Value utf8_username(isolate, v8_username);
+            v8::String::Utf8Value utf8_password(isolate, v8_password);
+            v8::String::Utf8Value utf8_type(isolate, v8_type);
+
+            const char *hostname = *utf8_hostname;
+            const char *username = *utf8_username;
+            const char *password = *utf8_password;
+            int ssh_key = Nan::To<int>(v8_ssh_key).FromJust();
+            const char *cmd_type = *utf8_type;
+
+            printf("type: %s, ssh_key: %d \n", cmd_type, ssh_key);
+
+            GError *error = NULL;
+            GFile *location = NULL;
+            GAsyncResult *result = NULL;
+
+            // Set up SSH key authentication
+            GMountOperation *mount_operation = g_mount_operation_new();
+
+            int is_ssh = strncmp(cmd_type, "ssh", 3);
+            // int is_sshfs = strncmp(hostname, "sshfs", 5);
+
+            // Prioritize SSH key if provided
+            if (is_ssh == 0 && ssh_key) {
+
+                printf("Using SSH key\n");
+
+                // construct location uri
+                char *uri = g_strdup_printf("sftp://%s@%s/", username, hostname);
+
+
+
+                location = g_file_new_for_uri(uri);
+                g_file_mount_enclosing_volume(location,
+                                            G_MOUNT_MOUNT_NONE,
+                                            mount_operation,
+                                            NULL,
+                                            GAsyncReadyCallback(connect_network_drive_callback),
+                                            new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+
+            // } else if (is_sftp == 0 && !ssh_key) {
+
+            //     printf("Using username and password\n");
+
+            //     location = g_file_new_for_uri(hostname);
+            //     g_mount_operation_set_username(mount_operation, username);
+            //     g_mount_operation_set_password(mount_operation, password);
+
+            //     g_file_mount_enclosing_volume(location,
+            //                                 G_MOUNT_MOUNT_NONE,
+            //                                 mount_operation,
+            //                                 NULL,
+            //                                 GAsyncReadyCallback(connect_network_drive_callback),
+            //                                 new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+
+
+            // } else {
+
+            //     // Use username and password authentication
+            //     char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
+            //     location = g_file_new_for_uri(uri);
+            //     g_free(uri);
+
+            }
+
+            // g_object_unref(location);
+            g_object_unref(mount_operation);
+
+            // info.GetReturnValue().SetUndefined();
+
+        }
+
         private:
 
     };
@@ -1843,114 +1963,125 @@ namespace gio {
 
     }
 
-    void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
+    // void connect_network_drive_callback(GObject *source_object, GAsyncResult *res, gpointer user_data) {
 
-        Nan::HandleScope scope;
+    //     Nan::HandleScope scope;
 
-        GError *error = nullptr;
-        GFile *location = G_FILE(source_object);
-        gboolean mounted = g_file_mount_enclosing_volume_finish(location, res, &error);
-        Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
+    //     GError *error = nullptr;
+    //     GFile *location = G_FILE(source_object);
+    //     gboolean mounted = g_file_mount_enclosing_volume_finish(location,
+    //                                                             res,
+    //                                                             &error);
 
-        if (error) {
+    //     Nan::Callback* callback = static_cast<Nan::Callback*>(user_data);
 
-            v8::Local<v8::Object> errorObj = Nan::New<v8::Object>();
-            Nan::Set(errorObj, Nan::New("message").ToLocalChecked(), Nan::New(error->message).ToLocalChecked());
+    //     if (error) {
 
-            const unsigned argc = 1;
-            v8::Local<v8::Value> argv[argc] = { errorObj };
-            callback->Call(argc, argv);
+    //         printf("Error mounting network drive: %s\n", error->message);
+    //         g_error_free(error);
 
-            g_error_free(error);
+    //     } else {
 
-        } else {
+    //         const unsigned argc = 2;
+    //         v8::Local<v8::Object> dataObj = Nan::New<v8::Object>();
+    //         Nan::Set(dataObj, Nan::New("name").ToLocalChecked(), Nan::New("connected").ToLocalChecked());
+    //         v8::Local<v8::Value> argv[argc] = { Nan::Null(), dataObj };
+    //         callback->Call(argc, argv);
 
-            const unsigned argc = 0;
-            v8::Local<v8::Value> argv[argc] = { };
-            callback->Call(argc, argv);
+    //     }
 
-        }
+    //     g_object_unref(location);
 
-    }
+    // }
 
-    NAN_METHOD(connect_network_drive) {
+    // NAN_METHOD(connect_network_drive) {
 
-        Nan::HandleScope scope;
+    //     Nan::HandleScope scope;
 
-        if (info.Length() < 3) {
-            return Nan::ThrowError("Wrong number of arguments");
-        }
+    //     if (info.Length() < 5) {
+    //         printf("Wrong number of arguments\n");
+    //         // return Nan::ThrowError("Wrong number of arguments");
+    //     }
 
-        v8::Local<v8::String> v8_hostname = Nan::To<v8::String>(info[0]).ToLocalChecked();
-        v8::Local<v8::String> v8_username = Nan::To<v8::String>(info[1]).ToLocalChecked();
-        v8::Local<v8::String> v8_password = Nan::To<v8::String>(info[2]).ToLocalChecked();
-        v8::Local<v8::Int32> v8_ssh_key = Nan::To<v8::Int32>(info[3]).ToLocalChecked();
+    //     v8::Local<v8::String> v8_hostname = Nan::To<v8::String>(info[0]).ToLocalChecked();
+    //     v8::Local<v8::String> v8_username = Nan::To<v8::String>(info[1]).ToLocalChecked();
+    //     v8::Local<v8::String> v8_password = Nan::To<v8::String>(info[2]).ToLocalChecked();
+    //     v8::Local<v8::Int32> v8_ssh_key = Nan::To<v8::Int32>(info[3]).ToLocalChecked();
+    //     v8::Local<v8::String> v8_type = Nan::To<v8::String>(info[4]).ToLocalChecked();
 
-        v8::Isolate* isolate = info.GetIsolate();
-        v8::String::Utf8Value utf8_hostname(isolate, v8_hostname);
-        v8::String::Utf8Value utf8_username(isolate, v8_username);
-        v8::String::Utf8Value utf8_password(isolate, v8_password);
+    //     v8::Isolate* isolate = info.GetIsolate();
+    //     v8::String::Utf8Value utf8_hostname(isolate, v8_hostname);
+    //     v8::String::Utf8Value utf8_username(isolate, v8_username);
+    //     v8::String::Utf8Value utf8_password(isolate, v8_password);
+    //     v8::String::Utf8Value utf8_type(isolate, v8_type);
 
-        const char *hostname = *utf8_hostname;
-        const char *username = *utf8_username;
-        const char *password = *utf8_password;
-        int ssh_key = Nan::To<int>(v8_ssh_key).FromJust();
+    //     const char *hostname = *utf8_hostname;
+    //     const char *username = *utf8_username;
+    //     const char *password = *utf8_password;
+    //     int ssh_key = Nan::To<int>(v8_ssh_key).FromJust();
+    //     const char *cmd_type = *utf8_type;
 
-        GError *error = NULL;
-        GFile *location = NULL;
-        GAsyncResult *result = NULL;
-        GAsyncReadyCallback callback = NULL;
+    //     printf("type: %s, ssh_key: %d \n", cmd_type, ssh_key);
 
-        // Set up SSH key authentication
-        GMountOperation *mount_operation = g_mount_operation_new();
+    //     GError *error = NULL;
+    //     GFile *location = NULL;
+    //     GAsyncResult *result = NULL;
 
-        int is_sftp = strncmp(hostname, "sftp://", 7);
-        int is_sshfs = strncmp(hostname, "sshfs", 5);
+    //     // Set up SSH key authentication
+    //     GMountOperation *mount_operation = g_mount_operation_new();
 
-        // Prioritize SSH key if provided
-        if (is_sftp == 0 && ssh_key) {
+    //     int is_ssh = strncmp(cmd_type, "ssh", 3);
+    //     // int is_sshfs = strncmp(hostname, "sshfs", 5);
 
-            printf("Using SSH key\n");
+    //     // Prioritize SSH key if provided
+    //     if (is_ssh == 0 && ssh_key) {
 
-            location = g_file_new_for_uri(hostname);
-            g_file_mount_enclosing_volume(location,
-                                        G_MOUNT_MOUNT_NONE,
-                                        mount_operation,
-                                        NULL,
-                                        GAsyncReadyCallback(connect_network_drive_callback),
-                                        new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+    //         printf("Using SSH key\n");
 
-        } else if (is_sftp == 0 && !ssh_key) {
-
-            printf("Using username and password\n");
-
-            location = g_file_new_for_uri(hostname);
-            g_mount_operation_set_username(mount_operation, username);
-            g_mount_operation_set_password(mount_operation, password);
-
-            g_file_mount_enclosing_volume(location,
-                                        G_MOUNT_MOUNT_NONE,
-                                        mount_operation,
-                                        NULL,
-                                        GAsyncReadyCallback(connect_network_drive_callback),
-                                        new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+    //         // construct location uri
+    //         char *uri = g_strdup_printf("sftp://%s@%s/", username, hostname);
 
 
-        } else {
 
-            // Use username and password authentication
-            char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
-            location = g_file_new_for_uri(uri);
-            g_free(uri);
+    //         location = g_file_new_for_uri(uri);
+    //         g_file_mount_enclosing_volume(location,
+    //                                     G_MOUNT_MOUNT_NONE,
+    //                                     mount_operation,
+    //                                     NULL,
+    //                                     GAsyncReadyCallback(connect_network_drive_callback),
+    //                                     new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
 
-        }
+    //     // } else if (is_sftp == 0 && !ssh_key) {
 
-        // g_object_unref(location);
-        g_object_unref(mount_operation);
+    //     //     printf("Using username and password\n");
 
-        info.GetReturnValue().SetUndefined();
+    //     //     location = g_file_new_for_uri(hostname);
+    //     //     g_mount_operation_set_username(mount_operation, username);
+    //     //     g_mount_operation_set_password(mount_operation, password);
 
-    }
+    //     //     g_file_mount_enclosing_volume(location,
+    //     //                                 G_MOUNT_MOUNT_NONE,
+    //     //                                 mount_operation,
+    //     //                                 NULL,
+    //     //                                 GAsyncReadyCallback(connect_network_drive_callback),
+    //     //                                 new Nan::Callback(info[info.Length() - 1].As<v8::Function>()));
+
+
+    //     // } else {
+
+    //     //     // Use username and password authentication
+    //     //     char *uri = g_strdup_printf("smb://%s:%s@%s/", username, password, hostname);
+    //     //     location = g_file_new_for_uri(uri);
+    //     //     g_free(uri);
+
+    //     }
+
+    //     // g_object_unref(location);
+    //     g_object_unref(mount_operation);
+
+    //     // info.GetReturnValue().SetUndefined();
+
+    // }
 
     NAN_MODULE_INIT(init) {
         Nan::Export(target, "on_theme_change", on_theme_change);
@@ -1977,7 +2108,7 @@ namespace gio {
         Nan::Export(target, "watcher", watcher);
         Nan::Export(target, "get_mounts", get_mounts);
         Nan::Export(target, "get_drives", get_drives);
-        Nan::Export(target, "connect_network_drive", connect_network_drive);
+        Nan::Export(target, "connect_network_drive", gio::connect_network_drive);
         Nan::Export(target, "exec", gio::exec);
         Nan::Export(target, "open", gio::open);
     }

@@ -65,7 +65,7 @@ ipcRenderer.on('connect', (e) => {
     })
 
     if (connection_type.innerHTML != 'sshfs') {
-        msg_connect.innerHTML = `! Using ssfs requires sshfs be installed.`
+        msg_connect.innerHTML = `! Using sshfs requires sshfs be installed.`
     }
 
     btn_connect.addEventListener('click', (e) => {
@@ -109,7 +109,7 @@ ipcRenderer.on('connect', (e) => {
             if (connection_type.value === 'sshfs') {
                 str_server = server.value
             } else if (connection_type.value === 'ssh') {
-                str_server = `sftp://${server.value}`
+                str_server = `${server.value}`
             } else if (connection_type.value === 'smb') {
                 str_server = `smb://${server.value}`
             }

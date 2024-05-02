@@ -29,9 +29,9 @@
             <label class="label" for="txt_username">Username</label>
             <input class="input" type="text" id="txt_username" placeholder="User Name">
             <label class="label" for="txt_password">Password</label>
-            <input class="input" type="password" id="txt_password" placeholder="Password">
+            <input class="input hidden" type="password" id="txt_password" placeholder="Password">
 
-            <input id="chk_pk" class="checkbox" type="checkbox" checked>
+            <input id="chk_pk" class="checkbox" type="checkbox" disabled="disabled" checked>
             <label for="chk_pk">Use Public Key Authentication</label>
             <br />
             <input type="checkbox" id="chk_save_connection" class="chk_save_connection" checked />
@@ -42,6 +42,15 @@
             <div class="msg_connect" id="connect_msg"></div>
             <br>
             <div class="absolute bottom">
+
+                <div>
+                    <!-- Message for creating ssh key -->
+                    <p>
+                        Public key authentication is required. <br />
+                        Create a public key and add it to the server your connecting to. <br />
+                    </p>
+                </div>
+
                 <input class="button" id="button_close" type="button" value="Close">
                 <input class="button delete" id="button_connect" type="submit" value="Connect">
             </div>
