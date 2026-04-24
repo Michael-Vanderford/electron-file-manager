@@ -1,0 +1,6 @@
+node_modules
+.git_bak
+storyboard.svg
+dist
+src/gio/build/Release/obj.target/gio.node
+src/gio/build/Release/obj.target/gio.o

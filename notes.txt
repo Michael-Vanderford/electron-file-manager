@@ -1,0 +1,27 @@
+App threw an error during load
+TypeError: Cannot read properties of undefined (reading 'sort_by')
+    at new MenuManager (/home/michael/sfm/src/main/main.js:1522:27)
+    at Object.<anonymous> (/home/michael/sfm/src/main/main.js:2499:21)
+    at Module._compile (node:internal/modules/cjs/loader:1373:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1432:10)
+    at Module.load (node:internal/modules/cjs/loader:1215:32)
+    at Module._load (node:internal/modules/cjs/loader:1031:12)
+    at c._load (node:electron/js2c/node_init:2:17025)
+    at cjsLoader (node:internal/modules/esm/translators:352:17)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:297:7)
+    at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+A JavaScript error occurred in the main process
+Uncaught Exception:
+TypeError: Cannot read properties of undefined (reading 'sort_by')
+    at new MenuManager (/home/michael/sfm/src/main/main.js:1522:27)
+    at Object.<anonymous> (/home/michael/sfm/src/main/main.js:2499:21)
+    at Module._compile (node:internal/modules/cjs/loader:1373:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1432:10)
+    at Module.load (node:internal/modules/cjs/loader:1215:32)
+    at Module._load (node:internal/modules/cjs/loader:1031:12)
+    at c._load (node:electron/js2c/node_init:2:17025)
+    at cjsLoader (node:internal/modules/esm/translators:352:17)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:297:7)
+    at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+[36384:0505/201938.982440:ERROR:viz_main_impl.cc(166)] Exiting GPU process due to errors during initialization
+^C/home/michael/sfm/node_modules/electron/dist/electron exited with signal SIGINT

@@ -1,0 +1,158 @@
+.custom-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 32px;
+    background: #232323;
+    color: #fff;
+    -webkit-app-region: drag;
+    user-select: none;
+    padding: 0 8px;
+    z-index: 1000;
+    position: relative;
+}
+
+.titlebar-menu {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    height: 100%;
+    -webkit-app-region: no-drag;
+}
+.menu-item {
+    position: relative;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    user-select: none;
+}
+.menu-item.open,
+.menu-item:focus,
+.menu-item:hover {
+    background: #333;
+}
+.menu-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 140px;
+    background: #232323;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border-radius: 0 0 4px 4px;
+    z-index: 2000;
+    flex-direction: column;
+    padding: 4px 0;
+}
+.menu-item.open .menu-dropdown {
+    display: flex;
+}
+.menu-dropdown-item {
+    padding: 6px 18px 6px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.menu-dropdown-item:hover {
+    background: #444;
+}
+
+/* About Dialog Styles */
+.about-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+.about-dialog.hidden {
+    display: none;
+}
+.about-dialog-content {
+    background: #232323;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    padding: 32px 36px 20px 36px;
+    min-width: 320px;
+    max-width: 90vw;
+    text-align: center;
+}
+.about-dialog-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+.about-dialog-body {
+    margin-bottom: 18px;
+    font-size: 1em;
+}
+.about-dialog-footer {
+    text-align: center;
+}
+.about-dialog-close-btn {
+    background: #444;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 24px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.about-dialog-close-btn:hover {
+    background: #666;
+}
+}
+}
+.titlebar-drag {
+    flex: 1 1 auto;
+    height: 100%;
+    -webkit-app-region: drag;
+}
+.titlebar-title {
+    flex: 2 1 auto;
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 1px;
+    pointer-events: none;
+}
+.titlebar-controls {
+    display: flex;
+    gap: 2px;
+    flex: 1 1 auto;
+    justify-content: flex-end;
+    -webkit-app-region: no-drag;
+}
+.titlebar-btn {
+    width: 36px;
+    height: 28px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-left: 2px;
+    transition: background 0.2s;
+}
+.titlebar-btn:hover {
+    background: #444;
+}
+.titlebar-btn.titlebar-close:hover {
+    background: #c00;
+    color: #fff;
+}

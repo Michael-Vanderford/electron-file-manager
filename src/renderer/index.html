@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <title></title>
+        <link rel="stylesheet" href="styles/index.css">
+        <link rel="stylesheet" href="../assets/bootstrap-icons/font/bootstrap-icons.css">
+        <link rel="stylesheet" href="styles/titlebar.css">
+        <!-- <link rel="stylesheet" href="../../node_modules/material-design-icons/iconfont/material-icons.css"> -->
+    </head>
+    <body>
+        <script src="titlebar.js"></script>
+        <div class="menu">
+            <div class="nav_header hidden">
+                <button class="button new folder"><i class="bi bi-folder-plus"></i></button>
+                <button class="button cut"><i class="bi bi-scissors"></i></button>
+                <button class="button copy"><i class="bi bi-copy"></i></button>
+                <button class="button paste"><i class="bi bi-clipboard-check"></i></button>
+                <button class="button delete"><i class="bi bi-trash"></i></button>
+
+                <button class="button settings"><i class="bi bi-sliders right"></i></button>
+
+            </div>
+            <div class="navigation">
+                <button id="btn_back" class="back button"><i class="bi bi-chevron-left"></i></button>
+                <button id="btn_forward" class="forward button"><i class="bi bi-chevron-right"></i></button>
+                <div class="breadcrumbs"></div>
+                <input type="text" spellcheck="false" class="location hidden"></input>
+                <div class="filter" contenteditable="true"></div>
+                <div class="find_menu">
+                    <button class="button find" type="button" title="Find">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <input type="text" class="placeholder" style="width: 0; position: absolute; z-index: -1;"></input>
+                <div class="disk_space"></div>
+                <div class="settings_menu">
+                    <div class="button settings">
+                        <i class="bi bi-list"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="sidebar"></div>
+            <div class="sidebar_draghandle"></div>
+            <div class="context_menu"></div>
+
+            <div class="selection-rectangle"></div>
+            <div class="tab-header"></div>
+
+            <div class="main"></div>
+            <div class="sentinel"></div>
+            <div class="footer">
+                <div class="msg"></div>
+                <div class="progress hidden">
+                    <div class="progress_status"></div>
+                    <progress class="progress_bar" value="0" max="100"></progress>
+                    <button class="progress_cancel hidden" type="button">Cancel</button>
+                </div>
+                <div class="zoom_controls">
+                    <!-- <button id="btn_zoom_out" class="button"><i class="bi bi-dash"></i></button>
+                    <button id="btn_zoom_in" class="button"><i class="bi bi-plus"></i></button> -->
+                </div>
+
+            </div>
+        </div>
+        <!-- About Dialog -->
+        <div id="about-dialog" class="about-dialog hidden">
+            <div class="about-dialog-content">
+                <div class="about-dialog-title">About SFM</div>
+                <div class="about-dialog-body">
+                    <div><strong>String File Manager</strong></div>
+                    <div>Version 1.0.0</div>
+                    <div>© 2026 Michael Vanderford</div>
+                    <div><a href="https://github.com/michael-vanderford/sfm" target="_blank">Project Homepage</a></div>
+                    <div>Licensed under LGPL-2.1-or-later</div>
+                </div>
+                <div class="about-dialog-footer">
+                    <button id="about-dialog-close" class="about-dialog-close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
