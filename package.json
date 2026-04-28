@@ -1,23 +1,32 @@
 {
-    "name": "sfm",
-    "version": "1.0.0",
-    "description": "String File Manager",
+    "name": "electron-file-manager",
+    "version": "2.0.2",
+    "description": "Electron File Manager",
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",
     "scripts": {
         "start": "electron . --no-sandbox",
         "build": "npx electron-builder --linux",
-        "postinstall": "electron-rebuild",
-        "test": "jest"
+        "test": "node"
     },
     "build": {
-        "appId": "com.stringboard.sfm",
-        "linux": {
-            "target": [
-                "deb"
-            ],
-            "executableName": "sfm"
+    "appId": "com.stringboard.sfm",
+    "directories": {
+        "buildResources": "build"
+    },
+    "linux": {
+        "target": "deb",
+        "icon": "build/icons",
+        "executableName": "efm",
+        "category": "Utility",
+        "desktop": {
+        "entry": {
+            "Name": "Electron File Manager",
+            "Comment": "A modern file manager built with Electron",
+            "Categories": "Utility;FileManager;"
         }
+        }
+    }
     },
     "author": {
         "name": "Michael Vanderford",
@@ -26,13 +35,14 @@
     "license": "LGPL-2.1-or-later",
     "devDependencies": {
         "bootstrap-icons": "^1.11.3",
-        "electron": "^37.10.3",
+        "electron": "^41.3.0",
         "jest": "^29.7.0",
         "node-gyp": "^11.4.2"
     },
     "dependencies": {
         "archiver": "^7.0.1",
         "fast-xml-parser": "^5.4.1",
+        "libgio-node": "^1.0.6",
         "material-design-icons": "^3.0.1",
         "nan": "^2.22.0"
     }
