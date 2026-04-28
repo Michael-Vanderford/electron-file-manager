@@ -2,7 +2,8 @@ const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const gio = require('../gio/build/Release/gio.node');
+// const gio = require('../gio/build/Release/gio.node');
+const gio = require('libgio-node');
 
 class DeviceManager {
 

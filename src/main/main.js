@@ -1,5 +1,7 @@
 // @ts-nocheck
 const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage } = require('electron');
+// Provide app and Electron version to renderer
+const packageJson = require('../../package.json');
 const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
 const fs = require('fs');
@@ -7,12 +9,16 @@ const path = require('path');
 const { execSync } = require('child_process');
 const exec = require('child_process').exec;
 const os = require('os');
-const gio = require('../gio/build/Release/gio.node');
+// const gio = require('../gio/build/Release/gio.node');
+const gio = require('libgio-node');
 const iconManager = require('./lib/IconManager');
 const { XMLParser } = require('fast-xml-parser');
 
 const file_icon_cache = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
+
+// flags
+let is_first_run = 0;
 
 function get_cached_file_icon(href) {
     return file_icon_cache.get(href);
@@ -320,14 +326,134 @@ class SettingsManager {
 
     }
 
+    // Initialize settings with robust defaults (from preload.js logic)
+    initialize_settings() {
+
+        const os = require('os');
+        const home_dir = os.homedir();
+        // Default schema (mirroring preload.js)
+        const default_schema = {
+            properties: {
+                'Default View': {
+                    type: 'object',
+                    properties: {
+                        View: { type: 'string', enum: ['list_view', 'grid_view'], default: 'grid_view' },
+                        "Sort By": { type: 'string', enum: ['name', 'location', 'size', 'mtime', 'ctime', 'atime', 'type', 'count'], default: 'mtime' },
+                        "Sort Direction": { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+                        'Show Hidden': { type: 'boolean', default: true }
+                    }
+                },
+                'Icons': {
+                    type: 'object',
+                    properties: {
+                        'Grid Icon Size': { type: 'string', enum: ['16', '24', '32', '48', '64', '128'], default: '48' },
+                        'List Icon Size': { type: 'string', enum: ['16', '24', '32', '48', '64', '128'], default: '32' },
+                        'Ctrl+Wheel Resize Icons': { type: 'boolean', default: true }
+                    }
+                },
+                'List View Columns': {
+                    type: 'object',
+                    properties: {
+                        name: { type: 'boolean', default: true, description: 'Name' },
+                        location: { type: 'boolean', default: false, description: 'Location' },
+                        size: { type: 'boolean', default: true, description: 'Size' },
+                        mtime: { type: 'boolean', default: true, description: 'Modified Time' },
+                        ctime: { type: 'boolean', default: false, description: 'Created Time' },
+                        atime: { type: 'boolean', default: false, description: 'Accessed Time' },
+                        type: { type: 'boolean', default: false, description: 'Type' },
+                        count: { type: 'boolean', default: false, description: 'Count' }
+                    }
+                },
+                'Grid View Columns': {
+                    type: 'object',
+                    properties: {
+                        name: { type: 'boolean', default: true, description: 'Name' },
+                        location: { type: 'boolean', default: false, description: 'Location' },
+                        size: { type: 'boolean', default: true, description: 'Size' },
+                        mtime: { type: 'boolean', default: true, description: 'Modified Time' },
+                        ctime: { type: 'boolean', default: false, description: 'Created Time' },
+                        atime: { type: 'boolean', default: false, description: 'Accessed Time' },
+                        type: { type: 'boolean', default: false, description: 'Type' },
+                        count: { type: 'boolean', default: false, description: 'Count' }
+                    }
+                }
+            }
+        };
+
+        // Main settings defaults
+        const defaults = {
+            view: 'grid_view',
+            schema: default_schema,
+            icon_size: 48,
+            list_icon_size: 32,
+            columns: {
+                name: true,
+                location: false,
+                size: true,
+                mtime: true,
+                ctime: false,
+                atime: false,
+                type: false,
+                count: false
+            },
+            sort_by: 'mtime',
+            sort_direction: 'desc',
+            location: home_dir,
+            disk_utility: 'gnome-disks',
+            show_hidden: true,
+            tabs: [
+                {
+                    tab: {
+                        id: 1,
+                        location: home_dir
+                    }
+                }
+            ]
+        };
+
+        // List view settings defaults
+        const list_view_settings = {
+            col_width: {
+                name: 200,
+                location: 100,
+                size: 120,
+                mtime: 140,
+                ctime: 140,
+                atime: 140,
+                type: 100,
+                count: 50
+            }
+        };
+
+        // Write settings.json and list_view.json if missing
+        if (!fs.existsSync(this.settings_file)) {
+            fs.writeFileSync(this.settings_file, JSON.stringify(defaults, null, 4));
+        }
+        if (!fs.existsSync(this.list_view_file)) {
+            fs.writeFileSync(this.list_view_file, JSON.stringify(list_view_settings, null, 4));
+        }
+    }
+
     // Get Settings
     get_settings() {
-        if (fs.existsSync(this.settings_file)) {
+
+        if (!this.settings) {
             this.settings = JSON.parse(fs.readFileSync(this.settings_file, 'utf-8'));
-        } else {
-            let settings = {};
-            fs.writeFileSync(this.settings_file, JSON.stringify(settings, null, 4));
         }
+
+        // if (fs.existsSync(this.settings_file)) {
+        //     console.log('settings', this.settings_file);
+        //     this.settings = JSON.parse(fs.readFileSync(this.settings_file, 'utf-8'));
+        // } else {
+        //     // Default to '' instead of home directory if settings file does not exist
+        //     // this will allow the constructor in file manager to run the correct logic
+        //     let settings = { location: '' };
+        //     this.settings = settings;
+        //     fs.writeFileSync(this.settings_file, JSON.stringify(settings, null, 4));
+
+        //     is_first_run = 1;
+
+        // }
         // win.send('settings', this.settings);
         return this.settings;
     }
@@ -563,10 +689,6 @@ ipcMain.handle('find', async (e, query, location, options) => {
         find_worker.on('message', (msg) => {
             // Accept both 'find' and 'find_result' for compatibility
             if (msg.cmd === 'find_results') {
-
-                console.log('err', msg.err);
-                console.log('res', msg.res);
-
                 resolve({
                     error: msg.err,
                     results: msg.res
@@ -2030,6 +2152,61 @@ class NetworkManager {
 
 }
 
+// file manager listeners ////
+
+// listen for ls event
+ipcMain.on('ls', (e, location, add_tab = false) => {
+
+    if (location === '' || location === undefined) {
+        win.send('set_msg', 'Location is null or undefined');
+        return;
+    }
+
+    if (add_tab !== true && add_tab !== false) {
+        win.send('set_msg', 'the add_tab parameter needs to be true or false');
+        return;
+    }
+
+    fileManager.get_ls(location, add_tab);
+
+})
+
+// listen for get_recent_files event
+ipcMain.on('get_recent_files', (e) => {
+    fileManager.get_recent_files(e);
+});
+
+ipcMain.handle('autocomplete', async (e, directory) => {
+
+    let autocomplete_arr = [];
+    let dir = path.dirname(directory);
+    let search = path.basename(directory);
+
+    try {
+        await gio.ls(dir, (err, dirents) => {
+            if (err) {
+                return;
+            }
+            dirents.forEach(item => {
+                if (item.is_dir && item.name.startsWith(search)) {
+                    autocomplete_arr.push(item.href + '/');
+                }
+            })
+        })
+
+    } catch (err) {
+
+    }
+    return autocomplete_arr;
+})
+
+// Validate location input
+ipcMain.handle('validate_location', async (e, location) => {
+    return fileManager.validate_location(location);
+})
+
+/////////////////////////////////////////
+
 class FileManager {
 
     constructor() {
@@ -2040,38 +2217,28 @@ class FileManager {
         this.watcher_enabled = true;
         this.startup = true;
 
+        // On first initialization, check settings and load home dir if needed
+        const settings = settingsManager.get_settings();
+        if (!settings.location || settings.location === '') {
+            this.location = utilities.home_dir;
+            // Do NOT call get_ls here; delay until win is defined
+        }
+
         // send location to worker
         this.ls_worker = new worker.Worker(path.join(__dirname, '../workers/ls_worker.js'));
 
-        // Validate location input
-        ipcMain.handle('validate_location', async (e, location) => {
-            return this.validate_location(location);
-        })
-
-        // listen for ls event
-        ipcMain.on('ls', (e, location, add_tab = false) => {
-
-            if (location === '' || location === undefined) {
-                win.send('set_msg', 'Location is null or undefined');
-                return;
-            }
-
-            if (add_tab !== true && add_tab !== false) {
-                win.send('set_msg', 'the add_tab parameter needs to be true or false');
-                return;
-            }
-
-            this.get_ls(location, add_tab);
-
-        })
-
         // listen for message from worker
         this.ls_worker.on('message', (data) => {
+
             const cmd = data.cmd;
             switch (cmd) {
                 case 'ls_done':
+
+                    // console.log('ls_done')
+
                     // send ls data to renderer
-                    win.send('ls', data.files_arr, data.add_tab);
+                    win.send('ls_done', data.files_arr, data.add_tab);
+
                     // watcherManager.watch(this.location);
                     break;
                 case 'set_msg':
@@ -2082,35 +2249,6 @@ class FileManager {
             }
 
         });
-
-        // listen for get_recent_files event
-        ipcMain.on('get_recent_files', (e) => {
-            this.get_recent_files(e);
-        });
-
-        ipcMain.handle('autocomplete', async (e, directory) => {
-
-            let autocomplete_arr = [];
-            let dir = path.dirname(directory);
-            let search = path.basename(directory);
-
-            try {
-                await gio.ls(dir, (err, dirents) => {
-                    if (err) {
-                        return;
-                    }
-                    dirents.forEach(item => {
-                        if (item.is_dir && item.name.startsWith(search)) {
-                            autocomplete_arr.push(item.href + '/');
-                        }
-                    })
-                })
-
-            } catch (err) {
-
-            }
-            return autocomplete_arr;
-        })
 
     }
 
@@ -2168,10 +2306,14 @@ class FileManager {
         this.ls_worker.postMessage(ls_data);
         this.startup = false;
 
-        watcher.watch(this.location);
-        if (this.location0 !== '' && this.location0 != this.location) {
-            // console.log('location0', this.location0)
-            watcher.unwatch(this.location0);
+        try {
+            watcher.watch(this.location);
+            if (this.location0 !== '' && this.location0 != this.location) {
+                // console.log('location0', this.location0)
+                watcher.unwatch(this.location0);
+            }
+        } catch(err) {
+
         }
 
     }
@@ -2298,7 +2440,7 @@ class WindowManager {
         } else {
             this.window_settings = {
                 window: {
-                    width: 1024,
+                    width: 1124,
                     height: 600,
                     x: 0,
                     y: 0
@@ -2451,8 +2593,12 @@ class WindowManager {
             }, 100);
         });
 
-        // window.webContents.openDevTools();
+        // Debug: Log the resolved path for index.html
+        const indexPath = path.resolve('src/renderer/index.html');
+        // console.log('Loading index.html from:', indexPath);
+
         window.loadFile('src/renderer/index.html');
+        // window.webContents.openDevTools({ mode: 'detach' });
         this.windows.push(window);
         return window;
     }
@@ -3559,6 +3705,12 @@ class MenuManager {
 }
 
 const settingsManager = new SettingsManager();
+// Only initialize settings if settings.json does not exist
+if (!fs.existsSync(settingsManager.settings_file)) {
+    settingsManager.initialize_settings();
+    is_first_run = 1;
+}
+
 const watcherManager = new Watcher();
 const windowManager = new WindowManager();
 const utilities = new Utilities();
@@ -3574,9 +3726,30 @@ const watcher = new Watcher();
 // Create main window
 let win;
 app.on('ready', () => {
+    // Register get_app_versions handler
+    ipcMain.handle('get_app_versions', () => {
+        return {
+            appVersion: packageJson.version,
+            electronVersion: process.versions.electron,
+            appName: packageJson.name,
+            appDescription: packageJson.description
+        };
+    });
 
     // create main window
     win = windowManager.create_main_window();
+
+    // After win is defined, trigger initial file load if needed
+    const settings = settingsManager.get_settings();
+    if (is_first_run == 1 || !settings.location || settings.location === '') {
+
+        // fileManager.location = utilities.home_dir;
+        fileManager.get_ls(settings.location, true);
+        is_first_run = 0;
+
+        console.log('running get_ls', fileManager.location);
+
+    }
 
     process.on('uncaughtException', (err) => {
         win.send('set_msg', err.message);

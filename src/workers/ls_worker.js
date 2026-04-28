@@ -2,7 +2,8 @@
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const fs = require('fs');
 const path = require('path');
-const gio = require('../gio/build/Release/gio.node');
+// const gio = require('../gio/build/Release/gio.node');
+const gio = require('libgio-node');
 
 class FileManager {
 
@@ -29,41 +30,36 @@ class FileManager {
 
     }
 
-    get_files(location) {
-
-        // populate file_obj with file data
-        let files_arr = [];
-
+    get_files(location, add_tab) {
+        
         gio.ls(location, (err, dirents) => {
-            if (err) {
 
-                let msg = {
+            if (err) {
+                parentPort.postMessage({
                     cmd: 'set_msg',
                     msg: err
-                }
-                parentPort.postMessage(msg);
+                });
                 return;
             }
+            let files_arr = [];
             dirents.forEach(file => {
                 try {
                     let f = file;
                     f.id = btoa(f.href);
                     files_arr.push(f);
                 } catch (err) {
-                    let msg = {
+                    parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: err
-                    }
-                    parentPort.postMessage(msg);
+                    });
                 }
-
+            });
+            parentPort.postMessage({
+                cmd: 'ls_done',
+                files_arr: files_arr,
+                add_tab: add_tab
             });
         });
-
-
-
-        return files_arr;
-
     }
 
 }
@@ -78,11 +74,7 @@ if (!isMainThread) {
 
             // List files in directory
             case 'ls':
-                parentPort.postMessage({
-                    cmd: 'ls_done',
-                    files_arr: fileManager.get_files(data.location),
-                    add_tab: data.add_tab
-                });
+                fileManager.get_files(data.location, data.add_tab);
                 break;
 
             // Get folder size for properties view.

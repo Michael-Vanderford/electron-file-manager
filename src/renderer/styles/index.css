@@ -1,3 +1,32 @@
+/* Responsive grid columns for .grid_view */
+@media (min-width: 1200px) {
+    .grid_view.grid3 {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+@media (max-width: 1199px) {
+    .grid_view.grid3 {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .grid_view.grid3 {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+@media (max-width: 600px) {
+    .grid_view.grid3 {
+        grid-template-columns: 1fr !important;
+    }
+}
+:root {
+    --container-offset: 72px;
+}
+
+
 * {
     box-sizing: border-box;
     /* font-family: Verdana, Geneva, Tahoma, sans-serif; */
@@ -13,6 +42,7 @@ body {
     padding: 0;
     overflow: hidden;
     user-select: none;
+    /* flex-direction: column; */
 }
 
 a {
@@ -46,8 +76,19 @@ hr {
     border: 1px solid var(--border);
 }
 
+.menu {
+    /* position: fixed; */
+    height: 38px;
+    margin-top: 32px;
+    top: 0;
+    width: 100%;
+    box-sizing: border-box;
+    /* padding-bottom: 38px; */
+}
+
 .nav_header {
     display: flex;
+    position: relative;
     align-items: center;
     padding: 2px;
     background-color: var(--menu);
@@ -111,7 +152,8 @@ hr {
 
 /* Autocomplete popup */
 .autocomplete-popup {
-    border: 1px solid var(--border);
+    /* border: 1px solid var(--border); */
+    /* border: 1px solid red; */
     background-color: var(--menu);
     padding: 5px;
     border-radius: 5px;
@@ -121,7 +163,8 @@ hr {
     width: auto;
     max-height: 350px;
     overflow: auto;
-    z-index: 3;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); /* optional */
+    z-index: 5;
 }
 
 .autocomplete-popup .item:hover {
@@ -315,7 +358,7 @@ hr {
 /* Column context menu */
 .col_context_menu {
     position: fixed;
-    z-index: 1000;
+    z-index: 1;
     background: var(--menu);
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -373,6 +416,7 @@ hr {
     display: flex;
     align-items: center;
     padding: 2px;
+    margin-right: 10px;
     background-color: var(--menu);
     border-bottom: var(--border);
     height: 28px;
@@ -626,6 +670,7 @@ hr {
     padding: 0;
     flex: 1;
     overflow: auto;
+    overflow-x: hidden;
 }
 
 .find_results_header {
@@ -697,16 +742,34 @@ hr {
 
 .container {
     display: flex;
+    flex-direction: row;
     height: 100vh;
+    position: fixed;
+    top: 70px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    /* border: 1px solid green; */
+    padding-bottom: 72px;
+    /* padding: 2px; */
 }
 
 .sidebar {
+    /* border: 1px solid red; */
     background-color: var(--sidebar);
     border-right: 1px solid var(--border);
     padding: 5px;
+    min-width: 180px;
+    max-width: 400px;
     width: 300px;
+    box-sizing: border-box;
     padding-bottom: 40px;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-shrink: 1;
+    flex-grow: 0;
+    flex-basis: auto;
+    min-width: 0;
 }
 
 .sidebar .item {
@@ -716,19 +779,15 @@ hr {
     margin-left: 15px;
     margin-bottom: 2px;
     cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .sidebar .item:hover {
     text-decoration: underline;
-}
-
-.device_view .item i.icon {
-    width: 24px;
-    min-width: 24px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
 }
 
 .sidebar .item:hover {
@@ -738,6 +797,11 @@ hr {
 .sidebar a {
     color: var(--text);
     text-decoration: none;
+    text-overflow: ellipsis;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    display: block;
 }
 
 .sidebar a:hover {
@@ -765,6 +829,20 @@ hr {
 
 .device_view {
     /* min-height: 200px; */
+}
+
+.device_view .device_href {
+    width: 50px;
+}
+
+.device_view .item i.icon {
+
+    width: 24px;
+    min-width: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
 }
 
 .button.connect_network {
@@ -903,6 +981,9 @@ tr {
 .device_href {
     flex: 1;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .device_eject {
@@ -943,9 +1024,18 @@ tr {
     overflow: auto;
     width: 100%;
     height: 100%;
+    /* border: 1px solid red; */
     /* padding-top: 1px; */
-    padding-bottom: 40px;
+    /* padding-bottom: 60px; */
 }
+
+/* Special View handlers */
+
+.grid_view {
+    padding: 5px;
+}
+
+/* End of View Handlers */
 
 .tab-header {
     position: sticky;
@@ -965,7 +1055,7 @@ tr {
 .tab-content {
     /* container-type: inline-size; */
     /* padding: 10px; */
-    padding-left:10px;
+    padding-left: 10px;
     /* padding-top: 10px; */
     /* resize: horizontal; */
     /* background: lightblue; */
@@ -1251,7 +1341,7 @@ tr {
 }
 
 .footer {
-    position: absolute;
+    position: fixed;
     background: var(--menu);
     border: 1px solid var(--highlight-select-border);
     border-radius: 5px;
@@ -1292,13 +1382,14 @@ tr {
     display: flex;
     margin: 2px;
     padding: 2px;
-    width: 95%;
+    width: 100%; /* Fill grid cell */
+    max-width: 100%;
     border-radius: 5px;
     border: none;
     background: transparent;
     color: var(--text);
-    /* opacity: 0; */
     transition: opacity 0.5s;
+    overflow: hidden;
 }
 
 .card .icon {
@@ -1330,6 +1421,11 @@ tr {
     /* transform: scale(2); */
     position: relative;
     z-index: 2 !important;
+}
+
+.card .location {
+    background: transparent;
+    border: none;
 }
 
 .grid1 {
@@ -1380,14 +1476,14 @@ tr {
 .grid3 {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 5px 10px;
+    gap: 8px 8px;
     width: 100%;
 }
 
 .grid4 {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 5px 10px;
+    gap: 8px 8px;
     width: 100%;
 }
 
@@ -1396,12 +1492,16 @@ tr {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     grid-template-rows: auto;
+    gap: 8px 8px;
+    width: 100%;
 }
 
 .grid6 {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: auto;
+    gap: 8px 8px;
+    width: 100%;
 }
 
 .list_view {
@@ -1497,7 +1597,7 @@ tr {
     background: none;
 }
 
-.list_view .content > div {
+.list_view .content>div {
     /* border-right: 1px solid #444; */
 }
 
@@ -1798,7 +1898,8 @@ td .div_name a {
 }
 
 .highlight {
-    background: linear-gradient(to right, var(--highlight), var(--main));
+    /* background: linear-gradient(to right, var(--highlight), var(--main)); */
+    background: var(--highlight-select);
 }
 
 .highlight_select {

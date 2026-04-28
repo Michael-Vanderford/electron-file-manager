@@ -106,13 +106,11 @@ class ColumnManager {
 
         // Register listener for columns
         ipcRenderer.on('columns', (e) => {
-
             let settings = settingsManager.get_settings();
-            const current_view = settings?.view === 'grid_view' ? 'grid_view' : 'list_view';
-            const section_name = current_view === 'grid_view' ? 'Grid View Columns' : 'List View Columns';
+            // Always use List View Columns for the columns dialog
+            const section_name = 'List View Columns';
             let columns = settings.schema.properties[section_name].properties;
             for (const key in columns) {
-
                 let list = document.querySelector('.columns_list');
                 const item = utilities.add_div(['item']);
                 const input = document.createElement('input');
@@ -120,10 +118,8 @@ class ColumnManager {
                 input.id = key;
                 const label = document.createElement('label');
                 label.classList.add('label');
-
                 // capitalize the first letter
                 let u_key = '';
-
                 switch (key) {
                     case 'name':
                         u_key = 'Name';
@@ -155,23 +151,18 @@ class ColumnManager {
                     default:
                         break;
                 }
-
                 label.innerText = u_key;
                 label.htmlFor = key;
-
                 if (columns[key].default) {
                     input.checked = true;
                 }
-
                 if (key === 'name') {
                     input.checked = true;
                     input.disabled = true;
                     label.innerText = `${u_key} (always visible)`;
                 }
-
                 item.append(input, label)
                 list.append(item);
-
                 input.addEventListener('change', (e) => {
                     if (key === 'name') {
                         columns[key].default = true;
@@ -179,20 +170,15 @@ class ColumnManager {
                         ipcRenderer.send('update_settings', settings);
                         return;
                     }
-
                     if (input.checked) {
                         columns[key].default = true;
                     } else {
                         columns[key].default = false;
                     }
-
                     ipcRenderer.send('update_settings', settings);
                     ipcRenderer.send('ls', settings.location);
-
                 })
-
             }
-
         });
 
     }

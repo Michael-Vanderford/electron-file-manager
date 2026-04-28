@@ -1,7 +1,7 @@
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const gio = require('../gio/build/Release/gio.node');
-
+// const gio = require('libgio-node');
 
 async function find (query, location, options) {
 
@@ -138,6 +138,14 @@ function normalize_find_options(raw_options = {}) {
         const date_to = new Date(raw_options.dateTo);
         if (!Number.isNaN(date_to.getTime())) {
             options.dateTo = raw_options.dateTo;
+        }
+    }
+
+    // Add folderDepth support
+    if (raw_options.folderDepth !== undefined) {
+        const folder_depth = Number(raw_options.folderDepth);
+        if (Number.isFinite(folder_depth) && folder_depth > 0) {
+            options.folderDepth = Math.floor(folder_depth);
         }
     }
 

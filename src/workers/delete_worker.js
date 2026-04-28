@@ -1,6 +1,7 @@
 // @ts-nocheck
 const { parentPort, isMainThread } = require('worker_threads');
-const gio = require('../gio/build/Release/gio.node');
+// const gio = require('../gio/build/Release/gio.node');
+const gio = require('libgio-node');
 const path = require('path');
 
 class DeleteWorker {

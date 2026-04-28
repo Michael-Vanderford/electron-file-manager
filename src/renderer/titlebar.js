@@ -1,50 +1,10 @@
 // @ts-nocheck
 // Custom title bar logic for Electron frameless window
+
 window.addEventListener('DOMContentLoaded', () => {
     const { ipcRenderer } = require('electron');
-    const titlebar = document.createElement('div');
-    titlebar.className = 'custom-titlebar';
-    titlebar.innerHTML = `
-        <div class="titlebar-menu">
-            <div class="menu-item" tabindex="0">File
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-item" data-action="new-window">New Window</div>
-                    <div class="menu-dropdown-item" data-action="open">Open...</div>
-                    <div class="menu-dropdown-item" data-action="save">Save</div>
-                    <div class="menu-dropdown-item" data-action="exit">Exit</div>
-                </div>
-            </div>
-            <div class="menu-item" tabindex="0">Edit
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-item" data-action="undo">Undo</div>
-                    <div class="menu-dropdown-item" data-action="redo">Redo</div>
-                    <div class="menu-dropdown-item" data-action="cut">Cut</div>
-                    <div class="menu-dropdown-item" data-action="copy">Copy</div>
-                    <div class="menu-dropdown-item" data-action="paste">Paste</div>
-                </div>
-            </div>
-            <div class="menu-item" tabindex="0">View
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-item" data-action="reload">Reload</div>
-                    <div class="menu-dropdown-item" data-action="toggle-devtools">Toggle Developer Tools</div>
-                    <div class="menu-dropdown-item" data-action="fullscreen">Toggle Full Screen</div>
-                </div>
-            </div>
-            <div class="menu-item" tabindex="0">Help
-                <div class="menu-dropdown">
-                    <div class="menu-dropdown-item" data-action="about">About</div>
-                </div>
-            </div>
-        </div>
-        <div class="titlebar-drag"></div>
-        <div class="titlebar-title"></div>
-        <div class="titlebar-controls">
-            <button class="titlebar-btn titlebar-min" title="Minimize">&#x2013;</button>
-            <button class="titlebar-btn titlebar-max" title="Maximize">&#x25A1;</button>
-            <button class="titlebar-btn titlebar-close" title="Close">&#x2715;</button>
-        </div>
-    `;
-    document.body.prepend(titlebar);
+    const titlebar = document.querySelector('.titlebar');
+    if (!titlebar) return;
 
     // Button actions
     titlebar.querySelector('.titlebar-min').onclick = () => ipcRenderer.send('window-minimize');
@@ -109,6 +69,17 @@ window.addEventListener('DOMContentLoaded', () => {
     function showAboutDialog() {
         const dialog = document.getElementById('about-dialog');
         if (dialog) {
+            // Fetch version info from main process
+            require('electron').ipcRenderer.invoke('get_app_versions').then((versions) => {
+                const appVer = document.getElementById('about-app-version');
+                const elecVer = document.getElementById('about-electron-version');
+                const appName = document.getElementById('about-app-name');
+                const appDesc = document.getElementById('about-app-description');
+                if (appVer && versions.appVersion) appVer.textContent = `Version ${versions.appVersion}`;
+                if (elecVer && versions.electronVersion) elecVer.textContent = `Electron version: ${versions.electronVersion}`;
+                if (appName && versions.appName) appName.innerHTML = `<strong>${versions.appName}</strong>`;
+                if (appDesc && versions.appDescription) appDesc.textContent = versions.appDescription;
+            });
             dialog.classList.remove('hidden');
             // Trap focus
             const closeBtn = document.getElementById('about-dialog-close');

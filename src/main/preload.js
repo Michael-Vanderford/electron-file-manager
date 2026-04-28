@@ -86,7 +86,6 @@ class SettingsManager {
     }
 
     init_settings() {
-
         this.settings = ipcRenderer.sendSync('get_settings');
         if (!this.settings) {
             this.settings = {};
@@ -94,48 +93,81 @@ class SettingsManager {
 
         this.migrate_legacy_top_level_schema_sections();
 
-
-        // view
-        if (this.settings.view === '' || this.settings.view === undefined) {
-            this.settings.view = 'list_view';
-            ipcRenderer.send('update_settings', this.settings);
+        // --- Set default to grid_view ONLY if not set ---
+        let updated = false;
+        if (!this.settings.view || this.settings.view === '' || this.settings.view === undefined) {
+            this.settings.view = 'grid_view';
+            updated = true;
         }
 
         // Initialize and migrate settings schema.
         const default_schema = this.get_default_schema();
         if (!this.settings.schema || this.settings.schema.properties === undefined) {
             this.settings.schema = default_schema;
-            ipcRenderer.send('update_settings', this.settings);
+            updated = true;
         } else {
             this.merge_schema_defaults(this.settings.schema, default_schema);
-            ipcRenderer.send('update_settings', this.settings);
         }
 
-        this.migrate_grid_column_defaults();
-        this.ensure_name_column_visibility();
+        // --- Set schema default view to grid_view ONLY if not set ---
+        if (
+            this.settings?.schema?.properties?.['Default View']?.properties?.View &&
+            (!this.settings.schema.properties['Default View'].properties.View.default ||
+             this.settings.schema.properties['Default View'].properties.View.default === '' ||
+             this.settings.schema.properties['Default View'].properties.View.default === undefined)
+        ) {
+            this.settings.schema.properties['Default View'].properties.View.default = 'grid_view';
+            updated = true;
+        }
 
-        // Keep default view in schema and flat key synchronized.
-        const schema_view = this.settings?.schema?.properties?.['Default View']?.properties?.View?.default;
-        if (this.settings.view === 'grid_view' || this.settings.view === 'list_view') {
-            if (schema_view !== this.settings.view && this.settings?.schema?.properties?.['Default View']?.properties?.View) {
-                this.settings.schema.properties['Default View'].properties.View.default = this.settings.view;
-                ipcRenderer.send('update_settings', this.settings);
+        // --- Set grid icon size to one size larger than list ---
+        // List: 32, Grid: 48
+        const iconProps = this.settings?.schema?.properties?.['Icons']?.properties;
+        if (iconProps) {
+            if (iconProps['List Icon Size'].default !== '32') {
+                iconProps['List Icon Size'].default = '32';
+                updated = true;
             }
-        } else if (schema_view === 'grid_view' || schema_view === 'list_view') {
+            if (iconProps['Grid Icon Size'].default !== '48') {
+                iconProps['Grid Icon Size'].default = '48';
+                updated = true;
+            }
+        }
+
+        // Also set flat keys for icon_size and list_icon_size
+        if (!this.settings.icon_size || this.settings.icon_size === '' || this.settings.icon_size === undefined || this.settings.icon_size === 32) {
+            this.settings.icon_size = 48;
+            updated = true;
+        }
+        if (!this.settings.list_icon_size || this.settings.list_icon_size === '' || this.settings.list_icon_size === undefined) {
+            this.settings.list_icon_size = 32;
+            updated = true;
+        }
+
+        // (Removed block that forcibly resets grid view columns defaults)
+
+        // Keep default view in schema and flat key synchronized, but do NOT overwrite user changes
+        const schema_view = this.settings?.schema?.properties?.['Default View']?.properties?.View?.default;
+        // Only sync if view is missing
+        if ((!this.settings.view || this.settings.view === '' || this.settings.view === undefined) && (schema_view === 'grid_view' || schema_view === 'list_view')) {
             this.settings.view = schema_view;
-            ipcRenderer.send('update_settings', this.settings);
+            updated = true;
         }
 
         // location
         if (this.settings.location === '' || this.settings.location === undefined) {
             let home_dir = ipcRenderer.sendSync('get_home_dir');
             utilities.set_location(home_dir);
-            ipcRenderer.send('update_settings', this.settings);
+            updated = true;
         }
 
         // disk utility
         if (this.settings.disk_utility === '' || this.settings.disk_utility === undefined) {
             this.settings.disk_utility = 'gnome-disks';
+            updated = true;
+        }
+
+        if (updated) {
             ipcRenderer.send('update_settings', this.settings);
         }
 
@@ -169,9 +201,9 @@ class SettingsManager {
                     name: 200,
                     location: 100,
                     size: 120,
-                    mtime: 120,
-                    ctime: 120,
-                    atime: 120,
+                    mtime: 140,
+                    ctime: 140,
+                    atime: 140,
                     type: 100,
                     count: 50
                 }
@@ -828,6 +860,7 @@ class Utilities {
 
         // Handle keyboard events
         this.location_input.addEventListener('keydown', (e) => {
+            e.stopPropagation();
             this.suggestions = popup.querySelectorAll('.item');
             switch (e.key) {
                 case 'ArrowDown': {
@@ -2528,7 +2561,7 @@ class DeviceManager {
         let umount_div = utilities.add_div();
 
         item.classList.add('flex', 'item', 'device_item');
-        href_div.classList.add('ellipsis', 'device_href');
+        href_div.classList.add('device_href');
 
         let device_path = device.path;
 
@@ -3216,69 +3249,52 @@ class SideBarManager {
 
     // init sidebar
     init_sidebar() {
-
         // Get references to the resize handle element
         this.drag_handle = document.querySelector(".sidebar_draghandle");
 
-        // Add event listener to the resize handle
-        document.addEventListener('mousedown', this.start_resize);
-        document.addEventListener('mousemove', this.resize);
-        document.addEventListener('mouseup', this.stop_resize);
+        // Only start resizing if mousedown is on the drag handle
+        this.drag_handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.start_resize(e);
+        });
+        document.addEventListener('mousemove', (e) => this.resize(e));
+        document.addEventListener('mouseup', (e) => this.stop_resize(e));
 
         // resize sidebar width
         let window_settings = ipcRenderer.sendSync('get_window_settings');
         if (window_settings.sidebar_width) {
-            // console.log('sidebar width', window_settings.sidebar_width);
             this.sidebar.style.width = `${window_settings.sidebar_width}px`;
-            // this.main.style.width = `${window_settings.main_width}px`;
         }
-
     }
 
     // handle sidebar resize
     start_resize(e) {
-
         this.is_resizing = true;
-
         this.sidebar = document.querySelector('.sidebar');
         this.main = document.querySelector('.main');
-
         // Get the initial widths of sidebar and main divs
         this.initialSidebarWidth = this.sidebar.offsetWidth;
         this.initialMainWidth = this.main.offsetWidth;
-
         // Get the initial mouse position
         this.initialMousePos = e.clientX;
         this.main.classList.add('margin_left');
-
-        // console.log('start resizing', this.is_resizing, this.initialSidebarWidth, this.initialMainWidth);
-
     }
 
     // resize sidebar
     resize(e) {
-
-        // console.log('test', this.is_resizing);
-
         if (!this.is_resizing) return;
-
         // Calculate the distance the mouse has been moved
         this.distanceMoved = e.clientX - this.initialMousePos;
-
-        // Update the sidebar width
-        this.newSidebarWidth = this.initialSidebarWidth + this.distanceMoved;
-        this.newMainWidth = this.initialMainWidth - this.distanceMoved;
-
+        // Enforce a minimum sidebar width (e.g., 180px)
+        const minSidebarWidth = 180;
+        this.newSidebarWidth = Math.max(this.initialSidebarWidth + this.distanceMoved, minSidebarWidth);
+        this.newMainWidth = this.initialMainWidth - (this.newSidebarWidth - this.initialSidebarWidth);
         // Update the sidebar width
         this.sidebar.style.width = `${this.newSidebarWidth}px`;
-
         // Update the main width
         if (this.newSidebarWidth < 500) {
             this.main.style.width = `${this.newMainWidth}px`;
         }
-
-        // console.log('resizing', this.distanceMoved, this.newSidebarWidth, this.newMainWidth);
-
     }
 
     // stop the resizing
@@ -3434,6 +3450,10 @@ class KeyBoardManager {
                 e.preventDefault();
                 e.stopPropagation();
                 ipcRenderer.send('ls', utilities.get_location(), true);
+            }
+
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                fileManager.handleInitKeyNav();
             }
 
         })
@@ -4420,7 +4440,7 @@ class FileManager {
 
         // get view settings
         this.view = settingsManager.get_view_settings();
-        console.log('view setting default', this.view);
+        console.log('file manager default view', this.view);
 
         if (settingsManager.get_location() === '') {
             this.location = utilities.home_dir;
@@ -4428,16 +4448,18 @@ class FileManager {
             this.location = settingsManager.get_location();
         }
 
+        if (this.location === '' || this.location === undefined) {
+            utilities.set_msg('error getting location');
+        }
+
+        console.log('file manager location', this.location);
+
         // this.get_files(this.location);
         let tabs = tabManager.get_tabs();
         if (tabs.length > 0) {
             tabs.forEach(tab => {
-                console.log('location', tab.tab.location);
-
                 // tabManager.add_tab(tab.tab.location);
                 this.get_files(tab.tab.location, true);
-
-
             })
         }
 
@@ -4594,12 +4616,16 @@ class FileManager {
         });
 
         // get files
-        ipcRenderer.on('ls', (e, files_arr, new_tab) => {
+        ipcRenderer.on('ls_done', (e, files_arr, new_tab) => {
+
+            console.log('ls_done 1');
 
             this.files_arr = files_arr;
             if (this.view === '' || this.view === undefined) {
                 console.log('view is undefined');
             }
+
+            console.log('ls_done 2');
 
             if (new_tab) {
 
@@ -4610,14 +4636,23 @@ class FileManager {
                 tabManager.add_tab(this.location);
                 utilities.set_location(this.location);
 
-                // set location in settings, utilities and breadcrumbs
-                // this handles unreachable paths on startup or when a valid location becomes unreachable
-                // get_ls(location, add_tab) in main will set the location back to home dir
-                settingsManager.set_location(this.location);
-                utilities.set_destination(this.location);
-                this.get_breadcrumbs(this.location);
+                // // set location in settings, utilities and breadcrumbs
+                // // this handles unreachable paths on startup or when a valid location becomes unreachable
+                // // get_ls(location, add_tab) in main will set the location back to home dir
+                // settingsManager.set_location(this.location);
+                // utilities.set_destination(this.location);
+                // this.get_breadcrumbs(this.location);
 
             }
+
+            console.log('ls_done 3', this.location);
+
+            // set location in settings, utilities and breadcrumbs
+            // this handles unreachable paths on startup or when a valid location becomes unreachable
+            // get_ls(location, add_tab) in main will set the location back to home dir
+            settingsManager.set_location(this.location);
+            utilities.set_destination(this.location);
+            this.get_breadcrumbs(this.location);
 
             // if (this.view === 'list_view') {
             //     this.get_list_view(files_arr);
@@ -5643,6 +5678,7 @@ class FileManager {
 
         let view_container = document.createElement('div');
         view_container.classList.add('view_container');
+        view_container.tabIndex = 0; // Make it focusable
 
         if (this.view === 'list_view') {
             let header = this.get_list_view_header();
@@ -5650,6 +5686,8 @@ class FileManager {
         }
 
         this.apply_view_settings_to_container(view_container, this.view);
+        // Initialize keyboard navigation and focus the container
+        this.handleInitKeyNav(view_container);
 
         // hide hidden files if schema setting exists and default is false
         this.schema = settingsManager.get_schema();
@@ -5699,6 +5737,9 @@ class FileManager {
         }
 
         this.lazy_load_files(files_arr);
+
+        // handle the first arrow down event for card selection
+        this.handleInitKeyNav(view_container);
 
         // // hide hidden files if schema setting exists and default is false
         // let schema = settingsManager.get_schema().properties;
@@ -5877,6 +5918,9 @@ class FileManager {
 
         }
 
+        // Get Icon
+        this.handleIcon(icon, f, this.view);
+
         // handle rename
         this.handleRename(input, f);
 
@@ -5897,8 +5941,7 @@ class FileManager {
         // this.handleMouseover(card);
         // this.handleMouseout(card);
 
-        // Get Icon
-        this.handleIcon(icon, f, this.view);
+        this.handleKeyNav(card, f);
 
         card.append(icon, content);
         this.apply_column_settings_to_card(card, this.view);
@@ -5946,21 +5989,28 @@ class FileManager {
         const find_actions_inline = utilities.add_div(['find_actions_inline']);
         const find_date_range = utilities.add_div(['find_range_group', 'find_date_range']);
         const find_size_range = utilities.add_div(['find_range_group', 'find_size_range']);
+        const find_max_depth = utilities.add_div(['find_max_depth_group', 'find_max_depth']);
         const query_field = utilities.add_div(['find_field', 'find_field_query']);
         const min_size_field = utilities.add_div(['find_field']);
         const max_size_field = utilities.add_div(['find_field']);
         const date_from_field = utilities.add_div(['find_field']);
         const date_to_field = utilities.add_div(['find_field']);
+        const max_depth_field = utilities.add_div(['find_field']);
+
         const find_input = document.createElement('input');
         const min_size_input = document.createElement('input');
         const max_size_input = document.createElement('input');
         const date_from_input = document.createElement('input');
         const date_to_input = document.createElement('input');
+        const max_depth_input = document.createElement('input');
+
         const query_label = document.createElement('label');
         const min_size_label = document.createElement('label');
         const max_size_label = document.createElement('label');
         const date_from_label = document.createElement('label');
         const date_to_label = document.createElement('label');
+        const max_depth_label = document.createElement('label');
+
         const find_submit = document.createElement('button');
         const close_button = document.createElement('button');
         const filters_toggle = document.createElement('button');
@@ -5979,6 +6029,7 @@ class FileManager {
         max_size_label.textContent = 'Maximum size (bytes)';
         date_from_label.textContent = 'Modified from';
         date_to_label.textContent = 'Modified to';
+        max_depth_label.textContent = 'Max Search Depth'
 
         find_input.type = 'text';
         find_input.classList.add('find_input');
@@ -6007,6 +6058,15 @@ class FileManager {
         date_to_input.classList.add('find_option_input');
         date_to_input.placeholder = 'Modified before';
         date_to_input.title = 'Only include files modified on or before this date and time';
+
+        max_depth_input.type = 'number';
+        max_depth_input.classList.add('find_option_input');
+        max_depth_input.value = 1;
+        max_depth_input.min = '1';
+        max_depth_input.max = '5';
+        max_depth_input.step = '1';
+        max_depth_input.placeholder = 'Max Search Depth';
+        max_depth_input.title = 'Max Search Depth';
 
         find_submit.type = 'button';
         find_submit.classList.add('button', 'find_submit');
@@ -6128,6 +6188,7 @@ class FileManager {
             const max_size = parse_size_value(max_size_input.value);
             const date_from = parse_date_value(date_from_input.value);
             const date_to = parse_date_value(date_to_input.value);
+            const max_depth = parse_size_value(max_depth_input.value);
 
             if (min_size !== null) {
                 options.minSize = min_size;
@@ -6143,6 +6204,10 @@ class FileManager {
 
             if (date_to !== null) {
                 options.dateTo = date_to;
+            }
+
+            if (max_depth !== null) {
+                options.folderDepth = max_depth;
             }
 
             if (
@@ -6278,13 +6343,15 @@ class FileManager {
         max_size_field.append(max_size_label, max_size_input);
         date_from_field.append(date_from_label, date_from_input);
         date_to_field.append(date_to_label, date_to_input);
+        max_depth_field.append(max_depth_label, max_depth_input);
 
         find_actions_inline.append(find_submit, filters_toggle, close_button);
         find_row_primary.append(query_field, find_actions_inline);
 
         find_date_range.append(date_from_field, date_to_field);
         find_size_range.append(min_size_field, max_size_field);
-        find_row_filters.append(find_date_range, find_size_range);
+        find_max_depth.append(max_depth_field);
+        find_row_filters.append(find_date_range, find_size_range, find_max_depth);
 
         find_form.append(find_row_primary, find_row_filters, results_header);
         find_panel.append(find_form);
@@ -7142,8 +7209,8 @@ class FileManager {
 
         try {
 
-            // Always start with a local generic icon so metadata-poor files still render.
-            img.src = '../renderer/icons/file.png';
+            // Always start with a transparent SVG so metadata-poor files don't show a visible icon.
+            img.src = '../assets/icons/transparent.svg';
 
             const content_type = typeof f.content_type === 'string' ? f.content_type : '';
 
@@ -7159,6 +7226,10 @@ class FileManager {
                     if (content_type.includes('svg')) {
                         img.src = f.href;
                         img.classList.add('svg');
+                    } else if (content_type.includes('x-xcf')) {
+                        ipcRenderer.invoke('get_icon', (f.href)).then(res => {
+                            img.src = res;
+                        })
                     } else {
                         img.src = f.href;
                     }
@@ -7365,6 +7436,81 @@ class FileManager {
         //     input.focus();
         // });
 
+    }
+
+    handleInitKeyNav() {
+
+        const view_container = document.querySelector('.view_container');
+        if (!view_container) return;
+        const cards = Array.from(view_container.querySelectorAll('.card'));
+        if (!cards.length) return;
+        const active = document.activeElement;
+        const isCardFocused = active && active.classList && active.classList.contains('card');
+        if (!isCardFocused) {
+            if (typeof this.clearHighlight === 'function') this.clearHighlight();
+            cards[0].focus();
+            cards[0].classList.add('highlight');
+        }
+    }
+
+    handleKeyNav(card, f) {
+
+        // Allow navigation with arrow keys between cards in the current view
+        card.tabIndex = 0; // Make card focusable
+        card.addEventListener('keydown', (e) => {
+            const viewContainer = card.closest('.view_container');
+            if (!viewContainer) return;
+            const cards = Array.from(viewContainer.querySelectorAll('.card'));
+            const currentIndex = cards.indexOf(card);
+            if (currentIndex === -1) return;
+
+            let nextIndex = null;
+            let cardsPerRow = 1;
+            // Try to estimate cards per row for grid view
+            if (viewContainer.classList.contains('grid_view')) {
+                // All cards have same width, so use offsetTop to group by row
+                const currentTop = card.offsetTop;
+                cardsPerRow = cards.filter(c => c.offsetTop === currentTop).length || 1;
+            }
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    if (viewContainer.classList.contains('grid_view')) {
+                        nextIndex = currentIndex + cardsPerRow;
+                    } else {
+                        nextIndex = currentIndex + 1;
+                    }
+                    break;
+                case 'ArrowUp':
+                    if (viewContainer.classList.contains('grid_view')) {
+                        nextIndex = currentIndex - cardsPerRow;
+                    } else {
+                        nextIndex = currentIndex - 1;
+                    }
+                    break;
+                case 'ArrowLeft':
+                    nextIndex = currentIndex - 1;
+                    break;
+                case 'ArrowRight':
+                    nextIndex = currentIndex + 1;
+                    break;
+                default:
+                    return;
+            }
+            if (nextIndex !== null && nextIndex >= 0 && nextIndex < cards.length) {
+                e.preventDefault();
+                cards[nextIndex].focus();
+                if (e.ctrlKey || e.metaKey) {
+                    // Multi-select: add highlight to both current and next
+                    cards[nextIndex].classList.add('highlight');
+                    card.classList.add('highlight');
+                } else {
+                    // Single select: clear all, highlight only next
+                    this.clearHighlight();
+                    cards[nextIndex].classList.add('highlight');
+                }
+            }
+        });
     }
 
     // handle click event

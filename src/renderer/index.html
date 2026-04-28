@@ -11,7 +11,49 @@
         <!-- <link rel="stylesheet" href="../../node_modules/material-design-icons/iconfont/material-icons.css"> -->
     </head>
     <body>
+
+        <div class="titlebar">
+            <div class="titlebar-menu">
+                <div class="menu-item" tabindex="0">File
+                    <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="new-window">New Window</div>
+                        <div class="menu-dropdown-item" data-action="open">Open...</div>
+                        <div class="menu-dropdown-item" data-action="save">Save</div>
+                        <div class="menu-dropdown-item" data-action="exit">Exit</div>
+                    </div>
+                </div>
+                <div class="menu-item" tabindex="0">Edit
+                    <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="undo">Undo</div>
+                        <div class="menu-dropdown-item" data-action="redo">Redo</div>
+                        <div class="menu-dropdown-item" data-action="cut">Cut</div>
+                        <div class="menu-dropdown-item" data-action="copy">Copy</div>
+                        <div class="menu-dropdown-item" data-action="paste">Paste</div>
+                    </div>
+                </div>
+                <div class="menu-item" tabindex="0">View
+                    <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="reload">Reload</div>
+                        <div class="menu-dropdown-item" data-action="toggle-devtools">Toggle Developer Tools</div>
+                        <div class="menu-dropdown-item" data-action="fullscreen">Toggle Full Screen</div>
+                    </div>
+                </div>
+                <div class="menu-item" tabindex="0">Help
+                    <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="about">About</div>
+                    </div>
+                </div>
+            </div>
+            <div class="titlebar-drag"></div>
+            <div class="titlebar-title"></div>
+            <div class="titlebar-controls">
+                <button class="titlebar-btn titlebar-min" title="Minimize">&#x2013;</button>
+                <button class="titlebar-btn titlebar-max" title="Maximize">&#x25A1;</button>
+                <button class="titlebar-btn titlebar-close" title="Close">&#x2715;</button>
+            </div>
+        </div>
         <script src="titlebar.js"></script>
+
         <div class="menu">
             <div class="nav_header hidden">
                 <button class="button new folder"><i class="bi bi-folder-plus"></i></button>
@@ -37,8 +79,8 @@
                 <input type="text" class="placeholder" style="width: 0; position: absolute; z-index: -1;"></input>
                 <div class="disk_space"></div>
                 <div class="settings_menu">
-                    <div class="button settings">
-                        <i class="bi bi-list"></i>
+                    <div class="button settings" title="Settings">
+                        <i class="bi bi-gear"></i>
                     </div>
                 </div>
             </div>
@@ -70,13 +112,15 @@
         <!-- About Dialog -->
         <div id="about-dialog" class="about-dialog hidden">
             <div class="about-dialog-content">
-                <div class="about-dialog-title">About SFM</div>
+                <!-- <div class="about-dialog-title">About SFM</div> -->
                 <div class="about-dialog-body">
-                    <div><strong>String File Manager</strong></div>
-                    <div>Version 1.0.0</div>
-                    <div>© 2026 Michael Vanderford</div>
-                    <div><a href="https://github.com/michael-vanderford/sfm" target="_blank">Project Homepage</a></div>
-                    <div>Licensed under LGPL-2.1-or-later</div>
+                    <div id="about-app-name" style="font-size:1.2em;font-weight:bold;margin-bottom:2px;"></div>
+                    <div id="about-app-description" style="color:#bbb;font-size:0.98em;margin-bottom:10px;"></div>
+                    <div id="about-app-version" style="margin-bottom:2px;"></div>
+                    <div id="about-electron-version" style="margin-bottom:10px;"></div>
+                    <div style="margin-bottom:6px;">© 2026 Michael Vanderford</div>
+                    <div style="margin-bottom:6px;"><a href="https://github.com/michael-vanderford/sfm" target="_blank" style="color:#8cf;text-decoration:underline;">Project Homepage</a></div>
+                    <div style="color:#aaa;">Licensed under LGPL-2.1-or-later</div>
                 </div>
                 <div class="about-dialog-footer">
                     <button id="about-dialog-close" class="about-dialog-close-btn">Close</button>
