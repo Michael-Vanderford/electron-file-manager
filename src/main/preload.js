@@ -7494,6 +7494,19 @@ class FileManager {
                 case 'ArrowRight':
                     nextIndex = currentIndex + 1;
                     break;
+                case 'Enter': {
+                    // Open the selected file or folder
+                    if (typeof card !== 'undefined' && card.dataset) {
+                        if (card.dataset.is_dir === 'true' || card.dataset.type === 'inode/directory') {
+                            // Open folder
+                            fileManager.get_files(card.dataset.href);
+                        } else {
+                            // Open file (simulate click or call open handler)
+                            ipcRenderer.send('open', card.dataset.href)
+                        }
+                    }
+                    break;
+                }
                 default:
                     return;
             }
@@ -7502,12 +7515,12 @@ class FileManager {
                 cards[nextIndex].focus();
                 if (e.ctrlKey || e.metaKey) {
                     // Multi-select: add highlight to both current and next
-                    cards[nextIndex].classList.add('highlight');
-                    card.classList.add('highlight');
+                    cards[nextIndex].classList.add('highlight_select');
+                    card.classList.add('highlight_select');
                 } else {
                     // Single select: clear all, highlight only next
                     this.clearHighlight();
-                    cards[nextIndex].classList.add('highlight');
+                    cards[nextIndex].classList.add('highlight_select');
                 }
             }
         });

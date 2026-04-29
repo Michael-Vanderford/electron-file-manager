@@ -1029,14 +1029,6 @@ tr {
     /* padding-bottom: 60px; */
 }
 
-/* Special View handlers */
-
-.grid_view {
-    padding: 5px;
-}
-
-/* End of View Handlers */
-
 .tab-header {
     position: sticky;
     background: var(--tabs);
@@ -1426,6 +1418,21 @@ tr {
 .card .location {
     background: transparent;
     border: none;
+}
+
+.grid_view {
+    display: grid;
+    gap: 0 20px; /* 20px horizontal gap between cards */
+    padding-top: 10px;
+}
+
+.grid_view .card {
+    width: 95%;
+    /* Remove padding-right, let grid gap handle spacing */
+    /* border:1px solid red; */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .grid1 {
