@@ -10,23 +10,23 @@
         "test": "node"
     },
     "build": {
-    "appId": "com.stringboard.sfm",
-    "directories": {
-        "buildResources": "build"
-    },
-    "linux": {
-        "target": "deb",
-        "icon": "build/icons",
-        "executableName": "efm",
-        "category": "Utility",
-        "desktop": {
-        "entry": {
-            "Name": "Electron File Manager",
-            "Comment": "A modern file manager built with Electron",
-            "Categories": "Utility;FileManager;"
+        "appId": "com.stringboard.sfm",
+        "directories": {
+            "buildResources": "build"
+        },
+        "linux": {
+            "target": "deb",
+            "icon": "build/icons",
+            "executableName": "efm",
+            "category": "Utility",
+            "desktop": {
+                "entry": {
+                    "Name": "Electron File Manager",
+                    "Comment": "A modern file manager built with Electron",
+                    "Categories": "Utility;FileManager;"
+                }
+            }
         }
-        }
-    }
     },
     "author": {
         "name": "Michael Vanderford",
@@ -34,6 +34,8 @@
     },
     "license": "LGPL-2.1-or-later",
     "devDependencies": {
+        "@playwright/test": "^1.59.1",
+        "@types/jest": "^30.0.0",
         "bootstrap-icons": "^1.11.3",
         "electron": "^41.3.0",
         "jest": "^29.7.0",
