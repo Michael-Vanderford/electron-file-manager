@@ -1,7 +1,7 @@
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
-const gio = require('../gio/build/Release/gio.node');
-// const gio = require('libgio-node');
+// const gio = require('../gio/build/Release/gio.node');
+const gio = require('libgio-node');
 
 async function find (query, location, options) {
 
