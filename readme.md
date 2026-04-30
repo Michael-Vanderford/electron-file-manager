@@ -111,8 +111,8 @@
 ## Installation
 
 ```bash
-git clone https://github.com/michael-vanderford/sfm.git
-cd sfm
+git clone https://github.com/Michael-Vanderford/electron-file-manager.git
+cd electron-file-manager
 npm install
 npm start
 ```
