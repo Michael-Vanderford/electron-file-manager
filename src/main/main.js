@@ -1030,7 +1030,7 @@ class Utilities {
 
         // listen for is_main event
         ipcMain.on('is_main', (e, is_main) => {
-            // console.log('is_main', is_main);
+            // console.log('is_main', is_main); // commented out for non-error logging
             this.is_main = is_main;
         });
 
@@ -1158,7 +1158,7 @@ class Utilities {
                 }
                 case 'cp_done': {
 
-                    console.log('cp_done_data', data);
+                    // console.log('cp_done_data', data); // commented out for non-error logging
                     this.run_watcher = false;
                     this.copy_in_progress = false;
 
@@ -1556,7 +1556,7 @@ class Utilities {
 
         this.run_watcher = false;
 
-        console.log('rename', source, destination);
+        // console.log('rename', source, destination); // commented out for non-error logging
 
         if (fs.existsSync(destination)) {
 
@@ -1663,7 +1663,7 @@ class Utilities {
             win.send('disk_space', df);
 
         } catch (err) {
-            console.log(err);
+            // console.log(err); // commented out for non-error logging
         }
 
     }
@@ -1757,7 +1757,7 @@ class WorkspaceManager {
 
                 // Write the reordered array back to the file
                 fs.writeFileSync(workspace_file, JSON.stringify(reordered_data, null, 4));
-                console.log('Workspace reordered successfully.');
+                // console.log('Workspace reordered successfully.'); // commented out for non-error logging
 
                 // Notify the renderer to refresh the workspace
                 win.send('get_workspace');
@@ -2744,6 +2744,16 @@ class MenuManager {
                     label: 'Sort',
                     id: 'sort_menu',
                     submenu: this.sort_menu()
+                },
+                {
+                    type: 'separator'
+                },
+                {
+                    label: 'Add to workspace',
+                    // accelerator: process.platform === 'darwin' ? settings.keyboard_shortcuts.AddWorkspace : settings.keyboard_shortcuts.AddWorkspace,
+                    click: () => {
+                        e.sender.send('context-menu-command', 'add_workspace');
+                    },
                 },
                 {
                     type: 'separator'

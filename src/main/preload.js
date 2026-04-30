@@ -68,7 +68,7 @@ class SettingsManager {
         this.init_settings();
 
         this.schema = this.get_schema();
-        console.log('settings schema', this.schema);
+        // console.log('settings schema', this.schema);
 
 
         ipcRenderer.on('settings_updated', (e, updated_settings) => {
@@ -530,7 +530,7 @@ class SettingsManager {
     update_settings(settings) {
         this.settings = settings;
 
-        console.log('update settings', this.settings);
+        // console.log('update settings', this.settings);
 
         ipcRenderer.send('update_settings', this.settings);
     }
@@ -565,7 +565,7 @@ class SettingsManager {
     set_location(location) {
 
         if (location === undefined || location === '') {
-            console.log('Error: Setting location. No location found');
+            // console.log('Error: Setting location. No location found'); // commented out for non-error logging
             utilities.set_msg('Error: Setting location. No location found');
             return;
         }
@@ -911,7 +911,7 @@ class Utilities {
                 }
                 case 'Tab': {
                     if (this.suggestions.length > 0) {
-                        console.log('tab', this.suggestions.length)
+                        // console.log('tab', this.suggestions.length)
                         e.preventDefault()
                         for (let i = 0; i < this.suggestions.length; i++) {
                             if (this.suggestions[i].classList.contains('highlight_select')) {
@@ -987,7 +987,7 @@ class Utilities {
         try {
             return this.formatter.format(new Date(date * 1000));
         } catch (err) {
-            console.log('getDateTime Format error', date)
+            // console.log('getDateTime Format error', date); // commented out for non-error logging
             return "---"
             // console.log('gio getDateTime Format error')
         }
@@ -1014,7 +1014,7 @@ class Utilities {
     // create a breadcrumbs from location
     get_breadcrumbs(location) {
 
-        console.log('running get breadcrumbs', location);
+        // console.log('running get breadcrumbs', location);
 
         let breadcrumbs = [];
         let breadcrumb_div = document.querySelector('.breadcrumbs');
@@ -1171,7 +1171,7 @@ class Utilities {
             footer.classList.remove('footer-hidden');
             this._start_footer_hide_timer();
         } catch (err) {
-            console.log('set_msg error', err);
+            // console.log('set_msg error', err); // commented out for non-error logging
         }
 
     }
@@ -1262,7 +1262,7 @@ class Utilities {
             f.classList.add('highlight_select');
         });
         let end = new Date().getTime();
-        console.log('chunk select load time', (end - start) / 1000);
+        // console.log('chunk select load time', (end - start) / 1000);
 
         idx += this.chunk_size;
 
@@ -1272,7 +1272,7 @@ class Utilities {
                 this.chunk_select(idx, elements);
             }, 0);
         } else {
-            console.log('All chunks loaded');
+            // console.log('All chunks loaded');
         }
     }
 
@@ -1295,7 +1295,7 @@ class Utilities {
 
         this.copy_arr = this.get_selected_files();
 
-        console.log('copy arr', this.copy_arr);
+        // console.log('copy arr', this.copy_arr);
 
         // send copy arr to MenuManager in main for menu paste operation
         ipcRenderer.send('set_copy_arr', this.copy_arr, this.location);
@@ -1328,7 +1328,7 @@ class Utilities {
     // paste
     paste() {
 
-        console.log('running paste', this.destination);
+        // console.log('running paste', this.destination);
         // check if cut operation
         if (this.is_cut_operation) {
             if (this.cut_arr.length > 0) {
@@ -1338,7 +1338,7 @@ class Utilities {
             }
         } else {
             if (this.copy_arr.length > 0) {
-                console.log('paste', this.copy_arr, this.destination);
+                // console.log('paste', this.copy_arr, this.destination);
                 ipcRenderer.send('paste', this.copy_arr, this.destination);
             } else {
                 this.set_msg('Nothing to paste');
@@ -1359,7 +1359,7 @@ class Utilities {
 
         this.move_arr = this.get_selected_files();
         if (this.move_arr.length > 0) {
-            console.log('move', this.move_arr, this.destination);
+            // console.log('move', this.move_arr, this.destination);
             ipcRenderer.send('move', this.move_arr, this.destination);
             this.set_msg(`Move ${this.move_arr.length} items to ${this.destination}`);
         } else {
@@ -1410,7 +1410,7 @@ class Utilities {
     // edit -
     edit() {
 
-        console.log('running edit');
+        // console.log('running edit');
 
         let active_tab_content = tabManager.get_active_tab_content();
         let items = active_tab_content.querySelectorAll('.highlight_select, .highlight');
@@ -1423,7 +1423,7 @@ class Utilities {
                 if (edit_name) {
                     edit_name.classList.add('hidden');
                 } else {
-                    console.log('no .href found on', item)
+                    // console.log('no .href found on', item)
                     return;
                 }
 
@@ -1432,6 +1432,7 @@ class Utilities {
                 let input = item.querySelector('.edit_name');
                 if (input) {
 
+                    input.index = idx;
                     input.classList.remove('hidden');
 
                     if (idx === 0) {
@@ -1704,7 +1705,7 @@ class Utilities {
         let active_tab_content = tabManager.get_active_tab_content();
         let cut_items = active_tab_content.querySelectorAll('.cut');
         if (cut_items.length > 0) {
-            console.log('cut items', cut_items);
+            // console.log('cut items', cut_items);
             cut_items.forEach(item => {
                 item.classList.remove('cut');
             })
@@ -1722,7 +1723,7 @@ class Utilities {
     // clear highlighted items
     clear_highlight() {
 
-        console.log('clear highlight');
+        // console.log('clear highlight');
 
         let main = document.querySelector('.main');
         let items = main.querySelectorAll('.highlight_select, .highlight, .highlight_target');
@@ -1786,7 +1787,7 @@ class Utilities {
 
             // check item.dataset values
             if (!item.dataset.id || !item.dataset.name || !item.dataset.href) {
-                console.log('missing dataset values', item);
+                // console.log('missing dataset values', item);
                 utilities.set_msg(`Missing dataset values ${item}`);
                 return;
             }
@@ -1831,7 +1832,7 @@ class Utilities {
 
         let bool_val = true;
         if (string_val.toLocaleLowerCase() === 'true') {
-            console.log('true');
+            // console.log('true');
             bool_val = true;
         } else if (string_val.toLocaleLowerCase() === 'false') {
             bool_val = false;
@@ -2008,7 +2009,7 @@ class DragSelect {
 
             const item = e.target.closest('.tr, .card');
             if (item) {
-                console.log('dragstart');
+                // console.log('dragstart');
                 this.is_dragging = true;
                 this.is_dragging_divs = true;
                 e.dataTransfer.effectAllowed = "copyMove"; // ADD THIS LINE
@@ -2025,7 +2026,7 @@ class DragSelect {
             const item = e.target.closest('.tr, .card');
             if (item) {
 
-                console.log('ctrlKey', e.ctrlKey, 'dropEffect', e.dataTransfer.dropEffect);
+                // console.log('ctrlKey', e.ctrlKey, 'dropEffect', e.dataTransfer.dropEffect);
 
                 if (item.dataset.is_dir === 'true') {
                     if (!item.dataset.dragover) {
@@ -2395,7 +2396,7 @@ class DragSelect {
     // Clear selection
     clearSelection() {
 
-        console.log('clear selection');
+        // console.log('clear selection');
 
         let active_tab_content = document.querySelector('.active-tab-content');
         if (!active_tab_content) {
@@ -2446,7 +2447,7 @@ class DeviceManager {
         ipcRenderer.on('mounts', (e, mounts) => {
 
             this.device_arr = mounts;
-            console.log('mounts', this.device_arr);
+            // console.log('mounts', this.device_arr);
             this.get_devices();
 
         });
@@ -2588,7 +2589,7 @@ class DeviceManager {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('mounting', device.name);
+                // console.log('mounting', device.name);
                 ipcRenderer.send('mount', device.name);
             })
 
@@ -2725,7 +2726,7 @@ class WorkspaceManager {
         this.workspace_view.addEventListener('mouseover', (e) => {
             if (section == 0 || section == 1) {
                 section = 2;
-                console.log(section)
+                // console.log(section)
             }
         });
 
@@ -2865,7 +2866,7 @@ class WorkspaceManager {
                     this.draggedRow = tr; // Set the currently dragged row
                     this.is_moving = true;
                     tr.classList.add('dragging');
-                    console.log('dragstart', tr);
+                    // console.log('dragstart', tr);
                 });
 
                 tr.addEventListener('dragover', (e) => {
@@ -2967,7 +2968,7 @@ class WorkspaceManager {
                         if (targetRow !== this.draggedRow) {
                             // Insert the dragged row before the target row
                             targetRow.insertAdjacentElement('beforebegin', this.draggedRow);
-                            console.log('Row moved:', this.draggedRow, 'before', targetRow);
+                            // console.log('Row moved:', this.draggedRow, 'before', targetRow);
                         }
                     }
 
@@ -2996,7 +2997,7 @@ class WorkspaceManager {
 
                 }
 
-                console.log(this.is_moving, this.draggedRow)
+                // console.log(this.is_moving, this.draggedRow)
 
             });
 
@@ -3156,7 +3157,7 @@ class SideBarManager {
         this.main.addEventListener('mouseover', (e) => {
             if (section == 0 || section == 2) {
                 section = 1;
-                console.log(section)
+                // console.log(section)
             }
         });
 
@@ -3309,7 +3310,7 @@ class SideBarManager {
         window_settings.main_width = this.newMainWidth;
         ipcRenderer.send('update_window_settings', window_settings);
 
-        console.log('window settings', window_settings);
+        // console.log('window settings', window_settings);
 
 
     }
@@ -3538,7 +3539,7 @@ class IconManager {
     // get icons
     get_icons() {
 
-        console.log('running get icons');
+        // console.log('running get icons');
 
         let items = document.querySelectorAll('tr');
         items.forEach(item => {
@@ -3849,7 +3850,7 @@ class TabManager {
             this.tab_data_arr.push(this.tab_data);
         }
 
-        console.log('tab data arr', this.tab_data_arr);
+        // console.log('tab data arr', this.tab_data_arr);
 
     }
 
@@ -3875,7 +3876,7 @@ class TabManager {
             let idx = this.tab_data_arr.indexOf(tab_data);
             this.tab_data_arr.splice(idx, 1);
         }
-        console.log('removing tab data', this.tab_data_arr, id);
+        // console.log('removing tab data', this.tab_data_arr, id);
     }
 
     // get active_tab_content div
@@ -4025,7 +4026,7 @@ class TabManager {
                 latest_settings.tabs.splice(idx, 1); // removes 1 element at that index
             }
 
-            console.log('removed item', latest_settings);
+            // console.log('removed item', latest_settings);
             settingsManager.update_settings(latest_settings);
 
 
@@ -4035,7 +4036,7 @@ class TabManager {
         // Switch Tabs
         tab.addEventListener('click', (e) => {
 
-            console.log('switch tab')
+            // console.log('switch tab')
             e.preventDefault()
 
             this.clearActiveTabs();
@@ -4224,7 +4225,7 @@ class TabManager {
         }
 
         // settingsManager.update_settings(this.settings);
-        console.log('tabs', latest_settings.tabs);
+        // console.log('tabs', latest_settings.tabs);
         settingsManager.update_settings(latest_settings);
 
         tab.title = location;
@@ -4254,7 +4255,7 @@ class TabManager {
     // add tab history
     add_tab_history(href) {
 
-        console.log('add tab history', href, this.tab_id,);
+        // console.log('add tab history', href, this.tab_id,);
 
         if (href === undefined || href === null) {
             return;
@@ -4291,7 +4292,7 @@ class TabManager {
     // get tab history
     getTabHistory(tab_id, direction = 0) {
 
-        console.log('get tab history', tab_id, direction);
+        // console.log('get tab history', tab_id, direction);
 
         // ipcRenderer.invoke('get_tab_history').then(history => {
         // // this.tab_history_arr = history;
@@ -4447,13 +4448,13 @@ class FileManager {
 
         this.main = document.querySelector('.main');
         if (!this.main) {
-            console.log('error getting main');
+            // console.log('error getting main');
             return;
         }
 
         // get view settings
         this.view = settingsManager.get_view_settings();
-        console.log('file manager default view', this.view);
+        // console.log('file manager default view', this.view);
 
         if (settingsManager.get_location() === '') {
             this.location = utilities.home_dir;
@@ -4465,7 +4466,7 @@ class FileManager {
             utilities.set_msg('error getting location');
         }
 
-        console.log('file manager location', this.location);
+        // console.log('file manager location', this.location);
 
         // this.get_files(this.location);
         let tabs = tabManager.get_tabs();
@@ -4527,7 +4528,7 @@ class FileManager {
         // sort menu
         ipcRenderer.on('sort_by', (e, sort, sort_direction) => {
 
-            console.log('sort by', sort, sort_direction)
+            // console.log('sort by', sort, sort_direction)
 
             if (sort === null || sort === undefined || sort === '') {
                 utilities.set_msg(`Error: Sort is null or undefined ${sort}`);
@@ -4631,14 +4632,10 @@ class FileManager {
         // get files
         ipcRenderer.on('ls_done', (e, files_arr, new_tab) => {
 
-            console.log('ls_done 1');
-
             this.files_arr = files_arr;
             if (this.view === '' || this.view === undefined) {
-                console.log('view is undefined');
+                utilities.set_msg('Error: View is undefined');
             }
-
-            console.log('ls_done 2');
 
             if (new_tab) {
 
@@ -4657,8 +4654,6 @@ class FileManager {
                 // this.get_breadcrumbs(this.location);
 
             }
-
-            console.log('ls_done 3', this.location);
 
             // set location in settings, utilities and breadcrumbs
             // this handles unreachable paths on startup or when a valid location becomes unreachable
@@ -4695,12 +4690,12 @@ class FileManager {
         // get item
         ipcRenderer.on('get_item', (e, f) => {
 
-            console.log('get_item', f);
+            // console.log('get_item', f);
 
             // get active tab
             let active_tab_content = tabManager.get_active_tab_content();
             if (!active_tab_content) {
-                console.log('error getting active tab content');
+                utilities.set_msg('Error: Getting active tab content');
                 return;
             }
 
@@ -4716,16 +4711,14 @@ class FileManager {
             // get view container
             let view_container = active_tab_content.querySelector('.view_container');
             if (!view_container) {
-                console.log('error getting view container');
-                utilities.set_msg('Error: getting view container');
+                utilities.set_msg('Error: Getting view container');
                 return;
             }
 
             // get view item
             item = this.get_view_item(f);
             if (!item) {
-                console.log('error getting view item');
-                utilities.set_msg('Error: getting view item');
+                utilities.set_msg('Error: Getting view item');
                 return;
             }
 
@@ -4739,112 +4732,31 @@ class FileManager {
                 // insert item below header
                 let header = view_container.querySelector('.list_view_header');
                 if (!header) {
-                    console.log('error getting list view header');
-                    utilities.set_msg('Error: getting list view header');
+                    utilities.set_msg('Error: Getting list view header');
                     return;
                 }
                 view_container.insertBefore(item, header.nextSibling);
 
             }
 
-            // console.log('get_item', f);
-
-            // let active_tab_content = tabManager.get_active_tab_content();
-            // if (!active_tab_content) {
-            //     console.log('error getting active tab content');
-            //     return;
-            // }
-
-            // let item = active_tab_content.querySelector(`[data-id="${f.id}"]`)
-            // if (item) {
-            //     if (item.dataset.id === f.id) {
-            //         this.update_item(f);
-            //         return;
-            //     }
-            // }
-
-            // if (this.view === 'grid_view') {
-
-            //     console.log('grid view');
-            //     let grid = active_tab_content.querySelector('.grid3');
-            //     if (!grid) {
-            //         console.log('Error: getting grid');
-            //         utilities.set_msg('Error: getting grid');
-            //         return;
-            //     }
-
-            //     let items = grid.querySelectorAll('.card');
-            //     if (items.length > 0) {
-
-            //         let idx = Array.from(items).filter(item => item.dataset.is_dir === 'true').length;
-            //         let card = this.get_view_item(f);
-
-            //         if (!card) {
-            //             console.log('error getting card');
-            //             utilities.set_msg('Error: getting card');
-            //             return;
-            //         }
-
-            //         if (f.is_dir) {
-            //             grid.prepend(card);
-            //         } else {
-            //             // insert row at position idx
-            //             grid.insertBefore(card, grid.children[idx]);
-            //         }
-
-            //     }
-
-            // } else if (this.view === 'list_view') {
-
-            //     let table = active_tab_content.querySelector('.table');
-            //     if (!table) {
-            //         console.log('error getting table');
-            //         return;
-            //     }
-            //     let tbody = table.querySelector('tbody');
-            //     let items = active_tab_content.querySelectorAll('.tr')
-
-            //     // convert items to array and get number of directories
-            //     let idx = Array.from(items).filter(item => item.dataset.is_dir === 'true').length;
-            //     let tr = this.get_list_view_item(f);
-
-            //     if (f.is_dir) {
-            //         tbody.prepend(tr);
-            //     } else {
-            //         // insert row at position idx
-            //         tbody.insertBefore(tr, tbody.children[idx]);
-            //     }
-
-            //     // focus item
-            //     tr.classList.add('highlight_select');
-            //     let href = tr.querySelector('a');
-            //     if (href) {
-            //         href.focus();
-            //     } else {
-            //         utilities.set_msg("Error: getting href in get_item");
-            //     }
-
-            // }
-
-            // this.check_for_empty_folder();
 
         });
 
         // edit item mode
         ipcRenderer.on('edit_item', (e, f) => {
 
-            console.log('edit_item', f);
+            // console.log('edit_item', f);
 
             if (f.id === undefined || f.id === null) {
-                utilities.set_msg('Error: getting file id');
+                utilities.set_msg('Error: Getting file id');
                 return;
             }
 
             let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
             let item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
             if (!item) {
-                console.log('error getting data-id', f.id);
-                utilities.set_msg(`Error: getting  data-id ${f.id}`);
+                // console.log('error getting data-id', f.id);
+                utilities.set_msg(`Error: Getting  data-id ${f.id}`);
                 return;
             }
 
@@ -4852,8 +4764,8 @@ class FileManager {
             if (edit_name) {
                 edit_name.classList.add('hidden');
             } else {
-                console.log('error getting edit name');
-                utilities.set_msg('Error: getting edit name');
+                // console.log('error getting edit name');
+                utilities.set_msg('Error: Getting edit name');
                 return;
             }
 
@@ -4870,8 +4782,8 @@ class FileManager {
                 });
 
             } else {
-                console.log('error getting input');
-                utilities.set_msg('Error: getting input');
+                // console.log('error getting input');
+                utilities.set_msg('Error: Getting input');
                 return;
             }
 
@@ -4890,8 +4802,8 @@ class FileManager {
         ipcRenderer.on('remove_item', (e, id) => {
 
             if (id === undefined || id === null) {
-                utilities.set_msg('Error: getting file id');
-                console.log('error getting file id');
+                utilities.set_msg('Error: Getting file id');
+                // console.log('error getting file id');
                 return;
             }
 
@@ -4903,8 +4815,8 @@ class FileManager {
                 this.check_for_empty_folder();
                 utilities.get_disk_space(this.location);
             } else {
-                utilities.set_msg(`Error: removing item ${id}`);
-                console.log('error removing item', id);
+                utilities.set_msg(`Error: Removing item ${id}`);
+                // console.log('error removing item', id);
             }
 
         });
@@ -5072,7 +4984,7 @@ class FileManager {
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
         let items = active_tab_content.querySelectorAll('.card, .tr');
 
-        console.log('check for empty folder', items.length);
+        // console.log('check for empty folder', items.length);
 
         if (items.length === 0) {
             this.folder_is_empty();
@@ -5410,7 +5322,7 @@ class FileManager {
     //
     get_list_view_header() {
 
-        console.log('get list view header');
+        // console.log('get list view header');
 
         // this.settings = settingsManager.get_settings();
         this.settings = settingsManager.get_schema();
@@ -5425,7 +5337,7 @@ class FileManager {
 
         for (const key in list_view_columns) {
 
-            console.log('columns', key, list_view_columns[key])
+            // console.log('columns', key, list_view_columns[key])
 
             if (list_view_columns[key]) {
 
@@ -6980,7 +6892,7 @@ class FileManager {
         let active_tab_content = document.querySelector('.active-tab-content');
         let lazyItems = active_tab_content.querySelectorAll(".lazy");
 
-        console.log('running lazy load files', lazyItems.length);
+        // console.log('running lazy load files', lazyItems.length);
 
         // listen for scroll event
         if ("IntersectionObserver" in window) {
@@ -7074,7 +6986,7 @@ class FileManager {
                     observer.unobserve(lazy_item);
 
                 } else {
-                    console.log('No lazy items load');
+                    // console.log('No lazy items load');
                 }
             }
 
@@ -7088,13 +7000,13 @@ class FileManager {
     // show hidden files
     show_hidden_files() {
 
-        console.log('show hidden files');
+        // console.log('show hidden files');
 
         let views = document.querySelectorAll('.grid_view, .list_view');
-        console.log('views', views);
+        // console.log('views', views);
         views.forEach(view => {
             let hidden_files = view.querySelectorAll('.card[data-is_hidden="true"]');
-            console.log('hidden files', hidden_files.length);
+            // console.log('hidden files', hidden_files.length);
             hidden_files.forEach(file => {
                 file.classList.remove('hidden');
             })
@@ -7105,13 +7017,13 @@ class FileManager {
     // hide hidden files
     hide_hidden_files() {
 
-        console.log('hide hidden files');
+        // console.log('hide hidden files');
 
         let views = document.querySelectorAll('.grid_view, .list_view');
-        console.log('views', views);
+        // console.log('views', views);
         views.forEach(view => {
             let hidden_files = view.querySelectorAll('.card[data-is_hidden="true"]');
-            console.log('hidden files', hidden_files.length);
+            // console.log('hidden files', hidden_files.length);
             hidden_files.forEach(file => {
                 file.classList.add('hidden');
             })
@@ -7131,7 +7043,7 @@ class FileManager {
                 return;
             }
 
-            console.log('running sort by column', e.target);
+            // console.log('running sort by column', e.target);
             const latest_settings = settingsManager.get_settings() || {};
             latest_settings.sort_by = e.target.dataset.col_name;
             latest_settings.sort_direction = latest_settings.sort_direction === 'asc' ? 'desc' : 'asc';
@@ -7195,29 +7107,23 @@ class FileManager {
     handleIcon(icon, f, view_type_hint) {
 
         if (!f) {
-            console.log('error getting icon data', f);
+            utilities.set_msg('Error: getting icon data', f_);
             return -1;
         }
 
         if (icon === undefined || icon === null) {
-            const errorMessage = `Error loading icon ${icon}`;
-            console.log(errorMessage);
-            utilities.set_msg(errorMessage);
-            if (err && typeof err === 'function') {
-                err(errorMessage);
-            }
+            utilities.set_msg(`Error: loading icon ${icon}`);
             return -1;
         }
 
         if (f.href === undefined || f.href === null) {
-            console.log('Error getting icon href', f.href);
-            utilities.set_msg(`Error getting href ${f.href}`);
+            utilities.set_msg(`Error: getting href ${f.href}`);
             return -2;
         }
 
         let img = icon.querySelector('.img');
         if (!img) {
-            console.log('Error getting .img for icon', img);
+            // console.log('Error getting .img for icon', img);
             utilities.set_msg('Error getting .img for icon');
             return -4;
         }
@@ -7276,7 +7182,7 @@ class FileManager {
                 icon.classList.add('readonly');
                 let readonly_img = document.createElement('img');
                 ipcRenderer.invoke('get_readonly_icon', f.href).then(readonly_icon => {
-                    console.log('readonly icon', readonly_icon);
+                    // console.log('readonly icon', readonly_icon);
                     readonly_img.src = readonly_icon;
                     readonly_img.classList.add('symlink');
                     icon.append(readonly_img);
@@ -7300,7 +7206,7 @@ class FileManager {
 
         } catch (err) {
 
-            console.log('Error loading icon', err);
+            // console.log('Error loading icon', err);
             utilities.set_msg(`Error loading icon ${err}`);
 
             ipcRenderer.invoke('get_icon', (f.href)).then(res => {
@@ -7405,16 +7311,16 @@ class FileManager {
 
                 utilities.copy();
                 if (e.ctrlKey) {
-                    console.log('running drop ctrl', item.dataset.href);
+                    // utilities.set_msg('Running drop ctrl', item.dataset.href);
                     utilities.paste();
                 } else {
-                    console.log('running drop', item.dataset.href);
+                    // console.log('running drop', item.dataset.href);
                     utilities.move();
                 }
 
             } else {
 
-                console.log('did not find target')
+                // console.log('did not find target')
                 ipcRenderer.send('is_main', 1);
                 utilities.copy();
                 utilities.paste();
@@ -7433,7 +7339,7 @@ class FileManager {
 
         input.addEventListener('keydown', (e) => {
 
-            if (e.key === 'Enter' || e.key === 'Tab') {
+            if (e.key === 'Enter') {
                 e.stopPropagation();
                 let id = f.id;
                 let source = f.href;
@@ -7604,7 +7510,7 @@ class FileManager {
                 utilities.set_location(f.href);
 
             } else if (f.is_dir === false) {
-                console.log('running handle click file', f.href);
+                // console.log('running handle click file', f.href);
                 ipcRenderer.send('open', f.href);
             }
 
@@ -7755,7 +7661,7 @@ class FileManager {
     // create a breadcrumbs from location
     get_breadcrumbs(location) {
 
-        console.log('running get breadcrumbs', location);
+        // console.log('running get breadcrumbs', location);
 
         let breadcrumbs = [];
         let breadcrumb_div = document.querySelector('.breadcrumbs');
@@ -7858,7 +7764,7 @@ class FileManager {
     // request files from location
     get_files(location, add_tab = false) {
 
-        console.log('running get_files', location);
+        // console.log('running get_files', location);
 
         // check if location is null or empty
         if (!location || location === '' || location === undefined) {
@@ -7912,7 +7818,7 @@ class FileManager {
     // add copy_array items to the view
     add_items(copy_arr) {
 
-        console.log('running add_items');
+        // console.log('running add_items');
 
         // Loop Copy array
         copy_arr.forEach(f => {
@@ -7920,8 +7826,8 @@ class FileManager {
             // make sure f is complete
             for (let a in f) {
                 if (f[a] === undefined || f[a] === null) {
-                    console.log('error getting grid view item', f);
-                    utilities.set_msg('error getting properties for', f);
+                    // console.log('error getting grid view item', f);
+                    utilities.set_msg('Error: Getting properties for', f);
                     return -1;
                 }
             }
@@ -7940,7 +7846,7 @@ class FileManager {
         // get current items in the view
         let items = Array.from(active_tab_content.querySelectorAll('.card'));
         if (items.length === 0) {
-            console.log('no cards found in the view');
+            // console.log('no cards found in the view');
         }
 
         // get view container
@@ -7959,7 +7865,8 @@ class FileManager {
             // make sure f is complete
             for (let a in f) {
                 if (f[a] === undefined || f[a] === null) {
-                    console.log('error getting grid view item', f);
+                    // console.log('error getting grid view item', f);
+                    utilities.set_msg('Error: Getting grid view item', f);
                     return -1;
                 }
             }
@@ -7981,7 +7888,7 @@ class FileManager {
         // }
 
         // add new items array to the grid
-        console.log('sorting', this.sort_by, this.sort_direction);
+        // console.log('sorting', this.sort_by, this.sort_direction);
         let arr = utilities.sortItems(items, this.sort_by, this.sort_direction);
         arr.forEach(item => {
             view_container.append(item);
@@ -7995,12 +7902,13 @@ class FileManager {
 
     update_item(f) {
 
-        console.log('running update_item', f);
+        // console.log('running update_item', f);
 
         // check file object
         for (let i in f) {
             if (f[i] === undefined || f[i] === null) {
-                console.log('Invalid property:', i, f[i]);
+                // console.log('Invalid property:', i, f[i]);
+                utilities.set_msg(`Error: Invalid property: ${i} ${f[i]}`);
                 return;
             }
         }
@@ -8013,8 +7921,8 @@ class FileManager {
             // Get card
             let card = this.get_view_item(f);
             if (!card) {
-                console.log('error getting card');
-                utilities.set_msg('Error: getting card');
+                // console.log('error getting card');
+                utilities.set_msg('Error: Getting card');
                 return;
             }
 
@@ -8077,7 +7985,7 @@ class PropertiesManager {
 
             properties_arr.forEach(file => {
 
-                console.log('file', file);
+                // console.log('file', file);
 
                 let properties_div1 = utilities.add_div();
                 let basic_content = utilities.add_div();
@@ -8419,21 +8327,26 @@ class MenuManager {
                     break;
                 }
                 case 'terminal': {
-
-                    let items = document.querySelectorAll('.highlight, .highlight_select');
-                    if (items.length > 0) {
-                        items.forEach(item => {
-                            let new_cmd = `gnome-terminal --working-directory='${item.dataset.href}'`;
-                            console.log('new_cmd', new_cmd);
-                            ipcRenderer.send('command', (e, new_cmd))
-                        })
+                    // Use utilities.get_selected_files() to get selected files/folders
+                    const selected_files = utilities.get_selected_files();
+                    if (selected_files.length > 0) {
+                        // Open a terminal for each selected item
+                        selected_files.forEach(file => {
+                            if (file && file.href) {
+                                let new_cmd = `gnome-terminal --working-directory='${file.href}'`;
+                                ipcRenderer.send('command', new_cmd);
+                            }
+                        });
                     } else {
+                        // Only open a terminal for the current location if nothing is selected
+                        const current_location = utilities.get_location() || settingsManager.get_location();
                         let new_cmd = `gnome-terminal`;
-                        ipcRenderer.send('command', (e, new_cmd));
+                        if (current_location) {
+                            new_cmd = `gnome-terminal --working-directory='${current_location}'`;
+                        }
+                        ipcRenderer.send('command', new_cmd);
                     }
                     utilities.clear();
-
-
                     break;
                 }
                 case 'connect': {
@@ -8441,10 +8354,20 @@ class MenuManager {
                     break;
                 }
                 case 'add_workspace': {
+
                     let selected_files_arr = utilities.get_selected_files();
+
+                    // If nothing is selected, add the current location as a workspace item
+                    if (!selected_files_arr || selected_files_arr.length === 0) {
+                        const current_location = utilities.get_location() || settingsManager.get_location();
+                        if (current_location) {
+                            selected_files_arr = [{ href: current_location }];
+                        }
+                    }
+
                     ipcRenderer.send('add_workspace', selected_files_arr);
                     selected_files_arr = [];
-                    utilities.clear()
+                    utilities.clear();
                     break;
                 }
                 case 'compress_xz': {
@@ -8491,7 +8414,7 @@ class MenuManager {
                         if (item.classList.contains('highlight_select')) {
                             let file_arr = [];
                             file_arr.push({ href: item.dataset.href });
-                            console.log('item', item.dataset.href);
+                            // console.log('item', item.dataset.href);
                             ipcRenderer.send('get_properties', file_arr);
                             clearHighlight();
                         }
