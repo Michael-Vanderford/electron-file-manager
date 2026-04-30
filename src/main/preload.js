@@ -3331,6 +3331,8 @@ class KeyBoardManager {
             //     return;
             // }
 
+
+
             if (section == 2) {
                 return;
             }
@@ -4432,6 +4434,17 @@ class FileManager {
             if (e.key === 'Control') this.ctrKey = false;
         });
 
+        // Utility: check if focus is in an editable field
+        this.isInputLike = function (el) {
+            if (!el) return false;
+            const tag = el.tagName ? el.tagName.toLowerCase() : '';
+            return (
+                tag === 'input' ||
+                tag === 'textarea' ||
+                el.isContentEditable === true
+            );
+        };
+
         this.main = document.querySelector('.main');
         if (!this.main) {
             console.log('error getting main');
@@ -5189,30 +5202,36 @@ class FileManager {
         })
 
         document.addEventListener('keydown', (e) => {
-
-            if (document.activeElement.tagName.toLowerCase() === 'input' || section == 2) {
+            // Centralized input check
+            if (this.isInputLike(document.activeElement) || typeof section !== 'undefined' && section == 2) {
                 return;
             }
 
+            // Example: Ctrl+L (location focus) -- currently disabled
             if (e.ctrlKey && e.key === 'l') {
                 // this.location.focus();
                 return;
             }
 
+            // Escape clears filter
             if (e.key === 'Escape') {
                 e.preventDefault();
                 e.stopPropagation();
                 this.clear_filter();
+                return;
             }
 
+            // Ignore navigation and modifier keys
             if (this.specialKeys.includes(e.key)) {
                 return;
             }
 
+            // Ignore key combos (Ctrl/Alt/Shift/Meta with alphanum)
             if (e.key.match(/[a-z0-9-_.]/i) && (e.ctrlKey || e.altKey || e.shiftKey || e.metaKey)) {
                 return;
             }
 
+            // Quick search: focus filter if not already focused
             if (!this.specialKeys.includes(e.key) && document.activeElement !== this.filter) {
                 if (e.key.match(/[a-z0-9-_.]/i)) {
                     this.filter.focus();
@@ -5221,7 +5240,6 @@ class FileManager {
                     this.run_filer();
                 }
             }
-
         });
 
     }
@@ -7415,10 +7433,8 @@ class FileManager {
 
         input.addEventListener('keydown', (e) => {
 
-            if (e.key === 'Tab') {
-            }
-
-            if (e.key === 'Enter') {
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                e.stopPropagation();
                 let id = f.id;
                 let source = f.href;
                 let destination = source.split('/').slice(0, -1).join('/') + '/' + input.value;
@@ -7449,7 +7465,7 @@ class FileManager {
         if (!isCardFocused) {
             if (typeof this.clearHighlight === 'function') this.clearHighlight();
             cards[0].focus();
-            cards[0].classList.add('highlight');
+            cards[0].classList.add('highlight_select');
         }
     }
 
@@ -7458,6 +7474,12 @@ class FileManager {
         // Allow navigation with arrow keys between cards in the current view
         card.tabIndex = 0; // Make card focusable
         card.addEventListener('keydown', (e) => {
+            // Prevent navigation if focus is in an input, textarea, or contenteditable
+            const tag = e.target.tagName ? e.target.tagName.toLowerCase() : '';
+            if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) {
+                return;
+            }
+
             const viewContainer = card.closest('.view_container');
             if (!viewContainer) return;
             const cards = Array.from(viewContainer.querySelectorAll('.card'));
@@ -8506,18 +8528,14 @@ class WindowManager {
         // let main = document.querySelector('.main');
         window.addEventListener('resize', (e) => {
 
-
             let content = document.querySelector('.active-tab-content');
-            // console.log('resize window', content.width);
 
-            //     let window_settings = settingsManager.get_window_settings();
-            //     // console.log('window_settings', window_settings);
-
-            //     if (window_settings.main_width !== 0) {
-            //         main.style.width = window.innerWidth + 'px';
-            //         window_settings.main_width = window.innerWidth;
-            //         ipcRenderer.send('update_window_settings', window_settings);
-            //     }
+            const tag = e.target.tagName.toLowerCase();
+            const isEditable = e.target.isContentEditable;
+            if (tag === 'input' || tag === 'textarea' || isEditable) {
+                // Let the input handle the event, do not trigger custom shortcuts
+                return;
+            }
 
         })
 
