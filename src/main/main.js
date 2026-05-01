@@ -1537,7 +1537,7 @@ class Utilities {
     }
 
     // rename
-    rename(e, source, destination, id) {
+    async rename(e, source, destination, id) {
 
         if (source === '' || source === undefined) {
             win.send('set_msg', `Error: getting source for rename: ${source}`);
@@ -1550,7 +1550,7 @@ class Utilities {
         }
 
         if (id === '' || id === undefined) {
-            win.send('set_msg', `Error: getting destination for rename: ${id}`);
+            win.send('set_msg', `Error: getting id for rename: ${id}`);
             return;
         }
 
@@ -1562,26 +1562,48 @@ class Utilities {
 
             if (!destination.includes('New Folder')) {
                 win.send('set_msg', `Error: File name '${destination}' already exists.`);
+                return;
             }
             win.send('cancel_edit');
             return;
         }
 
-        fs.rename(source, destination, (err) => {
+        const res = await new Promise((resolve, reject) => {
+            gio.mv(source, destination, (err, result) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
 
-            if (err) {
-                win.send('set_msg', `Error: rename: ${err}`);
-                return;
-            }
+                let f = gio.get_file(destination);
+                if (!f) {
+                    win.send('set_msg', `Error: getting file object for rename: ${f}`);
+                }
+                f.id = id;
+                e.sender.send('update_item', f);
 
-            let f = gio.get_file(destination);
-            if (!f) {
-                win.send('set_msg', `Error: getting file object for rename: ${f}`);
-            }
-            f.id = id;
-            e.sender.send('update_item', f);
-
+                resolve(result || {});
+            });
+        }).catch((err) => {
+            win.send('set_msg', `Error: rename: ${err}`);
+            return null;
         });
+
+        // fs.rename(source, destination, (err) => {
+
+        //     if (err) {
+        //         win.send('set_msg', `Error: rename: ${err}`);
+        //         return;
+        //     }
+
+        //     let f = gio.get_file(destination);
+        //     if (!f) {
+        //         win.send('set_msg', `Error: getting file object for rename: ${f}`);
+        //     }
+        //     f.id = id;
+        //     e.sender.send('update_item', f);
+
+        // });
 
         setTimeout(() => {
             this.run_watcher = true;

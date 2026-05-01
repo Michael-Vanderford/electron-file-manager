@@ -129,6 +129,9 @@ npm run build
 
 Output is written to the `dist/` directory.
 
+## Deb Install
+
+sudo dpkg -i dist/electron-file-manager_2.0.2_amd64.deb
 ---
 
 ## Tech Stack
