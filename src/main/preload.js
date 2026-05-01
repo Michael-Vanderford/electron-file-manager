@@ -4815,7 +4815,7 @@ class FileManager {
                 this.check_for_empty_folder();
                 utilities.get_disk_space(this.location);
             } else {
-                utilities.set_msg(`Error: Removing item ${id}`);
+                // utilities.set_msg(`Error: Removing item ${id}`);
                 // console.log('error removing item', id);
             }
 
