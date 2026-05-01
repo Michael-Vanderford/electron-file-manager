@@ -1,6 +1,6 @@
 {
     "name": "electron-file-manager",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "description": "Electron File Manager",
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",
@@ -15,7 +15,7 @@
             "buildResources": "build"
         },
         "linux": {
-            "target": "deb",
+            "target": ["deb", "AppImage"],
             "icon": "build/icons",
             "executableName": "efm",
             "category": "Utility",

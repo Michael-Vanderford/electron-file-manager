@@ -424,8 +424,9 @@ class IconManager {
                 }, null);
             }
 
-            // If still no icon found, use the ultimate fallback
-            final_icon = final_icon || path.join(process.cwd(), 'src', 'assets', 'icons', 'folder.svg');
+
+            // If still no icon found, use the ultimate fallback (resolve relative to Electron main process)
+            final_icon = final_icon || path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg');
 
             return final_icon;
             // e.sender.send('set_folder_icon', href, final_icon);
@@ -433,7 +434,7 @@ class IconManager {
         } catch (err) {
             console.error('Error in folder icon selection:', err);
             // e.sender.send('set_folder_icon', href, path.join(__dirname, '../assets/icons/folder.svg'));
-            return path.join(__dirname, '../assets/icons/folder.svg');
+            return path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg');
         }
 
     }

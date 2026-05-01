@@ -120,22 +120,26 @@ class SettingsManager {
             updated = true;
         }
 
-        // --- Set grid icon size to one size larger than list ---
-        // List: 32, Grid: 48
+        // --- Ensure icon sizes have valid defaults without overwriting user choices ---
+        const validIconSizes = new Set(['16', '24', '32', '48', '64', '128']);
         const iconProps = this.settings?.schema?.properties?.['Icons']?.properties;
         if (iconProps) {
-            if (iconProps['List Icon Size'].default !== '32') {
+            const listDefault = String(iconProps['List Icon Size']?.default ?? '');
+            const gridDefault = String(iconProps['Grid Icon Size']?.default ?? '');
+
+            if (!validIconSizes.has(listDefault)) {
                 iconProps['List Icon Size'].default = '32';
                 updated = true;
             }
-            if (iconProps['Grid Icon Size'].default !== '48') {
+
+            if (!validIconSizes.has(gridDefault)) {
                 iconProps['Grid Icon Size'].default = '48';
                 updated = true;
             }
         }
 
         // Also set flat keys for icon_size and list_icon_size
-        if (!this.settings.icon_size || this.settings.icon_size === '' || this.settings.icon_size === undefined || this.settings.icon_size === 32) {
+        if (!this.settings.icon_size || this.settings.icon_size === '' || this.settings.icon_size === undefined) {
             this.settings.icon_size = 48;
             updated = true;
         }
@@ -3455,8 +3459,18 @@ class KeyBoardManager {
                 ipcRenderer.send('ls', utilities.get_location(), true);
             }
 
-            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
-                fileManager.handleInitKeyNav();
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                const active = document.activeElement;
+                const is_input_like = active && (
+                    active.tagName === 'INPUT' ||
+                    active.tagName === 'TEXTAREA' ||
+                    active.isContentEditable
+                );
+
+                if (!is_input_like) {
+                    e.preventDefault();
+                    fileManager.handleInitKeyNav();
+                }
             }
 
         })
