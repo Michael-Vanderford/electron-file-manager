@@ -1,4 +1,4 @@
-# SFM — Simple File Manager
+# Electron File Manager for Linux
 
 > A fast, keyboard-friendly file manager for Linux, built with Electron and native GIO bindings.
 
