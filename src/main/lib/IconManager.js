@@ -26,9 +26,10 @@ class IconManager {
 
         try {
 
+            const fallback_icon = path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-symbolic-link.svg');
             let icon_path = path.join(this.theme_path, 'emblem-symbolic-link.svg');
             if (!fs.existsSync(icon_path)) {
-                icon_path = path.join(process.cwd(), 'src', 'assets', 'icons', 'emblem-symbolic-link.svg');
+                icon_path = fallback_icon;
             }
 
             return icon_path;
@@ -36,7 +37,7 @@ class IconManager {
         } catch (err) {
 
             console.error('Error in symlink_icon:', err);
-            return path.join(__dirname, 'assets/icons/emblem-symbolic-link.svg');
+            return path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-symbolic-link.svg');
 
         }
 
@@ -46,15 +47,17 @@ class IconManager {
 
         try {
 
+            const fallback_icon = path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-readonly.svg');
             let icon_path = path.join(this.theme_path, 'emblem-readonly.svg');
             if (!fs.existsSync(icon_path)) {
-                icon_path = path.join(process.cwd(), 'src', 'assets', 'icons', 'emblem-readonly.svg');
+                icon_path = fallback_icon;
             }
 
             return icon_path;
 
         } catch (err) {
             console.log(err);
+            return path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-readonly.svg');
         }
     }
 

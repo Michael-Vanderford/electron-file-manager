@@ -7198,7 +7198,7 @@ class FileManager {
                 ipcRenderer.invoke('get_readonly_icon', f.href).then(readonly_icon => {
                     // console.log('readonly icon', readonly_icon);
                     readonly_img.src = readonly_icon;
-                    readonly_img.classList.add('symlink');
+                    readonly_img.classList.add('symlink', 'readonly-emblem');
                     icon.append(readonly_img);
                 })
             }
@@ -7207,7 +7207,7 @@ class FileManager {
                 let symlink_img = document.createElement('img');
                 ipcRenderer.invoke('get_symlink_icon', f.href).then(symlink_icon => {
                     symlink_img.src = symlink_icon;
-                    symlink_img.classList.add('symlink');
+                    symlink_img.classList.add('symlink', 'symlink-emblem');
                     icon.append(symlink_img);
                 })
             }

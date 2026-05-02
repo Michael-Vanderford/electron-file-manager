@@ -12,7 +12,7 @@ jest.mock('os', () => ({
 }));
 
 describe('IconManager', () => {
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
     });
@@ -34,7 +34,7 @@ describe('IconManager', () => {
             fs.existsSync.mockReturnValue(false);
 
             const result = iconManager.get_symlink_icon();
-            expect(result).toBe(path.join(__dirname, '../assets/icons/emblem-symbolic-link.svg'));
+            expect(result).toBe(path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-symbolic-link.svg'));
         });
     });
 
@@ -42,11 +42,11 @@ describe('IconManager', () => {
         it('should return the correct readonly icon path when found', () => {
             execSync.mockReturnValue(Buffer.from('Fluent-dark'));
             fs.existsSync.mockImplementation((filePath) => {
-                return filePath.includes('emblem-symbolic-readonly.svg');
+                return filePath.includes('emblem-readonly.svg');
             });
 
             const result = iconManager.get_readonly_icon();
-            expect(result).toContain('emblem-symbolic-readonly.svg');
+            expect(result).toContain('emblem-readonly.svg');
         });
 
         it('should return the fallback readonly icon path when not found', () => {
@@ -54,15 +54,17 @@ describe('IconManager', () => {
             fs.existsSync.mockReturnValue(false);
 
             const result = iconManager.get_readonly_icon();
-            expect(result).toBe(path.join(__dirname, '../assets/icons/emblem-symbolic-readonly.svg'));
+            expect(result).toBe(path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-readonly.svg'));
         });
     });
 
     describe('get_theme_path', () => {
         it('should return the correct theme path when found', () => {
             execSync.mockReturnValue(Buffer.from('Fluent-dark'));
+            iconManager.theme_root = '/usr/share/icons/Fluent-dark';
             fs.existsSync.mockImplementation((filePath) => {
-                return filePath.includes('Fluent-dark');
+                return filePath === '/usr/share/icons/Fluent-dark' ||
+                    filePath.includes('/usr/share/icons/Fluent-dark/scalable/places/');
             });
 
             const result = iconManager.get_theme_path();
@@ -74,7 +76,7 @@ describe('IconManager', () => {
             fs.existsSync.mockReturnValue(false);
 
             const result = iconManager.get_theme_path();
-            expect(result).toBe(path.join(__dirname, 'assets/icons/'));
+            expect(result).toBe(path.join(__dirname, '..', 'lib', 'assets', 'icons') + path.sep);
         });
     });
 
@@ -104,7 +106,7 @@ describe('IconManager', () => {
             fs.existsSync.mockReturnValue(false);
 
             const result = iconManager.get_folder_icon(null, href);
-            expect(result).toBe(path.join(__dirname, '../assets/icons/folder.svg'));
+            expect(result).toBe(path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg'));
         });
     });
 

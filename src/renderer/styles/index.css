@@ -1393,6 +1393,7 @@ tr {
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 .card:focus {
@@ -1796,11 +1797,22 @@ td .div_name a {
 
 .symlink {
     display: block;
-    position: relative;
+    position: absolute;
     height: 22px !important;
     width: 22px !important;
-    margin-left: 5px;
-    margin-top: -22px;
+    margin-left: 0;
+    margin-top: 0;
+    right: -2px;
+    bottom: -2px;
+    z-index: 1;
+}
+
+.card .icon .readonly-emblem {
+    right: -2px;
+}
+
+.card .icon .symlink-emblem {
+    right: 12px;
 }
 
 .readonly {
@@ -2115,6 +2127,7 @@ span {
         /* --highlight-select: rgba(0, 0, 0, 0.1); */
         --highlight: #e1edfb;
         --highlight-select: #e1edfb;
+        /* --highlight-select-border: #707070; */
         --highlight-active: #333333;
 
         --black: #000000;
