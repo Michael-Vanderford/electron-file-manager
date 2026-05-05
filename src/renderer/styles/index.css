@@ -1372,6 +1372,7 @@ tr {
 .card {
     box-sizing: border-box;
     display: flex;
+    align-items: center;
     margin: 2px;
     padding: 2px;
     width: 100%; /* Fill grid cell */
@@ -1597,6 +1598,7 @@ tr {
 .list_view .content {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
+    align-items: center;
     width: 100%;
     gap: 5px;
 }

@@ -1384,6 +1384,10 @@ class Utilities {
 
             let name = item.querySelector('.href');
             if (name) {
+                const href_div = item.querySelector('.href_div');
+                if (href_div) {
+                    href_div.classList.remove('hidden');
+                }
                 name.classList.remove('hidden');
             } else {
                 // console.log('no .href found on', item)
@@ -1392,6 +1396,10 @@ class Utilities {
 
             let input = item.querySelector('input');
             if (input) {
+                const input_div = item.querySelector('.input_div');
+                if (input_div) {
+                    input_div.classList.add('hidden');
+                }
                 input.value = item.dataset.name
                 input.classList.add('hidden');
                 input.removeEventListener('focus', this.focus_input);
@@ -1425,6 +1433,10 @@ class Utilities {
 
                 let edit_name = item.querySelector('.href');
                 if (edit_name) {
+                    const href_div = item.querySelector('.href_div');
+                    if (href_div) {
+                        href_div.classList.add('hidden');
+                    }
                     edit_name.classList.add('hidden');
                 } else {
                     // console.log('no .href found on', item)
@@ -1437,6 +1449,10 @@ class Utilities {
                 if (input) {
 
                     input.index = idx;
+                    const input_div = item.querySelector('.input_div');
+                    if (input_div) {
+                        input_div.classList.remove('hidden');
+                    }
                     input.classList.remove('hidden');
 
                     if (idx === 0) {
@@ -4782,6 +4798,10 @@ class FileManager {
 
             let edit_name = item.querySelector('.href');
             if (edit_name) {
+                const href_div = item.querySelector('.href_div');
+                if (href_div) {
+                    href_div.classList.add('hidden');
+                }
                 edit_name.classList.add('hidden');
             } else {
                 // console.log('error getting edit name');
@@ -4791,6 +4811,10 @@ class FileManager {
 
             let input = item.querySelector('input');
             if (input) {
+                const input_div = item.querySelector('.input_div');
+                if (input_div) {
+                    input_div.classList.remove('hidden');
+                }
                 input.classList.remove('hidden');
 
                 input.focus();
@@ -5783,10 +5807,14 @@ class FileManager {
                 if (key === 'name') {
 
                     // let href = document.createElement('a');
+                    let href_div = utilities.add_div(['href_div']);
+                    let input_div = utilities.add_div(['input_div', 'hidden']);
+
                     href.classList.add('href');
                     href.classList.add('item');
                     href.innerHTML = f.display_name;
                     href.href = f.href;
+                    href_div.append(href);
 
                     // let input = document.createElement('input');
                     input.classList.add('input', 'item', 'hidden', 'edit_name');
@@ -5794,9 +5822,10 @@ class FileManager {
                     input.spellcheck = false;
                     input.type = 'text';
                     input.dataset.href = f.href;
+                    input_div.append(input);
                     filename.dataset.columnKey = key;
 
-                    filename.append(href, input);
+                    filename.append(href_div, input_div);
                     content.appendChild(filename);
 
                 } else {
