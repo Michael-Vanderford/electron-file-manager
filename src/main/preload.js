@@ -4698,6 +4698,10 @@ class FileManager {
 
             this.add_items(copy_arr);
             this.check_for_empty_folder();
+            const active_tab_content = tabManager.get_active_tab_content();
+            if (active_tab_content) {
+                utilities.lazy_load_icons(active_tab_content);
+            }
 
         });
 
@@ -4752,6 +4756,8 @@ class FileManager {
                 view_container.insertBefore(item, header.nextSibling);
 
             }
+
+            utilities.lazy_load_icons(active_tab_content);
 
 
         });
@@ -7455,10 +7461,18 @@ class FileManager {
             if (nextIndex !== null && nextIndex >= 0 && nextIndex < cards.length) {
                 e.preventDefault();
                 cards[nextIndex].focus();
-                if (e.ctrlKey || e.metaKey) {
-                    // Multi-select: add highlight to both current and next
-                    cards[nextIndex].classList.add('highlight_select');
-                    card.classList.add('highlight_select');
+                if (e.shiftKey) {
+                    const is_contracting = e.key === 'ArrowUp' || e.key === 'ArrowLeft';
+
+                    if (is_contracting) {
+                        // Contract selection when moving backward.
+                        card.classList.remove('highlight_select');
+                        cards[nextIndex].classList.add('highlight_select');
+                    } else {
+                        // Extend selection when moving forward.
+                        cards[nextIndex].classList.add('highlight_select');
+                        card.classList.add('highlight_select');
+                    }
                 } else {
                     // Single select: clear all, highlight only next
                     this.clearHighlight();
@@ -7942,6 +7956,7 @@ class FileManager {
 
             // replace card with updated card
             item.replaceWith(card);
+            utilities.lazy_load_icons(active_tab_content);
 
         }
 

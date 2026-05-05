@@ -1428,6 +1428,12 @@ tr {
     border: none;
 }
 
+.card .content {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
 .grid_view {
     display: grid;
     gap: 0 20px; /* 20px horizontal gap between cards */
@@ -1438,6 +1444,20 @@ tr {
     width: 95%;
     /* Remove padding-right, let grid gap handle spacing */
     /* border:1px solid red; */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.grid_view .card .item {
+    min-width: 0;
+}
+
+.grid_view .card .header,
+.grid_view .card .href {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1540,6 +1560,7 @@ tr {
     border-bottom: 1px solid var(--border);
     font-weight: bold;
     color: var(--text);
+    z-index: 5;
 }
 
 .list_view .sort_column {
@@ -1758,8 +1779,9 @@ td .div_name a {
 
 .card a {
     color: var(--text);
-    width: 250px;
-    text-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
