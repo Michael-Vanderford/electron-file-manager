@@ -3194,8 +3194,8 @@ class SideBarManager {
     get_home() {
 
         // create array for bootstrap icons
-        let icons = ['speedometer2', 'house', 'folder', 'file-earmark', 'image', 'music-note', 'camera-video', 'clock-history', 'hdd'];
-        let home_dirs = ['Dashboard', 'Home', 'Documents', 'Downloads', 'Music', 'Pictures', 'Videos', 'Recent', 'File System'];
+        let icons = ['house', 'speedometer2', 'folder', 'file-earmark', 'image', 'music-note', 'camera-video', 'clock-history', 'hdd'];
+        let home_dirs = ['Home', 'Dashboard', 'Documents', 'Downloads', 'Music', 'Pictures', 'Videos', 'Recent', 'File System'];
         home_dirs.forEach(dir => {
 
             let home_view_item = document.createElement('div');
@@ -5707,12 +5707,12 @@ class FileManager {
             }
 
             // Keep close behavior restoring the latest rendered view.
-            active_tab_content.dataset.savedContent = btoa(view_container.outerHTML);
+            // active_tab_content.dataset.savedContent = btoa(view_container.outerHTML);
             active_tab_content.appendChild(preserved_find_main_container);
         } else {
             if (preserved_find_panel) {
                 // Keep close behavior restoring the latest rendered view.
-                active_tab_content.dataset.savedContent = btoa(view_container.outerHTML);
+                // active_tab_content.dataset.savedContent = btoa(view_container.outerHTML);
                 active_tab_content.appendChild(preserved_find_panel);
             }
             active_tab_content.appendChild(view_container);
