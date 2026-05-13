@@ -1010,10 +1010,19 @@ tr {
 }
 
 .device_progress {
+    margin-left: 24px;
     border-radius: 5px;
     background: linear-gradient(to right, var(--success), var(--main));
-    height: 1px;
+    height: 2px;
     width: 75%;
+}
+
+.device_progress.size_warning {
+    background: linear-gradient(to right, var(--warning), var(--main));
+}
+
+.device_progress.size_danger {
+    background: linear-gradient(to right, var(--danger), var(--main));
 }
 
 .main {
@@ -1378,11 +1387,29 @@ tr {
     width: 100%; /* Fill grid cell */
     max-width: 100%;
     border-radius: 5px;
-    border: none;
+    border: 1px solid transparent;
     background: transparent;
     color: var(--text);
     transition: opacity 0.5s;
     overflow: hidden;
+}
+
+.card:hover {
+
+    background: var(--highlight-select);
+    /* border: 1px solid var(--highlight-select-border); */
+    /* The "frosted" blur effect */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* For Safari support */
+
+    /* Optional styling for realism */
+    border-radius: 5px;
+    /* border: 1px solid rgba(255, 255, 255, 0.18); */
+    /* box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.37); */
+
+    box-sizing: border-box;
+
+    /* border: 1px solid var(--border); */
 }
 
 .card .icon {
@@ -1433,6 +1460,30 @@ tr {
     min-width: 0;
     flex: 1;
     overflow: hidden;
+}
+
+.dashboard_view {
+    background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x);
+    padding: 20px;
+}
+
+.dashboard_view .label {
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.dashboard_view .recent_folders_view {
+    height: 200px;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.dashboard_view .recent_files_view {
+    height: 200px;
+    overflow: hidden;
+    overflow-y: auto;
 }
 
 .grid_view {
@@ -1955,7 +2006,8 @@ td .div_name a {
 .highlight_select {
     border-radius: 5px;
     background: var(--highlight-select);
-    box-shadow: 0 0 3px var(--highlight-select-border);
+    /* box-shadow: 0 0 3px var(--highlight-select-border); */
+    /* box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.37); */
     user-select: none;
 }
 
@@ -2052,9 +2104,11 @@ span {
     :root {
         --menu: #303134;
         --sidebar: #262626;
+        /* --sidebar: #0c0c0c; */
         --input: #484848;
         --input-focus: #1b557c;
         --main: #222;
+        /* --main: #0c0c0c; */
         --minibar: #222222;
         --border: #333333;
         --msg: #222222;
@@ -2119,6 +2173,82 @@ span {
 
     }
 }
+
+/* Define dark color scheme */
+.color_scheme_glass {
+
+    /* --menu: rgba(24, 28, 36, 0.38); */
+    --menu: rgba(18, 22, , 0.28);
+    --sidebar: rgba(20, 24, 32, 0.32);
+    /* --sidebar: #0c0c0c; */
+    --input: rgba(255, 255, 255, 0.10);
+    --input-focus: rgba(91, 162, 255, 0.32);
+    --main: rgba(15, 18, 24, 0.28);
+    /* --main: #0c0c0c; */
+    --minibar: rgba(18, 22, 30, 0.28);
+    --border: rgba(255, 255, 255, 0.22);
+    --msg: rgba(18, 22, 30, 0.32);
+    --msg-text: #ffd08a;
+    --dialog: rgba(18, 22, 30, 0.38);
+    --text: #eaf2ff;
+    --active: #ffffff;
+    --inactive: rgba(234, 242, 255, 0.38);
+    --tabs: rgba(255, 255, 255, 0.10);
+    --button: rgba(255, 255, 255, 0.13);
+    --button-active: rgba(91, 162, 255, 0.32);
+    --button-hover: rgba(255, 255, 255, 0.22);
+    --button-hover-warning: #960000;
+    --button-nav: rgba(255, 255, 255, 0.09);
+    --button-nav-hover: rgba(255, 255, 255, 0.22);
+    --button-nav-text: #eaf2ff;
+    --location: rgba(255, 255, 255, 0.10);
+    --location-border: rgba(255, 255, 255, 0.22);
+    --progress: rgba(255, 255, 255, 0.10);
+    --scrollbar: rgba(255, 255, 255, 0.18);
+    --scrollbar-hover: rgba(255, 255, 255, 0.32);
+
+    --svg: rgba(235, 245, 255, 0.92);
+
+    --msg-connect: #ffa500;
+    --msg-connect-error: #ff0000;
+    --msg-connect-success: #008000;
+
+    --link: #4183c4;
+    --highlight: rgba(91, 162, 255, 0.22);
+    /* --highlight-select: #233246; */
+    /* --highlight-select: #069; */
+    /* --highlight-select: rgba(255, 255, 255, 0.18); */
+    --highlight-select: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.15));
+    --highlight-border: rgba(255, 255, 255, 0.22);
+    --highlight-target: rgba(91, 162, 255, 0.36);
+    --highlight-select-border: rgba(255, 255, 255, 0.32);
+    --highlight-active: #C5B359;
+
+    --not-writable: rgba(234, 242, 255, 0.38);
+
+    --black: #000000;
+    --white: #FFFFFF;
+    --warning: #FFA500;
+    --danger: #ff2b2b;
+    --error: #ff2b2b;
+    --success: #008000;
+    --blue: #233654;
+    --lightblue: #506585;
+    --yellow: #FFFF00;
+    --orange: #FFA500;
+
+    --grey: #7c8594;
+
+    --light: #d7e3f8;
+    --lighter: #e6eeff;
+    --lightest: #f2f6ff;
+
+    --blur: blur(32px);
+    --brightness: brightness(0.92);
+    --contrast: contrast(1.12);
+
+}
+
 
 @media (prefers-color-scheme: light) {
     :root {

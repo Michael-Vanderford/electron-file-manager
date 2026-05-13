@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -27,6 +28,26 @@ class DeviceManager {
                     msg: `Error: get_mounts ${err}`
                 });
                 return;
+            }
+
+            // get total, used, free for disk space
+            for (let i = 0; i < mounts.length; i++) {
+
+                try {
+                    // add disk stats to mounts array
+                    Object.assign(mounts[i], gio.disk_stats(mounts[i].path));
+                    // const stats = gio.disk_stats(mounts[i].path);
+                    // mounts[i].total = stats.total;
+                    // mounts[i].used = stats.used;
+                    // mounts[i].free = stats.free;
+                } catch (err) {
+                    console.log(`error getting mount stats ${err}`);
+                    parentPort.postMessage({
+                        cmd: 'set_msg',
+                        msg: `Error: get_mounts stats ${err}`
+                    });
+                }
+
             }
 
             let mount_arr = mounts
@@ -93,18 +114,12 @@ class DeviceManager {
 
             for (let i = 0; i < filter_arr.length; i++) {
                 try {
-                    if (filter_arr[i].path.indexOf('file://') > -1) {
-                        filter_arr[i].path = filter_arr[i].path.replace('file://', '');
-                        let cmd = `df "${filter_arr[i].path}"`;
-                        let size = execSync(cmd).toString().split('\n')[1].split(' ').filter(x => x !== '').slice(1, 4).join(' ');
-                        filter_arr[i].size_total = size.split(' ')[0];
-                        filter_arr[i].size_used = size.split(' ')[1];
-                    }
+                    Object.assign(filter_arr[i], gio.disk_stats(filter_arr[i].path));
                 } catch (err) {
-                    console.log(`error getting devices ${err}`);
+                    console.log(`error getting device stats ${err}`);
                     parentPort.postMessage({
                         cmd: 'set_msg',
-                        msg: `Error: get_devices ${err}`
+                        msg: `Error: get_device stats ${err}`   
                     });
                 }
             }

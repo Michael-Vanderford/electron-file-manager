@@ -1,6 +1,7 @@
 // @ts-nocheck
-const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage } = require('electron');
+
 // Provide app and Electron version to renderer
+const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme } = require('electron');
 const packageJson = require('../../package.json');
 const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
@@ -16,6 +17,8 @@ const { XMLParser } = require('fast-xml-parser');
 
 const file_icon_cache = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
+
+nativeTheme.themeSource = 'system';
 
 // flags
 let is_first_run = 0;
@@ -674,6 +677,25 @@ ipcMain.on('go_forward', (e, tab_id) => {
 ipcMain.on('switch_tab', (e, tab_id) => {
     tab_manager.switchTab(tab_id);
 });
+
+ipcMain.handle('get_dashboard_view', async (e) => {
+    try {
+        const dashboard_view = await fs.promises.readFile(
+            path.join(__dirname, '..', 'renderer', 'views', 'dashboard.html'),
+            'utf8'
+        );
+
+        return {
+            dashboard_view
+        };
+    } catch (err) {
+        return {
+            dashboard_view: '',
+            error: true,
+            message: String(err.message || err)
+        };
+    }
+})
 
 ipcMain.handle('find', async (e, query, location, options) => {
 
@@ -2351,41 +2373,84 @@ class FileManager {
 
     // get recent files by reading xbel file
     get_recent_files(e) {
-        let files_arr = [];
-        // get config data directory
-        let xbel_file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
-        if (fs.existsSync(xbel_file)) {
-            let data = fs.readFileSync(xbel_file, 'utf-8');
-            const parser = new XMLParser({
-                ignoreAttributes: false,
-                attributeNamePrefix: "@_"
-            });
-            let res = parser.parse(data);
-            console.log('res', res);
-            res.xbel.bookmark.forEach(b => {
-                try {
-                    let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
-                    href = decodeURIComponent(href);
-                    let f = gio.get_file(href);
-                    f.id = btoa(href);
-                    files_arr.push(f);
-                } catch (err) {
-                    // console.error(err);
-                }
-            })
-            // sort files by mtime
-            files_arr.sort((a, b) => {
-                return b.mtime - a.mtime;
-            });
-            // send files_arr to renderer
-            if (files_arr.length > 0) {
-                e.sender.send('recent_files', files_arr);
-            }
-            files_arr = [];
-        }
+
+        let files_arr = get_recent_files_arr();
+        e.sender.send('recent_files', files_arr);
+        files_arr = [];
+
+        // let files_arr = [];
+        // // get config data directory
+        // let xbel_file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
+        // if (fs.existsSync(xbel_file)) {
+        //     let data = fs.readFileSync(xbel_file, 'utf-8');
+        //     const parser = new XMLParser({
+        //         ignoreAttributes: false,
+        //         attributeNamePrefix: "@_"
+        //     });
+        //     let res = parser.parse(data);
+        //     // console.log('res', res);
+        //     res.xbel.bookmark.forEach(b => {
+        //         try {
+        //             let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
+        //             href = decodeURIComponent(href);
+        //             let f = gio.get_file(href);
+        //             f.id = btoa(href);
+        //             files_arr.push(f);
+        //         } catch (err) {
+        //             // console.error(err);
+        //         }
+        //     })
+        //     // sort files by mtime
+        //     files_arr.sort((a, b) => {
+        //         return b.mtime - a.mtime;
+        //     });
+        //     // send files_arr to renderer
+        //     if (files_arr.length > 0) {
+        //         e.sender.send('recent_files', files_arr);
+        //     }
+        //     files_arr = [];
+        // }
     }
 
 }
+
+// get recent files by reading xbel file
+function get_recent_files_arr() {
+
+    let files_arr = [];
+    // get config data directory
+    let xbel_file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
+    if (fs.existsSync(xbel_file)) {
+        let data = fs.readFileSync(xbel_file, 'utf-8');
+        const parser = new XMLParser({
+            ignoreAttributes: false,
+            attributeNamePrefix: "@_"
+        });
+        let res = parser.parse(data);
+        // console.log('res', res);
+        res.xbel.bookmark.forEach(b => {
+            try {
+                let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
+                href = decodeURIComponent(href);
+                let f = gio.get_file(href);
+                f.id = btoa(href);
+                files_arr.push(f);
+            } catch (err) {
+                // console.error(err);
+            }
+        })
+        // sort files by mtime
+        files_arr.sort((a, b) => {
+            return b.mtime - a.mtime;
+        });
+    }
+
+    return files_arr;
+}
+
+ipcMain.handle('get_recent_files_arr', async (e) => {
+    return get_recent_files_arr();
+})
 
 class PropertiesManager {
 

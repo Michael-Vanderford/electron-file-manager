@@ -2669,12 +2669,14 @@ class DeviceManager {
         item.append(icon_div, href_div, umount_div);
         this.device_view.append(item);
 
-        if (device.size_total) {
+        console.log('device total', device);
+
+        if (device.total) {
 
             let device_progress_container = utilities.add_div(['device_progress_container']);
             let device_progress = utilities.add_div(['device_progress']);
 
-            let width = (parseInt(device.size_used) / parseInt(device.size_total)) * 100;
+            let width = (parseInt(device.used) / parseInt(device.total)) * 100;
             device_progress.style = `width: ${width}%`;
 
             // console.log('device', device.name, device.size_total, device.size_used, width);
@@ -2691,7 +2693,7 @@ class DeviceManager {
             }
 
             item.addEventListener('mouseover', (e) => {
-                item.title = `${device_path}\n Total: ${utilities.get_file_size(device.size_total * 1024)}\n Used: ${utilities.get_file_size(device.size_used * 1024)}`;
+                item.title = `${device_path}\n Total: ${utilities.get_file_size(device.total)}\n Used: ${utilities.get_file_size(device.used)}`;
             })
 
         }
@@ -3192,8 +3194,8 @@ class SideBarManager {
     get_home() {
 
         // create array for bootstrap icons
-        let icons = ['house', 'folder', 'file-earmark', 'image', 'music-note', 'camera-video', 'clock-history', 'hdd'];
-        let home_dirs = ['Home', 'Documents', 'Downloads', 'Music', 'Pictures', 'Videos', 'Recent', 'File System'];
+        let icons = ['speedometer2', 'house', 'folder', 'file-earmark', 'image', 'music-note', 'camera-video', 'clock-history', 'hdd'];
+        let home_dirs = ['Dashboard', 'Home', 'Documents', 'Downloads', 'Music', 'Pictures', 'Videos', 'Recent', 'File System'];
         home_dirs.forEach(dir => {
 
             let home_view_item = document.createElement('div');
@@ -3244,6 +3246,9 @@ class SideBarManager {
                             tabManager.add_tab_history('/');
                             fileManager.get_files(`/`);
                         }
+                        break;
+                    case 'Dashboard':
+                        fileManager.get_dashboard_view();
                         break;
                     default:
                         if (e.ctrlKey) {
@@ -5621,6 +5626,8 @@ class FileManager {
 
     }
 
+
+
     // get grid view
     get_view(files_arr) {
 
@@ -5675,17 +5682,18 @@ class FileManager {
 
         for (let i = 0; i < files_arr.length; i++) {
 
-            let card = utilities.add_div(['card', 'lazy'])
-            card.dataset.id = files_arr[i].id;
-            card.dataset.href = files_arr[i].href;
-            card.dataset.name = files_arr[i].name;
-            card.dataset.size = files_arr[i].size;
-            card.dataset.mtime = files_arr[i].mtime;
-            card.dataset.content_type = files_arr[i].content_type;
-            card.dataset.is_dir = files_arr[i].is_dir;
-            card.dataset.location = files_arr[i].location;
-            card.dataset.content_type = files_arr[i].content_type;
-            card.dataset.is_hidden = files_arr[i].is_hidden;
+            let card = this.get_view_item(files_arr[i]);
+            // utilities.add_div(['card', 'lazy'])
+            // card.dataset.id = files_arr[i].id;
+            // card.dataset.href = files_arr[i].href;
+            // card.dataset.name = files_arr[i].name;
+            // card.dataset.size = files_arr[i].size;
+            // card.dataset.mtime = files_arr[i].mtime;
+            // card.dataset.content_type = files_arr[i].content_type;
+            // card.dataset.is_dir = files_arr[i].is_dir;
+            // card.dataset.location = files_arr[i].location;
+            // card.dataset.content_type = files_arr[i].content_type;
+            // card.dataset.is_hidden = files_arr[i].is_hidden;
             view_container.appendChild(card);
 
         }
@@ -5925,6 +5933,66 @@ class FileManager {
         card.append(icon, content);
         this.apply_column_settings_to_card(card, this.view);
         return card;
+
+    }
+
+    async get_dashboard_view() {
+
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content) {
+            utilities.set_msg('Error: Unable to open Dashboard view');
+            return;
+        }
+
+        tabManager.update_tab('Dashboard')
+
+        let res = '';
+        try {
+            res = await ipcRenderer.invoke('get_dashboard_view');
+        } catch (err) {
+            console.log('error', err);
+        } finally {
+
+            active_tab_content.innerHTML = '';
+            active_tab_content.innerHTML = res.dashboard_view;
+
+            let recent_folders_view = active_tab_content.querySelector('.recent_folders_view');
+            let recent_folders_div = utilities.add_div(['recent_folders', 'grid', 'grid3']);
+
+            let recent_files_view = active_tab_content.querySelector('.recent_files_view');
+            let recent_files_div = utilities.add_div(['recent_files', 'grid', 'grid3']);
+
+            let recent_files_arr = await ipcRenderer.invoke('get_recent_files_arr');
+            let recent_folders = recent_files_arr.filter(a => a.is_dir == true);
+            let recent_files = recent_files_arr.filter(a => a.is_dir == false);
+
+            if (recent_folders.length > 0) {
+                for (let i = 0; i < recent_folders.length; ++i) {
+                    let card = this.get_view_item(recent_folders[i]);
+                    recent_folders_div.appendChild(card);
+                }
+                recent_folders_view.append(recent_folders_div);
+            }
+
+            if (recent_files.length > 0) {
+                for (let i = 0; i < recent_files.length; ++i) {
+                    let card = this.get_view_item(recent_files[i]);
+                    recent_files_div.appendChild(card);
+                }
+                recent_files_view.append(recent_files_div);
+            }
+
+            utilities.lazy_load_icons(recent_files_div);
+
+            // recent_folders_arr.forEach(f => {
+            //     let card = this.get_view_item(f);
+            //     recent_folders.appendChild(card);
+            // });
+
+
+
+        }
+
 
     }
 
