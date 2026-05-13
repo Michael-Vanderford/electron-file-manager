@@ -697,6 +697,23 @@ ipcMain.handle('get_dashboard_view', async (e) => {
     }
 })
 
+ipcMain.handle('get_overview', async (e) => {
+
+    let stats = {};
+    try {
+        let stats = await gio.disk_stats("/home");
+        console.log(stats);
+        return stats
+    } catch (err) {
+        return {
+            stats: '',
+            error: true,
+            message: String(err.message || err)
+        }
+    }
+
+})
+
 ipcMain.handle('find', async (e, query, location, options) => {
 
     return await new Promise((resolve, reject) => {

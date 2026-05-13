@@ -15,7 +15,10 @@
             "buildResources": "build"
         },
         "linux": {
-            "target": ["deb", "AppImage"],
+            "target": [
+                "deb",
+                "AppImage"
+            ],
             "icon": "build/icons",
             "executableName": "efm",
             "category": "Utility",
@@ -43,6 +46,7 @@
     },
     "dependencies": {
         "archiver": "^7.0.1",
+        "chart.js": "^4.5.1",
         "fast-xml-parser": "^5.4.1",
         "libgio-node": "^1.0.8",
         "material-design-icons": "^3.0.1",

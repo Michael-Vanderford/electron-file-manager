@@ -1,5 +1,6 @@
 // @ts-nocheck
 const ipcRenderer = require('electron').ipcRenderer;
+const Chart = require('chart.js/auto');
 
 
 // Globals
@@ -5982,6 +5983,16 @@ class FileManager {
                 recent_files_view.append(recent_files_div);
             }
 
+            // get data for overview
+            let stats = await ipcRenderer.invoke('get_overview');
+            let chart1 = this.renderChart(stats);
+
+            let overview = document.querySelector('.overview');
+
+            if (chart1 && chart1.canvas) {
+                overview.append(chart1.canvas);
+            }
+
             utilities.lazy_load_icons(recent_files_div);
 
             // recent_folders_arr.forEach(f => {
@@ -5993,7 +6004,35 @@ class FileManager {
 
         }
 
+    }
 
+    renderChart(stats) {
+        // const stats = getDiskStats();
+        const data = {
+            labels: ['Used', 'Available'],
+            datasets: [{
+                label: 'Home Disk Usage',
+                data: [stats.used, stats.free],
+                backgroundColor: ['#ff6384', '#36a2eb'],
+                borderWidth: 1
+            }]
+        };
+
+        let chartCanvas = document.createElement('canvas');
+        chartCanvas.width = 150;
+        chartCanvas.height = 150;
+
+        return new Chart(chartCanvas, {
+            type: 'doughnut',
+            data,
+            options: {
+                responsive: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    title: { display: true, text: 'Home Mount Disk Usage' }
+                }
+            }
+        });
     }
 
     // Find View
