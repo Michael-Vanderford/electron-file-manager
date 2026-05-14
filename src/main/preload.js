@@ -3270,7 +3270,7 @@ class SideBarManager {
                 home_view_item.classList.add('highlight_select');
             });
 
-            fileManager.handleTitle(home_view_item, )
+            // fileManager.handleTitle(home_view_item, )
 
         });
 
