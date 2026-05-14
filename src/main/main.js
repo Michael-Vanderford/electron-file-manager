@@ -697,12 +697,12 @@ ipcMain.handle('get_dashboard_view', async (e) => {
     }
 })
 
-ipcMain.handle('get_overview', async (e) => {
+ipcMain.handle('get_overview', async (e, path) => {
 
     let stats = {};
     try {
-        let stats = await gio.disk_stats("/home");
-        console.log(stats);
+        let stats = await gio.disk_stats(path);
+        Object.assign(stats, {path: path});
         return stats
     } catch (err) {
         return {

@@ -5983,15 +5983,32 @@ class FileManager {
                 recent_files_view.append(recent_files_div);
             }
 
+            let overview = document.querySelector('.overview');
+
             // get data for overview
-            let stats = await ipcRenderer.invoke('get_overview');
+            let stats = await ipcRenderer.invoke('get_overview', '/home');
             let chart1 = this.renderChart(stats);
 
-            let overview = document.querySelector('.overview');
 
             if (chart1 && chart1.canvas) {
                 overview.append(chart1.canvas);
             }
+
+            let stats2 = await ipcRenderer.invoke('get_overview', '/');
+            let chart2 = this.renderChart(stats2);
+
+
+            if (chart2 && chart2.canvas) {
+                overview.append(chart2.canvas);
+            }
+
+            // let stats3 = await ipcRenderer.invoke('get_overview', utilities.get_location());
+            // let chart3 = this.renderChart(stats3);
+
+
+            // if (chart3 && chart3.canvas) {
+            //     overview.append(chart3.canvas);
+            // }
 
             utilities.lazy_load_icons(recent_files_div);
 
@@ -6011,9 +6028,9 @@ class FileManager {
         const data = {
             labels: ['Used', 'Available'],
             datasets: [{
-                label: 'Home Disk Usage',
+                label: `${stats.path} Disk Usage`,
                 data: [stats.used, stats.free],
-                backgroundColor: ['#ff6384', '#36a2eb'],
+                backgroundColor: ['#a9bdf4', '#36a2eb'],
                 borderWidth: 1
             }]
         };
@@ -6029,7 +6046,7 @@ class FileManager {
                 responsive: false,
                 plugins: {
                     legend: { position: 'bottom' },
-                    title: { display: true, text: 'Home Mount Disk Usage' }
+                    title: { display: true, text: `${stats.path} Disk Usage` }
                 }
             }
         });
