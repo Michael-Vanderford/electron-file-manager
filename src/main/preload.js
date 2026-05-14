@@ -2669,7 +2669,7 @@ class DeviceManager {
         item.append(icon_div, href_div, umount_div);
         this.device_view.append(item);
 
-        console.log('device total', device);
+        // console.log('device total', device);
 
         if (device.total) {
 
@@ -2967,6 +2967,8 @@ class WorkspaceManager {
                     }
 
                 })
+
+                fileManager.handleTitle(tr, file);
 
                 workspace.append(workspace_accordion);
                 this.workspace_view.append(workspace);
@@ -3268,6 +3270,7 @@ class SideBarManager {
                 home_view_item.classList.add('highlight_select');
             });
 
+            fileManager.handleTitle(home_view_item, )
 
         });
 
@@ -4666,6 +4669,8 @@ class FileManager {
 
         // get files
         ipcRenderer.on('ls_done', (e, files_arr, new_tab) => {
+
+            console.log('running ls done');
 
             this.files_arr = files_arr;
             if (this.view === '' || this.view === undefined) {
