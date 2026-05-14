@@ -6026,7 +6026,7 @@ class FileManager {
     renderChart(stats) {
         // const stats = getDiskStats();
         const data = {
-            labels: ['Used', 'Available'],
+            labels: [`${utilities.get_file_size(stats.used)} Used`, `${utilities.get_file_size(stats.free)} Available`],
             datasets: [{
                 label: `${stats.path} Disk Usage`,
                 data: [stats.used, stats.free],
@@ -6036,17 +6036,28 @@ class FileManager {
         };
 
         let chartCanvas = document.createElement('canvas');
-        chartCanvas.width = 150;
-        chartCanvas.height = 150;
+        chartCanvas.width = 250;
+        chartCanvas.height = 125    ;
 
         return new Chart(chartCanvas, {
             type: 'doughnut',
             data,
             options: {
                 responsive: false,
+                maintainAspectRatio: false,
+                cutout: '80%',
+                cutoutPercentage: 85,
+                rotation: -90,
+                circumference: 180,
                 plugins: {
-                    legend: { position: 'bottom' },
-                    title: { display: true, text: `${stats.path} Disk Usage` }
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 0,
+                            boxHeight: 0
+                        }
+                     },
+                    title: { display: true, text: `${stats.path}` }
                 }
             }
         });

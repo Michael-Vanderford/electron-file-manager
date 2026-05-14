@@ -1464,7 +1464,7 @@ tr {
 
 .dashboard_view {
     background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x);
-    padding: 20px;
+    padding: 10px;
 }
 
 .dashboard_view .label {
@@ -1484,6 +1484,18 @@ tr {
     height: 200px;
     overflow: hidden;
     overflow-y: auto;
+}
+
+.dashboard_card {
+    /* display: flex; */
+    align-items: center;
+    padding: 5px;
+    border-radius: 5px;
+    background-color: var(--sidebar);
+    border: 1px solid var(--border);
+    color: var(--text);
+    margin-bottom: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .grid_view {
