@@ -770,6 +770,10 @@ hr {
     flex-grow: 0;
     flex-basis: auto;
     min-width: 0;
+    /* vertical box shadow on right side */
+    /* box-shadow: 22px 0 25px rgba(0, 0, 0, 0.1); */
+    box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.4);;
+
 }
 
 .sidebar .item {
@@ -895,6 +899,11 @@ hr {
     width: 100%;
 }
 
+.workspace {
+
+    width: 50%;
+}
+
 .workspace .workspace_table {
     width: 100%;
     height: 100%;
@@ -927,13 +936,13 @@ hr {
 }
 
 .workspace_item {
-    text-overflow: ellipsis;
     font-weight: normal;
     overflow: hidden;
     width: 100%;
     display: block;
     padding-left: 5px;
     white-space: nowrap;
+    text-overflow: ellipsis;
     margin-left: 5px !important;
 }
 
@@ -1464,7 +1473,8 @@ tr {
 
 .dashboard_view {
     background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x);
-    padding: 10px;
+    margin-left: 10px;
+    margin-right: 20px;
 }
 
 .dashboard_view .label {
@@ -1475,27 +1485,48 @@ tr {
 }
 
 .dashboard_view .recent_folders_view {
-    height: 200px;
+    /* height: 80px; */
     overflow: hidden;
     overflow-y: auto;
 }
 
+.dashboard_view .recent_folders_view .card {
+    /* padding: 2px; */
+    /* border-radius: 5px; */
+    /* background-color: var(--sidebar); */
+    /* border: 1px solid var(--border); */
+    /* color: var(--text); */
+    /* margin-bottom: 5px; */
+    /* box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37); */
+}
+
 .dashboard_view .recent_files_view {
-    height: 200px;
+    /* height: 160px; */
     overflow: hidden;
     overflow-y: auto;
+}
+
+.dashboard_view .recent_files_view .card {
+    /* padding: 2px; */
+    /* border-radius: 5px; */
+    /* background-color: var(--sidebar); */
+    /* border: 1px solid var(--border); */
+    /* color: var(--text); */
+    /* margin-bottom: 5px; */
+    /* box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37); */
 }
 
 .dashboard_card {
     /* display: flex; */
-    align-items: center;
+    /* align-items: center; */
     padding: 5px;
     border-radius: 5px;
     background-color: var(--sidebar);
     border: 1px solid var(--border);
-    color: var(--text);
-    margin-bottom: 5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    /* color: var(--text); */
+    /* margin-bottom: 5px; */
+    /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
 }
 
 .grid_view {

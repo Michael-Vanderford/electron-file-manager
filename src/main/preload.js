@@ -4564,6 +4564,11 @@ class FileManager {
         this.resize_col = this.resize_col.bind(this);
         this.stop_col_resize = this.stop_col_resize.bind(this);
 
+        // get dashboard view
+        ipcRenderer.on('get_dashboard_view', (e) => {
+            this.get_dashboard_view();
+        })
+
         // sort menu
         ipcRenderer.on('sort_by', (e, sort, sort_direction) => {
 
@@ -5632,8 +5637,6 @@ class FileManager {
 
     }
 
-
-
     // get grid view
     get_view(files_arr) {
 
@@ -5944,13 +5947,19 @@ class FileManager {
 
     async get_dashboard_view() {
 
-        const active_tab_content = tabManager.get_active_tab_content();
+        console.log('getting dash view')
+
+        let active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content) {
-            utilities.set_msg('Error: Unable to open Dashboard view');
-            return;
+
+            // utilities.set_msg('Error: Unable to open Dashboard view');
+            tabManager.add_tab('Dashboard');
+            active_tab_content = tabManager.get_active_tab_content() //document.querySelector('.active-tab-content');
+            // return;
+
         }
 
-        tabManager.update_tab('Dashboard')
+        tabManager.update_tab('Dashboard');
 
         let res = '';
         try {
@@ -5963,10 +5972,10 @@ class FileManager {
             active_tab_content.innerHTML = res.dashboard_view;
 
             let recent_folders_view = active_tab_content.querySelector('.recent_folders_view');
-            let recent_folders_div = utilities.add_div(['recent_folders', 'grid', 'grid3']);
+            let recent_folders_div = utilities.add_div(['recent_folders', 'grid_view', 'grid3']);
 
             let recent_files_view = active_tab_content.querySelector('.recent_files_view');
-            let recent_files_div = utilities.add_div(['recent_files', 'grid', 'grid3']);
+            let recent_files_div = utilities.add_div(['recent_files', 'grid_view', 'grid3']);
 
             let recent_files_arr = await ipcRenderer.invoke('get_recent_files_arr');
             let recent_folders = recent_files_arr.filter(a => a.is_dir == true);
@@ -5988,7 +5997,10 @@ class FileManager {
                 recent_files_view.append(recent_files_div);
             }
 
+            utilities.lazy_load_icons(active_tab_content);
+
             let overview = document.querySelector('.overview');
+            overview.innerHTML = '';
 
             // get data for overview
             let stats = await ipcRenderer.invoke('get_overview', '/home');
@@ -6007,15 +6019,40 @@ class FileManager {
                 overview.append(chart2.canvas);
             }
 
-            // let stats3 = await ipcRenderer.invoke('get_overview', utilities.get_location());
-            // let chart3 = this.renderChart(stats3);
+            deviceManager.device_arr.forEach(device => {
+
+                // console.log('device path', device)
+
+                ipcRenderer.invoke('get_overview', device.path).then(stats => {
+                    const chart = this.renderChart(stats);
+                    if (chart && chart.canvas) {
+                        overview.append(chart.canvas);
+                    }
+                });
+
+                let chart = this.renderChart(stats);
+                if (chart && chart.canvas) {
+                    overview.append(chart2.canvas);
+                }
 
 
-            // if (chart3 && chart3.canvas) {
-            //     overview.append(chart3.canvas);
-            // }
+            })
 
-            utilities.lazy_load_icons(recent_files_div);
+            let workspace_view_div = document.querySelector('.workspace_dashboard_view');
+            let workspace_arr = await ipcRenderer.invoke('get_workspace');
+
+            console.log('workspace arr', workspace_arr.length)
+
+            if (workspace_arr.length > 0) {
+
+                for (let i = 0; i < workspace_arr.length; ++i) {
+                    let card = this.get_view_item(workspace_arr[i]);
+                    workspace_view_div.appendChild(card);
+                }
+
+                utilities.lazy_load_icons(workspace_view_div);
+
+            }
 
             // recent_folders_arr.forEach(f => {
             //     let card = this.get_view_item(f);
@@ -6042,7 +6079,7 @@ class FileManager {
 
         let chartCanvas = document.createElement('canvas');
         chartCanvas.width = 250;
-        chartCanvas.height = 125    ;
+        chartCanvas.height = 100    ;
 
         return new Chart(chartCanvas, {
             type: 'doughnut',
@@ -7169,6 +7206,7 @@ class FileManager {
 
                     this.handleDataAttributes(item, f);
                     this.handleTitle(item, f);
+                    this.handleFolderSize(f)
 
                     // Stop watching and remove the placeholder
                     lazy_item.classList.remove("lazy");
@@ -7412,6 +7450,10 @@ class FileManager {
 
         return 0;
 
+    }
+
+    handleFolderSize(f) {
+        ipcRenderer.send('get_folder_size', f.href);
     }
 
     // handle dragstart

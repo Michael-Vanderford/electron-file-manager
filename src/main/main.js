@@ -229,16 +229,16 @@ class Watcher {
                         win && win.send && win.send('remove_item', btoa(event.filename));
                         break;
 
-        //             case 'modified':
+                    //             case 'modified':
 
-        //                 console.log('modified', event);
-        //                 file = gio.get_file(event.filename);
-        //                 file.id = btoa(file.href);
-        //                 win && win.send && win.send('update_item', file);
-        //                 break;
+                    //                 console.log('modified', event);
+                    //                 file = gio.get_file(event.filename);
+                    //                 file.id = btoa(file.href);
+                    //                 win && win.send && win.send('update_item', file);
+                    //                 break;
 
-        //             default:
-        //                 break;
+                    //             default:
+                    //                 break;
                 }
             });
 
@@ -702,7 +702,7 @@ ipcMain.handle('get_overview', async (e, path) => {
     let stats = {};
     try {
         let stats = await gio.disk_stats(path);
-        Object.assign(stats, {path: path});
+        Object.assign(stats, { path: path });
         return stats
     } catch (err) {
         return {
@@ -947,7 +947,7 @@ class Utilities {
 
         // listen for make directory event
         ipcMain.on('mkdir', (e, location) => {
-              this.mkdir(e, location);
+            this.mkdir(e, location);
         })
 
         // listen for rename event
@@ -1330,16 +1330,16 @@ class Utilities {
     // open
     open(e, href) {
         shell.openPath(href)
-        .then((error) => {
+            .then((error) => {
 
-            // clear high lighted item
-            e.sender.send('clear_highlight');
+                // clear high lighted item
+                e.sender.send('clear_highlight');
 
 
-            if (error) {
-                e.sender.send('set_msg', error);
-            }
-        })
+                if (error) {
+                    e.sender.send('set_msg', error);
+                }
+            })
     }
 
     // poste
@@ -1449,7 +1449,7 @@ class Utilities {
                 location: location
             }
             this.paste_worker.postMessage(paste_cmd);
-                this.copy_in_progress = true;
+            this.copy_in_progress = true;
         }
 
         if (overwrite_arr.length > 0) {
@@ -1734,7 +1734,7 @@ class Utilities {
 
 class WorkspaceManager {
 
-    constructor () {
+    constructor() {
 
         // Add Workspace
         ipcMain.on('add_workspace', (e, selected_files_arr) => {
@@ -1773,8 +1773,9 @@ class WorkspaceManager {
                 let workspace_data = [];
                 fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
             }
-            let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
-            return workspace_items;
+            return this.get_workspace_arr();
+            // let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
+            // return workspace_items;
 
         })
 
@@ -1832,6 +1833,18 @@ class WorkspaceManager {
             let icon = iconManager.get_folder_icon(e, href);
             e.sender.send('set_workspace_folder_icon', href, icon);
         });
+
+    }
+
+    get_workspace_arr() {
+
+        let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
+        if (!gio.exists(workspace_file)) {
+            let workspace_data = [];
+            fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
+        }
+        let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
+        return workspace_items;
 
     }
 
@@ -1921,7 +1934,7 @@ class DeviceManager {
         // Get Devices
         ipcMain.on('get_devices', (e) => {
             this.device_worker.postMessage({ cmd: 'get_devices' });
-        })
+        });
 
         // Mount ipc
         ipcMain.on('mount', (e, device_name) => {
@@ -2330,7 +2343,7 @@ class FileManager {
     // return file from get_files
     get_ls(location, add_tab) {
 
-        // console.log('get_ls location', location)
+        console.log('get_ls location', location);
 
         if (location === '' || location === undefined) {
             win.send('set_msg', 'Location is null or undefined');
@@ -2339,6 +2352,12 @@ class FileManager {
 
         if (add_tab !== true && add_tab !== false) {
             win.send('set_msg', 'the add_tab parameter needs to be true or false');
+            return;
+        }
+
+        // Check if special location
+        if (location === 'Dashboard') {
+            win.send('get_dashboard_view');
             return;
         }
 
@@ -2373,7 +2392,7 @@ class FileManager {
                 // console.log('location0', this.location0)
                 watcher.unwatch(this.location0);
             }
-        } catch(err) {
+        } catch (err) {
 
         }
 
@@ -2772,7 +2791,7 @@ class MenuManager {
                     f.id = btoa(data.destination);
                     win.send('get_item', f);
                     win.send('edit_item', f);
-                break;
+                    break;
             }
         });
 
@@ -3290,14 +3309,13 @@ class MenuManager {
             }
 
             if (
-                    ext == '.xz'
-                    || ext == '.gz'
-                    || ext == '.zip'
-                    || ext == '.img'
-                    || ext == '.tar'
-                    || ext == '.7z'
-                )
-            {
+                ext == '.xz'
+                || ext == '.gz'
+                || ext == '.zip'
+                || ext == '.img'
+                || ext == '.tar'
+                || ext == '.7z'
+            ) {
                 this.extract_menu(menu, e);
             }
 
@@ -3801,7 +3819,7 @@ class MenuManager {
                 item.checked = true;
             }
 
-            if(item.id === this.settings.sort_by && item.id === 'type') {
+            if (item.id === this.settings.sort_by && item.id === 'type') {
                 item.checked = true;
             }
 
