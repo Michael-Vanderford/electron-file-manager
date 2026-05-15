@@ -5987,6 +5987,8 @@ class FileManager {
                     recent_folders_div.appendChild(card);
                 }
                 recent_folders_view.append(recent_folders_div);
+            } else {
+                recent_folders_view.innerHTML = '<div class="no_recent_folders">No recent folders</div>';
             }
 
             if (recent_files.length > 0) {
@@ -5995,6 +5997,8 @@ class FileManager {
                     recent_files_div.appendChild(card);
                 }
                 recent_files_view.append(recent_files_div);
+            } else {
+                recent_files_view.innerHTML = '<div class="no_recent_files">No recent files</div>';
             }
 
             utilities.lazy_load_icons(active_tab_content);
@@ -6002,48 +6006,45 @@ class FileManager {
             let overview = document.querySelector('.overview');
             overview.innerHTML = '';
 
+            // get local disk stats and render chart for each local disk (home and root at least)
+
             // get data for overview
-            let stats = await ipcRenderer.invoke('get_overview', '/home');
+            let stats = await ipcRenderer.invoke('get_dashboard_disk_stats', '/home');
             let chart1 = this.renderChart(stats);
 
 
-            if (chart1 && chart1.canvas) {
-                overview.append(chart1.canvas);
+            if (chart1) {
+                overview.append(chart1);
             }
 
-            let stats2 = await ipcRenderer.invoke('get_overview', '/');
+            let stats2 = await ipcRenderer.invoke('get_dashboard_disk_stats', '/');
             let chart2 = this.renderChart(stats2);
 
 
-            if (chart2 && chart2.canvas) {
-                overview.append(chart2.canvas);
+            if (chart2) {
+                overview.append(chart2);
             }
 
-            deviceManager.device_arr.forEach(device => {
+            // process entries in the device array and render charts for each device
+            if (deviceManager.device_arr && deviceManager.device_arr.length > 0) {
 
-                // console.log('device path', device)
+                deviceManager.device_arr.forEach(device => {
 
-                ipcRenderer.invoke('get_overview', device.path).then(stats => {
-                    const chart = this.renderChart(stats);
-                    if (chart && chart.canvas) {
-                        overview.append(chart.canvas);
-                    }
-                });
+                    ipcRenderer.invoke('get_dashboard_disk_stats', device.path).then(stats => {
+                        const chart = this.renderChart(stats);
+                        if (chart) {
+                            overview.append(chart);
+                        }
+                    });
 
-                let chart = this.renderChart(stats);
-                if (chart && chart.canvas) {
-                    overview.append(chart2.canvas);
-                }
+                })
 
-
-            })
+            }
 
             let workspace_view_div = document.querySelector('.workspace_dashboard_view');
             let workspace_arr = await ipcRenderer.invoke('get_workspace');
 
-            console.log('workspace arr', workspace_arr.length)
-
-            if (workspace_arr.length > 0) {
+            if (workspace_arr && workspace_arr.length > 0) {
 
                 for (let i = 0; i < workspace_arr.length; ++i) {
                     let card = this.get_view_item(workspace_arr[i]);
@@ -6052,6 +6053,8 @@ class FileManager {
 
                 utilities.lazy_load_icons(workspace_view_div);
 
+            } else {
+                workspace_view_div.innerHTML = '<div class="no_workspace">No workspace items</div>';
             }
 
             // recent_folders_arr.forEach(f => {
@@ -6066,43 +6069,82 @@ class FileManager {
     }
 
     renderChart(stats) {
-        // const stats = getDiskStats();
+
+        // change colors based on usage percentage
+        let usedPercentage = (parseInt(stats.used) / (parseInt(stats.used) + parseInt(stats.free))) * 100;
+        let backgroundColor;
+        console.log('used percentage', usedPercentage);
+        if (usedPercentage <= 70) {
+            backgroundColor = ['#a9bdf4', '#36a2eb'];
+        } else if (usedPercentage <= 80) {
+            backgroundColor = ['#f4d03f', '#f39c12'];
+        } else if (usedPercentage <= 100) {
+            backgroundColor = ['#e74c3c', '#892a20'];
+        }
+
         const data = {
-            labels: [`${utilities.get_file_size(stats.used)} Used`, `${utilities.get_file_size(stats.free)} Available`],
+            labels: [
+            `${utilities.get_file_size(stats.used)} Used`,
+            `${utilities.get_file_size(stats.free)} Available`
+            ],
             datasets: [{
-                label: `${stats.path} Disk Usage`,
+                label: `${stats.display_name}`,
+                // label: utilities.get_file_size(stats.used) + ' Used / ' + utilities.get_file_size(stats.free) + ' Available',
                 data: [stats.used, stats.free],
-                backgroundColor: ['#a9bdf4', '#36a2eb'],
+                backgroundColor: backgroundColor,
                 borderWidth: 1
             }]
         };
 
+        const container = document.createElement('div');
+        container.className = 'chart-container';
+        container.style.width = '100%';
+        container.style.height = '100px';
+        container.style.position = 'relative';
+
         let chartCanvas = document.createElement('canvas');
         chartCanvas.width = 250;
-        chartCanvas.height = 100    ;
+        chartCanvas.height = 100;
+        container.appendChild(chartCanvas);
 
-        return new Chart(chartCanvas, {
+        const chart = new Chart(chartCanvas, {
             type: 'doughnut',
             data,
             options: {
-                responsive: false,
-                maintainAspectRatio: false,
-                cutout: '80%',
-                cutoutPercentage: 85,
-                rotation: -90,
-                circumference: 180,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 0,
-                            boxHeight: 0
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '80%',
+            cutoutPercentage: 85,
+            rotation: -90,
+            circumference: 180,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 0,
+                        boxHeight: 0
+                    }
+                },
+                title: { display: true, text: stats.display_name },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => {
+                            const label = ctx.label || '';
+                            return `${label}: ${utilities.get_file_size(ctx.raw)}`;
                         }
-                     },
-                    title: { display: true, text: `${stats.path}` }
+                    }
                 }
             }
+            }
         });
+
+        const ro = new ResizeObserver(() => {
+            chart.resize(container.offsetWidth, 100);
+        });
+        ro.observe(container);
+
+        container.chart = chart;
+        return container;
     }
 
     // Find View

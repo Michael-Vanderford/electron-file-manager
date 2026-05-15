@@ -1,6 +1,6 @@
 {
     "name": "electron-file-manager",
-    "version": "2.0.3",
+    "version": "2.0.4",
     "description": "Electron File Manager",
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",

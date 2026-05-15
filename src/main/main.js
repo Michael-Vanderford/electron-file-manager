@@ -697,13 +697,25 @@ ipcMain.handle('get_dashboard_view', async (e) => {
     }
 })
 
-ipcMain.handle('get_overview', async (e, path) => {
+ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
 
-    let stats = {};
+    // let stats = {};
     try {
-        let stats = await gio.disk_stats(path);
-        Object.assign(stats, { path: path });
-        return stats
+
+        let f = gio.get_file(location);
+        if (f == null || f === undefined) {
+            return;
+        }
+
+        let stats = await gio.disk_stats(location);
+        Object.assign(f, stats);
+
+        // let stats = await gio.disk_stats(path);
+        // Object.assign(stats, { path: path });
+        // return stats
+
+        return f
+
     } catch (err) {
         return {
             stats: '',
@@ -2343,7 +2355,7 @@ class FileManager {
     // return file from get_files
     get_ls(location, add_tab) {
 
-        console.log('get_ls location', location);
+        // console.log('get_ls location', location);
 
         if (location === '' || location === undefined) {
             win.send('set_msg', 'Location is null or undefined');
@@ -2463,6 +2475,14 @@ function get_recent_files_arr() {
             attributeNamePrefix: "@_"
         });
         let res = parser.parse(data);
+
+        // sort by recency
+        res.xbel.bookmark.sort((a, b) => {
+            let a_time = new Date(a['@_modified'] || a['@_added'] || 0).getTime();
+            let b_time = new Date(b['@_modified'] || b['@_added'] || 0).getTime();
+            return b_time - a_time;
+        });
+
         // console.log('res', res);
         res.xbel.bookmark.forEach(b => {
             try {
@@ -2475,10 +2495,10 @@ function get_recent_files_arr() {
                 // console.error(err);
             }
         })
-        // sort files by mtime
-        files_arr.sort((a, b) => {
-            return b.mtime - a.mtime;
-        });
+        // // sort files by mtime
+        // files_arr.sort((a, b) => {
+        //     return b.mtime - a.mtime;
+        // });
     }
 
     return files_arr;

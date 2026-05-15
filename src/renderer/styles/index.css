@@ -772,7 +772,14 @@ hr {
     min-width: 0;
     /* vertical box shadow on right side */
     /* box-shadow: 22px 0 25px rgba(0, 0, 0, 0.1); */
-    box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.4);;
+    /* box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.3); */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+
+    width: 100%;
+    margin: 5px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
 
 }
 
@@ -815,12 +822,13 @@ hr {
 .sidebar_draghandle {
     overflow: hidden;
     z-index: 1;
-    width: 4px;
+    width: 2px;
     height: 100%;
     /* right: 0;
     bottom: 0; */
     cursor: col-resize;
     float: right;
+    background: var(--border)
 }
 
 .sidebar_draghandle:hover {
@@ -900,8 +908,7 @@ hr {
 }
 
 .workspace {
-
-    width: 50%;
+    width: 100%;
 }
 
 .workspace .workspace_table {
@@ -909,8 +916,12 @@ hr {
     height: 100%;
 }
 
+.workspace tbody {
+    width: 100%;
+}
+
 .workspace tr {
-    display: block;
+    display: flex;
     align-items: center;
     height: 26px;
     width: 100%;
@@ -920,12 +931,21 @@ hr {
     display: block;
     color: var(--text);
     text-decoration: none;
-    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     padding-right: 5px;
 }
 
 .workspace td:first-child {
+    flex-shrink: 0;
     padding-right: 5px;
+}
+
+.workspace td:nth-child(2) {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .workspace tr .icon {
@@ -937,12 +957,8 @@ hr {
 
 .workspace_item {
     font-weight: normal;
-    overflow: hidden;
     width: 100%;
-    display: block;
     padding-left: 5px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     margin-left: 5px !important;
 }
 
@@ -1040,6 +1056,7 @@ tr {
     background-color: var(--main);
     scroll-behavior: smooth;
     overflow: auto;
+    overflow-x: hidden;
     width: 100%;
     height: 100%;
     /* border: 1px solid red; */
@@ -1128,6 +1145,18 @@ tr {
     height: 100%;
     width: 100%;
     z-index: 1;
+
+    /* overflow: auto; */
+    width: 98%;
+    margin: 10px;
+    /* margin-top: 5px; */
+    margin-bottom: 5px;
+    background: var(--sidebar);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    /* box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.3); */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+
 }
 
 .active-tab-content::-webkit-scrollbar {
@@ -1165,9 +1194,10 @@ tr {
     gap: 8px;
     padding: 8px;
     background-color: var(--sidebar);
-    border: 1px solid var(--border);
+    /* border: 1px solid var(--border); */
     border-radius: 6px;
     margin-top: 4px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
 }
 
 .properties_view.grid2 {
@@ -1527,6 +1557,13 @@ tr {
     /* margin-bottom: 5px; */
     /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+}
+
+.chart-container {
+    width: 100%;
+    height: 100px;
+    max-width: 250px;
+    margin: 0 auto;
 }
 
 .grid_view {
