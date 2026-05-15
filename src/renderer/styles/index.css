@@ -914,10 +914,12 @@ hr {
 .workspace .workspace_table {
     width: 100%;
     height: 100%;
+    table-layout: fixed;
 }
 
 .workspace tbody {
     width: 100%;
+    display: table;
 }
 
 .workspace tr {
@@ -946,6 +948,7 @@ hr {
     flex: 1;
     min-width: 0;
     overflow: hidden;
+    width: 0;
 }
 
 .workspace tr .icon {
@@ -964,6 +967,11 @@ hr {
 
 .workspace a {
     outline: none;
+}
+
+.workspace .href_div {
+    overflow: hidden;
+    width: 100%;
 }
 
 .workspace input {
@@ -1151,7 +1159,7 @@ tr {
     margin: 10px;
     /* margin-top: 5px; */
     margin-bottom: 5px;
-    background: var(--sidebar);
+    /* background: var(--sidebar); */
     border: 1px solid var(--border);
     border-radius: 8px;
     /* box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.3); */
