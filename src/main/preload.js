@@ -7245,6 +7245,12 @@ class FileManager {
                         });
                     }
 
+                    const thumb_img = item.querySelector('.icon .img.lazy[data-src]');
+                    if (thumb_img) {
+                        thumb_img.src = thumb_img.dataset.src;
+                        thumb_img.classList.remove('lazy');
+                    }
+
                     // }
 
                     this.handleDataAttributes(item, f);
@@ -7425,7 +7431,8 @@ class FileManager {
                             img.src = res;
                         })
                     } else {
-                        img.src = f.href;
+                        img.classList.add('lazy');
+                        img.dataset.src = f.href;
                     }
 
 
