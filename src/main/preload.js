@@ -5978,8 +5978,9 @@ class FileManager {
             let recent_files_div = utilities.add_div(['recent_files', 'grid_view', 'grid3']);
 
             let recent_files_arr = await ipcRenderer.invoke('get_recent_files_arr');
-            let recent_folders = recent_files_arr.filter(a => a.is_dir == true);
-            let recent_files = recent_files_arr.filter(a => a.is_dir == false);
+
+            let recent_folders = (recent_files_arr.length > 0) ? recent_files_arr.filter(a => a.is_dir == true) : [] ;
+            let recent_files = (recent_files_arr.length > 0) ? recent_files_arr.filter(a => a.is_dir == false) : [] ;
 
             if (recent_folders.length > 0) {
                 for (let i = 0; i < recent_folders.length; ++i) {

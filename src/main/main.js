@@ -2477,24 +2477,35 @@ function get_recent_files_arr() {
         let res = parser.parse(data);
 
         // sort by recency
-        res.xbel.bookmark.sort((a, b) => {
-            let a_time = new Date(a['@_modified'] || a['@_added'] || 0).getTime();
-            let b_time = new Date(b['@_modified'] || b['@_added'] || 0).getTime();
-            return b_time - a_time;
-        });
+        if (res.xbel && res.xbel.bookmark) {
+
+            try {
+                res.xbel.bookmark.sort((a, b) => {
+                    let a_time = new Date(a['@_modified'] || a['@_added'] || 0).getTime();
+                    let b_time = new Date(b['@_modified'] || b['@_added'] || 0).getTime();
+                    return b_time - a_time;
+                });
+            } catch (err) {
+                console.log('Error sorting recent files:', err);
+            }
+
+        }
+
 
         // console.log('res', res);
-        res.xbel.bookmark.forEach(b => {
-            try {
-                let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
-                href = decodeURIComponent(href);
-                let f = gio.get_file(href);
-                f.id = btoa(href);
-                files_arr.push(f);
-            } catch (err) {
-                // console.error(err);
-            }
-        })
+        if (res.xbel && res.xbel.bookmark.length > 0) {
+            res.xbel.bookmark.forEach(b => {
+                try {
+                    let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
+                    href = decodeURIComponent(href);
+                    let f = gio.get_file(href);
+                    f.id = btoa(href);
+                    files_arr.push(f);
+                } catch (err) {
+                    // console.error(err);
+                }
+            })
+        }
         // // sort files by mtime
         // files_arr.sort((a, b) => {
         //     return b.mtime - a.mtime;
