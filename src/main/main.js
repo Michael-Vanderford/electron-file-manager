@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 // Provide app and Electron version to renderer
-const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme } = require('electron');
+const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents } = require('electron');
 const packageJson = require('../../package.json');
 const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
@@ -468,7 +468,12 @@ class SettingsManager {
 
         this.settings = settings;
         fs.writeFileSync(this.settings_file, JSON.stringify(this.settings, null, 4));
-        win.send('settings_updated', this.settings);
+
+        BrowserWindow.getAllWindows().forEach((wnd) => {
+            if (!wnd.isDestroyed()) {
+                wnd.webContents.send('settings_updated', this.settings);
+            }
+        });
     }
 
     // Toggle Menubar
@@ -520,7 +525,7 @@ class tabManager {
 
     }
 
-    addTab(location, tab_id) {
+    addTab(location, tab_id, sender = null) {
 
         if (this.tabs.find(t => t.id === tab_id)) {
             return;
@@ -540,8 +545,11 @@ class tabManager {
         tab.history.location.push(location);
         this.tabs.push(tab);
 
-        win.send('disable_back_button');
-        win.send('disable_forward_button');
+        const target = sender && !sender.isDestroyed() ? sender : win;
+        if (target && !target.isDestroyed()) {
+            target.send('disable_back_button');
+            target.send('disable_forward_button');
+        }
 
         this.saveTabs();
     }
@@ -566,7 +574,7 @@ class tabManager {
         this.saveTabs();
     }
 
-    addHistory(location, tab_id) {
+    addHistory(location, tab_id, sender = null) {
 
         let tab = this.tabs.find(t => t.id === tab_id);
         if (tab) {
@@ -576,53 +584,71 @@ class tabManager {
             tab.history.idx = tab.history.location.length - 1;
 
             if (tab.history.idx > 0) {
-                win.send('enable_back_button');
+                const target = sender && !sender.isDestroyed() ? sender : win;
+                if (target && !target.isDestroyed()) {
+                    target.send('enable_back_button');
+                }
             }
 
         }
         this.saveTabs();
     }
 
-    goBack(tab_id) {
+    goBack(tab_id, sender = null) {
+        const target = sender && !sender.isDestroyed() ? sender : win;
         let tab = this.tabs.find(t => t.id === tab_id);
         // console.log('goBack_tab', tab.history.idx);
         if (tab) {
             if (tab.history.idx > 0) {
                 tab.history.idx--;
-                win.send("get_files", tab.history.location[tab.history.idx]);
+                if (target && !target.isDestroyed()) {
+                    target.send("get_files", tab.history.location[tab.history.idx]);
+                }
                 this.saveTabs(); // update the index to handle multiple tabs
 
                 // todo: this does not need to run each time goBack is called
-                win.send('enable_forward_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('enable_forward_button');
+                }
 
             }
 
             if (tab.history.idx === 0) {
-                win.send('disable_back_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('disable_back_button');
+                }
             }
         }
     }
 
-    goForward(tab_id) {
+    goForward(tab_id, sender = null) {
+        const target = sender && !sender.isDestroyed() ? sender : win;
         let tab = this.tabs.find(t => t.id === tab_id);
         // console.log('goForward_tab', tab.history.idx);
         if (tab) {
             if (tab.history.idx < tab.history.location.length - 1) {
                 tab.history.idx++;
-                win.send("get_files", tab.history.location[tab.history.idx]);
+                if (target && !target.isDestroyed()) {
+                    target.send("get_files", tab.history.location[tab.history.idx]);
+                }
                 this.saveTabs(); // update the index to handle multiple tabs
                 // console.log('goForward', tab.history.location[tab.history.idx]);
 
-                win.send('enable_back_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('enable_back_button');
+                }
             }
 
             if (tab.history.idx === tab.history.location.length - 1) {
-                win.send('disable_forward_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('disable_forward_button');
+                }
             }
         }
     }
 
-    switchTab(tab_id) {
+    switchTab(tab_id, sender = null) {
+        const target = sender && !sender.isDestroyed() ? sender : win;
         let tab = this.tabs.find(t => t.id === tab_id);
         if (tab) {
 
@@ -630,15 +656,23 @@ class tabManager {
 
             // Enable or disable back and forward buttons based on history index
             if (tab.history.idx > 0) {
-                win.send('enable_back_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('enable_back_button');
+                }
             } else {
-                win.send('disable_back_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('disable_back_button');
+                }
             }
 
             if (tab.history.idx < tab.history.location.length - 1) {
-                win.send('enable_forward_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('enable_forward_button');
+                }
             } else {
-                win.send('disable_forward_button');
+                if (target && !target.isDestroyed()) {
+                    target.send('disable_forward_button');
+                }
             }
         }
     }
@@ -653,7 +687,7 @@ const tab_manager = new tabManager()
 
 // Add tab
 ipcMain.on('add_tab', (e, location, tab_id) => {
-    tab_manager.addTab(location, tab_id);
+    tab_manager.addTab(location, tab_id, e.sender);
 });
 
 // Remove tab
@@ -663,19 +697,19 @@ ipcMain.on('remove_tab', (e, tab_id) => {
 
 // Add history to tab
 ipcMain.on('add_tab_history', (e, location, tab_id) => {
-    tab_manager.addHistory(location, tab_id);
+    tab_manager.addHistory(location, tab_id, e.sender);
 });
 
 ipcMain.on('go_back', (e, tab_id) => {
-    tab_manager.goBack(tab_id);
+    tab_manager.goBack(tab_id, e.sender);
 });
 
 ipcMain.on('go_forward', (e, tab_id) => {
-    tab_manager.goForward(tab_id);
+    tab_manager.goForward(tab_id, e.sender);
 });
 
 ipcMain.on('switch_tab', (e, tab_id) => {
-    tab_manager.switchTab(tab_id);
+    tab_manager.switchTab(tab_id, e.sender);
 });
 
 ipcMain.handle('get_dashboard_view', async (e) => {
@@ -914,6 +948,7 @@ class Utilities {
         this.move_in_progress = false;
 
         this.byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+        this.folder_size_requesters = new Map();
 
         this.ls_worker = new worker.Worker(path.join(__dirname, '../workers/ls_worker.js'));
         this.ls_worker.on('message', (data) => {
@@ -922,7 +957,24 @@ class Utilities {
                     source: data.source,
                     size: data.size
                 }
-                win.send('folder_size', folder_data);
+
+                const requesters = this.folder_size_requesters.get(data.source);
+                let delivered = false;
+
+                if (requesters && requesters.size > 0) {
+                    requesters.forEach((web_contents_id) => {
+                        const target = webContents.fromId(web_contents_id);
+                        if (target && !target.isDestroyed()) {
+                            target.send('folder_size', folder_data);
+                            delivered = true;
+                        }
+                    });
+                    this.folder_size_requesters.delete(data.source);
+                }
+
+                if (!delivered && win && !win.isDestroyed()) {
+                    win.send('folder_size', folder_data);
+                }
             }
         });
 
@@ -989,8 +1041,14 @@ class Utilities {
         // listen for get_disk_space event
         ipcMain.on('get_disk_space', (e, href) => {
 
+            const sender = e?.sender;
+
             if (href === '' || href === undefined) {
-                win.send('set_msg', `Error: getting href: ${href}`);
+                if (sender && !sender.isDestroyed()) {
+                    sender.send('set_msg', `Error: getting href: ${href}`);
+                } else if (win && !win.isDestroyed()) {
+                    win.send('set_msg', `Error: getting href: ${href}`);
+                }
                 return;
             }
 
@@ -999,7 +1057,7 @@ class Utilities {
                 return;
             }
 
-            this.get_disk_space(href);
+            this.get_disk_space(href, sender);
         })
 
         // listen for message from worker
@@ -1325,6 +1383,16 @@ class Utilities {
 
     // get folder size
     get_folder_size(e, href) {
+        const sender_id = e?.sender?.id;
+        if (sender_id && href) {
+            let requesters = this.folder_size_requesters.get(href);
+            if (!requesters) {
+                requesters = new Set();
+                this.folder_size_requesters.set(href, requesters);
+            }
+            requesters.add(sender_id);
+        }
+
         this.ls_worker.postMessage({ cmd: 'get_folder_size', source: href });
     }
 
@@ -1718,10 +1786,14 @@ class Utilities {
     };
 
     // get disk space
-    get_disk_space(href) {
+    get_disk_space(href, sender = null) {
+
+        const target = sender && !sender.isDestroyed() ? sender : win;
 
         if (href === '' || href === undefined) {
-            win.send('set_msg', `Error: get_disk_space href is not valid ${href}`);
+            if (target && !target.isDestroyed()) {
+                target.send('set_msg', `Error: get_disk_space href is not valid ${href}`);
+            }
             return;
         }
 
@@ -1733,7 +1805,9 @@ class Utilities {
             }
             let df = [];
             df.push(options);
-            win.send('disk_space', df);
+            if (target && !target.isDestroyed()) {
+                target.send('disk_space', df);
+            }
 
         } catch (err) {
             // console.log(err); // commented out for non-error logging
@@ -2243,17 +2317,28 @@ class NetworkManager {
 // listen for ls event
 ipcMain.on('ls', (e, location, add_tab = false) => {
 
+    const sender_window = BrowserWindow.fromWebContents(e.sender);
+    const sender_window_id = sender_window ? sender_window.id : null;
+
     if (location === '' || location === undefined) {
-        win.send('set_msg', 'Location is null or undefined');
+        if (sender_window && !sender_window.isDestroyed()) {
+            sender_window.webContents.send('set_msg', 'Location is null or undefined');
+        } else {
+            win.send('set_msg', 'Location is null or undefined');
+        }
         return;
     }
 
     if (add_tab !== true && add_tab !== false) {
-        win.send('set_msg', 'the add_tab parameter needs to be true or false');
+        if (sender_window && !sender_window.isDestroyed()) {
+            sender_window.webContents.send('set_msg', 'the add_tab parameter needs to be true or false');
+        } else {
+            win.send('set_msg', 'the add_tab parameter needs to be true or false');
+        }
         return;
     }
 
-    fileManager.get_ls(location, add_tab);
+    fileManager.get_ls(location, add_tab, sender_window_id, e.sender);
 
 })
 
@@ -2316,6 +2401,9 @@ class FileManager {
         // listen for message from worker
         this.ls_worker.on('message', (data) => {
 
+            const target_window = Number.isInteger(data.window_id) ? BrowserWindow.fromId(data.window_id) : null;
+            const target_sender = target_window && !target_window.isDestroyed() ? target_window.webContents : null;
+
             const cmd = data.cmd;
             switch (cmd) {
                 case 'ls_done':
@@ -2323,12 +2411,20 @@ class FileManager {
                     // console.log('ls_done')
 
                     // send ls data to renderer
-                    win.send('ls_done', data.files_arr, data.add_tab);
+                    if (target_sender) {
+                        target_sender.send('ls_done', data.files_arr, data.add_tab);
+                    } else {
+                        win.send('ls_done', data.files_arr, data.add_tab);
+                    }
 
                     // watcherManager.watch(this.location);
                     break;
                 case 'set_msg':
-                    win.send('set_msg', data.msg);
+                    if (target_sender) {
+                        target_sender.send('set_msg', data.msg);
+                    } else {
+                        win.send('set_msg', data.msg);
+                    }
                     break;
                 default:
                     break;
@@ -2353,23 +2449,31 @@ class FileManager {
     }
 
     // return file from get_files
-    get_ls(location, add_tab) {
+    get_ls(location, add_tab, window_id = null, sender = null) {
+
+        const target = sender && !sender.isDestroyed() ? sender : win;
 
         // console.log('get_ls location', location);
 
         if (location === '' || location === undefined) {
-            win.send('set_msg', 'Location is null or undefined');
+            if (target && !target.isDestroyed()) {
+                target.send('set_msg', 'Location is null or undefined');
+            }
             return;
         }
 
         if (add_tab !== true && add_tab !== false) {
-            win.send('set_msg', 'the add_tab parameter needs to be true or false');
+            if (target && !target.isDestroyed()) {
+                target.send('set_msg', 'the add_tab parameter needs to be true or false');
+            }
             return;
         }
 
         // Check if special location
         if (location === 'Dashboard') {
-            win.send('get_dashboard_view');
+            if (target && !target.isDestroyed()) {
+                target.send('get_dashboard_view');
+            }
             return;
         }
 
@@ -2382,7 +2486,9 @@ class FileManager {
                 location = this.location;
             } else {
                 this.location = this.location0;
-                win.send('set_msg', `Error: Could not find ${location}`);
+                if (target && !target.isDestroyed()) {
+                    target.send('set_msg', `Error: Could not find ${location}`);
+                }
                 return;
             }
         }
@@ -2392,7 +2498,8 @@ class FileManager {
         let ls_data = {
             cmd: 'ls',
             location: this.location,
-            add_tab: add_tab
+            add_tab: add_tab,
+            window_id: window_id
         }
 
         this.ls_worker.postMessage(ls_data);
@@ -2411,11 +2518,12 @@ class FileManager {
     }
 
     // get files
-    get_files(location) {
+    get_files(location, window_id = null) {
         this.location = location
         this.ls_worker.postMessage({
             cmd: 'ls',
-            location: location
+            location: location,
+            window_id: window_id
         });
     }
 
@@ -2523,26 +2631,34 @@ class PropertiesManager {
 
     constructor() {
 
+        this.properties_sender = null;
+
         // setup properties worker
         this.properties_worker = new worker.Worker(path.join(__dirname, '../workers/properties_worker.js'));
 
         // listen for message from properties worker
         this.properties_worker.on('message', (data) => {
+            const target = this.properties_sender && !this.properties_sender.isDestroyed() ? this.properties_sender : win;
             switch (data.cmd) {
                 case 'properties':
                     // call send_properties method
-                    this.send_properties(data.properties_arr);
+                    this.send_properties(data.properties_arr, target);
                     break;
                 case 'set_msg':
-                    win.send('set_msg', data.msg);
+                    if (target && !target.isDestroyed()) {
+                        target.send('set_msg', data.msg);
+                    }
                     break;
                 default:
                     break;
             }
+
+            this.properties_sender = null;
         });
 
         // listen for get properties from preload.js
         ipcMain.on('get_properties', (e, selected_files_arr) => {
+            this.properties_sender = e.sender;
             this.get_properties(selected_files_arr);
         })
 
@@ -2560,8 +2676,11 @@ class PropertiesManager {
     }
 
     // send properties array to renderer
-    send_properties(properties_arr) {
-        win.send('properties', properties_arr);
+    send_properties(properties_arr, target = null) {
+        const destination = target && !target.isDestroyed() ? target : win;
+        if (destination && !destination.isDestroyed()) {
+            destination.send('properties', properties_arr);
+        }
     }
 
 }
@@ -2634,11 +2753,20 @@ class WindowManager {
 
     }, 250);
 
+    prune_closed_windows() {
+        this.windows = this.windows.filter((wnd) => wnd && !wnd.isDestroyed());
+    }
+
     // Create main window
-    create_main_window() {
+    create_main_window(source_window = null) {
+
+        this.prune_closed_windows();
 
         let displayToUse = 0;
-        let lastActive = 0;
+        let lastActive = BrowserWindow.getFocusedWindow();
+        if (!lastActive || lastActive.isDestroyed()) {
+            lastActive = source_window && !source_window.isDestroyed() ? source_window : 0;
+        }
         let displays = screen.getAllDisplays();
 
         // Single Display
@@ -2657,13 +2785,29 @@ class WindowManager {
             }
         }
 
-        if (this.window_settings.window.x == 0) {
-            this.window_settings.window.x = displayToUse.bounds.x + 50
+        const cascade_offset = 30;
+        let next_x = this.window_settings.window.x;
+        let next_y = this.window_settings.window.y;
+
+        if (lastActive && !lastActive.isDestroyed()) {
+            const source_bounds = lastActive.getBounds();
+            next_x = source_bounds.x + cascade_offset;
+            next_y = source_bounds.y + cascade_offset;
+        } else {
+            if (next_x === 0) {
+                next_x = displayToUse.bounds.x + 50;
+            }
+
+            if (next_y === 0) {
+                next_y = displayToUse.bounds.y + 50;
+            }
         }
 
-        if (this.window_settings.window.y == 0) {
-            this.window_settings.window.y = displayToUse.bounds.y + 50
-        }
+        // Keep new window inside the chosen display when cascading near edges.
+        const max_x = displayToUse.bounds.x + Math.max(0, displayToUse.workArea.width - this.window_settings.window.width);
+        const max_y = displayToUse.bounds.y + Math.max(0, displayToUse.workArea.height - this.window_settings.window.height);
+        next_x = Math.min(Math.max(next_x, displayToUse.bounds.x), max_x);
+        next_y = Math.min(Math.max(next_y, displayToUse.bounds.y), max_y);
 
         let app_icon = path.join(__dirname, '..', 'assets', 'icons', 'icon.png')
 
@@ -2675,8 +2819,8 @@ class WindowManager {
             width: this.window_settings.window.width,
             height: this.window_settings.window.height,
             backgroundColor: '#2e2c29',
-            x: this.window_settings.window.x,
-            y: this.window_settings.window.y,
+            x: next_x,
+            y: next_y,
             frame: false, // Hide native title bar
             titleBarStyle: 'hidden',
             webPreferences: {
@@ -2693,34 +2837,6 @@ class WindowManager {
 
         // hide menu
         window.setMenuBarVisibility(false);
-
-        // IPC handlers for custom title bar controls
-        // IPC handlers for custom title bar controls
-        ipcMain.on('window-minimize', () => {
-            window.minimize();
-        });
-        ipcMain.on('window-maximize', () => {
-            if (window.isMaximized()) {
-                window.unmaximize();
-            } else {
-                window.maximize();
-            }
-        });
-        ipcMain.on('window-close', () => {
-            window.close();
-        });
-
-        // IPC handlers for menu actions
-        ipcMain.on('toggle-devtools', () => {
-            if (window.webContents.isDevToolsOpened()) {
-                window.webContents.closeDevTools();
-            } else {
-                window.webContents.openDevTools({ mode: 'detach' });
-            }
-        });
-        ipcMain.on('toggle-fullscreen', () => {
-            window.setFullScreen(!window.isFullScreen());
-        });
 
         // window.on('move', this.updateBounds);   // macOS drags
         // window.on('resize', this.updateBounds); // All platforms (fires during Windows drags)
@@ -2754,7 +2870,30 @@ class WindowManager {
         window.loadFile('src/renderer/index.html');
         // window.webContents.openDevTools({ mode: 'detach' });
         this.windows.push(window);
+
+        window.on('closed', () => {
+            this.prune_closed_windows();
+        });
+
         return window;
+    }
+
+    open_new_window(location = '', source_window = null) {
+
+        const newWindow = this.create_main_window(source_window);
+
+        const requested_location = typeof location === 'string' ? location.trim() : '';
+        if (!requested_location) {
+            return newWindow;
+        }
+
+        newWindow.webContents.once('did-finish-load', () => {
+            if (!newWindow.isDestroyed()) {
+                newWindow.webContents.send('get_files', requested_location);
+            }
+        });
+
+        return newWindow;
     }
 
 }
@@ -3050,7 +3189,7 @@ class MenuManager {
                 {
                     label: 'New Window',
                     click: () => {
-                        createWindow(f.href);
+                        windowManager.open_new_window(f.href);
                     }
                 },
                 {
@@ -3532,7 +3671,7 @@ class MenuManager {
             {
                 label: 'Open in New Window',
                 click: () => {
-                    createWindow(location);
+                    windowManager.open_new_window(location);
                 }
             }
         ]
@@ -3889,6 +4028,61 @@ const watcher = new Watcher();
 // Create main window
 let win;
 app.on('ready', () => {
+    const get_sender_window = (event) => {
+        const sender_window = BrowserWindow.fromWebContents(event.sender);
+        if (!sender_window || sender_window.isDestroyed()) {
+            return null;
+        }
+        return sender_window;
+    };
+
+    ipcMain.on('window-minimize', (event) => {
+        const sender_window = get_sender_window(event);
+        if (sender_window) {
+            sender_window.minimize();
+        }
+    });
+
+    ipcMain.on('window-maximize', (event) => {
+        const sender_window = get_sender_window(event);
+        if (!sender_window) {
+            return;
+        }
+
+        if (sender_window.isMaximized()) {
+            sender_window.unmaximize();
+        } else {
+            sender_window.maximize();
+        }
+    });
+
+    ipcMain.on('window-close', (event) => {
+        const sender_window = get_sender_window(event);
+        if (sender_window) {
+            sender_window.close();
+        }
+    });
+
+    ipcMain.on('toggle-devtools', (event) => {
+        const sender_window = get_sender_window(event);
+        if (!sender_window) {
+            return;
+        }
+
+        if (sender_window.webContents.isDevToolsOpened()) {
+            sender_window.webContents.closeDevTools();
+        } else {
+            sender_window.webContents.openDevTools({ mode: 'detach' });
+        }
+    });
+
+    ipcMain.on('toggle-fullscreen', (event) => {
+        const sender_window = get_sender_window(event);
+        if (sender_window) {
+            sender_window.setFullScreen(!sender_window.isFullScreen());
+        }
+    });
+
     // Register get_app_versions handler
     ipcMain.handle('get_app_versions', () => {
         return {
@@ -3907,7 +4101,7 @@ app.on('ready', () => {
     if (is_first_run == 1 || !settings.location || settings.location === '') {
 
         // fileManager.location = utilities.home_dir;
-        fileManager.get_ls(settings.location, true);
+        fileManager.get_ls(fileManager.location || utilities.home_dir, true);
         is_first_run = 0;
 
         console.log('running get_ls', fileManager.location);
@@ -3926,8 +4120,21 @@ app.on('ready', () => {
     });
 
     // listen for window reload
-    ipcMain.on('reload', () => {
-        win.reload();
+    ipcMain.on('reload', (event) => {
+        const sender_window = BrowserWindow.fromWebContents(event.sender);
+        if (sender_window && !sender_window.isDestroyed()) {
+            sender_window.reload();
+            return;
+        }
+
+        if (win && !win.isDestroyed()) {
+            win.reload();
+        }
+    });
+
+    ipcMain.on('new-window', (event, location) => {
+        const sender_window = BrowserWindow.fromWebContents(event.sender);
+        windowManager.open_new_window(location, sender_window);
     });
 
     // Start native file drag so files can be dropped into external applications.

@@ -33,6 +33,13 @@ window.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('click', (e) => {
             const action = el.getAttribute('data-action');
             switch (action) {
+                case 'new-window': {
+                    const currentLocation = (window.utilities && typeof window.utilities.get_location === 'function')
+                        ? window.utilities.get_location()
+                        : (document.querySelector('.location')?.value || '');
+                    ipcRenderer.send('new-window', currentLocation);
+                    break;
+                }
                 case 'reload':
                     location.reload();
                     break;

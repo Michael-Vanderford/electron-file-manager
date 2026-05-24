@@ -3251,6 +3251,9 @@ class SideBarManager {
                         }
                         break;
                     case 'Dashboard':
+                        settingsManager.set_location('Dashboard');
+                        utilities.set_location('Dashboard');
+                        utilities.get_breadcrumbs('Dashboard');
                         fileManager.get_dashboard_view();
                         break;
                     default:
@@ -3386,6 +3389,12 @@ class KeyBoardManager {
                 e.preventDefault();
                 e.stopPropagation();
                 if (fileManager && typeof fileManager.get_find_view === 'function') {
+
+                    let active_tab_content = tabManager.get_active_tab_content();
+                    if (active_tab_content && active_tab_content.querySelector('.dashboard_view')) {
+                        return;
+                    }
+
                     fileManager.get_find_view();
                 }
                 return;
@@ -5011,6 +5020,10 @@ class FileManager {
     }
 
     toggle_find_view() {
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (active_tab_content && active_tab_content.querySelector('.dashboard_view')) {
+            return;
+        }
         if (this.close_find_view()) {
             return;
         }
@@ -5949,6 +5962,10 @@ class FileManager {
 
         console.log('getting dash view')
 
+        this.location = 'Dashboard';
+        settingsManager.set_location(this.location);
+        utilities.set_location(this.location);
+
         let active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content) {
 
@@ -6150,6 +6167,8 @@ class FileManager {
 
     // Find View
     get_find_view() {
+
+        console.log('getting find view')
 
         const active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content) {

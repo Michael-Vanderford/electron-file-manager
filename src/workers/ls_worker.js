@@ -30,14 +30,15 @@ class FileManager {
 
     }
 
-    get_files(location, add_tab) {
-        
+    get_files(location, add_tab, window_id = null) {
+
         gio.ls(location, (err, dirents) => {
 
             if (err) {
                 parentPort.postMessage({
                     cmd: 'set_msg',
-                    msg: err
+                    msg: err,
+                    window_id: window_id
                 });
                 return;
             }
@@ -50,14 +51,16 @@ class FileManager {
                 } catch (err) {
                     parentPort.postMessage({
                         cmd: 'set_msg',
-                        msg: err
+                        msg: err,
+                        window_id: window_id
                     });
                 }
             });
             parentPort.postMessage({
                 cmd: 'ls_done',
                 files_arr: files_arr,
-                add_tab: add_tab
+                add_tab: add_tab,
+                window_id: window_id
             });
         });
     }
@@ -74,7 +77,7 @@ if (!isMainThread) {
 
             // List files in directory
             case 'ls':
-                fileManager.get_files(data.location, data.add_tab);
+                fileManager.get_files(data.location, data.add_tab, data.window_id);
                 break;
 
             // Get folder size for properties view.
