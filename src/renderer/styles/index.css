@@ -835,6 +835,11 @@ hr {
     background-color: #3794ff !important;
 }
 
+.sidebar.sidebar_collapsed,
+.sidebar_draghandle.sidebar_collapsed {
+    display: none;
+}
+
 .workspace_view {
     /* height: 100vh; */
 }
@@ -1569,9 +1574,28 @@ tr {
 
 .chart-container {
     width: 100%;
-    height: 100px;
-    max-width: 250px;
+    height: 84px;
+    max-width: 210px;
     margin: 0 auto;
+}
+
+.chart-container .chart-title {
+    display: block;
+    text-align: center;
+    margin-bottom: 4px;
+    color: var(--text);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+a.chart-title {
+    cursor: pointer;
+}
+
+a.chart-title:hover {
+    text-decoration: underline;
 }
 
 .grid_view {

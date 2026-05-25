@@ -3168,6 +3168,8 @@ class SideBarManager {
 
         this.is_resizing = false;
         // console.log('is_resizing', this.is_resizing)
+        this.sidebar_collapsed = false;
+        this.last_sidebar_width = 300;
 
         this.home_view = utilities.add_div(['home_view']);
         this.workspace_view = utilities.add_div(['workspace_view']);
@@ -3297,7 +3299,54 @@ class SideBarManager {
         let window_settings = ipcRenderer.sendSync('get_window_settings');
         if (window_settings.sidebar_width) {
             this.sidebar.style.width = `${window_settings.sidebar_width}px`;
+            this.last_sidebar_width = window_settings.sidebar_width;
         }
+
+        if (window_settings.sidebar_collapsed) {
+            this.toggle_sidebar(true);
+        }
+    }
+
+    toggle_sidebar(force_collapsed = null) {
+        if (!this.sidebar) {
+            return;
+        }
+
+        if (!this.drag_handle) {
+            this.drag_handle = document.querySelector('.sidebar_draghandle');
+        }
+
+        const next_collapsed = force_collapsed === null ? !this.sidebar_collapsed : !!force_collapsed;
+        this.sidebar_collapsed = next_collapsed;
+
+        if (next_collapsed) {
+            this.last_sidebar_width = this.sidebar.offsetWidth || this.last_sidebar_width || 300;
+            this.sidebar.classList.add('sidebar_collapsed');
+            if (this.drag_handle) {
+                this.drag_handle.classList.add('sidebar_collapsed');
+            }
+            this.main.classList.remove('margin_left');
+            this.main.style.width = '100%';
+        } else {
+            this.sidebar.classList.remove('sidebar_collapsed');
+            if (this.drag_handle) {
+                this.drag_handle.classList.remove('sidebar_collapsed');
+            }
+
+            const window_settings = ipcRenderer.sendSync('get_window_settings');
+            const restored_width = this.last_sidebar_width || window_settings.sidebar_width || 300;
+            this.sidebar.style.width = `${restored_width}px`;
+
+            // Let flex layout recompute main width naturally after restoring sidebar.
+            this.main.style.width = '';
+        }
+
+        const window_settings = ipcRenderer.sendSync('get_window_settings');
+        window_settings.sidebar_collapsed = this.sidebar_collapsed;
+        if (!this.sidebar_collapsed) {
+            window_settings.sidebar_width = this.sidebar.offsetWidth || this.last_sidebar_width || window_settings.sidebar_width;
+        }
+        ipcRenderer.send('update_window_settings', window_settings);
     }
 
     // handle sidebar resize
@@ -3382,6 +3431,28 @@ class KeyBoardManager {
                 e.preventDefault();
                 e.stopPropagation();
                 utilities.show_location_input();
+            }
+
+            // ctrl + b to toggle sidebar
+            if (e.ctrlKey && e.key.toLocaleLowerCase() === 'b') {
+                const active = document.activeElement;
+                const is_input_like = active && (
+                    active.tagName === 'INPUT' ||
+                    active.tagName === 'TEXTAREA' ||
+                    active.isContentEditable
+                );
+
+                if (is_input_like) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (sideBarManager && typeof sideBarManager.toggle_sidebar === 'function') {
+                    sideBarManager.toggle_sidebar();
+                }
+                return;
             }
 
             // ctrl/cmd + f to toggle find form
@@ -6117,12 +6188,35 @@ class FileManager {
         const container = document.createElement('div');
         container.className = 'chart-container';
         container.style.width = '100%';
-        container.style.height = '100px';
+        container.style.height = '84px';
         container.style.position = 'relative';
 
+        const chartTitle = document.createElement(stats?.href ? 'a' : 'span');
+        chartTitle.className = 'chart-title';
+        chartTitle.textContent = stats?.display_name || 'Unknown';
+        if (stats?.href) {
+            chartTitle.href = stats.href;
+            chartTitle.title = stats.href;
+            chartTitle.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (e.ctrlKey) {
+                    tabManager.add_tab(stats.href);
+                    this.get_files(stats.href);
+                } else {
+                    this.get_files(stats.href);
+                    tabManager.add_tab_history(stats.href);
+                }
+
+                utilities.set_location(stats.href);
+            });
+        }
+        container.appendChild(chartTitle);
+
         let chartCanvas = document.createElement('canvas');
-        chartCanvas.width = 250;
-        chartCanvas.height = 100;
+        chartCanvas.width = 210;
+        chartCanvas.height = 84;
         container.appendChild(chartCanvas);
 
         const chart = new Chart(chartCanvas, {
@@ -6143,7 +6237,7 @@ class FileManager {
                         boxHeight: 0
                     }
                 },
-                title: { display: true, text: stats.display_name },
+                title: { display: false, text: '' },
                 tooltip: {
                     callbacks: {
                         label: (ctx) => {
@@ -6157,7 +6251,7 @@ class FileManager {
         });
 
         const ro = new ResizeObserver(() => {
-            chart.resize(container.offsetWidth, 100);
+            chart.resize(container.offsetWidth, 84);
         });
         ro.observe(container);
 
