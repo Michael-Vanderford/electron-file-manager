@@ -5,7 +5,7 @@
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",
     "scripts": {
-        "start": "electron . --no-sandbox",
+        "start": "electron . --ozone-platform=x11 --no-sandbox",
         "build": "npx electron-builder --linux",
         "test": "node"
     },

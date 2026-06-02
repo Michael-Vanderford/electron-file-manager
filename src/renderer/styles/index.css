@@ -1572,19 +1572,58 @@ tr {
     box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
 }
 
+.dashboard_view .overview {
+    gap: 12px;
+    align-items: stretch;
+}
+
 .chart-container {
     width: 100%;
-    height: 84px;
-    max-width: 210px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .chart-container .chart-title {
     display: block;
     text-align: center;
-    margin-bottom: 4px;
+    margin-bottom: 0;
     color: var(--text);
     text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chart-container .chart-frame {
+    position: relative;
+    width: 100%;
+    height: clamp(45px, 7.5vw, 61px);
+    min-height: 45px;
+    max-height: 61px;
+}
+
+.chart-container .chart-frame canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.chart-container .chart-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    color: var(--text);
+    opacity: 0.85;
+}
+
+.chart-container .chart-meta span {
+    display: inline-block;
+    max-width: 50%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

@@ -2601,7 +2601,7 @@ function get_recent_files_arr() {
 
 
         // console.log('res', res);
-        if (res.xbel && res.xbel.bookmark.length > 0) {
+        if (res.xbel && res.xbel.bookmark && res.xbel.bookmark.length > 0) {
             res.xbel.bookmark.forEach(b => {
                 try {
                     let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
