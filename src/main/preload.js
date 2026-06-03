@@ -2062,7 +2062,6 @@ class DragSelect {
                         utilities.set_msg(`Move items to ${item.dataset.href}`);
                     }
                     utilities.set_destination(item.dataset.href);
-                    utilities.set_msg(`Destination: ${item.dataset.href}`);
                 } else {
                     if (e.ctrlKey) {
                         e.dataTransfer.dropEffect = "copy";
@@ -3315,10 +3314,11 @@ class SideBarManager {
 
         // resize sidebar width
         let window_settings = ipcRenderer.sendSync('get_window_settings');
-        if (window_settings.sidebar_width) {
-            this.sidebar.style.width = `${window_settings.sidebar_width}px`;
-            this.last_sidebar_width = window_settings.sidebar_width;
-        }
+        const saved_sidebar_width = Number(window_settings.sidebar_width);
+        const has_valid_sidebar_width = Number.isFinite(saved_sidebar_width) && saved_sidebar_width >= 180;
+        const initial_sidebar_width = has_valid_sidebar_width ? saved_sidebar_width : this.last_sidebar_width;
+        this.sidebar.style.width = `${initial_sidebar_width}px`;
+        this.last_sidebar_width = initial_sidebar_width;
 
         if (window_settings.sidebar_collapsed) {
             this.toggle_sidebar(true);
@@ -3375,6 +3375,8 @@ class SideBarManager {
         // Get the initial widths of sidebar and main divs
         this.initialSidebarWidth = this.sidebar.offsetWidth;
         this.initialMainWidth = this.main.offsetWidth;
+        this.newSidebarWidth = this.initialSidebarWidth;
+        this.newMainWidth = this.initialMainWidth;
         // Get the initial mouse position
         this.initialMousePos = e.clientX;
         this.main.classList.add('margin_left');
@@ -3404,9 +3406,13 @@ class SideBarManager {
 
         this.is_resizing = false;
 
+        const resolved_sidebar_width = Math.max(this.newSidebarWidth || this.sidebar.offsetWidth || this.initialSidebarWidth || this.last_sidebar_width || 300, 180);
+        const resolved_main_width = this.main.offsetWidth || this.newMainWidth || this.initialMainWidth;
+        this.last_sidebar_width = resolved_sidebar_width;
+
         let window_settings = ipcRenderer.sendSync('get_window_settings');
-        window_settings.sidebar_width = this.newSidebarWidth;
-        window_settings.main_width = this.newMainWidth;
+        window_settings.sidebar_width = resolved_sidebar_width;
+        window_settings.main_width = resolved_main_width;
         ipcRenderer.send('update_window_settings', window_settings);
 
         // console.log('window settings', window_settings);
