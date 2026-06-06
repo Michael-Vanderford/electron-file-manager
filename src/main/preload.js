@@ -2316,7 +2316,7 @@ class DragSelect {
         }
 
         if (scrollSpeed === 0) {
-            // Mouse is not in a scroll zone — cancel any running loop
+            // Mouse is not in a scroll zone - cancel any running loop
             if (this._autoScrollId) {
                 cancelAnimationFrame(this._autoScrollId);
                 this._autoScrollId = null;
@@ -2324,7 +2324,7 @@ class DragSelect {
             return;
         }
 
-        // Already have a loop running — just update the speed
+        // Already have a loop running - just update the speed
         this._autoScrollSpeed = scrollSpeed;
         if (this._autoScrollId) return;
 
@@ -2610,7 +2610,7 @@ class DeviceManager {
         // If path is empty string, then assume it's unmounted
         if (device.path === '') {
 
-            // not mounted — hide eject button
+            // not mounted - hide eject button
             umount_div.classList.add('hidden');
             umount_div.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -3316,13 +3316,21 @@ class SideBarManager {
         let window_settings = ipcRenderer.sendSync('get_window_settings');
         const saved_sidebar_width = Number(window_settings.sidebar_width);
         const has_valid_sidebar_width = Number.isFinite(saved_sidebar_width) && saved_sidebar_width >= 180;
-        const initial_sidebar_width = has_valid_sidebar_width ? saved_sidebar_width : this.last_sidebar_width;
+        // const initial_sidebar_width = has_valid_sidebar_width ? saved_sidebar_width : this.last_sidebar_width;
+        const initial_sidebar_width = has_valid_sidebar_width ? saved_sidebar_width : 300;
+
         this.sidebar.style.width = `${initial_sidebar_width}px`;
         this.last_sidebar_width = initial_sidebar_width;
 
+        this.main.style.width = Number(window_settings.main_width);;
+
+        this.is_initializing = true;
         if (window_settings.sidebar_collapsed) {
             this.toggle_sidebar(true);
         }
+
+        // End initialization phase
+        setTimeout(() => { this.is_initializing = false; }, 100);
     }
 
     toggle_sidebar(force_collapsed = null) {
@@ -3352,7 +3360,7 @@ class SideBarManager {
             }
 
             const window_settings = ipcRenderer.sendSync('get_window_settings');
-            const restored_width = this.last_sidebar_width || window_settings.sidebar_width || 300;
+            const restored_width = Number(window_settings.sidebar_width) || this.last_sidebar_width || 300;
             this.sidebar.style.width = `${restored_width}px`;
 
             // Let flex layout recompute main width naturally after restoring sidebar.
@@ -3362,9 +3370,14 @@ class SideBarManager {
         const window_settings = ipcRenderer.sendSync('get_window_settings');
         window_settings.sidebar_collapsed = this.sidebar_collapsed;
         if (!this.sidebar_collapsed) {
-            window_settings.sidebar_width = this.sidebar.offsetWidth || this.last_sidebar_width || window_settings.sidebar_width;
+            // Use the pure tracked width instead of offsetWidth to prevent CSS border/padding drift
+            window_settings.sidebar_width = this.last_sidebar_width || window_settings.sidebar_width;
         }
-        ipcRenderer.send('update_window_settings', window_settings);
+
+        // Prevent clobbering settings during the initial bootstrap phase (refresh/start)
+        if (!this.is_initializing) {
+            ipcRenderer.send('update_window_settings', window_settings);
+        }
     }
 
     // handle sidebar resize
@@ -3415,7 +3428,9 @@ class SideBarManager {
         window_settings.main_width = resolved_main_width;
         ipcRenderer.send('update_window_settings', window_settings);
 
-        // console.log('window settings', window_settings);
+        this.window_settings = window_settings;
+
+        console.log('window settings', window_settings);
 
 
     }
@@ -5341,38 +5356,43 @@ class FileManager {
     // run filter
     run_filer() {
 
-    // Accept event for direct value, fallback to DOM if not provided
-    let filterValue = '';
-    if (arguments.length > 0 && arguments[0] && arguments[0].target) {
-        filterValue = arguments[0].target.innerText;
-    } else {
-        filterValue = this.filter.innerText;
-    }
-    this.quick_search_sting = filterValue;
-    this.filter.focus();
+        // Accept event for direct value, fallback to DOM if not provided
+        let filterValue = '';
+        if (arguments.length > 0 && arguments[0] && arguments[0].target) {
+            filterValue = arguments[0].target.innerText;
+        } else {
+            filterValue = this.filter.innerText;
+        }
+        this.quick_search_sting = filterValue;
+        this.filter.focus();
 
-    if (this.quick_search_sting === '') {
-        this.clear_filter();
-    } else {
-        this.filter.classList.add('active');
-    }
+        if (this.quick_search_sting === '') {
+            this.clear_filter();
+        } else {
+            this.filter.classList.add('active');
+        }
 
-    if (!this.specialKeys.includes(this.quick_search_sting) && this.quick_search_sting.match(/[a-z0-9-_.]/i)) {
-        let active_tab_content = document.querySelector('.active-tab-content');
-        let items = active_tab_content.querySelectorAll('.card');
-        items.forEach((item) => {
-            if (item.dataset.name.toLocaleLowerCase().includes(this.quick_search_sting)) {
-                item.classList.remove('hidden');
-            } else {
-                item.classList.remove('highlight_select');
-                item.classList.add('hidden');
-            }
-        });
-        // reset nav idx for up down navigation
-        // navigation.clearNavIdx();
-        // set indexes for up down navigation
-        // navigation.getCardGroups();
-    }
+        if (!this.specialKeys.includes(this.quick_search_sting) && this.quick_search_sting.match(/[a-z0-9-_.]/i)) {
+
+            let active_tab_content = document.querySelector('.active-tab-content');
+
+
+
+            let items = active_tab_content.querySelectorAll('.card');
+            items.forEach((item) => {
+                if (item.closest('.dashboard_workspace_view')) return;
+                if (item.dataset.name.toLocaleLowerCase().includes(this.quick_search_sting)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.remove('highlight_select');
+                    item.classList.add('hidden');
+                }
+            });
+            // reset nav idx for up down navigation
+            // navigation.clearNavIdx();
+            // set indexes for up down navigation
+            // navigation.getCardGroups();
+        }
 
     }
 
@@ -5978,7 +5998,7 @@ class FileManager {
 
                     switch (key) {
                         case 'size':
-                            item.innerHTML = f.is_dir ? '—' : utilities.get_file_size(f["size"]);
+                            item.innerHTML = f.is_dir ? '-' : utilities.get_file_size(f["size"]);
                             break;
                         case 'mtime':
                             item.innerHTML = utilities.get_date_time(f.mtime);
@@ -6011,7 +6031,7 @@ class FileManager {
         if (f.is_dir || f.type === 'inode/directory') {
 
             ipcRenderer.send('get_folder_icon', f.href);
-            ipcRenderer.send('get_folder_size', f.href);
+            // ipcRenderer.send('get_folder_size', f.href);
 
             card.classList.add('folder_card');
 
@@ -6176,6 +6196,7 @@ class FileManager {
                 for (let i = 0; i < recent_folders.length; ++i) {
                     let card = this.get_view_item(recent_folders[i]);
                     recent_folders_div.appendChild(card);
+                    ipcRenderer.send('get_folder_size', recent_folders[i].href);
                 }
                 recent_folders_view.append(recent_folders_div);
                 utilities.lazy_load_icons(recent_folders_view);
@@ -6222,6 +6243,7 @@ class FileManager {
                 for (let i = 0; i < workspace_arr.length; ++i) {
                     let card = this.get_view_item(workspace_arr[i]);
                     workspace_view_div.appendChild(card);
+                    ipcRenderer.send('get_folder_size', workspace_arr[i].href);
                 }
 
                 utilities.lazy_load_icons(workspace_view_div);
@@ -8991,6 +9013,7 @@ function init() {
 
     // Expose utilities to window for use in other renderer scripts (e.g., titlebar.js)
     window.utilities = utilities;
+    window.sideBarManager = sideBarManager;
 
 }
 

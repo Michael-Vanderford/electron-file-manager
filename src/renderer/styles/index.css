@@ -1070,7 +1070,7 @@ tr {
     scroll-behavior: smooth;
     overflow: auto;
     overflow-x: hidden;
-    width: 100%;
+    flex: 1;
     height: 100%;
     /* border: 1px solid red; */
     /* padding-top: 1px; */
@@ -1614,7 +1614,8 @@ tr {
 
 .chart-container .chart-meta {
     display: flex;
-    justify-content: space-between;
+    /* justify-content: space-between; */
+    justify-content: center;
     align-items: center;
     gap: 10px;
     color: var(--text);

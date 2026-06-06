@@ -15,16 +15,19 @@ window.addEventListener('DOMContentLoaded', () => {
     const menuItems = titlebar.querySelectorAll('.menu-item');
     menuItems.forEach(item => {
         item.addEventListener('focus', () => {
-            item.classList.add('open');
+            // item.classList.add('open');
         });
         item.addEventListener('blur', () => {
             item.classList.remove('open');
         });
         item.addEventListener('mouseenter', () => {
-            item.classList.add('open');
+            // item.classList.add('open');
+        });
+        item.addEventListener('click', () => {
+            item.classList.toggle('open');
         });
         item.addEventListener('mouseleave', () => {
-            item.classList.remove('open');
+            // item.classList.remove('open');
         });
     });
 
@@ -40,6 +43,11 @@ window.addEventListener('DOMContentLoaded', () => {
                     ipcRenderer.send('new-window', currentLocation);
                     break;
                 }
+                case 'sidebar':
+                    if (window.sideBarManager && typeof window.sideBarManager.toggle_sidebar === 'function') {
+                        window.sideBarManager.toggle_sidebar();
+                    }
+                    break;
                 case 'reload':
                     location.reload();
                     break;

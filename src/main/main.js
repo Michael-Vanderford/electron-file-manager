@@ -476,6 +476,14 @@ class SettingsManager {
         });
     }
 
+    update_window_settings(window_settings) {
+        this.settings = {
+            ...this.settings,
+            ...window_settings
+        };
+        this.updateSettings(this.settings);
+    }
+
     // Toggle Menubar
     showMenubar() {
         let showMenubar = this.settings['File Menu']['show'];
