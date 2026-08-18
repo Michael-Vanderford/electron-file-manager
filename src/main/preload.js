@@ -4,9 +4,6 @@ const Chart = require('chart.js/auto');
 
 
 // Globals
-
-// section 1 = main content
-// section 2 = workspace
 let section = 0;
 
 class EventManager {
@@ -625,6 +622,9 @@ class Utilities {
         this.icon_request_queue = [];
         this.icon_request_in_flight = 0;
         this.max_icon_requests_in_flight = 8;
+        this.folder_size_cache_storage_key = 'efm.folder_size_cache.v1';
+        this.folder_size_cache_ttl_ms = 5 * 60 * 1000;
+        this.folder_size_cache_max_entries = 2000;
 
         this.progress_cancel_button = document.querySelector('.progress_cancel');
         if (this.progress_cancel_button) {
@@ -697,6 +697,10 @@ class Utilities {
             this.set_folder_size(folder_data);
         })
 
+        ipcRenderer.on('folder_size_invalidated', (e, payload) => {
+            this.handle_folder_size_invalidation(payload);
+        });
+
         ipcRenderer.on('cancel_edit', (e) => {
             this.cancel_edit();
         })
@@ -713,22 +717,44 @@ class Utilities {
     // set folder size
     set_folder_size(folder_data) {
 
+        const source = folder_data && typeof folder_data.source === 'string'
+            ? folder_data.source
+            : '';
+        const raw_size = Number(folder_data && folder_data.size);
+        if (!source || !Number.isFinite(raw_size) || raw_size < 0) {
+            return;
+        }
+
+        const normalized_size = Math.floor(raw_size);
+        this.set_cached_folder_size(source, normalized_size);
+
+        const matches_href = (candidate_href, target_href) => {
+            if (!candidate_href || !target_href) {
+                return false;
+            }
+
+            if (candidate_href === target_href) {
+                return true;
+            }
+
+            const trim_trailing_slash = (value) => value.replace(/\/+$/, '');
+            return trim_trailing_slash(candidate_href) === trim_trailing_slash(target_href);
+        };
+
         let tabs_content = tabManager.get_tabs_content();
         tabs_content.forEach(tab_content => {
-            let item = tab_content.querySelector(`[data-href="${folder_data.source}"]`);
-            if (!item) {
-                // console.log('no data-href found for', folder_data.source);
-                return;
-            }
-            item.dataset.size = folder_data.size;
-            let size_item = item.querySelector('.size');
-            if (size_item) {
-                const effective_size = folder_data.size <= 4096 ? 0 : folder_data.size;
-                size_item.textContent = effective_size === 0 ? '0 bytes' : this.get_file_size(effective_size);
-            } else {
-                // console.log('no .size found for', folder_data.source);
-                return;
-            }
+            const items = tab_content.querySelectorAll('[data-href]');
+            items.forEach((item) => {
+                if (!matches_href(item.dataset.href || '', source)) {
+                    return;
+                }
+
+                item.dataset.size = normalized_size;
+                const size_item = item.querySelector('.size');
+                if (size_item) {
+                    size_item.textContent = this.get_file_size(normalized_size);
+                }
+            });
         });
 
 
@@ -747,6 +773,157 @@ class Utilities {
         //     console.log('no .size found for', folder_data.source);
         //     return;
         // }
+    }
+
+    get_folder_size_cache_store() {
+        try {
+            const raw = localStorage.getItem(this.folder_size_cache_storage_key);
+            if (!raw) {
+                return {};
+            }
+
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                return {};
+            }
+
+            return parsed;
+        } catch (err) {
+            return {};
+        }
+    }
+
+    set_folder_size_cache_store(store) {
+        try {
+            localStorage.setItem(this.folder_size_cache_storage_key, JSON.stringify(store));
+        } catch (err) {
+        }
+    }
+
+    prune_folder_size_cache(store) {
+        const entries = Object.entries(store);
+        if (entries.length <= this.folder_size_cache_max_entries) {
+            return store;
+        }
+
+        entries.sort((a, b) => {
+            const a_ts = Number(a[1] && a[1].updated_at) || 0;
+            const b_ts = Number(b[1] && b[1].updated_at) || 0;
+            return b_ts - a_ts;
+        });
+
+        const pruned_entries = entries.slice(0, this.folder_size_cache_max_entries);
+        return Object.fromEntries(pruned_entries);
+    }
+
+    get_cached_folder_size(href) {
+        if (!href || typeof href !== 'string') {
+            return null;
+        }
+
+        const store = this.get_folder_size_cache_store();
+        const entry = store[href];
+        if (!entry || typeof entry !== 'object') {
+            return null;
+        }
+
+        const updated_at = Number(entry.updated_at) || 0;
+        const size = Number(entry.size);
+        const is_expired = (Date.now() - updated_at) > this.folder_size_cache_ttl_ms;
+
+        if (!Number.isFinite(size) || size < 0 || is_expired) {
+            delete store[href];
+            this.set_folder_size_cache_store(store);
+            return null;
+        }
+
+        return Math.floor(size);
+    }
+
+    set_cached_folder_size(href, size) {
+        if (!href || typeof href !== 'string') {
+            return;
+        }
+
+        const numeric_size = Number(size);
+        if (!Number.isFinite(numeric_size) || numeric_size < 0) {
+            return;
+        }
+
+        const store = this.get_folder_size_cache_store();
+        store[href] = {
+            size: Math.floor(numeric_size),
+            updated_at: Date.now()
+        };
+
+        const pruned_store = this.prune_folder_size_cache(store);
+        this.set_folder_size_cache_store(pruned_store);
+    }
+
+    clear_cached_folder_sizes(paths = []) {
+        if (!Array.isArray(paths) || paths.length === 0) {
+            return;
+        }
+
+        const store = this.get_folder_size_cache_store();
+        let has_changes = false;
+
+        paths.forEach((target_path) => {
+            if (!target_path || typeof target_path !== 'string') {
+                return;
+            }
+
+            if (Object.prototype.hasOwnProperty.call(store, target_path)) {
+                delete store[target_path];
+                has_changes = true;
+            }
+        });
+
+        if (has_changes) {
+            this.set_folder_size_cache_store(store);
+        }
+    }
+
+    handle_folder_size_invalidation(payload = {}) {
+        const paths = Array.isArray(payload && payload.paths)
+            ? payload.paths.filter((p) => typeof p === 'string' && p)
+            : [];
+
+        if (paths.length === 0) {
+            return;
+        }
+
+        this.clear_cached_folder_sizes(paths);
+
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content) {
+            return;
+        }
+
+        const matches_href = (candidate_href, target_href) => {
+            if (!candidate_href || !target_href) {
+                return false;
+            }
+
+            if (candidate_href === target_href) {
+                return true;
+            }
+
+            const trim_trailing_slash = (value) => value.replace(/\/+$/, '');
+            return trim_trailing_slash(candidate_href) === trim_trailing_slash(target_href);
+        };
+
+        const all_items = Array.from(active_tab_content.querySelectorAll('[data-href]'));
+
+        paths.forEach((folder_path) => {
+            const matches = all_items.filter((item) => {
+                return item.dataset.is_dir === 'true' && matches_href(item.dataset.href || '', folder_path);
+            });
+
+            matches.forEach((item) => {
+                this.handleFolderSize({ href: item.dataset.href, is_dir: true });
+            });
+        });
     }
 
     // get home dir
@@ -1000,15 +1177,24 @@ class Utilities {
 
     // get file size
     get_file_size(bytes) {
-        if (!bytes || bytes <= 0) {
+        if (bytes === null || bytes === undefined || bytes === '') {
+            return "—";
+        }
+
+        const size_in_bytes = Number(bytes);
+        if (!Number.isFinite(size_in_bytes) || size_in_bytes < 0) {
+            return "—";
+        }
+
+        if (size_in_bytes === 0) {
             return "0 bytes";
         }
-        if (bytes < 1024) {
-            return bytes + this.byteUnits[0]; // show raw bytes
+        if (size_in_bytes < 1024) {
+            return size_in_bytes + this.byteUnits[0]; // show raw bytes
         }
 
         let i = 0;
-        let size = bytes;
+        let size = size_in_bytes;
         while (size >= 1024 && i < this.byteUnits.length - 1) {
             size = size / 1024;
             i++;
@@ -1160,7 +1346,7 @@ class Utilities {
     }
 
     // set_msg
-    set_msg(msg) {
+    set_msg(msg, keep_visible = false) {
 
         try {
             let footer = document.querySelector('.footer');
@@ -1174,7 +1360,9 @@ class Utilities {
             msg_div.innerHTML = '';
             msg_div.innerHTML = `${msg}`;
             footer.classList.remove('footer-hidden');
-            this._start_footer_hide_timer();
+            if (!keep_visible) {
+                this._start_footer_hide_timer();
+            }
         } catch (err) {
             // console.log('set_msg error', err); // commented out for non-error logging
         }
@@ -1561,11 +1749,131 @@ class Utilities {
 
     // set progress
     set_progress(progress_data) {
-
         let progress = document.querySelector('.progress');
-        progress.classList.remove('hidden');
         let progress_status = document.querySelector('.progress_status');
-        progress_status.innerHTML = progress_data.status;
+        let progress_bar = document.querySelector('.progress_bar');
+
+        if (!progress_data || progress_data.max === 0) {
+            if (progress_status) progress_status.innerHTML = '';
+            if (progress) progress.classList.add('hidden');
+            this.current_progress_operation = null;
+            this.current_progress_can_cancel = false;
+            if (this.progress_cancel_button) {
+                this.progress_cancel_button.classList.add('hidden');
+            }
+            this.progress_history = [];
+            this.progress_start_time = null;
+            this.progress_start_bytes = null;
+            this.progress_start_operation = null;
+            this._start_footer_hide_timer();
+            return;
+        }
+
+        if (progress) progress.classList.remove('hidden');
+
+        // Reset tracking if this is a new or restarted operation
+        if (!this.progress_history ||
+            this.progress_start_operation !== progress_data.operation ||
+            (this.progress_history.length > 0 && progress_data.value < this.progress_history[0].value)) {
+            this.progress_history = [];
+            this.progress_start_bytes = progress_data.value;
+            this.progress_start_time = Date.now();
+            this.progress_start_operation = progress_data.operation;
+        }
+
+        const now = Date.now();
+        this.progress_history.push({ time: now, value: progress_data.value });
+
+        // Keep only last 5 seconds in the rolling window
+        while (this.progress_history.length > 1 && (now - this.progress_history[0].time > 5000)) {
+            this.progress_history.shift();
+        }
+
+        let speed = 0;
+        const elapsedSec = (now - this.progress_start_time) / 1000;
+        const totalTransferred = progress_data.value - this.progress_start_bytes;
+
+        // Primary: overall elapsed speed — works as soon as any bytes have moved
+        if (elapsedSec > 0.5 && totalTransferred > 0) {
+            speed = totalTransferred / elapsedSec;
+        }
+
+        // Secondary: refine with rolling-window speed once we have enough data points
+        if (this.progress_history.length >= 2) {
+            const first = this.progress_history[0];
+            const last = this.progress_history[this.progress_history.length - 1];
+            const windowSec = (last.time - first.time) / 1000;
+            const windowDiff = last.value - first.value;
+            if (windowSec > 0.2 && windowDiff > 0) {
+                // Blend window speed with overall speed (weighted toward window for responsiveness)
+                const windowSpeed = windowDiff / windowSec;
+                speed = speed > 0 ? (windowSpeed * 0.7 + speed * 0.3) : windowSpeed;
+            }
+        }
+
+        let isBytes = ['copy', 'move', 'compress', 'extract'].includes(progress_data.operation);
+        let speedText = '';
+        if (speed > 0) {
+            if (isBytes) {
+                let speedBytes = progress_data.operation === 'extract' ? speed * 1024 : speed;
+                speedText = `${this.get_file_size(speedBytes)}/s`;
+            } else if (progress_data.operation === 'delete') {
+                speedText = `${Math.round(speed)} files/s`;
+            } else {
+                speedText = `${Math.round(speed)}/s`;
+            }
+        }
+
+        let etaText = '';
+        if (speed > 0) {
+            const remaining = progress_data.max - progress_data.value;
+            const remainingSec = remaining / speed;
+            if (remainingSec <= 0) {
+                etaText = 'Time remaining: 0 seconds';
+            } else if (remainingSec < 60) {
+                const secs = Math.ceil(remainingSec);
+                etaText = `Time remaining: ${secs} ${secs === 1 ? 'second' : 'seconds'}`;
+            } else {
+                const mins = Math.floor(remainingSec / 60);
+                const secs = Math.ceil(remainingSec % 60);
+                const minStr = `${mins} ${mins === 1 ? 'minute' : 'minutes'}`;
+                const secStr = secs > 0 ? `, ${secs} ${secs === 1 ? 'second' : 'seconds'}` : '';
+                etaText = `Time remaining: ${minStr}${secStr}`;
+            }
+        } else {
+            etaText = 'Time remaining: estimating...';
+        }
+
+        let detailText = '';
+        if (isBytes) {
+            let valBytes = progress_data.operation === 'extract' ? progress_data.value * 1024 : progress_data.value;
+            let maxBytes = progress_data.operation === 'extract' ? progress_data.max * 1024 : progress_data.max;
+            detailText = `${this.get_file_size(valBytes)} of ${this.get_file_size(maxBytes)}`;
+        } else if (progress_data.operation === 'delete') {
+            detailText = `${progress_data.value} of ${progress_data.max} files`;
+        } else {
+            detailText = `${progress_data.value} of ${progress_data.max}`;
+        }
+
+        let percent = Math.round((progress_data.value / progress_data.max) * 100);
+
+        // Build compact ETA/speed prefix — most important info first so it
+        // is never clipped by the footer's limited width.
+        let statusParts = [];
+        if (percent >= 0 && percent <= 100) statusParts.push(`${percent}%`);
+        if (etaText) statusParts.push(etaText);
+        if (speedText) statusParts.push(speedText);
+        if (detailText) statusParts.push(detailText);
+
+        // Append filename as trailing context (will ellipsize first if space is tight)
+        let statusMessage = statusParts.join(' · ');
+        if (progress_data.status) {
+            statusMessage += `  —  ${progress_data.status}`;
+        }
+
+        if (progress_status) {
+            progress_status.innerHTML = statusMessage;
+        }
 
         if (progress_data.operation) {
             this.current_progress_operation = progress_data.operation;
@@ -1580,24 +1888,14 @@ class Utilities {
             }
         }
 
-        if (progress_data.max === 0) {
-            progress_status.innerHTML = '';
-            progress.classList.add('hidden');
-            this.current_progress_operation = null;
-            this.current_progress_can_cancel = false;
-            if (this.progress_cancel_button) {
-                this.progress_cancel_button.classList.add('hidden');
-            }
-            this._start_footer_hide_timer();
-        } else {
-            clearTimeout(this._footer_hide_timer);
-            let footer = document.querySelector('.footer');
-            if (footer) footer.classList.remove('footer-hidden');
-        }
+        clearTimeout(this._footer_hide_timer);
+        let footer = document.querySelector('.footer');
+        if (footer) footer.classList.remove('footer-hidden');
 
-        let progress_bar = document.querySelector('.progress_bar');
-        progress_bar.max = progress_data.max;
-        progress_bar.value = progress_data.value;
+        if (progress_bar) {
+            progress_bar.max = progress_data.max;
+            progress_bar.value = progress_data.value;
+        }
     }
 
     // lazy load icons
@@ -7708,6 +8006,23 @@ class FileManager {
     }
 
     handleFolderSize(f) {
+        if (!f || !f.href) {
+            return;
+        }
+
+        const is_dir = f.is_dir === true || f.type === 'inode/directory';
+        if (!is_dir) {
+            return;
+        }
+
+        const cached_size = utilities.get_cached_folder_size(f.href);
+        if (cached_size !== null) {
+            utilities.set_folder_size({
+                source: f.href,
+                size: cached_size
+            });
+        }
+
         ipcRenderer.send('get_folder_size', f.href);
     }
 
@@ -8566,7 +8881,7 @@ class PropertiesManager {
 
                         contents_item.textContent = this.get_contents_text(file);
 
-                        ipcRenderer.send('get_folder_size', file.href);
+                        // ipcRenderer.send('get_folder_size', file.href);
 
                     } else {
 

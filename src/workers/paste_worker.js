@@ -151,14 +151,28 @@ class Utilities {
                 // }
 
             } else {
-                // fs.copyFileSync(source, destination);
+                let file_bytes_copied = 0;
                 const res = await new Promise((resolve, reject) => {
                     gio.cp_async(source, destination, (err, result) => {
                         if (err) {
                             reject(err);
                             return;
                         }
-                        resolve(result || {});
+                        if (result.completed) {
+                            resolve(result || {});
+                        } else {
+                            file_bytes_copied = result.current_num_bytes || 0;
+                            const total_progress = bytes_copied + file_bytes_copied;
+                            let set_progress_data = {
+                                cmd: 'set_progress',
+                                operation: 'copy',
+                                can_cancel: true,
+                                status: `Copying ${f.name}`,
+                                max: max,
+                                value: Math.min(total_progress, max)
+                            };
+                            parentPort.postMessage(set_progress_data);
+                        }
                     });
                 }).catch((err) => {
                     let remove_card = {
@@ -180,15 +194,7 @@ class Utilities {
                     continue;
                 }
 
-                if (res.bytes_copied > 0) {
-                    bytes_copied += parseInt(res.bytes_copied);
-                } else {
-                    // Fall back to file metadata size when backend doesn't report copied bytes.
-                    const fallbackSize = parseInt(f.size);
-                    if (fallbackSize) {
-                        bytes_copied += fallbackSize;
-                    }
-                }
+                bytes_copied += file_bytes_copied || parseInt(f.size) || 0;
 
                 let set_progress = {
                     cmd: 'set_progress',

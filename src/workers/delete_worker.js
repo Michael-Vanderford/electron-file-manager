@@ -47,6 +47,10 @@ class DeleteWorker {
     }
 
     get_files_arr(source, callback) {
+
+        // this.post_message({ cmd: 'set_msg', msg: `Scanning ${source}...` }, true);
+        this.post_message({ cmd: 'set_msg', msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning files for delete...` }, true);
+
         if (this.cancel_requested) {
             return callback(null, []);
         }
@@ -159,8 +163,9 @@ class DeleteWorker {
         this.deleted_files = 0;
         this.total_files = 0;
 
-        // Show visible progress while counting files on slow filesystems (for example SMB shares).
-        this.send_progress(`Scanning ${delete_arr.length} items`, 0, 1);
+        // Show a plain status message while counting files — no ETA yet.
+        // this.post_message({ cmd: 'set_msg', msg: `Scanning ${delete_arr.length} item${delete_arr.length !== 1 ? 's' : ''}...</i>` });
+        this.post_message({ cmd: 'set_msg', msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning ${delete_arr.length}</i>`}, true);
 
         for (const item of delete_arr) {
             if (this.cancel_requested) {
@@ -194,6 +199,11 @@ class DeleteWorker {
         }
 
         const scan_elapsed_ms = Date.now() - scan_start;
+        // format scan_elapsed_ms to minutes, seconds, milliseconds
+        const minutes = Math.floor(scan_elapsed_ms / 60000);
+        const seconds = Math.floor((scan_elapsed_ms % 60000) / 1000);
+        const milliseconds = scan_elapsed_ms % 1000;
+        const formatted_scan_time = `${minutes > 0 ? minutes + 'm ' : ''}${seconds}s ${milliseconds}ms`;
         const slowest_scan = scan_timings.reduce((slowest, entry) => {
             if (!slowest || entry.ms > slowest.ms) {
                 return entry;
@@ -202,13 +212,13 @@ class DeleteWorker {
         }, null);
 
         const slowest_msg = slowest_scan
-            ? ` Slowest: ${slowest_scan.href} (${slowest_scan.ms}ms, ${slowest_scan.files} files).`
+            ? ` Slowest: ${slowest_scan.href} (${formatted_scan_time}, ${slowest_scan.files} files).`
             : '';
 
         console.log(`[delete_worker] scan completed in ${scan_elapsed_ms}ms for ${delete_arr.length} items (${this.total_files} files).${slowest_msg}`);
         this.post_message({
             cmd: 'set_msg',
-            msg: `Scan complete in ${scan_elapsed_ms}ms (${this.total_files} files). Starting delete...`
+            msg: `Scan complete in ${formatted_scan_time} (${this.total_files} files). Starting delete...`
         });
 
         if (this.total_files === 0) {
@@ -231,7 +241,7 @@ class DeleteWorker {
             return;
         }
 
-        this.send_progress(`Deleting ${delete_arr.length} items`, 0);
+        this.send_progress('Deleting', 0);
 
         for (const { item, delete_plan } of scanned_delete_plans) {
             if (this.cancel_requested) {

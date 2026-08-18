@@ -86,7 +86,8 @@ if (!isMainThread) {
 
                 if (!source) {
                     parentPort.postMessage({
-                        cmd: 'set_msg',
+                        cmd: 'folder_size_error',
+                        source,
                         msg: 'Error: invalid source path for folder size.'
                     });
                     break;
@@ -102,7 +103,8 @@ if (!isMainThread) {
                     });
                 } catch (err) {
                     parentPort.postMessage({
-                        cmd: 'set_msg',
+                        cmd: 'folder_size_error',
+                        source,
                         msg: (err && err.message) ? err.message : String(err)
                     });
                 }

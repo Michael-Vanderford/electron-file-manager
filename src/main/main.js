@@ -17,6 +17,98 @@ const { XMLParser } = require('fast-xml-parser');
 
 const file_icon_cache = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
+const MAX_FOLDER_SIZE_CACHE_ENTRIES = 2000;
+const FOLDER_SIZE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+class DirectorySizeCache {
+    constructor(max_entries = MAX_FOLDER_SIZE_CACHE_ENTRIES, ttl_ms = FOLDER_SIZE_CACHE_TTL_MS) {
+        this.max_entries = max_entries;
+        this.ttl_ms = ttl_ms;
+        this.cache = new Map();
+    }
+
+    normalize_path(raw_path) {
+        if (!raw_path || typeof raw_path !== 'string') {
+            return '';
+        }
+
+        const target_path = raw_path.trim();
+        if (!target_path) {
+            return '';
+        }
+
+        if (target_path.includes('://')) {
+            return target_path;
+        }
+
+        return path.normalize(target_path);
+    }
+
+    get(raw_path) {
+        const key = this.normalize_path(raw_path);
+        if (!key) {
+            return null;
+        }
+
+        const entry = this.cache.get(key);
+        if (!entry) {
+            return null;
+        }
+
+        if ((Date.now() - entry.updated_at) > this.ttl_ms) {
+            this.cache.delete(key);
+            return null;
+        }
+
+        this.cache.delete(key);
+        this.cache.set(key, entry);
+        return entry.size;
+    }
+
+    set(raw_path, size) {
+        const key = this.normalize_path(raw_path);
+        const numeric_size = Number(size);
+        if (!key || !Number.isFinite(numeric_size) || numeric_size < 0) {
+            return;
+        }
+
+        if (this.cache.has(key)) {
+            this.cache.delete(key);
+        }
+
+        if (this.cache.size >= this.max_entries) {
+            const oldest_key = this.cache.keys().next().value;
+            if (oldest_key) {
+                this.cache.delete(oldest_key);
+            }
+        }
+
+        this.cache.set(key, {
+            size: Math.floor(numeric_size),
+            updated_at: Date.now()
+        });
+    }
+
+    invalidate_hierarchy(raw_path) {
+        const invalidated = [];
+        let current = this.normalize_path(raw_path);
+
+        while (current) {
+            if (this.cache.delete(current)) {
+                invalidated.push(current);
+            }
+
+            const parent = path.dirname(current);
+            if (!parent || parent === current) {
+                break;
+            }
+
+            current = parent;
+        }
+
+        return invalidated;
+    }
+}
 
 nativeTheme.themeSource = 'system';
 
@@ -204,6 +296,10 @@ class Watcher {
 
                     case 'created':
 
+                        if (event && event.filename && utilities && typeof utilities.invalidate_folder_size_for_item_path === 'function') {
+                            utilities.invalidate_folder_size_for_item_path(event.filename);
+                        }
+
                         // console.log('created', event, location, path.dirname(event.filename));
                         if (location !== path.dirname(event.filename)) {
                             return;
@@ -220,6 +316,10 @@ class Watcher {
                         break;
 
                     case 'deleted':
+
+                        if (event && event.filename && utilities && typeof utilities.invalidate_folder_size_for_item_path === 'function') {
+                            utilities.invalidate_folder_size_for_item_path(event.filename);
+                        }
 
                         // console.log('delete', event, location, path.dirname(event.filename));
                         if (location !== path.dirname(event.filename)) {
@@ -957,10 +1057,15 @@ class Utilities {
 
         this.byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
         this.folder_size_requesters = new Map();
+        this.folder_size_in_flight = new Set();
+        this.directory_size_cache = new DirectorySizeCache();
 
         this.ls_worker = new worker.Worker(path.join(__dirname, '../workers/ls_worker.js'));
         this.ls_worker.on('message', (data) => {
             if (data.cmd === 'folder_size_done') {
+                this.folder_size_in_flight.delete(data.source);
+                this.directory_size_cache.set(data.source, data.size);
+
                 let folder_data = {
                     source: data.source,
                     size: data.size
@@ -982,6 +1087,15 @@ class Utilities {
 
                 if (!delivered && win && !win.isDestroyed()) {
                     win.send('folder_size', folder_data);
+                }
+            } else if (data.cmd === 'folder_size_error') {
+                if (data.source) {
+                    this.folder_size_in_flight.delete(data.source);
+                    this.folder_size_requesters.delete(data.source);
+                }
+
+                if (win && !win.isDestroyed() && data.msg) {
+                    win.send('set_msg', data.msg);
                 }
             }
         });
@@ -1088,6 +1202,19 @@ class Utilities {
                     sender.send('set_msg', data.msg);
                     break;
                 case 'delete_done': {
+                    const invalidated_paths = new Set();
+                    if (Array.isArray(data.deleted_items) && data.deleted_items.length > 0) {
+                        data.deleted_items.forEach((item) => {
+                            if (item && item.href) {
+                                this.invalidate_folder_size_for_item_path(item.href, false).forEach((p) => invalidated_paths.add(p));
+                            }
+                        });
+                    }
+
+                    if (invalidated_paths.size > 0) {
+                        this.emit_folder_size_cache_invalidated(Array.from(invalidated_paths));
+                    }
+
                     if (Array.isArray(data.deleted_items) && data.deleted_items.length > 0) {
                         sender.send('remove_items', data.deleted_items);
                     }
@@ -1174,6 +1301,10 @@ class Utilities {
                     }
 
                     if (data.cmd === 'extract_done') {
+                        if (data.destination) {
+                            this.invalidate_folder_size_for_item_path(data.destination);
+                        }
+
                         let close_progress = {
                             id: data.id,
                             value: 0,
@@ -1218,6 +1349,10 @@ class Utilities {
                     win.send('set_progress', data)
                 }
                 if (data.cmd === 'compress_done') {
+                    if (location) {
+                        this.invalidate_folder_size_hierarchy(location);
+                    }
+
                     // win.send('remove_item', data.file_path);
                     let f = gio.get_file(data.file_path);
                     if (f) {
@@ -1311,6 +1446,10 @@ class Utilities {
 
                     }
 
+                    if (this.root_destination) {
+                        this.invalidate_folder_size_hierarchy(this.root_destination);
+                    }
+
                     this.get_disk_space(this.root_destination);
                     this.run_watcher = true;
 
@@ -1338,6 +1477,26 @@ class Utilities {
                 case 'mv_done': {
 
                     this.move_in_progress = false;
+                    const invalidated_paths = new Set();
+
+                    if (Array.isArray(data.files_arr) && data.files_arr.length > 0) {
+                        data.files_arr.forEach((file_item) => {
+                            if (file_item && file_item.source) {
+                                this.invalidate_folder_size_for_item_path(file_item.source, false).forEach((p) => invalidated_paths.add(p));
+                            }
+                            if (file_item && file_item.destination) {
+                                this.invalidate_folder_size_for_item_path(file_item.destination, false).forEach((p) => invalidated_paths.add(p));
+                            }
+                        });
+                    }
+
+                    if (this.root_destination) {
+                        this.invalidate_folder_size_hierarchy(this.root_destination, false).forEach((p) => invalidated_paths.add(p));
+                    }
+
+                    if (invalidated_paths.size > 0) {
+                        this.emit_folder_size_cache_invalidated(Array.from(invalidated_paths));
+                    }
 
                     if (this.is_main && !data.cancelled) {
 
@@ -1389,19 +1548,87 @@ class Utilities {
         });
     }
 
+    normalize_folder_size_path(raw_path) {
+        return this.directory_size_cache.normalize_path(raw_path);
+    }
+
+    emit_folder_size_cache_invalidated(paths = []) {
+        const unique_paths = Array.from(new Set((paths || [])
+            .map((p) => this.normalize_folder_size_path(p))
+            .filter(Boolean)));
+
+        if (unique_paths.length === 0) {
+            return;
+        }
+
+        BrowserWindow.getAllWindows().forEach((browser_window) => {
+            if (!browser_window || browser_window.isDestroyed()) {
+                return;
+            }
+
+            const contents = browser_window.webContents;
+            if (contents && !contents.isDestroyed()) {
+                contents.send('folder_size_invalidated', { paths: unique_paths });
+            }
+        });
+    }
+
+    invalidate_folder_size_hierarchy(target_path, notify = true) {
+        const invalidated = this.directory_size_cache.invalidate_hierarchy(target_path);
+        if (notify && invalidated.length > 0) {
+            this.emit_folder_size_cache_invalidated(invalidated);
+        }
+        return invalidated;
+    }
+
+    invalidate_folder_size_for_item_path(item_path, notify = true) {
+        const normalized_item_path = this.normalize_folder_size_path(item_path);
+        if (!normalized_item_path) {
+            return [];
+        }
+
+        return this.invalidate_folder_size_hierarchy(path.dirname(normalized_item_path), notify);
+    }
+
     // get folder size
     get_folder_size(e, href) {
+        const normalized_href = this.normalize_folder_size_path(href);
+        if (!normalized_href) {
+            return;
+        }
+
+        const cached_size = this.directory_size_cache.get(normalized_href);
+        if (cached_size !== null) {
+            const target = e?.sender;
+            const folder_data = {
+                source: normalized_href,
+                size: cached_size
+            };
+
+            if (target && !target.isDestroyed()) {
+                target.send('folder_size', folder_data);
+            } else if (win && !win.isDestroyed()) {
+                win.send('folder_size', folder_data);
+            }
+            return;
+        }
+
         const sender_id = e?.sender?.id;
-        if (sender_id && href) {
-            let requesters = this.folder_size_requesters.get(href);
+        if (sender_id) {
+            let requesters = this.folder_size_requesters.get(normalized_href);
             if (!requesters) {
                 requesters = new Set();
-                this.folder_size_requesters.set(href, requesters);
+                this.folder_size_requesters.set(normalized_href, requesters);
             }
             requesters.add(sender_id);
         }
 
-        this.ls_worker.postMessage({ cmd: 'get_folder_size', source: href });
+        if (this.folder_size_in_flight.has(normalized_href)) {
+            return;
+        }
+
+        this.folder_size_in_flight.add(normalized_href);
+        this.ls_worker.postMessage({ cmd: 'get_folder_size', source: normalized_href });
     }
 
 
@@ -1656,6 +1883,7 @@ class Utilities {
         f.id = btoa(dir);
         e.sender.send('get_item', f);
         e.sender.send('edit_item', f);
+        this.invalidate_folder_size_hierarchy(location);
 
         setTimeout(() => {
             this.run_watcher = true;
@@ -1715,6 +1943,12 @@ class Utilities {
             win.send('set_msg', `Error: rename: ${err}`);
             return null;
         });
+
+        if (res) {
+            this.invalidate_folder_size_hierarchy(path.dirname(source), false);
+            this.invalidate_folder_size_hierarchy(path.dirname(destination), false);
+            this.emit_folder_size_cache_invalidated([path.dirname(source), path.dirname(destination)]);
+        }
 
         // fs.rename(source, destination, (err) => {
 

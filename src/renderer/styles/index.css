@@ -22,6 +22,7 @@
         grid-template-columns: 1fr !important;
     }
 }
+
 :root {
     --container-offset: 72px;
 }
@@ -163,7 +164,8 @@ hr {
     width: auto;
     max-height: 350px;
     overflow: auto;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2); /* optional */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    /* optional */
     z-index: 5;
 }
 
@@ -1332,17 +1334,17 @@ tr {
 }
 
 .progress_status {
-    flex: 0 0 180px;
+    flex: 1 1 auto;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    min-width: 180px;
 }
 
 .progress_bar {
     height: 14px;
-    flex: 1 1 auto;
+    flex: 0 0 200px;
     width: auto;
-    min-width: 120px;
 }
 
 .progress_cancel {
@@ -1436,7 +1438,8 @@ tr {
     align-items: center;
     margin: 2px;
     padding: 2px;
-    width: 100%; /* Fill grid cell */
+    width: 100%;
+    /* Fill grid cell */
     max-width: 100%;
     border-radius: 5px;
     border: 1px solid transparent;
@@ -1452,7 +1455,8 @@ tr {
     /* border: 1px solid var(--highlight-select-border); */
     /* The "frosted" blur effect */
     backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px); /* For Safari support */
+    -webkit-backdrop-filter: blur(10px);
+    /* For Safari support */
 
     /* Optional styling for realism */
     border-radius: 5px;
@@ -1640,7 +1644,8 @@ a.chart-title:hover {
 
 .grid_view {
     display: grid;
-    gap: 0 20px; /* 20px horizontal gap between cards */
+    gap: 0 20px;
+    /* 20px horizontal gap between cards */
     padding-top: 10px;
 }
 
@@ -1780,6 +1785,10 @@ a.chart-title:hover {
     border-right: 1px solid #444;
     padding-left: 5px;
     text-align: left;
+}
+
+.list_view_header div:first-child {
+    min-width: 250px;
 }
 
 .list_view .card {

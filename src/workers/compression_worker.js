@@ -107,6 +107,7 @@ if (!isMainThread) {
                 let increment = 10;
                 let progress = {
                     cmd: 'progress',
+                    operation: 'compress',
                     value: increment,
                     max: size,
                     status: `Compressing "${path.basename(file_path)}"`
@@ -148,6 +149,7 @@ if (!isMainThread) {
                     let progress_data = {
                         // id: progress_id,
                         cmd: 'progress',
+                        operation: 'compress',
                         status: `Compressing "${path.basename(file_path)}"`,
                         max: size,
                         value: progress.fs.processedBytes
@@ -161,6 +163,7 @@ if (!isMainThread) {
 
                     let progress = {
                         cmd: 'progress',
+                        operation: 'compress',
                         value: 0,
                         max: 0,
                         status: ''
@@ -518,6 +521,7 @@ if (!isMainThread) {
                     let progress_opts = {
                         id: progress_id,
                         cmd: 'progress',
+                        operation: 'extract',
                         value: (current_size),
                         max: max,
                         status: `Extracting "${path.basename(filename)}"`
