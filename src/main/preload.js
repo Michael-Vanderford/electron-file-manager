@@ -2826,19 +2826,12 @@ class DeviceManager {
 
         this.device_arr = [];
         this.local_devices = [];
-        this.network_devices = [];
         this.device = '';
 
         ipcRenderer.send('get_mounts');
-        ipcRenderer.send('get_devices');
 
         ipcRenderer.on('mounts', (e, mounts) => {
             this.local_devices = mounts || [];
-            this.update_device_arr();
-        });
-
-        ipcRenderer.on('devices', (e, devices) => {
-            this.network_devices = devices || [];
             this.update_device_arr();
         });
 
@@ -2892,22 +2885,15 @@ class DeviceManager {
     }
 
     update_device_arr() {
-        const merged = [...(this.local_devices || []), ...(this.network_devices || [])];
-        const seen = new Set();
-        this.device_arr = merged.filter(device => {
-            const key = `${device.path || device.name || ''}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
+        this.device_arr = [...(this.local_devices || [])];
         this.get_devices();
     }
 
     get_devices(callback) {
 
-        this.device_view.innerHTML = '';
-
         if (this.device_view) {
+
+            this.device_view.innerHTML = '';
 
             // Devices section label
             let devices_label = utilities.add_div(['devices_label']);

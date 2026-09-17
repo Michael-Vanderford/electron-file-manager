@@ -354,7 +354,6 @@ class LibFS {
             const mountsContent = fs.readFileSync('/proc/mounts', 'utf8');
             const lines = mountsContent.split('\n');
             const mounts = [];
-            const seenPaths = new Set();
 
             for (const line of lines) {
                 if (!line.trim()) continue;
@@ -363,8 +362,7 @@ class LibFS {
                 const mountPath = parts[1];
                 const fsType = parts[2];
 
-                if (mountPath && !seenPaths.has(mountPath) && (mountPath === '/' || mountPath.startsWith('/media') || mountPath.startsWith('/mnt') || mountPath.startsWith('/run/media'))) {
-                    seenPaths.add(mountPath);
+                if (mountPath && (mountPath === '/' || mountPath.startsWith('/media') || mountPath.startsWith('/mnt') || mountPath.startsWith('/run/media'))) {
                     const stats = this.disk_stats(mountPath);
                     mounts.push({
                         name: path.basename(mountPath) || mountPath,
@@ -527,6 +525,7 @@ class LibFS {
             callback(null, []);
         }
     }
+
 }
 
 const instance = new LibFS();
