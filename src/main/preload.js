@@ -1,6 +1,24 @@
 // @ts-nocheck
-const ipcRenderer = require('electron').ipcRenderer;
+const { contextBridge, ipcRenderer } = require('electron');
 const Chart = require('chart.js/auto');
+
+// Bridge a minimal, whitelisted API to the isolated renderer world for titlebar.js
+// (sideBarManager/utilities are assigned later by init(), but these closures only
+// run after that, so referencing them here ahead of assignment is safe).
+contextBridge.exposeInMainWorld('titlebarAPI', {
+    minimize: () => ipcRenderer.send('window-minimize'),
+    maximize: () => ipcRenderer.send('window-maximize'),
+    close: () => ipcRenderer.send('window-close'),
+    newWindow: (location) => ipcRenderer.send('new-window', location),
+    toggleDevtools: () => ipcRenderer.send('toggle-devtools'),
+    toggleFullscreen: () => ipcRenderer.send('toggle-fullscreen'),
+    getAppVersions: () => ipcRenderer.invoke('get_app_versions'),
+    toggleSidebar: () => sideBarManager?.toggle_sidebar(),
+    getLocation: () => utilities?.get_location(),
+    cut: () => utilities?.cut(),
+    copy: () => utilities?.copy(),
+    paste: () => utilities?.paste(),
+});
 
 
 // Globals
@@ -214,6 +232,12 @@ class SettingsManager {
             ipcRenderer.send('update_list_view_settings', this.list_view_settings);
         }
 
+        // terminal
+        if (this.settings.terminal === '' || this.settings.terminal === undefined) {
+            this.settings.terminal = 'gnome-terminal';
+            updated = true;
+        }
+
         if (this.settings.icon_size === '' || this.settings.icon_size === undefined) {
             this.settings.icon_size = 32;
             ipcRenderer.send('update_settings', this.settings);
@@ -278,6 +302,15 @@ class SettingsManager {
                         'Show Hidden': {
                             type: 'boolean',
                             default: true
+                        }
+                    }
+                },
+                'General': {
+                    type: 'object',
+                    properties: {
+                        'Terminal': {
+                            type: 'string',
+                            default: 'gnome-terminal'
                         }
                     }
                 },
@@ -1357,10 +1390,12 @@ class Utilities {
             } else {
                 msg_div.classList.remove('error');
             }
-            msg_div.innerHTML = '';
             msg_div.innerHTML = `${msg}`;
             footer.classList.remove('footer-hidden');
-            if (!keep_visible) {
+
+            if (keep_visible) {
+                clearTimeout(this._footer_hide_timer);
+            } else {
                 this._start_footer_hide_timer();
             }
         } catch (err) {
@@ -1373,9 +1408,15 @@ class Utilities {
         clearTimeout(this._footer_hide_timer);
         this._footer_hide_timer = setTimeout(() => {
             let footer = document.querySelector('.footer');
-            let progress = footer ? footer.querySelector('.progress') : null;
+            if (!footer) return;
+
+            let progress = footer.querySelector('.progress');
             if (progress && !progress.classList.contains('hidden')) return;
-            if (footer) footer.classList.add('footer-hidden');
+
+            // Do not hide if there is an active progress operation
+            if (this.current_progress_operation) return;
+
+            footer.classList.add('footer-hidden');
         }, delay);
     }
 
@@ -1471,6 +1512,12 @@ class Utilities {
 
     // select all
     select_all() {
+        if (fileManager && fileManager.select_all_virtual_items()) {
+            const selected_files = fileManager.get_virtual_selected_files();
+            this.set_msg(`Selected ${selected_files.length} items`);
+            return;
+        }
+
         let active_tab_content = document.querySelector('.active-tab-content');
         let items = active_tab_content.querySelectorAll('.card, .tr');
 
@@ -1720,7 +1767,7 @@ class Utilities {
         let delete_arr = this.get_selected_delete_files();
         if (delete_arr.length > 0) {
             ipcRenderer.send('delete', delete_arr);
-            this.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`);
+            this.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`, true);
         } else {
             this.set_msg('Nothing to delete');
         }
@@ -1765,6 +1812,8 @@ class Utilities {
             this.progress_start_time = null;
             this.progress_start_bytes = null;
             this.progress_start_operation = null;
+
+            // Now that progress is cleared, we can start the hide timer
             this._start_footer_hide_timer();
             return;
         }
@@ -2091,6 +2140,17 @@ class Utilities {
         this.icon_request_queue = [];
         this.icon_request_in_flight = 0;
         this.max_icon_requests_in_flight = 8;
+
+        if (fileManager) {
+            const virtual_selected_files = fileManager.get_virtual_selected_files();
+            if (virtual_selected_files) {
+                this.selected_files_size = virtual_selected_files.reduce((total, file) => total + (Number(file.size) || 0), 0);
+                if (virtual_selected_files.length === 0) {
+                    this.set_msg('No items selected');
+                }
+                return virtual_selected_files;
+            }
+        }
 
         let selected_files = [];
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
@@ -2695,10 +2755,10 @@ class DragSelect {
     // Handle click outside selected items
     handleOutsideClick(e) {
 
-        console.log('outside click', this.allow_add, this.allow_click);
+        // console.log('outside click', this.allow_add, this.allow_click);
 
         if (this.is_dragging) {
-            console.log('dragging');
+            // console.log('dragging');
             return;
         }
 
@@ -2765,21 +2825,21 @@ class DeviceManager {
         // }
 
         this.device_arr = [];
+        this.local_devices = [];
+        this.network_devices = [];
         this.device = '';
 
-        // ipcRenderer.send('get_devices');
-        // ipcRenderer.on('devices', (e, devices) => {
-        //     this.device_arr = devices;
-        //     this.get_devices();
-        // });
-
         ipcRenderer.send('get_mounts');
+        ipcRenderer.send('get_devices');
+
         ipcRenderer.on('mounts', (e, mounts) => {
+            this.local_devices = mounts || [];
+            this.update_device_arr();
+        });
 
-            this.device_arr = mounts;
-            // console.log('mounts', this.device_arr);
-            this.get_devices();
-
+        ipcRenderer.on('devices', (e, devices) => {
+            this.network_devices = devices || [];
+            this.update_device_arr();
         });
 
         // handle mount done
@@ -2831,6 +2891,18 @@ class DeviceManager {
         return 'hdd';
     }
 
+    update_device_arr() {
+        const merged = [...(this.local_devices || []), ...(this.network_devices || [])];
+        const seen = new Set();
+        this.device_arr = merged.filter(device => {
+            const key = `${device.path || device.name || ''}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+        this.get_devices();
+    }
+
     get_devices(callback) {
 
         this.device_view.innerHTML = '';
@@ -2850,9 +2922,15 @@ class DeviceManager {
                 return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
             })
 
-            this.device_arr.forEach(device => {
-                this.add_device(device);
-            })
+            if (this.device_arr.length === 0) {
+                let empty_state = utilities.add_div(['device_empty', 'empty_state']);
+                empty_state.textContent = 'Network unavailable';
+                this.device_view.append(empty_state);
+            } else {
+                this.device_arr.forEach(device => {
+                    this.add_device(device);
+                })
+            }
 
             // Keep connect action below device entries and visible when there are no devices.
             let connect_btn = document.createElement('button');
@@ -3748,10 +3826,16 @@ class KeyBoardManager {
             // e.stopPropagation();
 
             // prevent inputs from firing global keyboard events
-            // if (section == 2 || (e.target.isContentEditable || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.classList.contains('input_div'))) {
-            //     return;
-            // }
+            const active = document.activeElement;
+            const is_input_like = active && (
+                active.tagName === 'INPUT' ||
+                active.tagName === 'TEXTAREA' ||
+                active.isContentEditable
+            );
 
+            if (is_input_like) {
+                return;
+            }
 
 
             if (section == 2) {
@@ -3901,6 +3985,38 @@ class KeyBoardManager {
                 e.preventDefault();
                 e.stopPropagation();
                 ipcRenderer.send('ls', utilities.get_location(), true);
+            }
+            // go back in history
+            else if (e.key === 'Backspace' || e.altKey && e.key === 'ArrowLeft') {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const tab_id = tabManager.getTabId();
+
+                if (tab_id) {
+                    ipcRenderer.send('go_back', tab_id);
+                } else {
+                    utilities.set_msg('No tab id found for go back', 'error');
+                }
+
+
+            }
+            // go forward in history
+            else if (e.altKey && e.key === 'ArrowRight') {
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                const tab_id = tabManager.getTabId();
+
+                console.log('alt+arrow right pressed', e.key, e.altKey, tab_id);
+
+                if (tab_id) {
+                    ipcRenderer.send('go_forward', tab_id);
+                } else {
+                    utilities.set_msg('No tab id found for go forward', 'error');
+                }
             }
 
             // // ctrl for copy modifier
@@ -4753,6 +4869,10 @@ class TabManager {
         this.forward_btn.style = 'pointer-events: none';
     }
 
+    getTabId() {
+        return this.tab_id;
+    }
+
     // get tab history
     getTabHistory(tab_id, direction = 0) {
 
@@ -4885,6 +5005,10 @@ class FileManager {
         this.location0 = '';
         this.location = '';
         this.startup = 1;
+        this.virtual_view_threshold = 1000;
+        this.virtual_view = null;
+        this.latest_list_request_token = null;
+        this.list_request_id = 0;
 
         this.tab_data_arr = [];
         this.drag_handle = null;
@@ -5099,8 +5223,16 @@ class FileManager {
             this.get_files(location);
         });
 
+        ipcRenderer.on('ls_started', (e, request_token) => {
+            this.latest_list_request_token = request_token;
+        });
+
         // get files
-        ipcRenderer.on('ls_done', (e, files_arr, new_tab) => {
+        ipcRenderer.on('ls_done', (e, files_arr, new_tab, request_token) => {
+
+            if (request_token !== this.latest_list_request_token) {
+                return;
+            }
 
             console.log('running ls done');
 
@@ -5581,6 +5713,9 @@ class FileManager {
             return;
         }
 
+        const dirName = this.location === '/' ? 'Root' : this.location.split('/').pop() || 'Root';
+        this.filter.setAttribute('data-placeholder', `Search ${dirName}`);
+
         // if filter active then handle ctrl+v
         this.filter.addEventListener('paste', (e) => {
             this.run_filer();
@@ -5672,6 +5807,10 @@ class FileManager {
 
         if (!this.specialKeys.includes(this.quick_search_sting) && this.quick_search_sting.match(/[a-z0-9-_.]/i)) {
 
+            if (this.update_virtual_filter(this.quick_search_sting)) {
+                return;
+            }
+
             let active_tab_content = document.querySelector('.active-tab-content');
 
 
@@ -5697,6 +5836,10 @@ class FileManager {
     // clear filter
     clear_filter() {
 
+        if (this.update_virtual_filter()) {
+            return;
+        }
+
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
         if (active_tab_content) {
 
@@ -5707,7 +5850,8 @@ class FileManager {
 
             let filter = document.querySelector('.filter');
             if (filter) {
-                filter.innerText = '';
+                const dirName = this.location === '/' ? 'Root' : this.location.split('/').pop() || 'Root';
+                filter.setAttribute('data-placeholder', `Search ${dirName}`);
                 filter.classList.remove('active');
             } else {
                 console.log('no filter');
@@ -6129,6 +6273,13 @@ class FileManager {
         // sort files array
         files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
 
+        if (files_arr.length >= this.virtual_view_threshold) {
+            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel);
+            return;
+        }
+
+        this.virtual_view = null;
+
         for (let i = 0; i < files_arr.length; i++) {
 
             let card = this.get_view_item(files_arr[i]);
@@ -6181,6 +6332,170 @@ class FileManager {
         //     this.hide_hidden_files();
         // }
 
+    }
+
+    render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel) {
+        const row_height = this.view === 'list_view' ? 31 : 86;
+        const columns = this.get_virtual_column_count();
+        const virtual_view = {
+            files_arr,
+            filtered_files_arr: files_arr.filter((file) => this.show_hidden !== false || !file.is_hidden),
+            selected_ids: new Set(),
+            row_height,
+            columns,
+            render_frame: null,
+            active_tab_content,
+            view_container,
+            top_spacer: document.createElement('div'),
+            items_container: document.createElement('div'),
+            bottom_spacer: document.createElement('div')
+        };
+
+        virtual_view.top_spacer.classList.add('virtual_spacer', 'virtual_spacer_top');
+        virtual_view.items_container.classList.add('virtual_items');
+        virtual_view.bottom_spacer.classList.add('virtual_spacer', 'virtual_spacer_bottom');
+        view_container.classList.add('virtual_view');
+        view_container.append(virtual_view.top_spacer, virtual_view.items_container, virtual_view.bottom_spacer);
+        this.virtual_view = virtual_view;
+
+        if (preserved_find_main_container) {
+            const results_window = preserved_find_main_container.querySelector('.find_results_window');
+            if (results_window) {
+                results_window.innerHTML = '';
+                results_window.appendChild(view_container);
+            }
+            active_tab_content.appendChild(preserved_find_main_container);
+        } else {
+            if (preserved_find_panel) {
+                active_tab_content.appendChild(preserved_find_panel);
+            }
+            active_tab_content.appendChild(view_container);
+        }
+
+        const schedule_render = () => {
+            if (this.virtual_view !== virtual_view) {
+                return;
+            }
+            if (virtual_view.render_frame !== null) {
+                return;
+            }
+            virtual_view.render_frame = requestAnimationFrame(() => {
+                virtual_view.render_frame = null;
+                this.render_virtual_range();
+            });
+        };
+
+        active_tab_content.addEventListener('scroll', schedule_render);
+        window.addEventListener('resize', () => {
+            if (this.virtual_view !== virtual_view) {
+                return;
+            }
+            const next_columns = this.get_virtual_column_count();
+            if (virtual_view.columns !== next_columns) {
+                virtual_view.columns = next_columns;
+                this.render_virtual_range(true);
+            }
+        });
+
+        this.render_virtual_range(true);
+        utilities.set_msg(`Loaded ${files_arr.length} items`);
+    }
+
+    get_virtual_column_count() {
+        if (this.view === 'list_view') {
+            return 1;
+        }
+        if (window.matchMedia('(min-width: 1200px)').matches) {
+            return 4;
+        }
+        if (window.matchMedia('(max-width: 600px)').matches) {
+            return 1;
+        }
+        if (window.matchMedia('(max-width: 900px)').matches) {
+            return 2;
+        }
+        return 3;
+    }
+
+    render_virtual_range(force = false) {
+        const virtual_view = this.virtual_view;
+        if (!virtual_view || !virtual_view.active_tab_content.isConnected) {
+            return;
+        }
+
+        const { filtered_files_arr, active_tab_content, columns, row_height } = virtual_view;
+        const total_rows = Math.ceil(filtered_files_arr.length / columns);
+        const first_visible_row = Math.floor(active_tab_content.scrollTop / row_height);
+        const visible_rows = Math.ceil(active_tab_content.clientHeight / row_height);
+        const first_row = Math.max(0, first_visible_row - 8);
+        const last_row = Math.min(total_rows, first_visible_row + visible_rows + 8);
+        const start = first_row * columns;
+        const end = Math.min(filtered_files_arr.length, last_row * columns);
+
+        if (!force && virtual_view.start === start && virtual_view.end === end) {
+            return;
+        }
+
+        virtual_view.start = start;
+        virtual_view.end = end;
+        virtual_view.top_spacer.style.height = `${first_row * row_height}px`;
+        virtual_view.bottom_spacer.style.height = `${Math.max(0, total_rows - last_row) * row_height}px`;
+
+        const fragment = document.createDocumentFragment();
+        for (let index = start; index < end; index += 1) {
+            const file = filtered_files_arr[index];
+            const card = this.get_view_item(file);
+            card.classList.toggle('highlight_select', virtual_view.selected_ids.has(file.id));
+            card.addEventListener('click', (event) => {
+                if (!event.ctrlKey) {
+                    virtual_view.selected_ids.clear();
+                }
+                if (event.ctrlKey && virtual_view.selected_ids.has(file.id)) {
+                    virtual_view.selected_ids.delete(file.id);
+                } else {
+                    virtual_view.selected_ids.add(file.id);
+                }
+                this.render_virtual_range(true);
+            });
+            fragment.appendChild(card);
+        }
+        virtual_view.items_container.replaceChildren(fragment);
+    }
+
+    select_all_virtual_items() {
+        const virtual_view = this.virtual_view;
+        if (!virtual_view) {
+            return false;
+        }
+
+        virtual_view.filtered_files_arr.forEach((file) => virtual_view.selected_ids.add(file.id));
+        this.render_virtual_range(true);
+        return true;
+    }
+
+    get_virtual_selected_files() {
+        const virtual_view = this.virtual_view;
+        if (!virtual_view) {
+            return null;
+        }
+
+        return virtual_view.files_arr.filter((file) => virtual_view.selected_ids.has(file.id));
+    }
+
+    update_virtual_filter(filter_text = '') {
+        const virtual_view = this.virtual_view;
+        if (!virtual_view) {
+            return false;
+        }
+
+        const normalized_filter = filter_text.toLocaleLowerCase();
+        virtual_view.filtered_files_arr = virtual_view.files_arr.filter((file) => {
+            const visible = this.show_hidden !== false || !file.is_hidden;
+            return visible && file.name.toLocaleLowerCase().includes(normalized_filter);
+        });
+        virtual_view.active_tab_content.scrollTop = 0;
+        this.render_virtual_range(true);
+        return true;
     }
 
     // // get grid view
@@ -6269,7 +6584,7 @@ class FileManager {
 
                     href.classList.add('href');
                     href.classList.add('item');
-                    href.innerHTML = f.display_name;
+                    href.textContent = f.display_name;
                     href.href = f.href;
                     href_div.append(href);
 
@@ -7183,7 +7498,9 @@ class FileManager {
                                 // Plain string: Text input
                                 input = document.createElement('input');
                                 input.type = 'text';
-                                input.value = settings[propKey] || '';
+                                input.value = propKey === 'Terminal'
+                                    ? (settings.terminal || properties[propKey].default || '')
+                                    : (settings[propKey] || '');
                             }
 
                             input.addEventListener('change', (e) => {
@@ -7217,6 +7534,10 @@ class FileManager {
                                 if (propKey === 'List Icon Size') {
                                     latest_settings.list_icon_size = parseInt(e.target.value, 10) || 24;
                                     iconManager.resize_icons(latest_settings.list_icon_size, 'list_view');
+                                }
+
+                                if (propKey === 'Terminal') {
+                                    latest_settings.terminal = e.target.value;
                                 }
 
                                 settingsManager.update_settings(latest_settings);
@@ -7779,6 +8100,11 @@ class FileManager {
     // show hidden files
     show_hidden_files() {
 
+        this.show_hidden = true;
+        if (this.update_virtual_filter(this.quick_search_sting || '')) {
+            return;
+        }
+
         // console.log('show hidden files');
 
         let views = document.querySelectorAll('.grid_view, .list_view');
@@ -7795,6 +8121,11 @@ class FileManager {
 
     // hide hidden files
     hide_hidden_files() {
+
+        this.show_hidden = false;
+        if (this.update_virtual_filter(this.quick_search_sting || '')) {
+            return;
+        }
 
         // console.log('hide hidden files');
 
@@ -8430,17 +8761,17 @@ class FileManager {
             icon.style.cssText = 'font-size: 14px; flex-shrink: 0;';
 
             const name_div = utilities.add_div();
-            name_div.innerHTML = f.name;
+            name_div.textContent = f.name;
             name_div.title = `${f.source} → ${f.destination}`;
             name_div.style.cssText = 'flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
 
             const dest_div = utilities.add_div();
-            dest_div.innerHTML = f.destination;
+            dest_div.textContent = f.destination;
             dest_div.title = f.destination;
             dest_div.style.cssText = 'flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7;';
 
             const btn_overwrite = utilities.add_div();
-            btn_overwrite.innerHTML = 'Overwrite';
+            btn_overwrite.textContent = 'Overwrite';
             btn_overwrite.style.cssText = 'cursor: pointer; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu); white-space: nowrap; flex-shrink: 0;';
             btn_overwrite.addEventListener('click', () => {
                 ipcRenderer.send('overwrite_one', f, operation);
@@ -8448,7 +8779,7 @@ class FileManager {
             });
 
             const btn_keep = utilities.add_div();
-            btn_keep.innerHTML = 'Keep';
+            btn_keep.textContent = 'Keep';
             btn_keep.style.cssText = 'cursor: pointer; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu); white-space: nowrap; flex-shrink: 0;';
             btn_keep.addEventListener('click', () => {
                 remove_row(f, row);
@@ -8465,13 +8796,13 @@ class FileManager {
         btn_overwrite_all.addEventListener('click', () => {
             const to_overwrite = [...remaining];
             ipcRenderer.send('overwrite_all', to_overwrite, operation);
-            list.innerHTML = '';
+            list.textContent = '';
             remaining = [];
             utilities.set_msg(`Overwriting ${to_overwrite.length} file${to_overwrite.length !== 1 ? 's' : ''}.`);
         });
 
         btn_skip_all.addEventListener('click', () => {
-            list.innerHTML = '';
+            list.textContent = '';
             remaining = [];
             utilities.set_msg('Skipped all conflicts.');
         });
@@ -8593,8 +8924,13 @@ class FileManager {
             return;
         }
 
+        const request_id = ++this.list_request_id;
+
         // check if location is valid on the file system
         ipcRenderer.invoke('validate_location', location).then((is_valid) => {
+            if (request_id !== this.list_request_id) {
+                return;
+            }
             if (is_valid < 0) {
                 if (this.startup == 1) {
                     location = this.home_dir;
@@ -8614,7 +8950,7 @@ class FileManager {
             }
         });
 
-        utilities.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Loading...`);
+        utilities.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Loading...`, true);
 
         this.location0 = this.location;
         this.location = location;
@@ -8867,12 +9203,11 @@ class PropertiesManager {
 
                 if (file.is_dir) {
 
-                    // utilities.getFolderIcon(file).then(folder_icon => {
-                    //     // console.log('folder_icon', folder_icon)
-                    //     let icon_img = utilities.add_img(folder_icon);
-                    //     icon_img.classList.add('icon48');
-                    //     icon.append(icon_img);
-                    // });
+                    ipcRenderer.invoke('get_icon', (file.href)).then(res => {
+                        let icon_img = utilities.add_img(res);
+                        icon_img.classList.add('icon48');
+                        icon.append(icon_img);
+                    });
 
                     content.append(utilities.add_item('Size:'), utilities.add_item(size));
 
@@ -8881,7 +9216,7 @@ class PropertiesManager {
 
                         contents_item.textContent = this.get_contents_text(file);
 
-                        // ipcRenderer.send('get_folder_size', file.href);
+                        ipcRenderer.send('get_folder_size', file.href);
 
                     } else {
 
@@ -8889,6 +9224,29 @@ class PropertiesManager {
                         contents_item.textContent = 'Unknown';
 
                     }
+
+                    // // utilities.getFolderIcon(file).then(folder_icon => {
+                    // //     // console.log('folder_icon', folder_icon)
+                    // //     let icon_img = utilities.add_img(folder_icon);
+                    // //     icon_img.classList.add('icon48');
+                    // //     icon.append(icon_img);
+                    // // });
+
+                    // content.append(utilities.add_item('Size:'), utilities.add_item(size));
+
+                    // if (file.is_readable) {
+                    //     size.append('Calculating...');
+
+                    //     contents_item.textContent = this.get_contents_text(file);
+
+                    //     // ipcRenderer.send('get_folder_size', file.href);
+
+                    // } else {
+
+                    //     size.append('Unknown')
+                    //     contents_item.textContent = 'Unknown';
+
+                    // }
 
 
                 } else {
@@ -9152,21 +9510,17 @@ class MenuManager {
                     // Use utilities.get_selected_files() to get selected files/folders
                     const selected_files = utilities.get_selected_files();
                     if (selected_files.length > 0) {
-                        // Open a terminal for each selected item
-                        selected_files.forEach(file => {
-                            if (file && file.href) {
-                                let new_cmd = `gnome-terminal --working-directory='${file.href}'`;
-                                ipcRenderer.send('command', new_cmd);
-                            }
-                        });
+
+                        let folders = selected_files.filter(file => file.is_dir);
+                        ipcRenderer.send('open_terminal', folders);
+
+
                     } else {
                         // Only open a terminal for the current location if nothing is selected
                         const current_location = utilities.get_location() || settingsManager.get_location();
-                        let new_cmd = `gnome-terminal`;
                         if (current_location) {
-                            new_cmd = `gnome-terminal --working-directory='${current_location}'`;
+                            ipcRenderer.send('open_terminal', [{ href: current_location, is_dir: true }]);
                         }
-                        ipcRenderer.send('command', new_cmd);
                     }
                     utilities.clear();
                     break;
@@ -9326,9 +9680,8 @@ function init() {
     deviceManager = new DeviceManager();
     workspaceManager = new WorkspaceManager();
 
-    // Expose utilities to window for use in other renderer scripts (e.g., titlebar.js)
-    window.utilities = utilities;
-    window.sideBarManager = sideBarManager;
+    // titlebar.js now gets utilities/sideBarManager via the titlebarAPI contextBridge above,
+    // since contextIsolation prevents sharing this preload's `window` with the page.
 
 }
 

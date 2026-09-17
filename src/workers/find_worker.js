@@ -1,7 +1,7 @@
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 
 async function find (query, location, options) {
 
@@ -49,13 +49,13 @@ async function find (query, location, options) {
         try {
             if (has_search_options) {
                 try {
-                    gio.find(search_query, search_location, search_options, find_callback);
+                    libfs.find(search_query, search_location, search_options, find_callback);
                 } catch (err) {
                     // Fallback for older gio builds that do not support options.
-                    gio.find(search_query, search_location, find_callback);
+                    libfs.find(search_query, search_location, find_callback);
                 }
             } else {
-                gio.find(search_query, search_location, find_callback);
+                libfs.find(search_query, search_location, find_callback);
             }
         } catch (err) {
             resolve({
@@ -81,7 +81,7 @@ function normalize_find_results(raw_results = []) {
 
             if (typeof item === 'string') {
                 try {
-                    const file = gio.get_file(item);
+                    const file = libfs.get_file(item);
                     if (file && file.href) {
                         return file;
                     }

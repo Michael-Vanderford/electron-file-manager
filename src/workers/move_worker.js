@@ -1,6 +1,7 @@
+// @ts-nocheck
 const { parentPort, isMainThread } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 const fs = require('fs');
 const path = require('path');
 
@@ -26,7 +27,7 @@ class Utilities {
 
         let file;
         try {
-            file = gio.get_file(source);
+            file = libfs.get_file(source);
         } catch (err) {
             return callback(new Error(`Error getting file: ${err.message}`));
         }
@@ -35,7 +36,7 @@ class Utilities {
         file.destination = destination;
         this.move_arr.push(file);
 
-        gio.ls(source, (err, dirents) => {
+        libfs.ls(source, (err, dirents) => {
             if (err) {
                 return callback(new Error(`Error listing directory: ${err.message}`));
             }
@@ -136,7 +137,7 @@ class Utilities {
             }
 
             const res = await new Promise((resolve, reject) => {
-                gio.mv(f.source, f.destination, (err, result) => {
+                libfs.mv(f.source, f.destination, (err, result) => {
                     if (err) {
                         reject(err);
                         return;

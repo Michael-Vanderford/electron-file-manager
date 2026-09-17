@@ -4,7 +4,7 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 
 class DeviceManager {
 
@@ -20,7 +20,7 @@ class DeviceManager {
         //     console.log('umount res', err, res);
         // });
 
-        gio.get_mounts((err, mounts) => {
+        libfs.get_mounts((err, mounts) => {
             if (err) {
                 // console.log('error getting mounts', err);
                 parentPort.postMessage({
@@ -35,7 +35,7 @@ class DeviceManager {
 
                 try {
                     // add disk stats to mounts array
-                    Object.assign(mounts[i], gio.disk_stats(mounts[i].path));
+                    Object.assign(mounts[i], libfs.disk_stats(mounts[i].path));
                     // const stats = gio.disk_stats(mounts[i].path);
                     // mounts[i].total = stats.total;
                     // mounts[i].used = stats.used;
@@ -64,7 +64,7 @@ class DeviceManager {
     // Mount device
     mount(device) {
         console.log('mounting device', device);
-        gio.mount(device, (err) => {
+        libfs.mount(device, (err) => {
             if (err) {
                 console.log('error mounting device', err);
                 parentPort.postMessage({
@@ -83,7 +83,7 @@ class DeviceManager {
 
     // Unmount device
     umount(device) {
-        gio.umount(device, (err) => {
+        libfs.umount(device, (err) => {
             if (err) {
                 console.log('error unmounting device', err);
                 parentPort.postMessage({
@@ -99,7 +99,7 @@ class DeviceManager {
     // Get drives
     get_devices() {
 
-        gio.get_drives((err, data_arr) => {
+        libfs.get_drives((err, data_arr) => {
             if (err) {
                 console.log('error getting drives', err);
                 parentPort.postMessage({
@@ -114,12 +114,12 @@ class DeviceManager {
 
             for (let i = 0; i < filter_arr.length; i++) {
                 try {
-                    Object.assign(filter_arr[i], gio.disk_stats(filter_arr[i].path));
+                    Object.assign(filter_arr[i], libfs.disk_stats(filter_arr[i].path));
                 } catch (err) {
                     console.log(`error getting device stats ${err}`);
                     parentPort.postMessage({
                         cmd: 'set_msg',
-                        msg: `Error: get_device stats ${err}`   
+                        msg: `Error: get_device stats ${err}`
                     });
                 }
             }

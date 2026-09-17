@@ -1,11 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync, spawn } = require('child_process');
 const iconManager = require('../lib/IconManager.js');
 
 jest.mock('fs');
 jest.mock('child_process', () => ({
-    execSync: jest.fn(() => Buffer.from("'Fluent-dark'")), // or whatever theme you want to simulate
+    execSync: jest.fn(() => Buffer.from("'Fluent-dark'")),
+    execFileSync: jest.fn(),
+    spawn: jest.fn()
 }));
 jest.mock('os', () => ({
     homedir: jest.fn(() => '/home/michael')
@@ -15,6 +17,7 @@ describe('IconManager', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        iconManager.platform = 'linux';
     });
 
     describe('get_symlink_icon', () => {
@@ -77,6 +80,50 @@ describe('IconManager', () => {
 
             const result = iconManager.get_theme_path();
             expect(result).toBe(path.join(__dirname, '..', 'lib', 'assets', 'icons') + path.sep);
+        });
+    });
+
+    describe('non-Linux platforms', () => {
+        it('does not query GNOME settings or GIO', () => {
+            iconManager.platform = 'win32';
+
+            expect(iconManager.get_icon_theme()).toBe('');
+            expect(iconManager.get_file_icon('C:\\Users\\testuser\\file.txt')).toBeNull();
+            expect(execSync).not.toHaveBeenCalled();
+            expect(execFileSync).not.toHaveBeenCalled();
+        });
+
+        it('returns a native folder icon data URL', async () => {
+            iconManager.platform = 'darwin';
+            const electronApp = {
+                getFileIcon: jest.fn().mockResolvedValue({
+                    toDataURL: jest.fn(() => 'data:image/png;base64,native-folder-icon')
+                })
+            };
+
+            const result = await iconManager.get_folder_icon_for_platform('/Users/testuser/Documents', electronApp);
+
+            expect(electronApp.getFileIcon).toHaveBeenCalledWith('/Users/testuser/Documents', { size: 32 });
+            expect(result).toBe('data:image/png;base64,native-folder-icon');
+        });
+
+        it('falls back to the bundled folder icon when native lookup fails', async () => {
+            iconManager.platform = 'win32';
+            const electronApp = {
+                getFileIcon: jest.fn().mockRejectedValue(new Error('native icon unavailable'))
+            };
+
+            const result = await iconManager.get_folder_icon_for_platform('C:\\Users\\testuser\\Documents', electronApp);
+
+            expect(result).toBe(path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg'));
+        });
+
+        it('does not start a GNOME theme watcher', () => {
+            iconManager.platform = 'win32';
+
+            iconManager.start_theme_watcher(jest.fn());
+
+            expect(spawn).not.toHaveBeenCalled();
         });
     });
 

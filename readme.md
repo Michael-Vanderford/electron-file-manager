@@ -55,7 +55,7 @@
 - Progress indicator with cancel support
 
 ### Network & Devices
-- **SSHFS** and **SSH** connections (public key or password authentication)
+- **SSHFS** and **SSH** connections (public key authentication)
 - **SMB / Windows Share** connections
 - **Mount and unmount** drives and removable media
 - **MTP** mobile device support (phones, tablets)

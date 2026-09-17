@@ -4,8 +4,7 @@ const path = require('path');
 const os = require('os');
 const { exec, execSync } = require('child_process');
 const archiver = require('archiver');
-// const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 
 class Utilities {
 
@@ -106,7 +105,7 @@ if (!isMainThread) {
                 // init progress
                 let increment = 10;
                 let progress = {
-                    cmd: 'progress',
+                    cmd: 'set_progress',
                     operation: 'compress',
                     value: increment,
                     max: size,
@@ -148,7 +147,7 @@ if (!isMainThread) {
                 archive.on('progress', (progress) => {
                     let progress_data = {
                         // id: progress_id,
-                        cmd: 'progress',
+                        cmd: 'set_progress',
                         operation: 'compress',
                         status: `Compressing "${path.basename(file_path)}"`,
                         max: size,
@@ -162,7 +161,7 @@ if (!isMainThread) {
                     clearInterval(setinterval_id);
 
                     let progress = {
-                        cmd: 'progress',
+                        cmd: 'set_progress',
                         operation: 'compress',
                         value: 0,
                         max: 0,
@@ -502,14 +501,16 @@ if (!isMainThread) {
                 }
 
                 if (make_dir) {
-                    gio.mkdir(filename)
+                    // create the directory if it doesn't exist
+                    libfs.mkdir(filename);
+                    // gio.mkdir(filename)
                     // fs.mkdirSync(filename);
                 }
 
                 // GET UNCOMPRESSED SIZE
                 // win.send('msg', `Calculating uncompressed size of ${path.basename(source)}`, 0);
                 // let setinterval_id = 0;
-                let file = gio.get_file(source)
+                let file = libfs.get_file(source); //gio.get_file(source)
                 let ratio = 0.5;
                 let max = (parseInt(file.size / 1024) / ratio);
                 let current_size = 0;
@@ -520,7 +521,7 @@ if (!isMainThread) {
                     // console.log(current_size, filename)
                     let progress_opts = {
                         id: progress_id,
-                        cmd: 'progress',
+                        cmd: 'set_progress',
                         operation: 'extract',
                         value: (current_size),
                         max: max,

@@ -1,14 +1,14 @@
 // @ts-nocheck
 const { parentPort, isMainThread } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 const path = require('path');
 
 class DeleteWorker {
 
     constructor(options = {}) {
         this.parent_port = options.parentPort || parentPort;
-        this.gio = options.gio || gio;
+        this.gio = options.gio || libfs;
         this.deleted_files = 0;
         this.total_files = 0;
         this.cancel_requested = false;
@@ -173,6 +173,12 @@ class DeleteWorker {
                 break;
             }
 
+            // Update status during scan for each top-level item
+            this.post_message({
+                cmd: 'set_msg',
+                msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning ${delete_arr.indexOf(item) + 1}/${delete_arr.length}: ${path.basename(item.href)}...`
+            });
+
             const item_scan_start = Date.now();
             const delete_plan = await this.get_delete_plan(item);
             const counted_files = delete_plan.reduce((total, entry) => {
@@ -216,10 +222,6 @@ class DeleteWorker {
             : '';
 
         console.log(`[delete_worker] scan completed in ${scan_elapsed_ms}ms for ${delete_arr.length} items (${this.total_files} files).${slowest_msg}`);
-        this.post_message({
-            cmd: 'set_msg',
-            msg: `Scan complete in ${formatted_scan_time} (${this.total_files} files). Starting delete...`
-        });
 
         if (this.total_files === 0) {
             // Fallback: progress by selected items when file counting is unavailable.
@@ -241,6 +243,7 @@ class DeleteWorker {
             return;
         }
 
+        this.post_message({ cmd: 'set_msg', msg: '' });
         this.send_progress('Deleting', 0);
 
         for (const { item, delete_plan } of scanned_delete_plans) {

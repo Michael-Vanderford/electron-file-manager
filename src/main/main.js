@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 // Provide app and Electron version to renderer
-const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents } = require('electron');
+const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
 const packageJson = require('../../package.json');
 const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
@@ -9,15 +9,16 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const exec = require('child_process').exec;
+const execFile = require('child_process').execFile;
 const os = require('os');
-// const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 const iconManager = require('./lib/IconManager');
 const { XMLParser } = require('fast-xml-parser');
+// const gio = require('libgio-node');
 
 const file_icon_cache = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
-const MAX_FOLDER_SIZE_CACHE_ENTRIES = 2000;
+const MAX_FOLDER_SIZE_CACHE_ENTRIES = 1000;
 const FOLDER_SIZE_CACHE_TTL_MS = 5 * 60 * 1000;
 
 class DirectorySizeCache {
@@ -161,7 +162,7 @@ function normalize_find_results(raw_results = []) {
 
             if (typeof item === 'string') {
                 try {
-                    const file = gio.get_file(item);
+                    const file = libfs.get_file(item);
                     if (file && file.href) {
                         return file;
                     }
@@ -230,8 +231,10 @@ function normalize_find_options(raw_options = {}) {
  */
 class Watcher {
     constructor() {
-        // this.monitors = new Map();
         this.unsupported_watch_paths = new Set();
+        // tracks the directory each window is currently watching, so events can be
+        // routed only to windows displaying that directory instead of a global window
+        this.window_dirs = new Map();
     }
 
     is_unsupported_watch_path(dir) {
@@ -252,21 +255,31 @@ class Watcher {
         return msg.includes('operation not supported') || msg.includes('not supported');
     }
 
+    send_to_watchers_of(dir, channel, payload) {
+        let delivered = false;
+
+        this.window_dirs.forEach((watched_dir, window_id) => {
+            if (watched_dir !== dir) {
+                return;
+            }
+            const target_window = BrowserWindow.fromId(window_id);
+            if (target_window && !target_window.isDestroyed()) {
+                target_window.webContents.send(channel, payload);
+                delivered = true;
+            }
+        });
+
+        if (!delivered && win && !win.isDestroyed()) {
+            win.webContents.send(channel, payload);
+        }
+    }
+
     /**
-     * Start watching a path for file system changes.
+     * Start watching a path for file system changes on behalf of a specific window.
      * @param {string} dir - The path to watch.
-     * @param {function} [callback] - Optional callback to handle events.
+     * @param {number|string} window_id - Identifies the subscribing window.
      */
-    watch(dir, callback) {
-
-        // console.log(this.monitors)
-        // console.log(utilities.run_watcher);
-        // console.log('location', fileManager.location)
-
-        // if (this.monitors.has(path)) {
-        //     // Already watching this path
-        //     return;
-        // }
+    watch(dir, window_id) {
 
         if (this.is_unsupported_watch_path(dir)) {
             if (!this.unsupported_watch_paths.has(dir)) {
@@ -276,20 +289,15 @@ class Watcher {
             return;
         }
 
+        this.window_dirs.set(window_id, dir);
+
         try {
 
-            gio.watch(dir, (event) => {
-
-                // Forward events to callback if provided
-                if (typeof callback === 'function') {
-                    callback(event);
-                }
+            libfs.watch(dir, window_id, (event) => {
 
                 if (!utilities.run_watcher) {
                     return;
                 }
-
-                let location = settingsManager.get_settings().location;
 
                 // Example: emit events to renderer or handle internally
                 switch (event.event) {
@@ -300,19 +308,18 @@ class Watcher {
                             utilities.invalidate_folder_size_for_item_path(event.filename);
                         }
 
-                        // console.log('created', event, location, path.dirname(event.filename));
-                        if (location !== path.dirname(event.filename)) {
+                        if (dir !== path.dirname(event.filename)) {
                             return;
                         }
 
-                        let file = gio.get_file(event.filename);
+                        let file = libfs.get_file(event.filename);
                         if (file.href === undefined || file.href === null) {
-                            win.send('set_msg', 'Error: File not found.');
+                            this.send_to_watchers_of(dir, 'set_msg', 'Error: File not found.');
                             return;
                         }
 
                         file.id = btoa(file.href);
-                        win && win.send && win.send('get_item', file);
+                        this.send_to_watchers_of(dir, 'get_item', file);
                         break;
 
                     case 'deleted':
@@ -321,12 +328,11 @@ class Watcher {
                             utilities.invalidate_folder_size_for_item_path(event.filename);
                         }
 
-                        // console.log('delete', event, location, path.dirname(event.filename));
-                        if (location !== path.dirname(event.filename)) {
+                        if (dir !== path.dirname(event.filename)) {
                             return;
                         }
 
-                        win && win.send && win.send('remove_item', btoa(event.filename));
+                        this.send_to_watchers_of(dir, 'remove_item', btoa(event.filename));
                         break;
 
                     //             case 'modified':
@@ -342,8 +348,6 @@ class Watcher {
                 }
             });
 
-            // this.monitors.set(path, path);
-
         } catch (err) {
             if (this.is_unsupported_watch_error(err)) {
                 if (!this.unsupported_watch_paths.has(dir)) {
@@ -358,20 +362,31 @@ class Watcher {
     }
 
     /**
-     * Stop watching a path.
-     * @param {string} path - The path to stop watching.
+     * Stop watching a path on behalf of a specific window. The underlying native watcher
+     * is only closed once no other window is still watching that directory.
+     * @param {string} dir - The path to stop watching.
+     * @param {number|string} window_id - Identifies the unsubscribing window.
      */
-    unwatch(path) {
+    unwatch(dir, window_id) {
 
-        // console.log('unwatch', path);
         try {
-            gio.stop_watch(path);
+            libfs.stop_watch(dir, window_id);
         } catch (err) {
-            // console.error(`Error closing watcher for ${path}:`, err);
-            // win.send('set_msg', `Error closing watcher for ${path}: ${err}`);
+            // console.error(`Error closing watcher for ${dir}:`, err);
         }
 
+    }
 
+    /**
+     * Clean up all watch subscriptions for a window (e.g. on window close).
+     * @param {number|string} window_id
+     */
+    release_window(window_id) {
+        const dir = this.window_dirs.get(window_id);
+        this.window_dirs.delete(window_id);
+        if (dir) {
+            this.unwatch(dir, window_id);
+        }
     }
 
     /**
@@ -511,7 +526,8 @@ class SettingsManager {
                         location: home_dir
                     }
                 }
-            ]
+            ],
+            terminal: 'gnome-terminal',
         };
 
         // List view settings defaults
@@ -544,20 +560,6 @@ class SettingsManager {
             this.settings = JSON.parse(fs.readFileSync(this.settings_file, 'utf-8'));
         }
 
-        // if (fs.existsSync(this.settings_file)) {
-        //     console.log('settings', this.settings_file);
-        //     this.settings = JSON.parse(fs.readFileSync(this.settings_file, 'utf-8'));
-        // } else {
-        //     // Default to '' instead of home directory if settings file does not exist
-        //     // this will allow the constructor in file manager to run the correct logic
-        //     let settings = { location: '' };
-        //     this.settings = settings;
-        //     fs.writeFileSync(this.settings_file, JSON.stringify(settings, null, 4));
-
-        //     is_first_run = 1;
-
-        // }
-        // win.send('settings', this.settings);
         return this.settings;
     }
 
@@ -844,12 +846,12 @@ ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
     // let stats = {};
     try {
 
-        let f = gio.get_file(location);
+        let f = libfs.get_file(location);
         if (f == null || f === undefined) {
             return;
         }
 
-        let stats = await gio.disk_stats(location);
+        let stats = await libfs.disk_stats(location);
         Object.assign(f, stats);
 
         // let stats = await gio.disk_stats(path);
@@ -1102,16 +1104,44 @@ class Utilities {
 
         // set execute
         ipcMain.on('set_execute', (e, href) => {
-            gio.set_execute(href);
+            libfs.set_execute(href);
         })
 
         ipcMain.on('clear_execute', (e, href) => {
-            gio.clear_execute(href);
+            libfs.clear_execute(href);
         })
 
-        // Run external command
-        ipcMain.on('command', (e, cmd) => {
-            exec(cmd, (error, data, getter) => { });
+        // NOTE: generic arbitrary-command handler removed; it allowed unrestricted RCE from the renderer.
+
+        ipcMain.on('open_terminal', (e, folders) => {
+
+            if (!Array.isArray(folders)) {
+                folders = [folders];
+            }
+
+            const terminalCmd = this.settings?.terminal || 'gnome-terminal';
+
+            folders.forEach((folder) => {
+                if (!folder.href || typeof folder.href !== 'string') {
+                    const sender = e?.sender || win;
+                    if (sender && !sender.isDestroyed()) {
+                        sender.send('set_msg', `Error opening ${folder.href}: Invalid path`);
+                    }
+                    return;
+                }
+
+                execFile(terminalCmd, [`--working-directory=${folder.href}`], (error, data, getter) => {
+                    if (error) {
+                        console.error(`Error opening ${folder.href}:`, error);
+                        const sender = e?.sender || win;
+                        if (sender && !sender.isDestroyed()) {
+                            sender.send('set_msg', `Error opening ${folder.href}: ${error.message}`);
+                        }
+                    }
+                });
+
+            });
+
         })
 
         // listen for open file event
@@ -1296,7 +1326,7 @@ class Utilities {
                         win.send('set_msg', data.msg, data.has_timeout);
                     }
 
-                    if (data.cmd === 'progress') {
+                    if (data.cmd === 'set_progress') {
                         win.send('set_progress', data)
                     }
 
@@ -1314,7 +1344,7 @@ class Utilities {
                         win.send('set_progress', close_progress);
 
                         win.send('remove_item', data.destination);
-                        win.send('get_item', gio.get_file(data.destination));
+                        win.send('get_item', libfs.get_file(data.destination));
                         e.sender.send('set_msg', 'Done extracting files.', 1);
 
                         this.run_watcher = true;
@@ -1345,7 +1375,7 @@ class Utilities {
                 if (data.cmd === 'set_msg') {
                     win.send('set_msg', data.msg, data.has_timeout);
                 }
-                if (data.cmd === 'progress') {
+                if (data.cmd === 'set_progress') {
                     win.send('set_progress', data)
                 }
                 if (data.cmd === 'compress_done') {
@@ -1354,7 +1384,7 @@ class Utilities {
                     }
 
                     // win.send('remove_item', data.file_path);
-                    let f = gio.get_file(data.file_path);
+                    let f = libfs.get_file(data.file_path);
                     if (f) {
                         f.id = btoa(data.file_path);
                         win.send('get_item', f);
@@ -1421,7 +1451,7 @@ class Utilities {
                     if (this.is_main && !data.cancelled) {
 
                         // get the base name of the file
-                        let file = gio.get_file(data.destination);
+                        let file = libfs.get_file(data.destination);
 
                         if (file.href === undefined || file.href === null) {
                             win.send('set_msg', 'Error: File not found.');
@@ -1434,7 +1464,7 @@ class Utilities {
                     } else if (!this.is_main && !data.cancelled) {
 
                         // get the base name of the file
-                        let file = gio.get_file(this.root_destination);
+                        let file = libfs.get_file(this.root_destination);
                         file.id = btoa(file.href);
 
                         if (file.href === undefined || file.href === null) {
@@ -1505,7 +1535,7 @@ class Utilities {
 
                         // get moved from location
                         let root_source = path.dirname(data.files_arr[0].source);
-                        let file = gio.get_file(root_source);
+                        let file = libfs.get_file(root_source);
                         file.id = btoa(file.href);
 
                         // check file object
@@ -1519,7 +1549,7 @@ class Utilities {
 
                     } else if (!this.is_main && !data.cancelled) {
 
-                        let file = gio.get_file(this.root_destination);
+                        let file = libfs.get_file(this.root_destination);
                         file.id = btoa(file.href);
 
                         if (file.href === undefined || file.href === null) {
@@ -1550,6 +1580,15 @@ class Utilities {
 
     normalize_folder_size_path(raw_path) {
         return this.directory_size_cache.normalize_path(raw_path);
+    }
+
+    // GVFS mounts (network/smb/mtp/etc.) are slow to recurse, so folder size is not computed for them.
+    is_gvfs_path(dir) {
+        if (!dir || typeof dir !== 'string') {
+            return false;
+        }
+
+        return /\/\.?gvfs\//.test(dir) || /\/run\/user\/\d+\/gvfs\//.test(dir);
     }
 
     emit_folder_size_cache_invalidated(paths = []) {
@@ -1593,7 +1632,7 @@ class Utilities {
     // get folder size
     get_folder_size(e, href) {
         const normalized_href = this.normalize_folder_size_path(href);
-        if (!normalized_href) {
+        if (!normalized_href || this.is_gvfs_path(normalized_href)) {
             return;
         }
 
@@ -1677,7 +1716,7 @@ class Utilities {
         let paste_arr = [];
         let overwrite_arr = [];
 
-        win.send('set_msg', '<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Gathering files...');
+        win.send('set_msg', '<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Gathering files...', true);
 
         copy_arr.forEach(f => {
 
@@ -1879,7 +1918,7 @@ class Utilities {
             idx++;
         }
         fs.mkdirSync(dir);
-        let f = gio.get_file(dir);
+        let f = libfs.get_file(dir);
         f.id = btoa(dir);
         e.sender.send('get_item', f);
         e.sender.send('edit_item', f);
@@ -1924,13 +1963,13 @@ class Utilities {
         }
 
         const res = await new Promise((resolve, reject) => {
-            gio.mv(source, destination, (err, result) => {
+            libfs.mv(source, destination, (err, result) => {
                 if (err) {
                     reject(err);
                     return;
                 }
 
-                let f = gio.get_file(destination);
+                let f = libfs.get_file(destination);
                 if (!f) {
                     win.send('set_msg', `Error: getting file object for rename: ${f}`);
                 }
@@ -2041,9 +2080,9 @@ class Utilities {
 
         try {
             let options = {
-                disksize: this.get_file_size(parseInt(gio.disk_stats(href).total)),
-                usedspace: this.get_file_size(parseInt(gio.disk_stats(href).used)),
-                availablespace: this.get_file_size(parseInt(gio.disk_stats(href).free))
+                disksize: this.get_file_size(parseInt(libfs.disk_stats(href).total)),
+                usedspace: this.get_file_size(parseInt(libfs.disk_stats(href).used)),
+                availablespace: this.get_file_size(parseInt(libfs.disk_stats(href).free))
             }
             let df = [];
             df.push(options);
@@ -2071,7 +2110,7 @@ class WorkspaceManager {
             let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'))
 
             selected_files_arr.forEach(f => {
-                let file = gio.get_file(f.href);
+                let file = libfs.get_file(f.href);
                 // add to top of array
                 workspace_data.unshift(file);
             })
@@ -2097,7 +2136,7 @@ class WorkspaceManager {
         ipcMain.handle('get_workspace', async (e) => {
 
             let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-            if (!gio.exists(workspace_file)) {
+            if (!libfs.exists(workspace_file)) {
                 let workspace_data = [];
                 fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
             }
@@ -2157,8 +2196,8 @@ class WorkspaceManager {
 
         });
 
-        ipcMain.on('get_workspace_folder_icon', (e, href) => {
-            let icon = iconManager.get_folder_icon(e, href);
+        ipcMain.on('get_workspace_folder_icon', async (e, href) => {
+            let icon = await iconManager.get_folder_icon_for_platform(href, app);
             e.sender.send('set_workspace_folder_icon', href, icon);
         });
 
@@ -2167,7 +2206,7 @@ class WorkspaceManager {
     get_workspace_arr() {
 
         let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-        if (!gio.exists(workspace_file)) {
+        if (!libfs.exists(workspace_file)) {
             let workspace_data = [];
             fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
         }
@@ -2188,9 +2227,9 @@ ipcMain.handle('get_icon', async (e, href) => {
         return cached_icon;
     }
 
-    if (process.platform === 'linux' && typeof gio.get_file_icon_data_url === 'function') {
+    if (process.platform === 'linux' && typeof libfs.get_file_icon_data_url === 'function') {
         try {
-            const result = gio.get_file_icon_data_url(href);
+            const result = libfs.get_file_icon_data_url(href);
             if (typeof result === 'string' && result.startsWith('data:image/')) {
                 set_cached_file_icon(href, result);
                 return result;
@@ -2232,7 +2271,7 @@ ipcMain.handle('get_icon', async (e, href) => {
 
 // Get Folder Icon
 ipcMain.on('get_folder_icon', async (e, href) => {
-    let folder_icon = iconManager.get_folder_icon(e, href);
+    let folder_icon = await iconManager.get_folder_icon_for_platform(href, app);
     e.sender.send('set_folder_icon', href, folder_icon);
 })
 
@@ -2306,7 +2345,7 @@ class DeviceManager {
         })
 
         // Monitor USB Devices
-        gio.monitor(data => {
+        libfs.monitor(data => {
             if (data) {
                 console.log('monitor data', data);
                 if (data != 'mtp') {
@@ -2326,7 +2365,7 @@ class DeviceManager {
         // Note Call this in main process.
         // It will crash if called in a worker thread
         // Mount device
-        gio.mount(device_name, (err, res) => {
+        libfs.mount(device_name, (err, res) => {
 
             if (err) {
                 win.send('set_msg', `Error: mounting ${device_name}: ${err}`);
@@ -2334,7 +2373,7 @@ class DeviceManager {
             }
 
             // Get mounts after mounting
-            gio.get_mounts((err, mounts) => {
+            libfs.get_mounts((err, mounts) => {
 
                 if (err) {
                     win.send('set_msg', `Error: getting mounts after mounting ${device_name}: ${err}`);
@@ -2366,7 +2405,7 @@ class DeviceManager {
         // Note Call this in main process.
         // It will crash if called in a worker thread
         // Umount device
-        gio.umount(device_name, (err) => {
+        libfs.umount(device_name, (err) => {
             if (err) {
                 win.send('set_msg', `Error: unmounting ${device_name}: ${err}`);
                 return;
@@ -2382,13 +2421,12 @@ class DeviceManager {
 class NetworkManager {
 
     constructor() {
-
-        this.network_settings_arr = []
+        this.network_settings_arr = [];
+        this.reconnect_in_progress = false;
 
         ipcMain.handle('connect', async (e, network_settings) => {
             return await this.connect(e, network_settings);
         });
-
     }
 
     normalize_server(server) {
@@ -2396,160 +2434,254 @@ class NetworkManager {
             return '';
         }
 
-        return server
-            .trim()
+        return server.trim()
             .replace(/^smb:\/\//i, '')
             .replace(/^ssh:\/\//i, '')
             .replace(/^sftp:\/\//i, '')
             .replace(/\/+$/, '');
     }
 
-    connect(e, network_settings = {}) {
+    encryption_available() {
+        try {
+            return !!safeStorage && safeStorage.isEncryptionAvailable();
+        } catch (err) {
+            return false;
+        }
+    }
 
+    connect(e, network_settings = {}) {
         return new Promise((resolve) => {
-            const sender = e && e.sender ? e.sender : win;
+            const sender = e && e.sender ? e.sender : null;
             const type = (network_settings.type || '').toLowerCase();
             const server = this.normalize_server(network_settings.server);
             const username = (network_settings.username || '').trim();
             const password = network_settings.password || '';
             const use_ssh_key = !!network_settings.use_ssh_key;
+            let settled = false;
+
+            const finish = (result) => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                if (sender && sender.send) {
+                    sender.send('msg_connect', result);
+                }
+                resolve(result);
+            };
 
             if (!['ssh', 'sshfs', 'smb'].includes(type)) {
-                const result = { error: true, msg: 'Unsupported connection type.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: 'Unsupported connection type.' });
                 return;
             }
-
             if (!server) {
-                const result = { error: true, msg: 'Server is required.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: 'Server is required.' });
                 return;
             }
-
             if (!use_ssh_key && !username) {
-                const result = { error: true, msg: 'Username is required.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: 'Username is required.' });
                 return;
             }
-
             if (type === 'smb' && !password) {
-                const result = { error: true, msg: 'Password is required for SMB.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: 'Password is required for SMB.' });
                 return;
             }
-
             if ((type === 'ssh' || type === 'sshfs') && !use_ssh_key) {
-                const result = { error: true, msg: 'This build currently supports SSH/SSHFS with public key authentication.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: 'This build currently supports SSH/SSHFS with public key authentication.' });
                 return;
             }
-
-            if (!gio || typeof gio.connect_network_drive !== 'function') {
-                const result = { error: true, msg: 'Network drive support is not available in this build.' };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+            if (!libfs || typeof libfs.connect_network_drive !== 'function') {
+                finish({ error: true, msg: 'Network drive support is not available in this build.' });
                 return;
             }
 
             const timeout = setTimeout(() => {
-                const result = { error: true, msg: `Connection timed out for ${server}.` };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: `Connection timed out for ${server}.` });
             }, 20000);
 
             try {
-                gio.connect_network_drive(
-                    server,
-                    username,
-                    password,
-                    use_ssh_key ? 1 : 0,
-                    type,
-                    (err, data) => {
-                        clearTimeout(timeout);
-
-                        if (err) {
-                            const result = { error: true, msg: String(err) };
-                            sender && sender.send && sender.send('msg_connect', result);
-                            resolve(result);
-                            return;
-                        }
-
-                        if (network_settings.save_connection) {
-                            this.setNetworkSettings({
-                                ...network_settings,
-                                server,
-                                type
-                            });
-                        }
-
-                        deviceManager.device_worker.postMessage({ cmd: 'get_mounts' });
-                        const result = { error: false, msg: `Connected to ${server}.` };
-                        sender && sender.send && sender.send('msg_connect', result);
-                        resolve(result);
+                libfs.connect_network_drive(server, username, password, use_ssh_key ? 1 : 0, type, (err) => {
+                    clearTimeout(timeout);
+                    if (settled) {
+                        return;
                     }
-                );
+                    if (err) {
+                        finish({ error: true, msg: String(err) });
+                        return;
+                    }
+
+                    if (network_settings.save_connection) {
+                        this.setNetworkSettings({ ...network_settings, server, type });
+                    }
+                    if (deviceManager && deviceManager.device_worker) {
+                        deviceManager.device_worker.postMessage({ cmd: 'get_mounts' });
+                    }
+                    finish({ error: false, msg: `Connected to ${server}.` });
+                });
             } catch (err) {
                 clearTimeout(timeout);
-                const result = { error: true, msg: `Error connecting to ${server}: ${err.message}` };
-                sender && sender.send && sender.send('msg_connect', result);
-                resolve(result);
+                finish({ error: true, msg: `Error connecting to ${server}: ${err.message}` });
             }
         });
     }
 
-    // Save network settings to network.json
-    setNetworkSettings(network_settings) {
+    networkIdentity(network_settings = {}) {
+        return [
+            (network_settings.type || '').toLowerCase(),
+            this.normalize_server(network_settings.server),
+            (network_settings.mount_point || '').trim(),
+            (network_settings.username || '').trim()
+        ].join('|');
+    }
 
-        if (network_settings.save_connection) {
-            try {
-                this.network_settings_arr.push(network_settings);
-                let network_file = path.join(app.getPath('userData'), 'network.json');
-                fs.writeFileSync(network_file, JSON.stringify(this.network_settings_arr, null, 4));
-            } catch (err) {
-                console.log(err);
+    deserializeNetworkSettings(network_settings = {}) {
+        const entry = {
+            type: (network_settings.type || '').toLowerCase(),
+            server: this.normalize_server(network_settings.server),
+            mount_point: (network_settings.mount_point || '').trim(),
+            username: (network_settings.username || '').trim(),
+            use_ssh_key: !!network_settings.use_ssh_key,
+            save_connection: !!network_settings.save_connection,
+            auto_reconnect: !!network_settings.auto_reconnect
+        };
+
+        if (network_settings.encrypted_password) {
+            if (!this.encryption_available()) {
+                entry.auto_reconnect = false;
+            } else {
+                try {
+                    entry.password = safeStorage.decryptString(Buffer.from(network_settings.encrypted_password, 'base64'));
+                } catch (err) {
+                    entry.auto_reconnect = false;
+                }
             }
+        } else if (network_settings.password && this.encryption_available()) {
+            entry.password = network_settings.password;
+            entry.encrypted_password = safeStorage.encryptString(network_settings.password).toString('base64');
+        } else if (network_settings.password) {
+            entry.auto_reconnect = false;
         }
 
+        return entry;
     }
 
-    // Get network settings from network.json
+    serializeNetworkSettings(network_settings = {}) {
+        const entry = this.deserializeNetworkSettings(network_settings);
+        delete entry.password;
+        if (network_settings.password && this.encryption_available()) {
+            entry.encrypted_password = safeStorage.encryptString(network_settings.password).toString('base64');
+        }
+        return entry;
+    }
+
+    writeNetworkSettings() {
+        const network_file = path.join(app.getPath('userData'), 'network.json');
+        const temporary_file = `${network_file}.tmp`;
+        const persisted = this.network_settings_arr.map((entry) => {
+            const copy = { ...entry };
+            delete copy.password;
+            return copy;
+        });
+        fs.writeFileSync(temporary_file, JSON.stringify(persisted, null, 4));
+        fs.renameSync(temporary_file, network_file);
+    }
+
+    setNetworkSettings(network_settings) {
+        if (!network_settings.save_connection) {
+            return;
+        }
+
+        try {
+            const entry = this.serializeNetworkSettings(network_settings);
+            const identity = this.networkIdentity(entry);
+            this.network_settings_arr = this.network_settings_arr.filter((saved) => {
+                return this.networkIdentity(saved) !== identity;
+            });
+            this.network_settings_arr.push(entry);
+            this.writeNetworkSettings();
+        } catch (err) {
+            console.error('Unable to save network settings:', err.message);
+        }
+    }
+
     getNetworkSettings() {
-        let network_file = path.join(app.getPath('userData'), 'network.json');
-        let network_settings = {};
+        const network_file = path.join(app.getPath('userData'), 'network.json');
+        let parsed = [];
         try {
-            network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+            const contents = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+            parsed = Array.isArray(contents) ? contents : [];
         } catch (err) {
-            // fs.copyFileSync(path.join(__dirname, 'assets/config/network.json'), network_file);
-            fs.writeFileSync(network_file, JSON.stringify(this.network_settings_arr, null, 4));
-            network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
+            parsed = [];
         }
-        return network_settings;
+
+        const seen = new Set();
+        this.network_settings_arr = parsed
+            .map((entry) => this.deserializeNetworkSettings(entry))
+            .filter((entry) => ['ssh', 'sshfs', 'smb'].includes(entry.type) && entry.server)
+            .filter((entry) => {
+                const identity = this.networkIdentity(entry);
+                if (seen.has(identity)) {
+                    return false;
+                }
+                seen.add(identity);
+                return true;
+            });
+
+        try {
+            this.writeNetworkSettings();
+        } catch (err) {
+            console.error('Unable to initialize network settings:', err.message);
+        }
+        return this.network_settings_arr;
     }
 
-    removeNetworkSettings(href) {
-
+    removeNetworkSettings(network_settings) {
         try {
-            let network_file = path.join(app.getPath('userData'), 'network.json');
-            let network_settings = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
-            let new_network_settings = network_settings.filter(network_setting => network_setting.mount_point.includes(href) === false);
-            fs.writeFileSync(network_file, JSON.stringify(new_network_settings, null, 4));
+            this.getNetworkSettings();
+            const identity = typeof network_settings === 'string'
+                ? network_settings
+                : this.networkIdentity(network_settings);
+            this.network_settings_arr = this.network_settings_arr.filter((entry) => {
+                return this.networkIdentity(entry) !== identity;
+            });
+            this.writeNetworkSettings();
         } catch (err) {
-            console.log(err);
+            console.error('Unable to remove network settings:', err.message);
         }
-
     }
 
-    connectNetwork() {
-        let cmd = {
-            cmd: 'connect_network',
-            network_settings: this.getNetworkSettings()
+    async reconnectSavedConnections() {
+        if (this.reconnect_in_progress) {
+            return [];
         }
-        worker.postMessage(cmd);
+
+        this.reconnect_in_progress = true;
+        try {
+            const saved_connections = this.getNetworkSettings().filter((entry) => entry.auto_reconnect);
+            const reconnect_results = [];
+            const concurrency = Math.min(3, saved_connections.length);
+            let next_index = 0;
+
+            const reconnect_worker = async () => {
+                while (next_index < saved_connections.length) {
+                    const index = next_index++;
+                    const network_settings = saved_connections[index];
+                    const result = await this.connect(null, {
+                        ...network_settings,
+                        save_connection: false
+                    });
+                    reconnect_results[index] = {
+                        identity: this.networkIdentity(network_settings),
+                        result
+                    };
+                }
+            };
+
+            await Promise.all(Array.from({ length: concurrency }, reconnect_worker));
+            return reconnect_results;
+        } finally {
+            this.reconnect_in_progress = false;
+        }
     }
 
 }
@@ -2596,7 +2728,7 @@ ipcMain.handle('autocomplete', async (e, directory) => {
     let search = path.basename(directory);
 
     try {
-        await gio.ls(dir, (err, dirents) => {
+        await libfs.ls(dir, (err, dirents) => {
             if (err) {
                 return;
             }
@@ -2629,6 +2761,9 @@ class FileManager {
         this.watcher_failed = 0;
         this.watcher_enabled = true;
         this.startup = true;
+        this.list_request_generations = new Map();
+        // per-window current watched directory (window_id/'default' -> dir)
+        this.window_watch_dirs = new Map();
 
         // On first initialization, check settings and load home dir if needed
         const settings = settingsManager.get_settings();
@@ -2653,19 +2788,23 @@ class FileManager {
                     // console.log('ls_done')
 
                     // send ls data to renderer
+                    const request_key = Number.isInteger(data.window_id) ? data.window_id : 'default';
+                    if (data.request_token !== this.list_request_generations.get(request_key)) {
+                        break;
+                    }
                     if (target_sender) {
-                        target_sender.send('ls_done', data.files_arr, data.add_tab);
-                    } else {
-                        win.send('ls_done', data.files_arr, data.add_tab);
+                        target_sender.send('ls_done', data.files_arr, data.add_tab, data.request_token);
                     }
 
                     // watcherManager.watch(this.location);
                     break;
                 case 'set_msg':
+                    const message_key = Number.isInteger(data.window_id) ? data.window_id : 'default';
+                    if (data.request_token !== undefined && data.request_token !== this.list_request_generations.get(message_key)) {
+                        break;
+                    }
                     if (target_sender) {
                         target_sender.send('set_msg', data.msg);
-                    } else {
-                        win.send('set_msg', data.msg);
                     }
                     break;
                 default:
@@ -2737,26 +2876,44 @@ class FileManager {
 
         this.location0 = this.location;
         this.location = location;
+        const request_token = this.next_list_request(window_id);
         let ls_data = {
             cmd: 'ls',
             location: this.location,
             add_tab: add_tab,
-            window_id: window_id
+            window_id: window_id,
+            request_token: request_token
+        }
+
+        if (target && !target.isDestroyed()) {
+            target.send('ls_started', request_token);
         }
 
         this.ls_worker.postMessage(ls_data);
         this.startup = false;
 
+        // watch on behalf of this specific window so navigating in one window
+        // doesn't tear down another window's watcher for a different directory
+        const watch_key = Number.isInteger(window_id) ? window_id : 'default';
+        const prev_watched_dir = this.window_watch_dirs.get(watch_key) || '';
+        this.window_watch_dirs.set(watch_key, this.location);
+
         try {
-            watcher.watch(this.location);
-            if (this.location0 !== '' && this.location0 != this.location) {
-                // console.log('location0', this.location0)
-                watcher.unwatch(this.location0);
+            watcher.watch(this.location, watch_key);
+            if (prev_watched_dir && prev_watched_dir !== this.location) {
+                watcher.unwatch(prev_watched_dir, watch_key);
             }
         } catch (err) {
 
         }
 
+    }
+
+    next_list_request(window_id) {
+        const key = Number.isInteger(window_id) ? window_id : 'default';
+        const request_token = (this.list_request_generations.get(key) || 0) + 1;
+        this.list_request_generations.set(key, request_token);
+        return request_token;
     }
 
     // get files
@@ -2848,7 +3005,7 @@ function get_recent_files_arr() {
                 try {
                     let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
                     href = decodeURIComponent(href);
-                    let f = gio.get_file(href);
+                    let f = libfs.get_file(href);
                     f.id = btoa(href);
                     files_arr.push(f);
                 } catch (err) {
@@ -3068,9 +3225,8 @@ class WindowManager {
             webPreferences: {
                 sandbox: false,
                 nodeIntegration: true, // Needed for titlebar.js
-                contextIsolation: false, // Needed for titlebar.js
+                contextIsolation: true, // Needed for titlebar.js
                 enableRemoteModule: false,
-                nodeIntegrationInWorker: true,
                 nativeWindowOpen: true,
                 preload: path.join(__dirname, 'preload.js'),
             },
@@ -3113,8 +3269,11 @@ class WindowManager {
         // window.webContents.openDevTools({ mode: 'detach' });
         this.windows.push(window);
 
+        const window_id = window.id;
         window.on('closed', () => {
             this.prune_closed_windows();
+            watcher.release_window(window_id);
+            fileManager.window_watch_dirs.delete(window_id);
         });
 
         return window;
@@ -3199,7 +3358,7 @@ class MenuManager {
         this.paste_worker.on('message', (data) => {
             switch (data.cmd) {
                 case 'cp_template_done':
-                    let f = gio.get_file(data.destination);
+                    let f = libfs.get_file(data.destination);
                     f.id = btoa(data.destination);
                     win.send('get_item', f);
                     win.send('edit_item', f);
@@ -3893,7 +4052,7 @@ class MenuManager {
         }
 
         try {
-            const f = gio.get_file(location);
+            const f = libfs.get_file(location);
             return !!(f && f.is_writable);
         } catch (err) {
             return false;
@@ -3915,8 +4074,17 @@ class MenuManager {
                 click: () => {
                     windowManager.open_new_window(location);
                 }
+            },
+            {
+                type: 'separator'
+            },
+            {
+                label: 'Disk Usage Analyzer',
+                click: () => {
+                    exec(`baobab '${location}'`);
+                }
             }
-        ]
+        ];
 
         let menu = Menu.buildFromTemplate(template)
         menu.popup(BrowserWindow.fromWebContents(e.sender))
@@ -4000,7 +4168,7 @@ class MenuManager {
     add_launcher_menu(menu, e, f) {
 
         // Populate Open With Menu
-        let launchers = gio.open_with(f.href);
+        let launchers = libfs.open_with(f.href);
         launchers.sort((a, b) => {
             return a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase());
         })
@@ -4337,6 +4505,12 @@ app.on('ready', () => {
 
     // create main window
     win = windowManager.create_main_window();
+    networkManager.getNetworkSettings();
+    setImmediate(() => {
+        networkManager.reconnectSavedConnections().catch((err) => {
+            console.error('Saved network reconnect failed:', err.message);
+        });
+    });
 
     // After win is defined, trigger initial file load if needed
     const settings = settingsManager.get_settings();

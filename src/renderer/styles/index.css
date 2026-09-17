@@ -304,11 +304,16 @@ hr {
     outline: none;
 }
 
-.filter:not(.active)::before {
+.filter.inactive {
+    opacity: 0.5;
+    color: var(--text-secondary);
+}
+
+/* .filter:not(.active)::before {
     opacity: 0.5;
     content: "Filter";
     padding-right: 5px;
-}
+} */
 
 .find_menu {
     display: flex;
@@ -471,6 +476,10 @@ hr {
     color: var(--text);
     background: var(--input);
     width: 50px;
+}
+
+.settings_view .settings_item input[type="text"] {
+    width: 250px;
 }
 
 .settings_view label {
@@ -1647,6 +1656,28 @@ a.chart-title:hover {
     gap: 0 20px;
     /* 20px horizontal gap between cards */
     padding-top: 10px;
+}
+
+.virtual_view {
+    align-content: start;
+}
+
+.virtual_view .virtual_spacer,
+.virtual_view .virtual_items {
+    grid-column: 1 / -1;
+    width: 100%;
+}
+
+.virtual_view .virtual_items {
+    display: inherit;
+    grid-template-columns: inherit;
+    gap: inherit;
+}
+
+.list_view.virtual_view .virtual_items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 }
 
 .grid_view .card {

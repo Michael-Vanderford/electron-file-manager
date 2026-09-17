@@ -1,7 +1,7 @@
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 const fs = require('fs');
 const path = require('path');
 
@@ -35,7 +35,7 @@ class Utilities {
 
         let file;
         try {
-            file = gio.get_file(source);
+            file = libfs.get_file(source);
         } catch (err) {
             return callback(`Error getting file: ${err.message}`);
         }
@@ -44,7 +44,7 @@ class Utilities {
         file.destination = destination;
         this.files_arr.push(file);
 
-        gio.ls(source, (err, dirents) => {
+        libfs.ls(source, (err, dirents) => {
 
             if (err) {
                 return callback(`Error listing directory: ${err.message}`);
@@ -142,7 +142,7 @@ class Utilities {
             destination = f.destination;
             if (f.is_dir) {
                 // fs.mkdirSync(destination, { recursive: true });
-                gio.mkdir(destination);
+                libfs.mkdir(destination);
 
                 // // get size of destination directory
                 // let size = fs.statSync(destination).size;
@@ -153,7 +153,7 @@ class Utilities {
             } else {
                 let file_bytes_copied = 0;
                 const res = await new Promise((resolve, reject) => {
-                    gio.cp_async(source, destination, (err, result) => {
+                    libfs.cp_async(source, destination, (err, result) => {
                         if (err) {
                             reject(err);
                             return;

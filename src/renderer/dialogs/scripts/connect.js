@@ -29,6 +29,14 @@ ipcRenderer.on('connect', (e) => {
     let username = document.getElementById('txt_username');
     let use_ssh_key = document.getElementById('chk_pk');
     let save_connection = document.getElementById('chk_save_connection');
+    let auto_reconnect = document.getElementById('chk_auto_reconnect');
+
+    save_connection.addEventListener('change', () => {
+        auto_reconnect.disabled = !save_connection.checked;
+        if (auto_reconnect.disabled) {
+            auto_reconnect.checked = false;
+        }
+    });
 
     function updateCredentialInputs() {
         const isSshConnection = connection_type.value === 'ssh' || connection_type.value === 'sshfs';
@@ -144,7 +152,8 @@ ipcRenderer.on('connect', (e) => {
                 username: username.disabled ? '' : username.value.trim(),
                 password: password.disabled ? '' : password.value,
                 use_ssh_key: use_ssh_key.checked,
-                save_connection: save_connection.checked
+                save_connection: save_connection.checked,
+                auto_reconnect: save_connection.checked && auto_reconnect.checked
             }
 
             ipcRenderer.invoke('connect', cmd).then(res => {

@@ -14,11 +14,11 @@ The application currently supports the following network protocols:
 
 ## Connection Flow (`NetworkManager.connect`)
 
-When a user attempts to connect to a network drive, an IPC call (`ipcMain.handle('connect')`) triggers the `NetworkManager.connect` method. 
+When a user attempts to connect to a network drive, an IPC call (`ipcMain.handle('connect')`) triggers the `NetworkManager.connect` method.
 
-1. **Input Normalization**: 
+1. **Input Normalization**:
    - The server string is stripped of protocol prefixes (e.g., `smb://`, `ssh://`, `sftp://`) and trailing slashes via `normalize_server()`.
-   
+
 2. **Validation**:
    - The protocol type must be one of the supported types (`ssh`, `sshfs`, `smb`).
    - A server address is strictly required.
@@ -42,10 +42,18 @@ When a user attempts to connect to a network drive, an IPC call (`ipcMain.handle
 
 ## Storage of Connection Settings
 
-Saved network connections are persisted as a JSON array in `network.json`. 
+Saved network connections are persisted as a JSON array in `network.json`.
 - `getNetworkSettings()` retrieves the list from disk.
-- `setNetworkSettings()` appends a new connection configuration.
-- `removeNetworkSettings()` filters out a connection by its `href`/`mount_point` and rewrites the file.
+- `setNetworkSettings()` replaces an existing entry with the same normalized connection identity instead of appending duplicates.
+- Invalid entries are ignored and duplicate entries are removed when the file is loaded.
+- Passwords are encrypted with Electron `safeStorage`; plaintext passwords are removed when legacy entries are migrated. If secure storage is unavailable, automatic reconnect is disabled for that entry.
+- `removeNetworkSettings()` removes one exact connection identity; it does not use substring matching on mount paths.
+
+## Reconnect After Startup
+
+The Connect dialog has a separate opt-in for automatic reconnect. After the main window is ready, the main process reconnects all opted-in entries in the background, with up to three connection attempts running concurrently. One failed or unavailable connection does not prevent the remaining entries from being attempted. Reconnect does not open a dialog or block startup, and each result remains associated with its saved connection identity. Startup reconnect does not log or display credentials.
+
+Existing files using the old plaintext `password` field are migrated when secure storage is available. Entries that cannot be migrated remain as non-secret metadata but are not automatically reconnected.
 
 ## Potential Areas of Improvement
 

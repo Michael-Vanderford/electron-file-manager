@@ -1,3 +1,4 @@
+// @ts-nocheck
 // getSymlinkIcon.js
 const fs = require('fs');
 const path = require('path');
@@ -8,9 +9,11 @@ class IconManager {
     constructor() {
 
         this.home = require('os').homedir();
-        this.icon_theme = this.get_icon_theme();
-        this.theme_root = this.get_theme_root();
-        this.theme_path = this.get_theme_path();
+        this.platform = process.platform;
+        this.fallback_icon_dir = path.join(__dirname, '..', '..', 'assets', 'icons');
+        this.icon_theme = this.platform === 'linux' ? this.get_icon_theme() : '';
+        this.theme_root = this.platform === 'linux' ? this.get_theme_root() : null;
+        this.theme_path = this.platform === 'linux' ? this.get_theme_path() : this.fallback_icon_dir;
         this.theme_watcher = null;
         this.theme_watcher_buffer = '';
         this.theme_change_timer = null;
@@ -19,6 +22,10 @@ class IconManager {
     }
 
     get_icon_theme() {
+        if (this.platform !== 'linux') {
+            return '';
+        }
+
         return execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
     }
 
@@ -26,7 +33,7 @@ class IconManager {
 
         try {
 
-            const fallback_icon = path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-symbolic-link.svg');
+            const fallback_icon = path.join(this.fallback_icon_dir, 'emblem-symbolic-link.svg');
             let icon_path = path.join(this.theme_path, 'emblem-symbolic-link.svg');
             if (!fs.existsSync(icon_path)) {
                 icon_path = fallback_icon;
@@ -37,7 +44,7 @@ class IconManager {
         } catch (err) {
 
             console.error('Error in symlink_icon:', err);
-            return path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-symbolic-link.svg');
+            return path.join(this.fallback_icon_dir, 'emblem-symbolic-link.svg');
 
         }
 
@@ -47,7 +54,7 @@ class IconManager {
 
         try {
 
-            const fallback_icon = path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-readonly.svg');
+            const fallback_icon = path.join(this.fallback_icon_dir, 'emblem-readonly.svg');
             let icon_path = path.join(this.theme_path, 'emblem-readonly.svg');
             if (!fs.existsSync(icon_path)) {
                 icon_path = fallback_icon;
@@ -57,11 +64,15 @@ class IconManager {
 
         } catch (err) {
             console.log(err);
-            return path.join(__dirname, '..', '..', 'assets', 'icons', 'emblem-readonly.svg');
+            return path.join(this.fallback_icon_dir, 'emblem-readonly.svg');
         }
     }
 
     get_theme_path() {
+
+        if (this.platform !== 'linux') {
+            return this.fallback_icon_dir;
+        }
 
         let icon_dir = this.theme_root || path.join(__dirname, 'assets', 'icons');
         let theme_path = '';
@@ -105,6 +116,10 @@ class IconManager {
     }
 
     get_theme_root() {
+        if (this.platform !== 'linux') {
+            return null;
+        }
+
         const search_paths = [
             path.join(this.home, '.local/share/icons'),
             path.join(this.home, '.icons'),
@@ -176,6 +191,10 @@ class IconManager {
     }
 
     get_theme_search_roots() {
+        if (this.platform !== 'linux') {
+            return [];
+        }
+
         const roots = [];
         const queue = [this.theme_root];
         const visited = new Set();
@@ -202,6 +221,10 @@ class IconManager {
     }
 
     get_gio_icon_names(href) {
+        if (this.platform !== 'linux') {
+            return [];
+        }
+
         try {
             const output = execFileSync('gio', ['info', '-a', 'standard::icon', href], { encoding: 'utf8' });
             const line = output.split('\n').find((entry) => entry.toLowerCase().includes('standard::icon:'));
@@ -225,7 +248,7 @@ class IconManager {
     }
 
     resolve_themed_icon(icon_name) {
-        if (!icon_name) {
+        if (this.platform !== 'linux' || !icon_name) {
             return null;
         }
 
@@ -291,6 +314,10 @@ class IconManager {
     }
 
     get_file_icon(href) {
+        if (this.platform !== 'linux') {
+            return null;
+        }
+
         const icon_names = this.get_gio_icon_names(href);
         for (const icon_name of icon_names) {
             const resolved_icon = this.resolve_themed_icon(icon_name);
@@ -303,6 +330,10 @@ class IconManager {
     }
 
     refresh_theme() {
+
+        if (this.platform !== 'linux') {
+            return false;
+        }
 
         try {
             const next_theme = this.get_icon_theme();
@@ -326,6 +357,10 @@ class IconManager {
     start_theme_watcher(on_change) {
 
         this.stop_theme_watcher();
+
+        if (this.platform !== 'linux') {
+            return;
+        }
 
         try {
             this.theme_watcher = spawn('gsettings', ['monitor', 'org.gnome.desktop.interface', 'icon-theme'], {
@@ -379,6 +414,29 @@ class IconManager {
         this.theme_watcher_buffer = '';
     }
 
+    /**
+     * @param {string} href
+     * @param {{ getFileIcon: (path: string, options: { size: number }) => Promise<{ toDataURL: () => string }> }} electron_app
+     */
+    async get_folder_icon_for_platform(href, electron_app) {
+        if (this.platform === 'linux') {
+            return this.get_folder_icon(null, href);
+        }
+
+        try {
+            const icon = await electron_app.getFileIcon(href, { size: 32 });
+            if (icon && typeof icon.toDataURL === 'function') {
+                const dataUrl = icon.toDataURL();
+                if (dataUrl && dataUrl !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfAwAAswEA6S9S6AAAAABJRU5ErkJggg==') {
+                    return dataUrl;
+                }
+            }
+            return path.join(this.fallback_icon_dir, 'folder.svg');
+        } catch (err) {
+            return path.join(this.fallback_icon_dir, 'folder.svg');
+        }
+    }
+
     // get folder icon
     get_folder_icon(e, href) {
 
@@ -429,7 +487,7 @@ class IconManager {
 
 
             // If still no icon found, use the ultimate fallback (resolve relative to Electron main process)
-            final_icon = final_icon || path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg');
+            final_icon = final_icon || path.join(this.fallback_icon_dir, 'folder.svg');
 
             return final_icon;
             // e.sender.send('set_folder_icon', href, final_icon);
@@ -437,7 +495,7 @@ class IconManager {
         } catch (err) {
             console.error('Error in folder icon selection:', err);
             // e.sender.send('set_folder_icon', href, path.join(__dirname, '../assets/icons/folder.svg'));
-            return path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg');
+            return path.join(this.fallback_icon_dir, 'folder.svg');
         }
 
     }

@@ -1,7 +1,7 @@
 const {parentPort, workerData, isMainThread} = require('worker_threads');
 const path = require('path');
 // const gio = require('../gio/build/Release/gio.node');
-const gio = require('libgio-node');
+const libfs = require('../common/libfs');
 
 
 parentPort.on('message', (data) => {
@@ -13,10 +13,10 @@ parentPort.on('message', (data) => {
             let properties_arr = [];
             if (data.selected_files_arr.length > 0) {
                 data.selected_files_arr.forEach(file => {
-                    let properties = gio.get_file(file.href);
+                    let properties = libfs.get_file(file.href);
                     if (properties && properties.is_dir) {
                         try {
-                            const counts = gio.count(file.href);
+                            const counts = libfs.count(file.href);
                             properties.folder_count = counts.folders;
                             properties.file_count = counts.files;
                             properties.count = counts.total;

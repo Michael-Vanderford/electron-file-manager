@@ -2,14 +2,13 @@
 // Custom title bar logic for Electron frameless window
 
 window.addEventListener('DOMContentLoaded', () => {
-    const { ipcRenderer } = require('electron');
     const titlebar = document.querySelector('.titlebar');
     if (!titlebar) return;
 
     // Button actions
-    titlebar.querySelector('.titlebar-min').onclick = () => ipcRenderer.send('window-minimize');
-    titlebar.querySelector('.titlebar-max').onclick = () => ipcRenderer.send('window-maximize');
-    titlebar.querySelector('.titlebar-close').onclick = () => ipcRenderer.send('window-close');
+    titlebar.querySelector('.titlebar-min').onclick = () => window.titlebarAPI.minimize();
+    titlebar.querySelector('.titlebar-max').onclick = () => window.titlebarAPI.maximize();
+    titlebar.querySelector('.titlebar-close').onclick = () => window.titlebarAPI.close();
 
     // Menu dropdown logic
     const menuItems = titlebar.querySelectorAll('.menu-item');
@@ -37,40 +36,36 @@ window.addEventListener('DOMContentLoaded', () => {
             const action = el.getAttribute('data-action');
             switch (action) {
                 case 'new-window': {
-                    const currentLocation = (window.utilities && typeof window.utilities.get_location === 'function')
-                        ? window.utilities.get_location()
-                        : (document.querySelector('.location')?.value || '');
-                    ipcRenderer.send('new-window', currentLocation);
+                    const currentLocation = window.titlebarAPI.getLocation() || (document.querySelector('.location')?.value || '');
+                    window.titlebarAPI.newWindow(currentLocation);
                     break;
                 }
                 case 'sidebar':
-                    if (window.sideBarManager && typeof window.sideBarManager.toggle_sidebar === 'function') {
-                        window.sideBarManager.toggle_sidebar();
-                    }
+                    window.titlebarAPI.toggleSidebar();
                     break;
                 case 'reload':
                     location.reload();
                     break;
                 case 'toggle-devtools':
-                    ipcRenderer.send('toggle-devtools');
+                    window.titlebarAPI.toggleDevtools();
                     break;
                 case 'fullscreen':
-                    ipcRenderer.send('toggle-fullscreen');
+                    window.titlebarAPI.toggleFullscreen();
                     break;
                 case 'exit':
-                    ipcRenderer.send('window-close');
+                    window.titlebarAPI.close();
                     break;
                 case 'about':
                     showAboutDialog();
                     break;
                 case 'cut':
-                    window.utilities.cut();
+                    window.titlebarAPI.cut();
                     break;
                 case 'copy':
-                    window.utilities.copy();
+                    window.titlebarAPI.copy();
                     break;
                 case 'paste':
-                    window.utilities.paste();
+                    window.titlebarAPI.paste();
                     break;
                 // Add more actions as needed
                 default:
@@ -85,7 +80,7 @@ window.addEventListener('DOMContentLoaded', () => {
         const dialog = document.getElementById('about-dialog');
         if (dialog) {
             // Fetch version info from main process
-            require('electron').ipcRenderer.invoke('get_app_versions').then((versions) => {
+            window.titlebarAPI.getAppVersions().then((versions) => {
                 const appVer = document.getElementById('about-app-version');
                 const elecVer = document.getElementById('about-electron-version');
                 const appName = document.getElementById('about-app-name');
