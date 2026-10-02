@@ -200,6 +200,10 @@ class LibFS {
     }
 
     disk_stats(location) {
+        if (process.platform !== 'linux') {
+            return { total: 0, used: 0, free: 0 };
+        }
+
         try {
             if (typeof fs.statfsSync === 'function') {
                 const stats = fs.statfsSync(location);
@@ -350,6 +354,10 @@ class LibFS {
             return this.gioNative.get_mounts(callback);
         }
 
+        if (process.platform !== 'linux') {
+            return callback(null, []);
+        }
+
         try {
             const mountsContent = fs.readFileSync('/proc/mounts', 'utf8');
             const lines = mountsContent.split('\n');
@@ -386,6 +394,10 @@ class LibFS {
             return this.gioNative.mount(device, callback);
         }
 
+        if (process.platform !== 'linux') {
+            return callback(new Error('Mounting is only supported on Linux'));
+        }
+
         exec(`udisksctl mount -b "${device.device || device}"`, (err, stdout, stderr) => {
             if (err) {
                 return callback(err);
@@ -397,6 +409,10 @@ class LibFS {
     umount(device, callback) {
         if (this.gioNative && typeof this.gioNative.umount === 'function') {
             return this.gioNative.umount(device, callback);
+        }
+
+        if (process.platform !== 'linux') {
+            return callback(new Error('Unmounting is only supported on Linux'));
         }
 
         exec(`udisksctl unmount -b "${device.device || device}" || udisksctl unmount -p "${device.path || device}"`, (err) => {
@@ -413,7 +429,7 @@ class LibFS {
         }
         const callback = args[args.length - 1];
         if (typeof callback === 'function') {
-            callback(new Error('GVFS network drives require libgio-node'));
+            callback(new Error(process.platform === 'linux' ? 'GVFS network drives require libgio-node' : 'Network drive connection is not supported on this platform'));
         }
     }
 
@@ -437,45 +453,56 @@ class LibFS {
         }
     }
 
-    find(query, location, options, callback) {
-        if (typeof options === 'function') {
-            callback = options;
-            options = {};
-        }
-
-        const results = [];
+    async *find(query, location, options = {}) {
         const searchLocation = location || os.homedir();
         const searchQuery = (query || '').toLowerCase();
 
-        const walk = (dir, depth = 0) => {
-            if (options && options.maxDepth && depth > options.maxDepth) return;
+        const self = this;
+        async function* walk(dir, depth = 0) {
+            if (options.maxDepth !== undefined && depth > options.maxDepth) return;
+
             let items;
             try {
-                items = fs.readdirSync(dir, { withFileTypes: true });
+                items = await fsPromises.readdir(dir, { withFileTypes: true });
             } catch (e) {
                 return;
             }
 
             for (const item of items) {
                 const fullPath = path.join(dir, item.name);
+
                 if (item.name.toLowerCase().includes(searchQuery)) {
-                    results.push(this.get_file(fullPath));
+                    const file = self.get_file(fullPath);
+
+                    let matches = true;
+
+                    if (options.minSize !== undefined && file.size < options.minSize) matches = false;
+                    if (options.maxSize !== undefined && file.size > options.maxSize) matches = false;
+
+                    if (matches && options.dateFrom) {
+                        const fromDate = new Date(options.dateFrom).getTime();
+                        if (file.mtime * 1000 < fromDate) matches = false;
+                    }
+
+                    if (matches && options.dateTo) {
+                        const toDate = new Date(options.dateTo).getTime();
+                        if (file.mtime * 1000 > toDate) matches = false;
+                    }
+
+                    if (matches) {
+                        yield file;
+                    }
                 }
                 if (item.isDirectory() && !item.isSymbolicLink()) {
-                    walk(fullPath, depth + 1);
+                    yield* walk(fullPath, depth + 1);
                 }
             }
-        };
+        }
 
         try {
-            walk(searchLocation, 0);
-            if (typeof callback === 'function') {
-                callback(null, results);
-            }
+            yield* walk(searchLocation, 0);
         } catch (err) {
-            if (typeof callback === 'function') {
-                callback(err, []);
-            }
+            throw err;
         }
     }
 

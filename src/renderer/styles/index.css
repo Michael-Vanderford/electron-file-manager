@@ -87,6 +87,18 @@ hr {
     /* padding-bottom: 38px; */
 }
 
+.menu .button {
+    background-color: var(--menu);
+    text-align: center;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px;
+    margin-left: 5px;
+    width: 50px;
+    height: 100%;
+}
+
 .nav_header {
     display: flex;
     position: relative;
@@ -292,7 +304,7 @@ hr {
 }
 
 .filter {
-    display: flex;
+    display: block;
     align-items: center;
     padding: 5px;
     margin-left: 5px;
@@ -302,6 +314,15 @@ hr {
     height: 100%;
     width: 300px;
     outline: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.filter:empty::before {
+    content: attr(data-placeholder);
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .filter.inactive {
@@ -1172,8 +1193,9 @@ tr {
 
     /* overflow: auto; */
     width: 98%;
-    margin: 10px;
-    /* margin-top: 5px; */
+    margin-left: 10px;
+    margin-right: 10px;
+    margin-top: 5px;
     margin-bottom: 5px;
     /* background: var(--sidebar); */
     border: 1px solid var(--border);
@@ -1211,6 +1233,26 @@ tr {
 .tab-content {
     z-index: 0;
 }
+
+.tab-menu {
+    margin-left: 10px;
+    margin-bottom: 2px;
+}
+
+.tab-menu .button {
+    color: var(--text);
+    background: var(--button);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px;
+    font-weight: bold;
+}
+
+.tab-menu .button:hover {
+    color: var(--text);
+    background: var(--button-active);
+}
+
 
 .properties_view {
     display: flex;
@@ -1527,6 +1569,38 @@ tr {
     overflow: hidden;
 }
 
+.recent_date_group {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+
+.recent_date_group_heading {
+    box-sizing: border-box;
+    margin: 14px 0 6px;
+    padding: 0 5px 5px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.recent_date_group:first-of-type .recent_date_group_heading {
+    margin-top: 4px;
+}
+
+.recent_date_items {
+    min-width: 0;
+    width: 100%;
+}
+
+.recent_date_group_heading_virtual {
+    grid-column: 1 / -1;
+    height: 34px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
 .dashboard_view {
     background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x);
     margin-left: 10px;
@@ -1609,6 +1683,7 @@ tr {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: bold;
 }
 
 .chart-container .chart-frame {
@@ -2292,131 +2367,55 @@ span {
 @media (pointer: coarse) and (max-width: 1024px) {}
 
 /* Define dark color scheme */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --menu: #303134;
-        --sidebar: #262626;
-        /* --sidebar: #0c0c0c; */
-        --input: #484848;
-        --input-focus: #1b557c;
-        --main: #222;
-        /* --main: #0c0c0c; */
-        --minibar: #222222;
-        --border: #333333;
-        --msg: #222222;
-        --msg-text: #ffa500;
-        --dialog: #262626;
-        --text: #C0C0C0;
-        --active: #ffffff;
-        --inactive: #484848;
-        --tabs: #292929;
-        --button: #484848;
-        --button-active: #1b557c;
-        --button-hover: #5c636a;
-        --button-hover-warning: #960000;
-        --button-nav: #292929;
-        --button-nav-hover: #5c636a;
-        --button-nav-text: #cfcfcf;
-        --location: #2c2c2c;
-        --location-border: #3b3a3a;
-        --progress: #2c2c2c;
-        --scrollbar: #3b3a3a;
-        --scrollbar-hover: #5c636a;
-
-        --svg: #ffffff;
-
-        --msg-connect: #ffa500;
-        --msg-connect-error: #ff0000;
-        --msg-connect-success: #008000;
-
-        --svg: rgba(155, 155, 155, .9);
-
-        --link: #4183c4;
-        --highlight: #233246;
-        /* --highlight-select: #233246; */
-        /* --highlight-select: #069; */
-        --highlight-select: rgba(255, 255, 255, 0.05);
-        --highlight-target: #233246;
-        --highlight-select-border: #707070;
-        --highlight-active: #C5B359;
-
-        --not-writable: #cfcfcf;
-
-        --black: #000000;
-        --white: #FFFFFF;
-        --warning: #FFA500;
-        --danger: #ff2b2b;
-        --error: #ff2b2b;
-        --success: #008000;
-        --blue: #233654;
-        --lightblue: #506585;
-        --yellow: #FFFF00;
-        --orange: #FFA500;
-
-        --grey: #505050;
-
-        --light: #C0C0C0;
-        --lighter: #cfcfcf;
-        --lightest: #cacaca;
-
-        --blur: blur(5px);
-        --brightness: brightness(0.8);
-        --contrast: contrast(1.2);
-
-    }
-}
-
-/* Define dark color scheme */
-.color_scheme_glass {
-
-    /* --menu: rgba(24, 28, 36, 0.38); */
-    --menu: rgba(18, 22, , 0.28);
-    --sidebar: rgba(20, 24, 32, 0.32);
+:root,
+:root.theme-dark {
+    --menu: #303134;
+    --sidebar: #262626;
     /* --sidebar: #0c0c0c; */
-    --input: rgba(255, 255, 255, 0.10);
-    --input-focus: rgba(91, 162, 255, 0.32);
-    --main: rgba(15, 18, 24, 0.28);
+    --input: #484848;
+    --input-focus: #1b557c;
+    --main: #222;
     /* --main: #0c0c0c; */
-    --minibar: rgba(18, 22, 30, 0.28);
-    --border: rgba(255, 255, 255, 0.22);
-    --msg: rgba(18, 22, 30, 0.32);
-    --msg-text: #ffd08a;
-    --dialog: rgba(18, 22, 30, 0.38);
-    --text: #eaf2ff;
+    --minibar: #222222;
+    --border: #333333;
+    --msg: #222222;
+    --msg-text: #ffa500;
+    --dialog: #262626;
+    --text: #C0C0C0;
     --active: #ffffff;
-    --inactive: rgba(234, 242, 255, 0.38);
-    --tabs: rgba(255, 255, 255, 0.10);
-    --button: rgba(255, 255, 255, 0.13);
-    --button-active: rgba(91, 162, 255, 0.32);
-    --button-hover: rgba(255, 255, 255, 0.22);
+    --inactive: #484848;
+    --tabs: #292929;
+    --button: #484848;
+    --button-active: #1b557c;
+    --button-hover: #5c636a;
     --button-hover-warning: #960000;
-    --button-nav: rgba(255, 255, 255, 0.09);
-    --button-nav-hover: rgba(255, 255, 255, 0.22);
-    --button-nav-text: #eaf2ff;
-    --location: rgba(255, 255, 255, 0.10);
-    --location-border: rgba(255, 255, 255, 0.22);
-    --progress: rgba(255, 255, 255, 0.10);
-    --scrollbar: rgba(255, 255, 255, 0.18);
-    --scrollbar-hover: rgba(255, 255, 255, 0.32);
+    --button-nav: #292929;
+    --button-nav-hover: #5c636a;
+    --button-nav-text: #cfcfcf;
+    --location: #2c2c2c;
+    --location-border: #3b3a3a;
+    --progress: #2c2c2c;
+    --scrollbar: #3b3a3a;
+    --scrollbar-hover: #5c636a;
 
-    --svg: rgba(235, 245, 255, 0.92);
+    --svg: #ffffff;
 
     --msg-connect: #ffa500;
     --msg-connect-error: #ff0000;
     --msg-connect-success: #008000;
 
+    --svg: rgba(155, 155, 155, .9);
+
     --link: #4183c4;
-    --highlight: rgba(91, 162, 255, 0.22);
+    --highlight: #233246;
     /* --highlight-select: #233246; */
     /* --highlight-select: #069; */
-    /* --highlight-select: rgba(255, 255, 255, 0.18); */
-    --highlight-select: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.15));
-    --highlight-border: rgba(255, 255, 255, 0.22);
-    --highlight-target: rgba(91, 162, 255, 0.36);
-    --highlight-select-border: rgba(255, 255, 255, 0.32);
+    --highlight-select: rgba(255, 255, 255, 0.05);
+    --highlight-target: #233246;
+    --highlight-select-border: #707070;
     --highlight-active: #C5B359;
 
-    --not-writable: rgba(234, 242, 255, 0.38);
+    --not-writable: #cfcfcf;
 
     --black: #000000;
     --white: #FFFFFF;
@@ -2429,21 +2428,20 @@ span {
     --yellow: #FFFF00;
     --orange: #FFA500;
 
-    --grey: #7c8594;
+    --grey: #505050;
 
-    --light: #d7e3f8;
-    --lighter: #e6eeff;
-    --lightest: #f2f6ff;
+    --light: #C0C0C0;
+    --lighter: #cfcfcf;
+    --lightest: #cacaca;
 
-    --blur: blur(32px);
-    --brightness: brightness(0.92);
-    --contrast: contrast(1.12);
+    --blur: blur(5px);
+    --brightness: brightness(0.8);
+    --contrast: contrast(1.2);
 
 }
 
-
 @media (prefers-color-scheme: light) {
-    :root {
+    :root:not(.theme-dark) {
         --menu: #f7f7f7;
         --sidebar: #f0f0f0;
         --input: #f0f0f0;
@@ -2454,7 +2452,7 @@ span {
         --msg: #f7f7f7;
         --dialog: #dcdcdc;
         --text: #333333;
-        --active: #333333;
+        --active: #e1edfb;
         --tabs: #ffffff;
         --button: #707070;
         --button-text: #ffffff;

@@ -37,6 +37,9 @@
 - [ ] Add coverage for hidden files, broken symlinks, remote mounts, escaped mount paths, and read-only locations.
 - [ ] Run `npm audit --omit=dev --audit-level=high` before releases and record the result in release notes.
 
+### p3 - Other
+- [] Update filter placeholder to "Search <Base Current Directory>"
+
 ### Completed
 
 - [x] Add terminal command in settings

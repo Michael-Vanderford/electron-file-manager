@@ -113,6 +113,41 @@ class DirectorySizeCache {
 
 nativeTheme.themeSource = 'system';
 
+function should_use_dark_system_theme() {
+    if (process.platform !== 'linux') {
+        return nativeTheme.shouldUseDarkColors;
+    }
+
+    try {
+        const color_scheme = execSync(
+            'gsettings get org.gnome.desktop.interface color-scheme',
+            { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
+        ).trim().replace(/^'|'$/g, '');
+
+        if (color_scheme === 'prefer-dark') {
+            return true;
+        }
+        if (color_scheme === 'prefer-light') {
+            return false;
+        }
+    } catch (err) {
+    }
+
+    return nativeTheme.shouldUseDarkColors;
+}
+
+function send_theme_to_window(browser_window) {
+    if (!browser_window || browser_window.isDestroyed()) {
+        return;
+    }
+
+    browser_window.webContents.send('theme-changed', should_use_dark_system_theme() ? 'dark' : 'light');
+}
+
+nativeTheme.on('updated', () => {
+    BrowserWindow.getAllWindows().forEach(send_theme_to_window);
+});
+
 // flags
 let is_first_run = 0;
 
@@ -871,36 +906,45 @@ ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
 })
 
 ipcMain.handle('find', async (e, query, location, options) => {
+    const sender = e.sender;
+    const find_worker = new worker.Worker(path.join(__dirname, '../workers/find_worker.js'));
 
-    return await new Promise((resolve, reject) => {
-        const find_worker = new worker.Worker(path.join(__dirname, '../workers/find_worker.js'));
-        find_worker.postMessage({
-            cmd: 'find',
-            query: query,
-            location: location,
-            options: options
-        });
-
-        find_worker.on('message', (msg) => {
-            // Accept both 'find' and 'find_result' for compatibility
-            if (msg.cmd === 'find_results') {
-                resolve({
-                    error: msg.err,
-                    results: msg.res
-                });
-                find_worker.terminate();
-            }
-        });
-
-        find_worker.on('error', (err) => {
-            resolve({
-                error: true,
-                message: String(err.message || err),
-                results: []
-            });
-            find_worker.terminate();
-        });
+    find_worker.postMessage({
+        cmd: 'find',
+        query: query,
+        location: location,
+        options: options
     });
+
+    find_worker.on('message', (msg) => {
+        switch (msg.cmd) {
+            case 'find_result':
+                sender.send('find_result', msg.file);
+                break;
+            case 'find_done':
+                sender.send('find_done', { error: msg.err });
+                break;
+            case 'find_error':
+                sender.send('find_error', msg.err);
+                break;
+            case 'find_results': // Backward compatibility
+                sender.send('find_results', msg.res);
+                break;
+        }
+    });
+
+    find_worker.on('error', (err) => {
+        sender.send('find_error', String(err.message || err));
+        find_worker.terminate();
+    });
+
+    // To prevent zombie workers, we should terminate when the window closes or
+    // if the renderer requests cancellation.
+    sender.on('destroyed', () => {
+        find_worker.terminate();
+    });
+
+    return { streaming: true };
 })
 
 // ipcMain.handle('find', async (e, query, location, options) => {
@@ -2722,27 +2766,25 @@ ipcMain.on('get_recent_files', (e) => {
 });
 
 ipcMain.handle('autocomplete', async (e, directory) => {
+    if (typeof directory !== 'string' || directory.length === 0) {
+        return [];
+    }
 
-    let autocomplete_arr = [];
-    let dir = path.dirname(directory);
-    let search = path.basename(directory);
+    const dir = path.dirname(directory);
+    const search = path.basename(directory);
 
-    try {
-        await libfs.ls(dir, (err, dirents) => {
-            if (err) {
+    return await new Promise((resolve) => {
+        libfs.ls(dir, (err, dirents) => {
+            if (err || !Array.isArray(dirents)) {
+                resolve([]);
                 return;
             }
-            dirents.forEach(item => {
-                if (item.is_dir && item.name.startsWith(search)) {
-                    autocomplete_arr.push(item.href + '/');
-                }
-            })
-        })
 
-    } catch (err) {
-
-    }
-    return autocomplete_arr;
+            resolve(dirents
+                .filter((item) => item && item.is_dir && item.name.startsWith(search))
+                .map((item) => `${item.href}/`));
+        });
+    });
 })
 
 // Validate location input
@@ -3266,6 +3308,9 @@ class WindowManager {
         // console.log('Loading index.html from:', indexPath);
 
         window.loadFile('src/renderer/index.html');
+        window.webContents.on('did-finish-load', () => {
+            send_theme_to_window(window);
+        });
         // window.webContents.openDevTools({ mode: 'detach' });
         this.windows.push(window);
 

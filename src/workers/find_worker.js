@@ -1,5 +1,8 @@
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 // const gio = require('../gio/build/Release/gio.node');
 const libfs = require('../common/libfs');
 
@@ -10,7 +13,6 @@ async function find (query, location, options) {
         ? location
         : os.homedir();
     const search_options = normalize_find_options(options);
-    const has_search_options = Object.keys(search_options).length > 0;
 
     if (!search_query) {
         return {
@@ -19,52 +21,12 @@ async function find (query, location, options) {
         };
     }
 
-    return await new Promise((resolve) => {
-        const find_callback = (err, res) => {
-            // Supports both callback shapes: (results) and (err, results)
-            const callback_error =
-                err &&
-                res === undefined &&
-                typeof err !== 'string' &&
-                !Array.isArray(err)
-                    ? err
-                    : null;
-
-            if (callback_error) {
-                resolve({
-                    error: true,
-                    message: String(callback_error.message || callback_error),
-                    results: []
-                });
-                return;
-            }
-
-            const raw_results = res === undefined ? err : res;
-            resolve({
-                error: false,
-                results: normalize_find_results(raw_results)
-            });
-        };
-
-        try {
-            if (has_search_options) {
-                try {
-                    libfs.find(search_query, search_location, search_options, find_callback);
-                } catch (err) {
-                    // Fallback for older gio builds that do not support options.
-                    libfs.find(search_query, search_location, find_callback);
-                }
-            } else {
-                libfs.find(search_query, search_location, find_callback);
-            }
-        } catch (err) {
-            resolve({
-                error: true,
-                message: String(err.message || err),
-                results: []
-            });
-        }
-    });
+    return {
+        success: libfs && typeof libfs.find === 'function',
+        generator: (libfs && typeof libfs.find === 'function')
+            ? libfs.find(search_query, search_location, search_options)
+            : null
+    };
 
 };
 
@@ -81,9 +43,11 @@ function normalize_find_results(raw_results = []) {
 
             if (typeof item === 'string') {
                 try {
-                    const file = libfs.get_file(item);
-                    if (file && file.href) {
-                        return file;
+                    if (libfs && typeof libfs.get_file === 'function') {
+                        const file = libfs.get_file(item);
+                        if (file && file.href) {
+                            return file;
+                        }
                     }
                 } catch (err) {
                 }
@@ -144,8 +108,8 @@ function normalize_find_options(raw_options = {}) {
     // Add folderDepth support
     if (raw_options.folderDepth !== undefined) {
         const folder_depth = Number(raw_options.folderDepth);
-        if (Number.isFinite(folder_depth) && folder_depth > 0) {
-            options.folderDepth = Math.floor(folder_depth);
+        if (Number.isFinite(folder_depth) && folder_depth >= 0) {
+            options.maxDepth = Math.floor(folder_depth);
         }
     }
 
@@ -155,7 +119,7 @@ function normalize_find_options(raw_options = {}) {
 
 if (!isMainThread) {
 
-    parentPort.on('message', (msg) => {
+    parentPort.on('message', async (msg) => {
 
         const cmd = msg.cmd;
         if (cmd === 'find') {
@@ -168,21 +132,34 @@ if (!isMainThread) {
                 return;
             }
 
-            find(msg.query, msg.location, msg.options).then((res) => {
+            try {
+                const result = await find(msg.query, msg.location, msg.options);
 
+                if (result.generator) {
+                    for await (const file of result.generator) {
+                        parentPort.postMessage({
+                            cmd: 'find_result',
+                            file: file
+                        });
+                    }
+                    parentPort.postMessage({
+                        cmd: 'find_done',
+                        err: false
+                    });
+                } else {
+                    parentPort.postMessage({
+                        cmd: 'find_results',
+                        res: result.results || [],
+                        err: result.error
+                    });
+                }
+            } catch (err) {
                 parentPort.postMessage({
-                    cmd: 'find_results',
-                    res: res.results,
-                    err: res.error
-                })
-
-            })
-
-
+                    cmd: 'find_error',
+                    err: String(err.message || err)
+                });
+            }
         }
-
-
     })
-
 
 }

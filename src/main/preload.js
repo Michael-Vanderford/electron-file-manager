@@ -1,5 +1,6 @@
 // @ts-nocheck
 const { contextBridge, ipcRenderer } = require('electron');
+const { group_recent_files } = require('../common/recent_groups');
 const Chart = require('chart.js/auto');
 
 // Bridge a minimal, whitelisted API to the isolated renderer world for titlebar.js
@@ -23,6 +24,12 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
 
 // Globals
 let section = 0;
+
+ipcRenderer.on('theme-changed', (event, theme) => {
+    const root = document.documentElement;
+    root.classList.toggle('theme-dark', theme === 'dark');
+    root.classList.toggle('theme-light', theme === 'light');
+});
 
 class EventManager {
     constructor(container) {
@@ -1020,16 +1027,27 @@ class Utilities {
         // Create the popup element
         const popup = this.add_div();
         popup.classList.add('autocomplete-popup'); // Add a CSS class for styling
-        let val0 = this.location;
+        let autocomplete_request = 0;
         if (!this.location_input) {
             return;
         }
 
         this.location_input.addEventListener('input', (e) => {
-            if (e.key !== 'Backspace') {
-                let val = e.target.value;
-                ipcRenderer.invoke('autocomplete', val).then(res => {
-                    if (res.length > 0 && val0 !== val) {
+            const val = e.target.value;
+            const request_id = ++autocomplete_request;
+
+            if (!val) {
+                popup.innerHTML = '';
+                popup.remove();
+                return;
+            }
+
+            ipcRenderer.invoke('autocomplete', val).then(res => {
+                    if (request_id !== autocomplete_request) {
+                        return;
+                    }
+
+                    if (Array.isArray(res) && res.length > 0) {
                         this.autocomplete_idx = 0;
                         popup.innerHTML = '';
                         res.forEach((dir, i) => {
@@ -1064,9 +1082,16 @@ class Utilities {
                             console.warn('Not enough space to display popup!');
                         }
                         popup.style.left = triggerRect.left + 5 + 'px';
+                    } else {
+                        popup.innerHTML = '';
+                        popup.remove();
                     }
-                })
-            }
+            }).catch(() => {
+                if (request_id === autocomplete_request) {
+                    popup.innerHTML = '';
+                    popup.remove();
+                }
+            });
         })
 
         popup.addEventListener('mouseleave', (e) => {
@@ -1077,6 +1102,11 @@ class Utilities {
         this.location_input.addEventListener('keydown', (e) => {
             e.stopPropagation();
             this.suggestions = popup.querySelectorAll('.item');
+
+            if (this.suggestions.length === 0 && ['ArrowDown', 'ArrowUp', 'Tab'].includes(e.key)) {
+                return;
+            }
+
             switch (e.key) {
                 case 'ArrowDown': {
                     this.autocomplete_idx = (this.autocomplete_idx + 1) % this.suggestions.length;
@@ -1106,13 +1136,11 @@ class Utilities {
                     e.preventDefault();
                     e.stopPropagation();
                     if (this.suggestions.length > 0) {
-                        this.suggestions.forEach(item => {
-                            if (item.classList.contains('highlight_select')) {
-                                fileManager.get_files(item.innerText);
-                            } else {
-                                fileManager.get_files(this.location);
-                            }
-                        })
+                        const selected_item = Array.from(this.suggestions)
+                            .find((item) => item.classList.contains('highlight_select'));
+                        fileManager.get_files(selected_item
+                            ? selected_item.innerText
+                            : this.location_input.value);
                         popup.innerHTML = '';
                         popup.remove();
                     } else {
@@ -3315,6 +3343,7 @@ class WorkspaceManager {
                         // e.stopPropagation();
                         input_div.classList.add('hidden');
                         href_div.classList.remove('hidden');
+                        utilities.clear();
                     }
 
                 })
@@ -3330,6 +3359,7 @@ class WorkspaceManager {
                         e.stopPropagation();
                         input_div.classList.add('hidden');
                         href_div.classList.remove('hidden');
+                        utilities.clear();
                     }
 
                     if (e.key === 'Enter') {
@@ -3482,6 +3512,7 @@ class WorkspaceManager {
                 e.stopPropagation();
                 workspace_input_div.classList.add('hidden');
                 workspace_item.classList.remove('hidden');
+                utilities.clear();
             }
 
         })
@@ -4464,6 +4495,20 @@ class TabManager {
         }
     }
 
+    get_tab_menu () {
+
+        const menu = utilities.add_div(['tab-menu']);
+
+        const new_folder = document.createElement('button');
+        new_folder.type = 'button';
+        new_folder.innerHTML = '<i class="bi bi-folder-plus"></i> New';
+        new_folder.classList.add('button');
+
+        menu.append(new_folder);
+        return menu;
+
+    }
+
     /**
      *
      * @param {string} location
@@ -4489,6 +4534,8 @@ class TabManager {
             tab_idx: 0
         }
         this.tab_history_idx_arr.push(this.tab_idx_obj);
+
+
 
         // let location = document.querySelector('.location');
         let tab = utilities.add_div(['tab', 'flex']);
@@ -4516,6 +4563,11 @@ class TabManager {
         this.tabHeader.append(tab);
 
         this.tabs.push(this.tab_id);
+
+        // testing for tab_menu
+        // let menu = this.get_tab_menu();
+        // this.main.append(menu);
+
         this.main.append(tab_content)
 
         this.clearActiveTabs();
@@ -5126,13 +5178,14 @@ class FileManager {
             this.sort_by = sort;
             this.sort_direction = sort_direction;
 
-            let view_container = document.querySelector('.view_container');
-            let items = Array.from(view_container.querySelectorAll('.card'));
-
-            let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
-
-            // Remove and re-append to update DOM order
-            sortedItems.forEach(item => view_container.appendChild(item));
+            const active_tab_content = tabManager.get_active_tab_content();
+            const is_recent_view = this.is_recent_tab_content(active_tab_content);
+            if (!is_recent_view) {
+                let view_container = document.querySelector('.view_container');
+                let items = Array.from(view_container.querySelectorAll('.card'));
+                let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
+                sortedItems.forEach(item => view_container.appendChild(item));
+            }
 
             // Save sort settings
             const latest_settings = settingsManager.get_settings() || {};
@@ -5146,6 +5199,10 @@ class FileManager {
             latest_settings.sort_direction = this.sort_direction;
             settingsManager.update_settings(latest_settings);
             this.settings = latest_settings;
+
+            if (is_recent_view && Array.isArray(this.recent_files_arr)) {
+                this.get_view(this.recent_files_arr);
+            }
 
             // this.get_files(this.location);
 
@@ -5188,9 +5245,19 @@ class FileManager {
                 }
 
                 this.apply_view_settings_to_container(v, this.view);
+                v.querySelectorAll('.recent_date_items').forEach((items) => {
+                    items.classList.toggle('list_view', this.view === 'list_view');
+                    items.classList.toggle('grid_view', this.view === 'grid_view');
+                    items.classList.toggle('grid3', this.view === 'grid_view');
+                });
                 iconManager.apply_icon_size_to_container(v, this.view);
 
             });
+
+            const active_tab_content = tabManager.get_active_tab_content();
+            if (this.is_recent_tab_content(active_tab_content) && Array.isArray(this.recent_files_arr)) {
+                this.get_view(this.recent_files_arr);
+            }
 
             const latest_settings = settingsManager.get_settings() || {};
             latest_settings.view = this.view;
@@ -5449,6 +5516,7 @@ class FileManager {
 
         ipcRenderer.on('recent_files', (e, files_arr) => {
             tabManager.add_tab('Recent');
+            this.recent_files_arr = files_arr;
             this.get_view(files_arr);
             if (typeof this.refresh_recent_dashboard_views === 'function') {
                 this.refresh_recent_dashboard_views().catch((err) => {
@@ -5700,7 +5768,8 @@ class FileManager {
         }
 
         const dirName = this.location === '/' ? 'Root' : this.location.split('/').pop() || 'Root';
-        this.filter.setAttribute('data-placeholder', `Search ${dirName}`);
+        // this.filter.setAttribute('data-placeholder', `Search <${dirName}>`);
+        // this.filter.title = `Filter <${dirName}>`;
 
         // if filter active then handle ctrl+v
         this.filter.addEventListener('paste', (e) => {
@@ -5726,6 +5795,7 @@ class FileManager {
                 e.preventDefault();
                 e.stopPropagation();
                 this.clear_filter();
+                utilities.clear();
             }
         })
 
@@ -5746,6 +5816,7 @@ class FileManager {
                 e.preventDefault();
                 e.stopPropagation();
                 this.clear_filter();
+                utilities.clear();
                 return;
             }
 
@@ -5837,7 +5908,9 @@ class FileManager {
             let filter = document.querySelector('.filter');
             if (filter) {
                 const dirName = this.location === '/' ? 'Root' : this.location.split('/').pop() || 'Root';
-                filter.setAttribute('data-placeholder', `Search ${dirName}`);
+                filter.setAttribute('data-placeholder', `Filter ${dirName}`);
+                this.filter.title = `Filter ${this.location}`;
+                filter.innerText = '';
                 filter.classList.remove('active');
             } else {
                 console.log('no filter');
@@ -6175,20 +6248,25 @@ class FileManager {
             settingsManager.update_settings(latest_settings);
             this.settings = latest_settings;
 
-            let view_container = document.querySelector('.view_container');
-            if (!view_container) {
-                console.log('error getting view container');
-                utilities.set_msg('Error: getting view container');
-                return;
+            const active_tab_content = tabManager.get_active_tab_content();
+            const is_recent_view = this.is_recent_tab_content(active_tab_content);
+            if (!is_recent_view) {
+                let view_container = document.querySelector('.view_container');
+                if (!view_container) {
+                    console.log('error getting view container');
+                    utilities.set_msg('Error: getting view container');
+                    return;
+                }
+
+                let items = Array.from(view_container.querySelectorAll('.card'));
+                let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
+                sortedItems.forEach(item => view_container.appendChild(item));
             }
 
-            let items = Array.from(view_container.querySelectorAll('.card'));
-
-
-            let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
-
-            // Remove and re-append to update DOM order
-            sortedItems.forEach(item => view_container.appendChild(item));
+            if (is_recent_view && Array.isArray(this.recent_files_arr)) {
+                this.get_view(this.recent_files_arr);
+                return;
+            }
 
             // update sort icons
             let sort_icons = document.querySelectorAll('.th_sort_icon');
@@ -6208,6 +6286,15 @@ class FileManager {
     }
 
     // get grid view
+    is_recent_tab_content(tab_content) {
+        if (!tab_content || !tab_content.dataset.id) {
+            return false;
+        }
+
+        const tab = document.querySelector(`.tab[data-id="${tab_content.dataset.id}"]`);
+        return tab?.dataset.href === 'Recent';
+    }
+
     get_view(files_arr) {
 
         this.clear_filter();
@@ -6217,6 +6304,10 @@ class FileManager {
         if (!active_tab_content) {
             tabManager.add_tab(utilities.get_location());
             active_tab_content = document.querySelector('.active-tab-content');
+        }
+        const is_recent_view = this.is_recent_tab_content(active_tab_content);
+        if (is_recent_view) {
+            this.recent_files_arr = files_arr;
         }
 
         // Preserve find UI so it stays visible across view re-renders.
@@ -6256,32 +6347,49 @@ class FileManager {
         //     files_arr = files_arr.filter(f => f.is_hidden === false);
         // }
 
-        // sort files array
-        files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
+        let recent_date_groups = null;
+        if (is_recent_view) {
+            recent_date_groups = group_recent_files(files_arr);
+            recent_date_groups.forEach((group) => {
+                group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
+            });
+            files_arr = recent_date_groups.flatMap((group) => group.files);
+        } else {
+            files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
+        }
 
         if (files_arr.length >= this.virtual_view_threshold) {
-            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel);
+            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, recent_date_groups);
             return;
         }
 
         this.virtual_view = null;
 
-        for (let i = 0; i < files_arr.length; i++) {
+        if (recent_date_groups) {
+            recent_date_groups.forEach((group) => {
+                const section = document.createElement('section');
+                section.classList.add('recent_date_group');
 
-            let card = this.get_view_item(files_arr[i]);
-            // utilities.add_div(['card', 'lazy'])
-            // card.dataset.id = files_arr[i].id;
-            // card.dataset.href = files_arr[i].href;
-            // card.dataset.name = files_arr[i].name;
-            // card.dataset.size = files_arr[i].size;
-            // card.dataset.mtime = files_arr[i].mtime;
-            // card.dataset.content_type = files_arr[i].content_type;
-            // card.dataset.is_dir = files_arr[i].is_dir;
-            // card.dataset.location = files_arr[i].location;
-            // card.dataset.content_type = files_arr[i].content_type;
-            // card.dataset.is_hidden = files_arr[i].is_hidden;
-            view_container.appendChild(card);
+                const heading = document.createElement('h2');
+                heading.classList.add('recent_date_group_heading');
+                heading.textContent = group.label;
 
+                const items = document.createElement('div');
+                items.classList.add('recent_date_items');
+                if (this.view === 'list_view') {
+                    items.classList.add('list_view');
+                } else {
+                    items.classList.add('grid_view', 'grid3');
+                }
+
+                group.files.forEach((file) => items.appendChild(this.get_view_item(file)));
+                section.append(heading, items);
+                view_container.appendChild(section);
+            });
+        } else {
+            for (let i = 0; i < files_arr.length; i++) {
+                view_container.appendChild(this.get_view_item(files_arr[i]));
+            }
         }
 
 
@@ -6320,12 +6428,13 @@ class FileManager {
 
     }
 
-    render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel) {
+    render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, recent_date_groups = null) {
         const row_height = this.view === 'list_view' ? 31 : 86;
         const columns = this.get_virtual_column_count();
         const virtual_view = {
             files_arr,
             filtered_files_arr: files_arr.filter((file) => this.show_hidden !== false || !file.is_hidden),
+            recent_date_groups,
             selected_ids: new Set(),
             row_height,
             columns,
@@ -6341,6 +6450,9 @@ class FileManager {
         virtual_view.items_container.classList.add('virtual_items');
         virtual_view.bottom_spacer.classList.add('virtual_spacer', 'virtual_spacer_bottom');
         view_container.classList.add('virtual_view');
+        if (recent_date_groups) {
+            this.rebuild_virtual_recent_rows(virtual_view);
+        }
         view_container.append(virtual_view.top_spacer, virtual_view.items_container, virtual_view.bottom_spacer);
         this.virtual_view = virtual_view;
 
@@ -6379,6 +6491,9 @@ class FileManager {
             const next_columns = this.get_virtual_column_count();
             if (virtual_view.columns !== next_columns) {
                 virtual_view.columns = next_columns;
+                if (virtual_view.recent_date_groups) {
+                    this.rebuild_virtual_recent_rows(virtual_view);
+                }
                 this.render_virtual_range(true);
             }
         });
@@ -6403,6 +6518,32 @@ class FileManager {
         return 3;
     }
 
+    rebuild_virtual_recent_rows(virtual_view) {
+        const visible_ids = new Set(virtual_view.filtered_files_arr.map((file) => file.id));
+        const rows = [];
+        const heading_height = 34;
+
+        virtual_view.recent_date_groups.forEach((group) => {
+            const files = group.files.filter((file) => visible_ids.has(file.id));
+            if (files.length === 0) {
+                return;
+            }
+            rows.push({ type: 'heading', label: group.label, height: heading_height });
+            for (let index = 0; index < files.length; index += virtual_view.columns) {
+                rows.push({
+                    type: 'files',
+                    files: files.slice(index, index + virtual_view.columns),
+                    height: virtual_view.row_height
+                });
+            }
+        });
+
+        const offsets = [0];
+        rows.forEach((row) => offsets.push(offsets[offsets.length - 1] + row.height));
+        virtual_view.recent_rows = rows;
+        virtual_view.recent_row_offsets = offsets;
+    }
+
     render_virtual_range(force = false) {
         const virtual_view = this.virtual_view;
         if (!virtual_view || !virtual_view.active_tab_content.isConnected) {
@@ -6410,13 +6551,42 @@ class FileManager {
         }
 
         const { filtered_files_arr, active_tab_content, columns, row_height } = virtual_view;
-        const total_rows = Math.ceil(filtered_files_arr.length / columns);
-        const first_visible_row = Math.floor(active_tab_content.scrollTop / row_height);
-        const visible_rows = Math.ceil(active_tab_content.clientHeight / row_height);
-        const first_row = Math.max(0, first_visible_row - 8);
-        const last_row = Math.min(total_rows, first_visible_row + visible_rows + 8);
-        const start = first_row * columns;
-        const end = Math.min(filtered_files_arr.length, last_row * columns);
+        let first_row;
+        let last_row;
+        let top_height;
+        let bottom_height;
+        if (virtual_view.recent_rows) {
+            const rows = virtual_view.recent_rows;
+            const offsets = virtual_view.recent_row_offsets;
+            const find_row = (position) => {
+                let low = 0;
+                let high = rows.length;
+                while (low < high) {
+                    const middle = Math.floor((low + high) / 2);
+                    if (offsets[middle + 1] <= position) {
+                        low = middle + 1;
+                    } else {
+                        high = middle;
+                    }
+                }
+                return low;
+            };
+
+            first_row = Math.max(0, find_row(active_tab_content.scrollTop) - 8);
+            last_row = Math.min(rows.length, find_row(active_tab_content.scrollTop + active_tab_content.clientHeight) + 9);
+            top_height = offsets[first_row];
+            bottom_height = offsets[rows.length] - offsets[last_row];
+        } else {
+            const total_rows = Math.ceil(filtered_files_arr.length / columns);
+            const first_visible_row = Math.floor(active_tab_content.scrollTop / row_height);
+            const visible_rows = Math.ceil(active_tab_content.clientHeight / row_height);
+            first_row = Math.max(0, first_visible_row - 8);
+            last_row = Math.min(total_rows, first_visible_row + visible_rows + 8);
+            top_height = first_row * row_height;
+            bottom_height = Math.max(0, total_rows - last_row) * row_height;
+        }
+        const start = first_row;
+        const end = last_row;
 
         if (!force && virtual_view.start === start && virtual_view.end === end) {
             return;
@@ -6424,28 +6594,45 @@ class FileManager {
 
         virtual_view.start = start;
         virtual_view.end = end;
-        virtual_view.top_spacer.style.height = `${first_row * row_height}px`;
-        virtual_view.bottom_spacer.style.height = `${Math.max(0, total_rows - last_row) * row_height}px`;
+        virtual_view.top_spacer.style.height = `${top_height}px`;
+        virtual_view.bottom_spacer.style.height = `${bottom_height}px`;
 
         const fragment = document.createDocumentFragment();
-        for (let index = start; index < end; index += 1) {
-            const file = filtered_files_arr[index];
-            const card = this.get_view_item(file);
-            card.classList.toggle('highlight_select', virtual_view.selected_ids.has(file.id));
-            card.addEventListener('click', (event) => {
-                if (!event.ctrlKey) {
-                    virtual_view.selected_ids.clear();
-                }
-                if (event.ctrlKey && virtual_view.selected_ids.has(file.id)) {
-                    virtual_view.selected_ids.delete(file.id);
+        if (virtual_view.recent_rows) {
+            for (let index = start; index < end; index += 1) {
+                const row = virtual_view.recent_rows[index];
+                if (row.type === 'heading') {
+                    const heading = document.createElement('h2');
+                    heading.classList.add('recent_date_group_heading', 'recent_date_group_heading_virtual');
+                    heading.textContent = row.label;
+                    fragment.appendChild(heading);
                 } else {
-                    virtual_view.selected_ids.add(file.id);
+                    row.files.forEach((file) => fragment.appendChild(this.create_virtual_file_card(file, virtual_view)));
                 }
-                this.render_virtual_range(true);
-            });
-            fragment.appendChild(card);
+            }
+        } else {
+            for (let index = start * columns; index < Math.min(filtered_files_arr.length, end * columns); index += 1) {
+                fragment.appendChild(this.create_virtual_file_card(filtered_files_arr[index], virtual_view));
+            }
         }
         virtual_view.items_container.replaceChildren(fragment);
+    }
+
+    create_virtual_file_card(file, virtual_view) {
+        const card = this.get_view_item(file);
+        card.classList.toggle('highlight_select', virtual_view.selected_ids.has(file.id));
+        card.addEventListener('click', (event) => {
+            if (!event.ctrlKey) {
+                virtual_view.selected_ids.clear();
+            }
+            if (event.ctrlKey && virtual_view.selected_ids.has(file.id)) {
+                virtual_view.selected_ids.delete(file.id);
+            } else {
+                virtual_view.selected_ids.add(file.id);
+            }
+            this.render_virtual_range(true);
+        });
+        return card;
     }
 
     select_all_virtual_items() {
@@ -6479,6 +6666,9 @@ class FileManager {
             const visible = this.show_hidden !== false || !file.is_hidden;
             return visible && file.name.toLocaleLowerCase().includes(normalized_filter);
         });
+        if (virtual_view.recent_date_groups) {
+            this.rebuild_virtual_recent_rows(virtual_view);
+        }
         virtual_view.active_tab_content.scrollTop = 0;
         this.render_virtual_range(true);
         return true;
@@ -6723,26 +6913,20 @@ class FileManager {
             // get local disk stats and render chart for each local disk (home and root at least)
 
             // get data for overview
-            let stats = await ipcRenderer.invoke('get_dashboard_disk_stats', '/home');
-            let chart1 = this.renderChart(stats);
+            const stats = await ipcRenderer.invoke('get_dashboard_disk_stats', '/home');
+            const chart1 = this.renderChart(stats);
+            if (chart1) overview.append(chart1);
 
-
-            if (chart1) {
-                overview.append(chart1);
-            }
-
-            let stats2 = await ipcRenderer.invoke('get_dashboard_disk_stats', '/');
-            let chart2 = this.renderChart(stats2);
-
-
-            if (chart2) {
-                overview.append(chart2);
-            }
+            const stats2 = await ipcRenderer.invoke('get_dashboard_disk_stats', '/');
+            const chart2 = this.renderChart(stats2);
+            if (chart2) overview.append(chart2);
 
             // process entries in the device array and render charts for each device
             if (deviceManager.device_arr && deviceManager.device_arr.length > 0) {
 
                 deviceManager.device_arr.forEach(device => {
+
+                    if (!device.path) return;
 
                     ipcRenderer.invoke('get_dashboard_disk_stats', device.path).then(stats => {
                         const chart = this.renderChart(stats);
@@ -6857,7 +7041,6 @@ class FileManager {
         // change colors based on usage percentage
         let usedPercentage = (parseInt(stats.used) / (parseInt(stats.used) + parseInt(stats.free))) * 100;
         let backgroundColor;
-        console.log('used percentage', usedPercentage);
         if (usedPercentage <= 70) {
             backgroundColor = ['#a9bdf4', '#36a2eb'];
         } else if (usedPercentage <= 80) {
@@ -6886,6 +7069,22 @@ class FileManager {
         const chartTitle = document.createElement(stats?.href ? 'a' : 'span');
         chartTitle.className = 'chart-title';
         chartTitle.textContent = stats?.display_name || 'Unknown';
+        chartTitle.addEventListener('click', (e) => {
+            if (!stats?.href) return;
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (e.ctrlKey) {
+                tabManager.add_tab(stats.href);
+                this.get_files(stats.href);
+            } else {
+                this.get_files(stats.href);
+                tabManager.add_tab_history(stats.href);
+            }
+
+            utilities.set_location(stats.href);
+        });
+
         if (stats?.href) {
             chartTitle.href = stats.href;
             chartTitle.title = stats.href;
@@ -7282,31 +7481,69 @@ class FileManager {
             results_header.innerHTML = `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" class="spinner" />Searching in ${search_location}...`;
             find_submit.disabled = true;
 
-            let response;
-            try {
-                response = await ipcRenderer.invoke('find', q, search_location, search_options_result.options);
-            } catch (err) {
-                response = {
-                    error: true,
-                    message: String(err.message || err),
-                    results: []
-                };
-            } finally {
+            let match_count = 0;
+            const current_matches = [];
+
+            const on_find_result = (event, file) => {
+                const normalized = normalize_find_match(file);
+                current_matches.push(normalized);
+                match_count++;
+
+                // Update header and render view incrementally
+                results_header.textContent = `${match_count} result${match_count === 1 ? '' : 's'} found...`;
+
+                // Sort incrementally for consistency
+                const sorted = utilities.sort([...current_matches], this.sort_by, this.sort_direction);
+                render_results_view(sorted);
+            };
+
+            const on_find_done = (event, data) => {
+                ipcRenderer.removeListener('find_result', on_find_result);
+                ipcRenderer.removeListener('find_done', on_find_done);
+                ipcRenderer.removeListener('find_error', on_find_error);
+
                 find_submit.disabled = false;
+                results_header.textContent = `${match_count} result${match_count === 1 ? '' : 's'} in search location.`;
+
+                if (match_count === 0) {
+                    results_list.innerHTML = '';
+                    const empty_state = utilities.add_div(['find_empty']);
+                    empty_state.textContent = 'No matches found.';
+                    results_list.append(empty_state);
+                }
+            };
+
+            const on_find_error = (event, err) => {
+                ipcRenderer.removeListener('find_result', on_find_result);
+                ipcRenderer.removeListener('find_done', on_find_done);
+                ipcRenderer.removeListener('find_error', on_find_error);
+
+                find_submit.disabled = false;
+                results_header.textContent = `Search failed: ${err}`;
+            };
+
+            ipcRenderer.on('find_result', on_find_result);
+            ipcRenderer.on('find_done', on_find_done);
+            ipcRenderer.on('find_error', on_find_error);
+
+            try {
+                const response = await ipcRenderer.invoke('find', q, search_location, search_options_result.options);
+                if (response && !response.streaming) {
+                    // Fallback for non-streaming results
+                    const matches = Array.isArray(response?.results) ? response.results : [];
+                    const normalized = matches.map((m) => normalize_find_match(m));
+                    const sorted = utilities.sort(normalized, this.sort_by, this.sort_direction);
+                    render_results_view(sorted);
+                    results_header.textContent = `${sorted.length} result${sorted.length === 1 ? '' : 's'} found.`;
+
+                    // Cleanup listeners if not streaming
+                    ipcRenderer.removeListener('find_result', on_find_result);
+                    ipcRenderer.removeListener('find_done', on_find_done);
+                    ipcRenderer.removeListener('find_error', on_find_error);
+                }
+            } catch (err) {
+                on_find_error(null, String(err.message || err));
             }
-
-            if (response && response.error) {
-                results_header.textContent = response.message || 'Search failed.';
-                return;
-            }
-
-            const matches = Array.isArray(response?.results) ? response.results : [];
-            const normalized_matches = matches.map((match) => normalize_find_match(match));
-            const sorted_matches = utilities.sort(normalized_matches, this.sort_by, this.sort_direction);
-
-            results_header.textContent = `${sorted_matches.length} result${sorted_matches.length === 1 ? '' : 's'} in search location.`;
-
-            render_results_view(sorted_matches);
         };
 
         find_submit.addEventListener('click', () => {
@@ -8480,6 +8717,7 @@ class FileManager {
                 e.preventDefault();
                 e.stopPropagation();
                 utilities.cancel_edit();
+                utilities.clear();
             }
         })
 
