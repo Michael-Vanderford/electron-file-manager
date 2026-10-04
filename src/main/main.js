@@ -317,6 +317,7 @@ class Watcher {
     watch(dir, window_id) {
 
         if (this.is_unsupported_watch_path(dir)) {
+            this.window_dirs.delete(window_id);
             if (!this.unsupported_watch_paths.has(dir)) {
                 this.unsupported_watch_paths.add(dir);
                 console.warn(`Watcher disabled for unsupported path: ${dir}`);
@@ -428,16 +429,8 @@ class Watcher {
      * Stop all watchers.
      */
     unwatchAll() {
-        // for (const [path, monitor] of this.monitors.entries()) {
-        //     if (monitor && typeof monitor.close === 'function') {
-        //         try {
-        //             monitor.close();
-        //         } catch (err) {
-        //             console.error(`Error closing watcher for ${path}:`, err);
-        //         }
-        //     }
-        // }
-        // this.monitors.clear();
+        this.window_dirs.clear();
+        libfs.stop_all_watches();
     }
 }
 
@@ -2761,8 +2754,8 @@ ipcMain.on('ls', (e, location, add_tab = false) => {
 })
 
 // listen for get_recent_files event
-ipcMain.on('get_recent_files', (e) => {
-    fileManager.get_recent_files(e);
+ipcMain.on('get_recent_files', (e, add_tab = false) => {
+    fileManager.get_recent_files(e, add_tab === true);
 });
 
 ipcMain.handle('autocomplete', async (e, directory) => {
@@ -2969,10 +2962,10 @@ class FileManager {
     }
 
     // get recent files by reading xbel file
-    get_recent_files(e) {
+    get_recent_files(e, add_tab = false) {
 
         let files_arr = get_recent_files_arr();
-        e.sender.send('recent_files', files_arr);
+        e.sender.send('recent_files', files_arr, add_tab);
         files_arr = [];
 
         // let files_arr = [];
@@ -4661,6 +4654,7 @@ app.on('ready', () => {
 });
 
 app.on('before-quit', () => {
+    watcher.unwatchAll();
     iconManager.stop_theme_watcher();
 });
 

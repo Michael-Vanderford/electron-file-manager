@@ -302,6 +302,13 @@ class LibFS {
 
                     current_entry.callbacks.forEach((cb) => cb(event));
                 });
+                // dir deleted/unmounted: drop the entry so no stale callbacks or handle remain
+                fs_watcher.on('error', () => {
+                    try { fs_watcher.close(); } catch (err) { }
+                    if (this.watchers.get(dir)?.watcher === fs_watcher) {
+                        this.watchers.delete(dir);
+                    }
+                });
                 entry = { watcher: fs_watcher, callbacks: new Map() };
                 this.watchers.set(dir, entry);
             } catch (err) {
@@ -329,6 +336,13 @@ class LibFS {
 
         entry.watcher.close();
         this.watchers.delete(dir);
+    }
+
+    stop_all_watches() {
+        this.watchers.forEach((entry) => {
+            try { entry.watcher.close(); } catch (err) { }
+        });
+        this.watchers.clear();
     }
 
     count(dir) {

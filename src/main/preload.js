@@ -1277,6 +1277,23 @@ class Utilities {
 
         breadcrumb_div.innerHTML = '';
 
+        if (location === 'Recent') {
+
+            let breadcrumb_item = document.createElement('div');
+            let i = document.createElement('i');
+            let label = document.createElement('div');
+
+            breadcrumb_item.classList.add('breadcrumb_item', 'flex');
+            breadcrumb_item.title = 'Recent';
+            i.classList.add('bi', 'bi-clock-history');
+            label.textContent = 'Recent';
+            breadcrumb_item.append(i, label);
+            breadcrumb_div.append(breadcrumb_item);
+
+            return;
+
+        }
+
         if (location === '/') {
 
             let breadcrumb_item = document.createElement('div');
@@ -3646,12 +3663,16 @@ class SideBarManager {
                         }
                         break;
                     case 'Recent':
-                        if (e.ctrlKey) {
-                            tabManager.add_tab(home_dir);
-                            ipcRenderer.send('get_recent_files');
-                        } else {
-                            ipcRenderer.send('get_recent_files');
+                        if (!e.ctrlKey) {
+                            const active_tab = document.querySelector('.active-tab');
+                            if (!active_tab) {
+                                tabManager.add_tab('Recent');
+                            } else if (active_tab.dataset.href !== 'Recent') {
+                                tabManager.add_tab_history('Recent');
+                                tabManager.update_tab('Recent');
+                            }
                         }
+                        ipcRenderer.send('get_recent_files', e.ctrlKey);
                         break;
                     case 'File System':
                         if (e.ctrlKey) {
@@ -5100,7 +5121,11 @@ class FileManager {
         if (tabs.length > 0) {
             tabs.forEach(tab => {
                 // tabManager.add_tab(tab.tab.location);
-                this.get_files(tab.tab.location, true);
+                if (tab.tab.location === 'Recent') {
+                    ipcRenderer.send('get_recent_files', true);
+                } else {
+                    this.get_files(tab.tab.location, true);
+                }
             })
         }
 
@@ -5401,7 +5426,7 @@ class FileManager {
             }
 
             utilities.lazy_load_icons(active_tab_content);
-
+            this.handleFolderSize(f);
 
         });
 
@@ -5514,8 +5539,13 @@ class FileManager {
             this.show_overwrite_view(overwrite_arr, 'move');
         });
 
-        ipcRenderer.on('recent_files', (e, files_arr) => {
-            tabManager.add_tab('Recent');
+        ipcRenderer.on('recent_files', (e, files_arr, add_tab) => {
+            if (add_tab) {
+                tabManager.add_tab('Recent');
+            }
+            settingsManager.set_location('Recent');
+            utilities.set_location('Recent');
+            utilities.get_breadcrumbs('Recent');
             this.recent_files_arr = files_arr;
             this.get_view(files_arr);
             if (typeof this.refresh_recent_dashboard_views === 'function') {
@@ -9310,6 +9340,7 @@ class FileManager {
             // replace card with updated card
             item.replaceWith(card);
             utilities.lazy_load_icons(active_tab_content);
+            this.handleFolderSize(f);
 
         }
 
