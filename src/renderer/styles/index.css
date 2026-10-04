@@ -1580,8 +1580,8 @@ tr {
     padding: 0 5px 5px;
     border-bottom: 1px solid var(--border);
     color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 400;
 }
 
 .recent_date_group:first-of-type .recent_date_group_heading {

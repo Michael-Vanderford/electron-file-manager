@@ -486,6 +486,7 @@ class SettingsManager {
                         View: { type: 'string', enum: ['list_view', 'grid_view'], default: 'grid_view' },
                         "Sort By": { type: 'string', enum: ['name', 'location', 'size', 'mtime', 'ctime', 'atime', 'type', 'count'], default: 'mtime' },
                         "Sort Direction": { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+                        'Group By': { type: 'string', enum: ['None', 'Type', 'Date Modified', 'Size'], default: 'None' },
                         'Show Hidden': { type: 'boolean', default: true }
                     }
                 },
@@ -1188,6 +1189,42 @@ class Utilities {
 
         // listen for paste event
         ipcMain.on('paste', (e, copy_arr, location) => {
+            this.root_destination = location;
+            this.paste(e, copy_arr, location);
+        })
+
+        // listen for files dropped in from outside the app
+        ipcMain.on('drop_external', (e, paths, location) => {
+            if (!Array.isArray(paths) || typeof location !== 'string' || !path.isAbsolute(location)) return;
+
+            const copy_arr = [];
+            for (const p of paths) {
+                if (typeof p !== 'string' || !path.isAbsolute(p)) continue;
+                let stat;
+                try {
+                    stat = fs.statSync(p);
+                } catch (err) {
+                    continue;
+                }
+                const rel = path.relative(p, location);
+                if (stat.isDirectory() && (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)))) continue;
+                const name = path.basename(p);
+                copy_arr.push({
+                    id: p,
+                    name,
+                    display_name: name,
+                    href: p,
+                    size: stat.size,
+                    mtime: stat.mtimeMs,
+                    ctime: stat.ctimeMs,
+                    atime: stat.atimeMs,
+                    is_dir: stat.isDirectory(),
+                    location: path.dirname(p),
+                    is_hidden: name.startsWith('.')
+                });
+            }
+
+            if (copy_arr.length === 0) return;
             this.root_destination = location;
             this.paste(e, copy_arr, location);
         })

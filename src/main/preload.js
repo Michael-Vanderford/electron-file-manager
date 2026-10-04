@@ -1,7 +1,51 @@
 // @ts-nocheck
-const { contextBridge, ipcRenderer } = require('electron');
-const { group_recent_files } = require('../common/recent_groups');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
+const { group_files } = require('../common/file_groups');
+const dnd = require('../common/dnd');
 const Chart = require('chart.js/auto');
+
+const INTERNAL_DRAG_TYPE = 'application/x-sfm-internal';
+
+const is_internal_drag = (e) => Array.from(e.dataTransfer?.types || []).includes(INTERNAL_DRAG_TYPE);
+
+// Internal drags honour ctrl/meta; drags from other apps always copy.
+const get_drop_effect = (e) => {
+    if (!is_internal_drag(e)) return 'copy';
+    return (e.ctrlKey || e.metaKey) ? 'copy' : 'move';
+};
+
+const get_external_paths = (e) => {
+    const out = [];
+    for (const file of Array.from(e.dataTransfer?.files || [])) {
+        try {
+            const p = webUtils.getPathForFile(file);
+            if (p) out.push(p);
+        } catch (err) {
+            // not a filesystem-backed File
+        }
+    }
+    if (out.length === 0) {
+        out.push(...dnd.parse_uri_list(e.dataTransfer?.getData('text/uri-list')));
+    }
+    return Array.from(new Set(out));
+};
+
+// Returns true when the drop came from outside the app and was handed to main.
+const handle_external_drop = (e, destination) => {
+    if (is_internal_drag(e)) return false;
+    const paths = get_external_paths(e);
+    if (paths.length > 0 && destination) {
+        ipcRenderer.send('drop_external', paths, destination);
+    }
+    return true;
+};
+
+const clear_drag_visuals = () => {
+    document.querySelectorAll('.highlight_target').forEach(el => {
+        el.classList.remove('highlight_target');
+        delete el.dataset.dragover;
+    });
+};
 
 // Bridge a minimal, whitelisted API to the isolated renderer world for titlebar.js
 // (sideBarManager/utilities are assigned later by init(), but these closures only
@@ -305,6 +349,11 @@ class SettingsManager {
                             type: 'string',
                             enum: ['asc', 'desc'],
                             default: 'desc'
+                        },
+                        'Group By': {
+                            type: 'string',
+                            enum: ['None', 'Type', 'Date Modified', 'Size'],
+                            default: 'None'
                         },
                         'Show Hidden': {
                             type: 'boolean',
@@ -2447,44 +2496,21 @@ class DragSelect {
             e.preventDefault();
             e.stopPropagation();
 
+            const effect = get_drop_effect(e);
+            const verb = effect === 'copy' ? 'Copy' : 'Move';
+            e.dataTransfer.dropEffect = effect;
+
             const item = e.target.closest('.tr, .card');
-            if (item) {
-
-                // console.log('ctrlKey', e.ctrlKey, 'dropEffect', e.dataTransfer.dropEffect);
-
-                if (item.dataset.is_dir === 'true') {
-                    if (!item.dataset.dragover) {
-                        item.dataset.dragover = 'true';
-                        item.classList.add('highlight_target');
-                    }
-                    if (e.ctrlKey) {
-                        e.dataTransfer.dropEffect = "copy";
-                        utilities.set_msg(`Copy items to ${item.dataset.href}`);
-                    } else {
-                        e.dataTransfer.dropEffect = "move";
-                        utilities.set_msg(`Move items to ${item.dataset.href}`);
-                    }
-                    utilities.set_destination(item.dataset.href);
-                } else {
-                    if (e.ctrlKey) {
-                        e.dataTransfer.dropEffect = "copy";
-                        utilities.set_msg(`Copy items to ${utilities.get_location()}`);
-                    } else {
-                        e.dataTransfer.dropEffect = "move";
-                        utilities.set_msg(`Move items to ${utilities.get_location()}`);
-                    }
-                    utilities.set_destination(utilities.get_location());
+            let destination = utilities.get_location();
+            if (item && item.dataset.is_dir === 'true') {
+                destination = item.dataset.href;
+                if (!item.dataset.dragover) {
+                    item.dataset.dragover = 'true';
+                    item.classList.add('highlight_target');
                 }
-            } else {
-                if (e.ctrlKey) {
-                    e.dataTransfer.dropEffect = "copy";
-                    utilities.set_msg(`Copy items to ${utilities.get_location()}`);
-                } else {
-                    e.dataTransfer.dropEffect = "move";
-                    utilities.set_msg(`Move items to ${utilities.get_location()}`);
-                }
-                utilities.set_destination(utilities.get_location());
             }
+            utilities.set_msg(`${verb} items to ${destination}`);
+            utilities.set_destination(destination);
 
         });
 
@@ -2492,11 +2518,22 @@ class DragSelect {
         active_tab_content.addEventListener('dragleave', (e) => {
 
             const item = e.target.closest('.tr, .card');
-            if (item && item.dataset.dragover === 'true') {
+            if (item && item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
                 delete item.dataset.dragover;
                 item.classList.remove('highlight_target');
             }
 
+        });
+
+        // Dragend fires on the source even when the drop is cancelled or lands elsewhere
+        active_tab_content.addEventListener('dragend', (e) => {
+            this.is_dragging_divs = false;
+            clear_drag_visuals();
+            // Esc (or a drop on an invalid target) ends the drag with dropEffect 'none'.
+            if (e.dataTransfer?.dropEffect === 'none') {
+                utilities.clear_highlight();
+                utilities.set_msg('Drag cancelled');
+            }
         });
 
         // Drop
@@ -2505,9 +2542,18 @@ class DragSelect {
             e.preventDefault();
             e.stopPropagation();
 
-            console.log('dropping', e)
+            clear_drag_visuals();
 
-            const item = e.target.closest('.tr, .card');
+            const target = e.target.closest('.tr, .card');
+            const external_destination = target && target.dataset.is_dir === 'true' && target.dataset.href
+                ? target.dataset.href
+                : utilities.get_location();
+            if (handle_external_drop(e, external_destination)) {
+                this.is_dragging_divs = false;
+                return;
+            }
+
+            const item = target;
             if (item) {
 
                 const isDirectoryTarget = item.dataset.is_dir === 'true' && !!item.dataset.href;
@@ -4702,6 +4748,16 @@ class TabManager {
 
             ipcRenderer.send('switch_tab', this.tab_id);
 
+            if (tab_content.dataset.groupingStale === 'true') {
+                delete tab_content.dataset.groupingStale;
+                const files_arr = tab.dataset.href === 'Recent'
+                    ? fileManager.recent_files_arr
+                    : this.get_tab_data_arr(this.tab_id);
+                if (Array.isArray(files_arr)) {
+                    fileManager.get_view(files_arr);
+                }
+            }
+
             // update disk space
             utilities.get_disk_space(tab.dataset.href);
 
@@ -5392,6 +5448,12 @@ class FileManager {
                     this.update_item(f);
                     return;
                 }
+            }
+
+            if (this.add_to_grouped_view([f])) {
+                utilities.lazy_load_icons(active_tab_content);
+                this.handleFolderSize(f);
+                return;
             }
 
             // get view container
@@ -6280,7 +6342,8 @@ class FileManager {
 
             const active_tab_content = tabManager.get_active_tab_content();
             const is_recent_view = this.is_recent_tab_content(active_tab_content);
-            if (!is_recent_view) {
+            const group_by = this.get_group_by_setting();
+            if (!is_recent_view && group_by === 'None') {
                 let view_container = document.querySelector('.view_container');
                 if (!view_container) {
                     console.log('error getting view container');
@@ -6293,8 +6356,13 @@ class FileManager {
                 sortedItems.forEach(item => view_container.appendChild(item));
             }
 
-            if (is_recent_view && Array.isArray(this.recent_files_arr)) {
-                this.get_view(this.recent_files_arr);
+            if (is_recent_view || group_by !== 'None') {
+                const files_arr = is_recent_view
+                    ? this.recent_files_arr
+                    : tabManager.get_tab_data_arr(active_tab_content?.dataset.id);
+                if (Array.isArray(files_arr)) {
+                    this.get_view(files_arr);
+                }
                 return;
             }
 
@@ -6325,6 +6393,11 @@ class FileManager {
         return tab?.dataset.href === 'Recent';
     }
 
+    get_group_by_setting() {
+        const default_view = settingsManager.get_settings()?.schema?.properties?.['Default View'];
+        return default_view?.properties?.['Group By']?.default || 'None';
+    }
+
     get_view(files_arr) {
 
         this.clear_filter();
@@ -6336,6 +6409,7 @@ class FileManager {
             active_tab_content = document.querySelector('.active-tab-content');
         }
         const is_recent_view = this.is_recent_tab_content(active_tab_content);
+        delete active_tab_content.dataset.groupingStale;
         if (is_recent_view) {
             this.recent_files_arr = files_arr;
         }
@@ -6377,26 +6451,25 @@ class FileManager {
         //     files_arr = files_arr.filter(f => f.is_hidden === false);
         // }
 
-        let recent_date_groups = null;
-        if (is_recent_view) {
-            recent_date_groups = group_recent_files(files_arr);
-            recent_date_groups.forEach((group) => {
+        let file_groups = group_files(files_arr, this.get_group_by_setting());
+        if (file_groups) {
+            file_groups.forEach((group) => {
                 group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
             });
-            files_arr = recent_date_groups.flatMap((group) => group.files);
+            files_arr = file_groups.flatMap((group) => group.files);
         } else {
             files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
         }
 
         if (files_arr.length >= this.virtual_view_threshold) {
-            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, recent_date_groups);
+            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups);
             return;
         }
 
         this.virtual_view = null;
 
-        if (recent_date_groups) {
-            recent_date_groups.forEach((group) => {
+        if (file_groups) {
+            file_groups.forEach((group) => {
                 const section = document.createElement('section');
                 section.classList.add('recent_date_group');
 
@@ -6458,13 +6531,13 @@ class FileManager {
 
     }
 
-    render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, recent_date_groups = null) {
+    render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups = null) {
         const row_height = this.view === 'list_view' ? 31 : 86;
         const columns = this.get_virtual_column_count();
         const virtual_view = {
             files_arr,
             filtered_files_arr: files_arr.filter((file) => this.show_hidden !== false || !file.is_hidden),
-            recent_date_groups,
+            file_groups,
             selected_ids: new Set(),
             row_height,
             columns,
@@ -6480,8 +6553,8 @@ class FileManager {
         virtual_view.items_container.classList.add('virtual_items');
         virtual_view.bottom_spacer.classList.add('virtual_spacer', 'virtual_spacer_bottom');
         view_container.classList.add('virtual_view');
-        if (recent_date_groups) {
-            this.rebuild_virtual_recent_rows(virtual_view);
+        if (file_groups) {
+            this.rebuild_virtual_group_rows(virtual_view);
         }
         view_container.append(virtual_view.top_spacer, virtual_view.items_container, virtual_view.bottom_spacer);
         this.virtual_view = virtual_view;
@@ -6521,8 +6594,8 @@ class FileManager {
             const next_columns = this.get_virtual_column_count();
             if (virtual_view.columns !== next_columns) {
                 virtual_view.columns = next_columns;
-                if (virtual_view.recent_date_groups) {
-                    this.rebuild_virtual_recent_rows(virtual_view);
+                if (virtual_view.file_groups) {
+                    this.rebuild_virtual_group_rows(virtual_view);
                 }
                 this.render_virtual_range(true);
             }
@@ -6548,12 +6621,12 @@ class FileManager {
         return 3;
     }
 
-    rebuild_virtual_recent_rows(virtual_view) {
+    rebuild_virtual_group_rows(virtual_view) {
         const visible_ids = new Set(virtual_view.filtered_files_arr.map((file) => file.id));
         const rows = [];
         const heading_height = 34;
 
-        virtual_view.recent_date_groups.forEach((group) => {
+        virtual_view.file_groups.forEach((group) => {
             const files = group.files.filter((file) => visible_ids.has(file.id));
             if (files.length === 0) {
                 return;
@@ -6570,8 +6643,8 @@ class FileManager {
 
         const offsets = [0];
         rows.forEach((row) => offsets.push(offsets[offsets.length - 1] + row.height));
-        virtual_view.recent_rows = rows;
-        virtual_view.recent_row_offsets = offsets;
+        virtual_view.grouped_rows = rows;
+        virtual_view.grouped_row_offsets = offsets;
     }
 
     render_virtual_range(force = false) {
@@ -6585,9 +6658,9 @@ class FileManager {
         let last_row;
         let top_height;
         let bottom_height;
-        if (virtual_view.recent_rows) {
-            const rows = virtual_view.recent_rows;
-            const offsets = virtual_view.recent_row_offsets;
+        if (virtual_view.grouped_rows) {
+            const rows = virtual_view.grouped_rows;
+            const offsets = virtual_view.grouped_row_offsets;
             const find_row = (position) => {
                 let low = 0;
                 let high = rows.length;
@@ -6628,9 +6701,9 @@ class FileManager {
         virtual_view.bottom_spacer.style.height = `${bottom_height}px`;
 
         const fragment = document.createDocumentFragment();
-        if (virtual_view.recent_rows) {
+        if (virtual_view.grouped_rows) {
             for (let index = start; index < end; index += 1) {
-                const row = virtual_view.recent_rows[index];
+                const row = virtual_view.grouped_rows[index];
                 if (row.type === 'heading') {
                     const heading = document.createElement('h2');
                     heading.classList.add('recent_date_group_heading', 'recent_date_group_heading_virtual');
@@ -6696,8 +6769,8 @@ class FileManager {
             const visible = this.show_hidden !== false || !file.is_hidden;
             return visible && file.name.toLocaleLowerCase().includes(normalized_filter);
         });
-        if (virtual_view.recent_date_groups) {
-            this.rebuild_virtual_recent_rows(virtual_view);
+        if (virtual_view.file_groups) {
+            this.rebuild_virtual_group_rows(virtual_view);
         }
         virtual_view.active_tab_content.scrollTop = 0;
         this.render_virtual_range(true);
@@ -7794,6 +7867,10 @@ class FileManager {
                                 }
 
                                 settingsManager.update_settings(latest_settings);
+
+                                if (key === 'Default View' && propKey === 'Group By') {
+                                    this.refresh_file_tabs_for_grouping();
+                                }
                             });
 
                             const item = utilities.add_div(['settings_item']);
@@ -8036,6 +8113,29 @@ class FileManager {
             }
 
             this.apply_view_settings_to_container(view_container, is_grid ? 'grid_view' : 'list_view');
+        });
+    }
+
+    refresh_file_tabs_for_grouping() {
+        const active_tab_content = tabManager.get_active_tab_content();
+        document.querySelectorAll('.tab-content').forEach((tab_content) => {
+            const tab = document.querySelector(`.tab[data-id="${tab_content.dataset.id}"]`);
+            if (!tab || tab.dataset.href === 'Settings' || tab.dataset.href === 'Dashboard') {
+                return;
+            }
+
+            const files_arr = tab.dataset.href === 'Recent'
+                ? this.recent_files_arr
+                : tabManager.get_tab_data_arr(tab.dataset.id);
+            if (!Array.isArray(files_arr)) {
+                return;
+            }
+
+            if (tab_content === active_tab_content) {
+                this.get_view(files_arr);
+            } else {
+                tab_content.dataset.groupingStale = 'true';
+            }
         });
     }
 
@@ -8622,9 +8722,15 @@ class FileManager {
 
             const href = item?.dataset?.href;
             if (href) {
-                // Provide standard drag payloads so Linux desktop apps can accept the drop.
-                e.dataTransfer.setData('text/plain', href);
-                e.dataTransfer.setData('text/uri-list', `file://${href}`);
+                const selected = utilities.get_selected_files().map(f => f.href).filter(Boolean);
+                const paths = selected.includes(href) ? selected : [href];
+
+                // Standard payloads so other apps (incl. Linux file managers) accept the drop.
+                const payload = dnd.build_drag_payload(paths);
+                for (const [type, value] of Object.entries(payload)) {
+                    e.dataTransfer.setData(type, value);
+                }
+                e.dataTransfer.setData(INTERNAL_DRAG_TYPE, '1');
 
                 // Native startDrag can crash on some Linux/X11 Electron builds.
                 if (process.platform !== 'linux') {
@@ -8647,8 +8753,8 @@ class FileManager {
             e.preventDefault();
             // e.stopPropagation();
 
-            const isCopy = e.ctrlKey || e.metaKey;
-            e.dataTransfer.dropEffect = isCopy ? 'copy' : 'move';
+            const effect = get_drop_effect(e);
+            e.dataTransfer.dropEffect = effect;
 
             if (item.dataset.is_dir === 'true') {
 
@@ -8658,17 +8764,8 @@ class FileManager {
                     item.classList.add('highlight_target');
                 }
 
-                if (e.ctrlKey) {
-                    e.dataTransfer.dropEffect = "copy";
-                    utilities.set_msg(`Copy items to ${item.dataset.href}`);
-                } else {
-                    e.dataTransfer.dropEffect = "move";
-                    utilities.set_msg(`Move items to ${item.dataset.href}`);
-                }
+                utilities.set_msg(`${effect === 'copy' ? 'Copy' : 'Move'} items to ${item.dataset.href}`);
                 utilities.set_destination(item.dataset.href);
-                // utilities.set_msg(`Destination: ${item.dataset.href}`);
-            } else {
-                // handle drag/drop on active tab content
             }
 
         })
@@ -8678,7 +8775,7 @@ class FileManager {
     // handle dragleave
     handleDragLeave(item) {
         item.addEventListener('dragleave', (e) => {
-            if (item.dataset.dragover === 'true') {
+            if (item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
                 delete item.dataset.dragover;
                 item.classList.remove('highlight_target');
             }
@@ -8692,6 +8789,16 @@ class FileManager {
 
             e.preventDefault();
             e.stopPropagation();
+
+            clear_drag_visuals();
+
+            const external_destination = item.dataset.is_dir === 'true' && item.dataset.href
+                ? item.dataset.href
+                : utilities.get_location();
+            if (handle_external_drop(e, external_destination)) {
+                dragSelect.set_is_dragging(true);
+                return;
+            }
 
             ipcRenderer.send('is_main', 0);
 
@@ -9226,6 +9333,40 @@ class FileManager {
 
     }
 
+    // Grouped views can't take loose cards; merge into tab data and re-render. Returns true if handled.
+    add_to_grouped_view(new_files, select = false) {
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content || this.is_recent_tab_content(active_tab_content)) {
+            return false;
+        }
+        if (this.get_group_by_setting() === 'None') {
+            return false;
+        }
+
+        const current = tabManager.get_tab_data_arr(active_tab_content.dataset.id);
+        if (!Array.isArray(current)) {
+            return false;
+        }
+
+        const added = new Map(new_files.map(f => [f.id, f]));
+        const merged = current.filter(f => !added.has(f.id)).concat(new_files);
+        tabManager.set_tab_data_arr(merged);
+        this.files_arr = merged;
+        this.get_view(merged);
+
+        if (select) {
+            if (this.virtual_view) {
+                added.forEach((f, id) => this.virtual_view.selected_ids.add(id));
+                this.render_virtual_range(true);
+            } else {
+                added.forEach((f, id) => {
+                    active_tab_content.querySelector(`[data-id="${id}"]`)?.classList.add('highlight_select');
+                });
+            }
+        }
+        return true;
+    }
+
     // add copy_array items to the view
     add_items(copy_arr) {
 
@@ -9270,6 +9411,8 @@ class FileManager {
         // Clear view container
         // view_container.innerHTML = '';
 
+        const grouped = this.get_group_by_setting() !== 'None';
+
         // loop copy array and create new cards array
         copy_arr.forEach(f => {
 
@@ -9297,6 +9440,10 @@ class FileManager {
         // if (this.view === 'list_view') {
         //     // this.get_list_view_header();
         // }
+
+        if (grouped && this.add_to_grouped_view(copy_arr, true)) {
+            return;
+        }
 
         // add new items array to the grid
         // console.log('sorting', this.sort_by, this.sort_direction);
