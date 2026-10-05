@@ -47,6 +47,94 @@ const clear_drag_visuals = () => {
     });
 };
 
+const is_dir_item = (item) => item?.dataset?.is_dir === 'true' && !!item.dataset.href;
+
+// item is the .tr/.card under the cursor, or null for empty space.
+const handle_drag_over = (e, item) => {
+    e.preventDefault();
+    const effect = get_drop_effect(e);
+    e.dataTransfer.dropEffect = effect;
+
+    let destination = utilities.get_location();
+    if (is_dir_item(item)) {
+        destination = item.dataset.href;
+        if (!item.dataset.dragover) {
+            item.dataset.dragover = 'true';
+            item.classList.add('highlight_target');
+        }
+    }
+    utilities.set_msg(`${effect === 'copy' ? 'Copy' : 'Move'} items to ${destination}`);
+    utilities.set_destination(destination);
+};
+
+const handle_drag_leave = (e, item) => {
+    if (item && item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
+        delete item.dataset.dragover;
+        item.classList.remove('highlight_target');
+    }
+};
+
+const handle_drop = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clear_drag_visuals();
+
+    const dir_target = is_dir_item(item);
+    if (handle_external_drop(e, dir_target ? item.dataset.href : utilities.get_location())) {
+        return;
+    }
+
+    if (!item) {
+        if (e.ctrlKey) {
+            utilities.set_destination(utilities.get_location());
+            utilities.copy();
+            utilities.paste();
+        }
+        return;
+    }
+
+    const selected_target = item.classList.contains('highlight') || item.classList.contains('highlight_select');
+    if (dir_target && !selected_target) {
+        ipcRenderer.send('is_main', 0);
+        utilities.set_destination(item.dataset.href);
+        utilities.copy();
+        if (e.ctrlKey) {
+            utilities.paste();
+        } else {
+            utilities.move();
+        }
+    } else {
+        ipcRenderer.send('is_main', 1);
+        utilities.set_destination(utilities.get_location());
+        utilities.copy();
+        utilities.paste();
+    }
+
+    utilities.clear();
+    dragSelect.set_is_dragging(true);
+};
+
+// Icon plus name (or item count) pill shown under the cursor while dragging.
+const set_drag_image = (e, count, item) => {
+    const ghost = document.createElement('div');
+    ghost.className = 'drag_ghost';
+
+    const src = item.querySelector('img')?.src;
+    if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        ghost.append(img);
+    }
+
+    const label = document.createElement('span');
+    label.textContent = count > 1 ? `${count} items` : (item.dataset.href || '').split('/').pop();
+    ghost.append(label);
+
+    document.body.append(ghost);
+    e.dataTransfer.setDragImage(ghost, 16, 16);
+    setTimeout(() => ghost.remove(), 0);
+};
+
 // Bridge a minimal, whitelisted API to the isolated renderer world for titlebar.js
 // (sideBarManager/utilities are assigned later by init(), but these closures only
 // run after that, so referencing them here ahead of assignment is safe).
@@ -2485,44 +2573,19 @@ class DragSelect {
                 // console.log('dragstart');
                 this.is_dragging = true;
                 this.is_dragging_divs = true;
-                e.dataTransfer.effectAllowed = "copyMove"; // ADD THIS LINE
             }
 
         });
 
         // Dragover
         active_tab_content.addEventListener('dragover', (e) => {
-
-            e.preventDefault();
             e.stopPropagation();
-
-            const effect = get_drop_effect(e);
-            const verb = effect === 'copy' ? 'Copy' : 'Move';
-            e.dataTransfer.dropEffect = effect;
-
-            const item = e.target.closest('.tr, .card');
-            let destination = utilities.get_location();
-            if (item && item.dataset.is_dir === 'true') {
-                destination = item.dataset.href;
-                if (!item.dataset.dragover) {
-                    item.dataset.dragover = 'true';
-                    item.classList.add('highlight_target');
-                }
-            }
-            utilities.set_msg(`${verb} items to ${destination}`);
-            utilities.set_destination(destination);
-
+            handle_drag_over(e, e.target.closest('.tr, .card'));
         });
 
         // Dragleave
         active_tab_content.addEventListener('dragleave', (e) => {
-
-            const item = e.target.closest('.tr, .card');
-            if (item && item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
-                delete item.dataset.dragover;
-                item.classList.remove('highlight_target');
-            }
-
+            handle_drag_leave(e, e.target.closest('.tr, .card'));
         });
 
         // Dragend fires on the source even when the drop is cancelled or lands elsewhere
@@ -2538,64 +2601,8 @@ class DragSelect {
 
         // Drop
         active_tab_content.addEventListener('drop', (e) => {
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            clear_drag_visuals();
-
-            const target = e.target.closest('.tr, .card');
-            const external_destination = target && target.dataset.is_dir === 'true' && target.dataset.href
-                ? target.dataset.href
-                : utilities.get_location();
-            if (handle_external_drop(e, external_destination)) {
-                this.is_dragging_divs = false;
-                return;
-            }
-
-            const item = target;
-            if (item) {
-
-                const isDirectoryTarget = item.dataset.is_dir === 'true' && !!item.dataset.href;
-                const isSelectedTarget = item.classList.contains('highlight') || item.classList.contains('highlight_select');
-
-                // ipcRenderer.send('is_main', 0);
-                if (isDirectoryTarget && !isSelectedTarget) {
-                    utilities.set_destination(item.dataset.href);
-                    utilities.copy();
-                    if (e.ctrlKey) {
-                        utilities.paste();
-                    } else {
-                        utilities.move();
-                    }
-                } else {
-                    console.log('did not find target')
-                    ipcRenderer.send('is_main', 1);
-                    utilities.set_destination(utilities.get_location());
-                    utilities.copy();
-                    utilities.paste();
-                }
-                utilities.clear();
-                this.set_is_dragging(true);
-
-            }
-
-            if (!item) {
-
-                // e.preventDefault();
-                // e.stopPropagation();
-
-                if (e.ctrlKey) {
-                    console.log('running copy')
-                    utilities.set_destination(utilities.get_location());
-                    utilities.copy();
-                    utilities.paste();
-                }
-
-            }
-
+            handle_drop(e, e.target.closest('.tr, .card'));
             this.is_dragging_divs = false;
-
         });
 
         // Selection rectangle and scroll handling
@@ -4165,6 +4172,7 @@ class IconManager {
 
         ipcRenderer.on('icon_theme_changed', () => {
             this.refresh_visible_icons();
+            workspaceManager?.get_workspace();
         });
 
         // resize icons on wheel event
@@ -8710,133 +8718,60 @@ class FileManager {
         ipcRenderer.send('get_folder_size', f.href);
     }
 
-    // handle dragstart
-    handleDragStart(item) {
+    // // handle dragstart
+    // handleDragStart(item) {
 
-        item.addEventListener('dragstart', (e) => {
+    //     item.addEventListener('dragstart', (e) => {
 
-            // console.log(item);
-            // utilities.copy();
+    //         // console.log(item);
+    //         // utilities.copy();
 
-            item.classList.add('highlight_select');
+    //         item.classList.add('highlight_select');
 
-            const href = item?.dataset?.href;
-            if (href) {
-                const selected = utilities.get_selected_files().map(f => f.href).filter(Boolean);
-                const paths = selected.includes(href) ? selected : [href];
+    //         const href = item?.dataset?.href;
+    //         if (href) {
+    //             const selected = utilities.get_selected_files().map(f => f.href).filter(Boolean);
+    //             const paths = selected.includes(href) ? selected : [href];
 
-                // Standard payloads so other apps (incl. Linux file managers) accept the drop.
-                const payload = dnd.build_drag_payload(paths);
-                for (const [type, value] of Object.entries(payload)) {
-                    e.dataTransfer.setData(type, value);
-                }
-                e.dataTransfer.setData(INTERNAL_DRAG_TYPE, '1');
+    //             // Standard payloads so other apps (incl. Linux file managers) accept the drop.
+    //             const payload = dnd.build_drag_payload(paths);
+    //             for (const [type, value] of Object.entries(payload)) {
+    //                 e.dataTransfer.setData(type, value);
+    //             }
+    //             e.dataTransfer.setData(INTERNAL_DRAG_TYPE, '1');
+    //             set_drag_image(e, paths.length, item);
 
-                // Native startDrag can crash on some Linux/X11 Electron builds.
-                if (process.platform !== 'linux') {
-                    ipcRenderer.send('start_drag_external', href);
-                }
-            }
+    //             // Native startDrag can crash on some Linux/X11 Electron builds.
+    //             if (process.platform !== 'linux') {
+    //                 ipcRenderer.send('start_drag_external', href);
+    //             }
+    //         }
 
-            e.dataTransfer.effectAllowed = 'copyMove';
-            this.is_dragging = true;
-            this.is_dragging_divs = true;
+    //         e.dataTransfer.effectAllowed = 'copyMove';
+    //         this.is_dragging = true;
+    //         this.is_dragging_divs = true;
 
-        })
-    }
+    //     })
+    // }
 
-    // handle drag over
-    handleDragOver(item) {
+    // // handle drag over
+    // handleDragOver(item) {
 
-        item.addEventListener('dragover', (e) => {
+    //     item.addEventListener('dragover', (e) => handle_drag_over(e, item));
 
-            e.preventDefault();
-            // e.stopPropagation();
+    // }
 
-            const effect = get_drop_effect(e);
-            e.dataTransfer.dropEffect = effect;
+    // // handle dragleave
+    // handleDragLeave(item) {
+    //     item.addEventListener('dragleave', (e) => handle_drag_leave(e, item));
+    // }
 
-            if (item.dataset.is_dir === 'true') {
+    // // handle drop
+    // handleDrop(item) {
 
-                // Add highlight only if not already highlighted
-                if (!item.dataset.dragover) {
-                    item.dataset.dragover = 'true';
-                    item.classList.add('highlight_target');
-                }
+    //     item.addEventListener('drop', (e) => handle_drop(e, item));
 
-                utilities.set_msg(`${effect === 'copy' ? 'Copy' : 'Move'} items to ${item.dataset.href}`);
-                utilities.set_destination(item.dataset.href);
-            }
-
-        })
-
-    }
-
-    // handle dragleave
-    handleDragLeave(item) {
-        item.addEventListener('dragleave', (e) => {
-            if (item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
-                delete item.dataset.dragover;
-                item.classList.remove('highlight_target');
-            }
-        })
-    }
-
-    // handle drop
-    handleDrop(item) {
-
-        item.addEventListener('drop', (e) => {
-
-            e.preventDefault();
-            e.stopPropagation();
-
-            clear_drag_visuals();
-
-            const external_destination = item.dataset.is_dir === 'true' && item.dataset.href
-                ? item.dataset.href
-                : utilities.get_location();
-            if (handle_external_drop(e, external_destination)) {
-                dragSelect.set_is_dragging(true);
-                return;
-            }
-
-            ipcRenderer.send('is_main', 0);
-
-            // const isCopy = e.ctrlKey || e.metaKey || keyboardManager.get_ctrl_pressed();
-            // console.log('drop event', { isCopy, ctrlKey: e.ctrlKey, metaKey: e.metaKey, keyboardCtrl: keyboardManager.get_ctrl_pressed() });
-
-            const isDirectoryTarget = item.dataset.is_dir === 'true' && !!item.dataset.href;
-            const isSelectedTarget = item.classList.contains('highlight') || item.classList.contains('highlight_select');
-
-            if (isDirectoryTarget && !isSelectedTarget) {
-                // Resolve destination from the actual drop target to avoid stale dragover state.
-                utilities.set_destination(item.dataset.href);
-
-                utilities.copy();
-                if (e.ctrlKey) {
-                    // utilities.set_msg('Running drop ctrl', item.dataset.href);
-                    utilities.paste();
-                } else {
-                    // console.log('running drop', item.dataset.href);
-                    utilities.move();
-                }
-
-            } else {
-
-                // console.log('did not find target')
-                ipcRenderer.send('is_main', 1);
-                utilities.set_destination(utilities.get_location());
-                utilities.copy();
-                utilities.paste();
-
-            }
-
-            utilities.clear();
-            dragSelect.set_is_dragging(true);
-
-        })
-
-    }
+    // }
 
     // handle rename
     handleRename(input, f) {

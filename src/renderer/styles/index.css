@@ -1112,7 +1112,7 @@ tr {
 .tab-header {
     position: sticky;
     background: var(--tabs);
-    height: 23px;
+    height: 26px;
     top: 0 !important;
     display: flex;
     width: 100%;
@@ -1135,7 +1135,7 @@ tr {
 
 .tabs {
     background: var(--tabs);
-    height: 23px;
+    height: 26px;
     top: 0;
     display: flex;
     width: 100%;
@@ -1147,7 +1147,7 @@ tr {
 
 .tab {
     padding-top: 2px;
-    height: 23px;
+    height: 26px;
     border-radius: 5px 5px 0px 0px;
     background: var(--main);
     color: var(--text);
@@ -2491,4 +2491,43 @@ span {
         --lighter: #dcdcdc;
         --lightest: #f0f0f0;
     }
+}
+.drag_ghost {
+    position: fixed;
+    top: -1000px;
+    left: -1000px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    padding: 4px 8px;
+    background: var(--dialog);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.drag_ghost img {
+    width: 36px;
+    height: 36px;
+}
+
+.drag_ghost span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.drag_copy_badge {
+    position: fixed;
+    z-index: 10000;
+    pointer-events: none;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 50%;
+    background: var(--button-active);
+    color: var(--active);
 }
