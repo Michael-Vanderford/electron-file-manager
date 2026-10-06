@@ -1,0 +1,33 @@
+.tab-content-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 2px 2px;
+    align-items: center;
+    margin-left: 10px;
+    margin-top: 6px;
+    border-radius: 4px;
+}
+.tab-content-toolbar .toolbar-btn {
+    background: none;
+    border: none;
+    color: var(--text);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;    
+}
+.tab-content-toolbar .toolbar-btn:hover {
+    background-color: var(--highlight);
+}
+.tab-content-toolbar .toolbar-btn i {
+    font-size: 12px;
+}.tab-content-toolbar .toolbar-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+.tab-content-toolbar .toolbar-btn:disabled:hover {
+    background: none;
+}

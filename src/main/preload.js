@@ -1699,6 +1699,7 @@ class Utilities {
 
         this.location_input.value = location;
         this.location = location;
+        fileManager?.update_toolbar_state?.();
 
         let sidebar = document.querySelector('.sidebar');
         let sidebar_items = sidebar.querySelectorAll('.item');
@@ -1895,7 +1896,12 @@ class Utilities {
         // send copy arr to MenuManager in main for menu paste operation
         ipcRenderer.send('set_copy_arr', this.copy_arr, this.location);
         this.set_msg(`Copied ${this.copy_arr.length} items at ${this.location}`);
+        fileManager?.update_toolbar_state?.();
 
+    }
+
+    has_clipboard() {
+        return this.copy_arr.length > 0 || this.cut_arr.length > 0;
     }
 
     // cut
@@ -1918,6 +1924,7 @@ class Utilities {
             }
         });
         this.set_msg(`Cut ${this.cut_arr.length} items at ${this.location}`);
+        fileManager?.update_toolbar_state?.();
     }
 
     // paste
@@ -1946,6 +1953,7 @@ class Utilities {
         this.cut_arr = [];
         this.clear_highlight();
         this.clear_empty_folder();
+        fileManager?.update_toolbar_state?.();
 
     }
 
@@ -2114,6 +2122,9 @@ class Utilities {
             return;
         }
 
+        // instead of just sending mkdir, we enter edit mode for the new folder name.
+        this.edit();
+        this.set_msg('Enter folder name...');
         ipcRenderer.send('mkdir', this.destination);
     }
 
@@ -2425,6 +2436,7 @@ class Utilities {
 
         // if escape on cut the clear it out
         this.cut_arr = [];
+        fileManager?.update_toolbar_state?.();
         let active_tab_content = tabManager.get_active_tab_content();
         let cut_items = active_tab_content.querySelectorAll('.cut');
         if (cut_items.length > 0) {
@@ -5625,7 +5637,9 @@ class FileManager {
         });
 
         // get item
-        ipcRenderer.on('get_item', (e, f) => {
+        ipcRenderer.on('get_item', (e, f, options = {}) => {
+
+            const should_edit = options === true || options?.edit === true;
 
             // console.log('get_item', f);
 
@@ -5640,14 +5654,20 @@ class FileManager {
             let item = active_tab_content.querySelector(`[data-id="${f.id}"]`)
             if (item) {
                 if (item.dataset.id === f.id) {
+                    const edit_input = item.querySelector('.edit_name');
+                    if (edit_input && !edit_input.classList.contains('hidden')) {
+                        return;
+                    }
                     this.update_item(f);
+                    if (should_edit) this.start_edit_item(f);
                     return;
                 }
             }
 
-            if (this.add_to_grouped_view([f])) {
+            if (this.add_to_grouped_view([f], false, should_edit ? f.id : null)) {
                 utilities.lazy_load_icons(active_tab_content);
                 this.handleFolderSize(f);
+                if (should_edit) this.start_edit_item(f);
                 return;
             }
 
@@ -5684,11 +5704,21 @@ class FileManager {
 
             utilities.lazy_load_icons(active_tab_content);
             this.handleFolderSize(f);
+            if (should_edit) this.start_edit_item(f);
 
         });
 
         // edit item mode
         ipcRenderer.on('edit_item', (e, f) => {
+            this.start_edit_item(f);
+        });
+
+        // handle updating item on rename
+        ipcRenderer.on('update_item', (e, f) => {
+            this.update_item(f);
+        });
+
+        this.start_edit_item = (f) => {
 
             // console.log('edit_item', f);
 
@@ -5744,12 +5774,7 @@ class FileManager {
 
             this.check_for_empty_folder();
 
-        });
-
-        // handle updating item on rename
-        ipcRenderer.on('update_item', (e, f) => {
-            this.update_item(f);
-        });
+        };
 
         // remove item
         ipcRenderer.on('remove_item', (e, id) => {
@@ -6418,6 +6443,88 @@ class FileManager {
 
     };
 
+    // Helper to add toolbar to tab content
+    add_tab_toolbar(tab_content) {
+        const toolbar = document.createElement('div');
+        toolbar.classList.add('tab-content-toolbar');
+
+        const btn_cut = document.createElement('button');
+        btn_cut.classList.add('toolbar-btn');
+        btn_cut.innerHTML = '<i class="bi bi-scissors"></i>';
+        btn_cut.title = 'Cut';
+        btn_cut.onclick = () => utilities.cut();
+
+        const btn_copy = document.createElement('button');
+        btn_copy.classList.add('toolbar-btn');
+        btn_copy.innerHTML = '<i class="bi bi-copy"></i>';
+        btn_copy.title = 'Copy';
+        btn_copy.onclick = () => utilities.copy();
+
+        const btn_paste = document.createElement('button');
+        btn_paste.classList.add('toolbar-btn');
+        btn_paste.innerHTML = '<i class="bi bi-clipboard-check"></i>';
+        btn_paste.title = 'Paste';
+        btn_paste.onclick = () => utilities.paste();
+
+        const btn_new_folder = document.createElement('button');
+        btn_new_folder.classList.add('toolbar-btn');
+        btn_new_folder.innerHTML = '<i class="bi bi-folder-plus"></i>';
+        btn_new_folder.title = 'New Folder';
+        btn_new_folder.onclick = () => utilities.mkdir();
+
+        toolbar.append(btn_new_folder, btn_cut, btn_copy, btn_paste);
+
+        this.toolbar_buttons = { new_folder: btn_new_folder, cut: btn_cut, copy: btn_copy, paste: btn_paste };
+        if (!this.toolbar_observer) {
+            let frame = null;
+            this.toolbar_observer = new MutationObserver(() => {
+                if (frame !== null) return;
+                frame = requestAnimationFrame(() => {
+                    frame = null;
+                    this.update_toolbar_state();
+                });
+            });
+            this.toolbar_observer.observe(this.main, {
+                subtree: true,
+                childList: true,
+                attributes: true,
+                attributeFilter: ['class']
+            });
+        }
+        this.update_toolbar_state();
+
+        const tab_header = document.querySelector('.tab-header');
+        if (tab_header) {
+            tab_header.after(toolbar);
+        } else {
+            const main_div = document.querySelector('.main');
+            if (main_div) {
+                main_div.prepend(toolbar);
+            } else {
+                tab_content.prepend(toolbar);
+            }
+        }
+    }
+
+    update_toolbar_state() {
+        const buttons = this.toolbar_buttons;
+        if (!buttons) return;
+
+        const active_tab_content = tabManager.get_active_tab_content();
+        const location = utilities.get_location() || '';
+        const is_real_location = location.startsWith('/') || /^[a-z]+:\/\//i.test(location);
+
+        const selected_count = this.virtual_view?.active_tab_content === active_tab_content
+            ? this.virtual_view.selected_ids.size
+            : (active_tab_content?.querySelectorAll('.highlight_select').length || 0);
+        const has_selection = selected_count > 0;
+
+        buttons.new_folder.disabled = !is_real_location;
+        buttons.cut.disabled = !has_selection;
+        buttons.copy.disabled = !has_selection;
+        buttons.paste.disabled = !is_real_location || !utilities.has_clipboard();
+    }
+
     show_column_menu(e) {
         // Remove any existing column menu
         const existing = document.getElementById('col_context_menu');
@@ -6603,6 +6710,12 @@ class FileManager {
             tabManager.add_tab(utilities.get_location());
             active_tab_content = document.querySelector('.active-tab-content');
         }
+
+        // Toolbar should be outside the view_container, so it survives view re-renders.
+        if (!document.querySelector('.tab-content-toolbar')) {
+            this.add_tab_toolbar(active_tab_content);
+        }
+
         const is_recent_view = this.is_recent_tab_content(active_tab_content);
         delete active_tab_content.dataset.groupingStale;
         if (is_recent_view) {
@@ -9468,13 +9581,14 @@ class FileManager {
 
     }
 
-    // Grouped views can't take loose cards; merge into tab data and re-render. Returns true if handled.
-    add_to_grouped_view(new_files, select = false) {
+    // Grouped views need each new card inserted into its matching section.
+    add_to_grouped_view(new_files, select = false, edit_id = null) {
         const active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content || this.is_recent_tab_content(active_tab_content)) {
             return false;
         }
-        if (this.get_group_by_setting() === 'None') {
+        const group_by = this.get_group_by_setting();
+        if (group_by === 'None') {
             return false;
         }
 
@@ -9485,20 +9599,77 @@ class FileManager {
 
         const added = new Map(new_files.map(f => [f.id, f]));
         const merged = current.filter(f => !added.has(f.id)).concat(new_files);
+        const groups = group_files(merged, group_by);
+        groups.forEach((group) => {
+            group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
+        });
         tabManager.set_tab_data_arr(merged);
         this.files_arr = merged;
-        this.get_view(merged);
 
-        if (select) {
-            if (this.virtual_view) {
-                added.forEach((f, id) => this.virtual_view.selected_ids.add(id));
-                this.render_virtual_range(true);
-            } else {
-                added.forEach((f, id) => {
-                    active_tab_content.querySelector(`[data-id="${id}"]`)?.classList.add('highlight_select');
-                });
+        const virtual_view = this.virtual_view?.active_tab_content === active_tab_content
+            ? this.virtual_view
+            : null;
+        if (virtual_view) {
+            virtual_view.files_arr = merged;
+            virtual_view.filtered_files_arr = merged.filter((file) => this.show_hidden !== false || !file.is_hidden);
+            virtual_view.file_groups = groups;
+            if (select) {
+                added.forEach((file, id) => virtual_view.selected_ids.add(id));
             }
+            this.rebuild_virtual_group_rows(virtual_view);
+            if (edit_id) {
+                const row_index = virtual_view.grouped_rows.findIndex((row) => row.type === 'files' && row.files.some((file) => file.id === edit_id));
+                if (row_index >= 0) {
+                    virtual_view.active_tab_content.scrollTop = virtual_view.grouped_row_offsets[row_index];
+                }
+            }
+            this.render_virtual_range(true);
+            return true;
         }
+
+        const view_container = active_tab_content.querySelector('.view_container');
+        if (!view_container) {
+            return false;
+        }
+
+        const group_positions = new Map(groups.map((group, index) => [group.label, index]));
+        new_files.forEach((file) => {
+            const group = groups.find((entry) => entry.files.some((group_file) => group_file.id === file.id));
+            if (!group) return;
+
+            let section = Array.from(view_container.children).find((child) => {
+                return child.classList.contains('recent_date_group') &&
+                    child.querySelector('.recent_date_group_heading')?.textContent === group.label;
+            });
+            if (!section) {
+                section = document.createElement('section');
+                section.classList.add('recent_date_group');
+                const heading = document.createElement('h2');
+                heading.classList.add('recent_date_group_heading');
+                heading.textContent = group.label;
+                const group_items = document.createElement('div');
+                group_items.classList.add('recent_date_items', this.view);
+                if (this.view === 'grid_view') group_items.classList.add('grid3');
+                section.append(heading, group_items);
+
+                const insert_before = Array.from(view_container.children).find((child) => {
+                    if (!child.classList.contains('recent_date_group')) return false;
+                    const child_label = child.querySelector('.recent_date_group_heading')?.textContent;
+                    return group_positions.get(child_label) > group_positions.get(group.label);
+                });
+                view_container.insertBefore(section, insert_before || null);
+            }
+
+            const group_items = section.querySelector('.recent_date_items');
+            const card = this.get_view_item(file);
+            if (select) card.classList.add('highlight_select');
+            const file_index = group.files.findIndex((group_file) => group_file.id === file.id);
+            const next_card = group.files.slice(file_index + 1)
+                .map((group_file) => active_tab_content.querySelector(`[data-id="${group_file.id}"]`))
+                .find(Boolean);
+            group_items.insertBefore(card, next_card || null);
+        });
+
         return true;
     }
 

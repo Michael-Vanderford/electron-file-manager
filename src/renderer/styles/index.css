@@ -1,3 +1,5 @@
+@import 'toolbar.css';
+
 /* Responsive grid columns for .grid_view */
 @media (min-width: 1200px) {
     .grid_view.grid3 {

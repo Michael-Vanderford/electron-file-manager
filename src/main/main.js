@@ -2041,8 +2041,7 @@ class Utilities {
         fs.mkdirSync(dir);
         let f = libfs.get_file(dir);
         f.id = btoa(dir);
-        e.sender.send('get_item', f);
-        e.sender.send('edit_item', f);
+        e.sender.send('get_item', f, { edit: true });
         this.invalidate_folder_size_hierarchy(location);
 
         setTimeout(() => {
@@ -3482,8 +3481,7 @@ class MenuManager {
                 case 'cp_template_done':
                     let f = libfs.get_file(data.destination);
                     f.id = btoa(data.destination);
-                    win.send('get_item', f);
-                    win.send('edit_item', f);
+                    win.send('get_item', f, { edit: true });
                     break;
             }
         });
