@@ -2496,6 +2496,8 @@ span {
     position: fixed;
     top: -1000px;
     left: -1000px;
+    z-index: 10000;
+    pointer-events: none;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -2518,10 +2520,8 @@ span {
     white-space: nowrap;
 }
 
-.drag_copy_badge {
-    position: fixed;
-    z-index: 10000;
-    pointer-events: none;
+.drag_ghost.copy::after {
+    content: '+';
     width: 16px;
     height: 16px;
     line-height: 16px;
@@ -2530,4 +2530,25 @@ span {
     border-radius: 50%;
     background: var(--button-active);
     color: var(--active);
+}
+
+/* Native image/link drags would cancel the pointer events. */
+.view_container * {
+    -webkit-user-drag: none;
+}
+
+body.dnd_active,
+body.dnd_active * {
+    cursor: grabbing !important;
+    user-select: none;
+}
+
+body.dnd_copy,
+body.dnd_copy * {
+    cursor: copy !important;
+}
+
+body.dnd_denied,
+body.dnd_denied * {
+    cursor: not-allowed !important;
 }

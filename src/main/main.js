@@ -1494,6 +1494,10 @@ class Utilities {
             this.get_folder_size(e, href);
         })
 
+        ipcMain.handle('is_writable_directory', (e, location) => {
+            return this.is_writable_directory(location);
+        });
+
     }
 
     init_paste_worker() {
@@ -1706,9 +1710,13 @@ class Utilities {
     // get folder size
     get_folder_size(e, href) {
         const normalized_href = this.normalize_folder_size_path(href);
-        if (!normalized_href || this.is_gvfs_path(normalized_href)) {
+        if (!normalized_href) {
             return;
         }
+
+        // if (!normalized_href || this.is_gvfs_path(normalized_href)) {
+        //     return;
+        // }
 
         const cached_size = this.directory_size_cache.get(normalized_href);
         if (cached_size !== null) {
@@ -1755,6 +1763,36 @@ class Utilities {
         return href.replace(/\n/g, ' ');
     }
 
+    is_writable_directory(location) {
+        if (typeof location !== 'string' || !path.isAbsolute(location)) {
+            return false;
+        }
+
+        try {
+            if (!fs.statSync(location).isDirectory()) {
+                return false;
+            }
+            fs.accessSync(location, fs.constants.W_OK | fs.constants.X_OK);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    can_write_to_directory(e, location) {
+        if (this.is_writable_directory(location)) {
+            return true;
+        }
+
+        const sender = e?.sender;
+        if (sender && !sender.isDestroyed()) {
+            sender.send('set_msg', `Cannot drop here: no write access to ${location}`);
+        } else if (win && !win.isDestroyed()) {
+            win.send('set_msg', `Cannot drop here: no write access to ${location}`);
+        }
+        return false;
+    }
+
     // open
     open(e, href) {
         shell.openPath(href)
@@ -1782,6 +1820,10 @@ class Utilities {
         // check if location is empty
         if (location == '' || location == undefined) {
             win.send('set_msg', 'No location to paste files.');
+            return;
+        }
+
+        if (!this.can_write_to_directory(e, location)) {
             return;
         }
 
@@ -1903,6 +1945,11 @@ class Utilities {
 
         if (location === '' || location === undefined) {
             win.send('set_msg', `Error: Move location is not valid: ${location}`);
+            return;
+        }
+
+        if (!this.can_write_to_directory(e, location)) {
+            return;
         }
 
         let move_arr = [];

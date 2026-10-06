@@ -8,12 +8,6 @@ const INTERNAL_DRAG_TYPE = 'application/x-sfm-internal';
 
 const is_internal_drag = (e) => Array.from(e.dataTransfer?.types || []).includes(INTERNAL_DRAG_TYPE);
 
-// Internal drags honour ctrl/meta; drags from other apps always copy.
-const get_drop_effect = (e) => {
-    if (!is_internal_drag(e)) return 'copy';
-    return (e.ctrlKey || e.metaKey) ? 'copy' : 'move';
-};
-
 const get_external_paths = (e) => {
     const out = [];
     for (const file of Array.from(e.dataTransfer?.files || [])) {
@@ -47,45 +41,54 @@ const clear_drag_visuals = () => {
     });
 };
 
-const is_dir_item = (item) => item?.dataset?.is_dir === 'true' && !!item.dataset.href;
+const drop_href = (item) => item?.dataset?.drop_href || (item?.dataset?.is_dir === 'true' && item.dataset.href) || '';
+const is_dir_item = (item) => !!drop_href(item);
+const is_sidebar_item = (item) => !!item?.closest('.sidebar');
 
-// item is the .tr/.card under the cursor, or null for empty space.
-const handle_drag_over = (e, item) => {
-    e.preventDefault();
-    const effect = get_drop_effect(e);
-    e.dataTransfer.dropEffect = effect;
+// item is the .tr/.card under the pointer, or null for empty space.
+const set_drop_target = (item, is_copy) => {
+    clear_drag_visuals();
+
+    if (is_sidebar_item(item) && !is_dir_item(item)) {
+        utilities.set_msg(item.closest('.workspace_view') ? 'Add items to workspace' : 'Cannot drop here');
+        return;
+    }
 
     let destination = utilities.get_location();
     if (is_dir_item(item)) {
-        destination = item.dataset.href;
-        if (!item.dataset.dragover) {
-            item.dataset.dragover = 'true';
-            item.classList.add('highlight_target');
-        }
+        destination = drop_href(item);
+        item.dataset.dragover = 'true';
+        item.classList.add('highlight_target');
     }
-    utilities.set_msg(`${effect === 'copy' ? 'Copy' : 'Move'} items to ${destination}`);
+    utilities.set_msg(`${is_copy ? 'Copy' : 'Move'} items to ${destination}`);
     utilities.set_destination(destination);
 };
 
-const handle_drag_leave = (e, item) => {
-    if (item && item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
-        delete item.dataset.dragover;
-        item.classList.remove('highlight_target');
-    }
-};
-
-const handle_drop = (e, item) => {
-    e.preventDefault();
-    e.stopPropagation();
-    clear_drag_visuals();
-
+const perform_internal_drop = (item, is_copy) => {
     const dir_target = is_dir_item(item);
-    if (handle_external_drop(e, dir_target ? item.dataset.href : utilities.get_location())) {
+
+    if (is_sidebar_item(item)) {
+        if (dir_target) {
+            ipcRenderer.send('is_main', 0);
+            utilities.set_destination(drop_href(item));
+            utilities.copy();
+            if (is_copy) {
+                utilities.paste();
+            } else {
+                utilities.move();
+            }
+        } else if (item.closest('.workspace_view')) {
+            ipcRenderer.send('add_workspace', utilities.get_selected_files());
+        } else {
+            return;
+        }
+        utilities.clear();
+        dragSelect.set_is_dragging(true);
         return;
     }
 
     if (!item) {
-        if (e.ctrlKey) {
+        if (is_copy) {
             utilities.set_destination(utilities.get_location());
             utilities.copy();
             utilities.paste();
@@ -96,9 +99,9 @@ const handle_drop = (e, item) => {
     const selected_target = item.classList.contains('highlight') || item.classList.contains('highlight_select');
     if (dir_target && !selected_target) {
         ipcRenderer.send('is_main', 0);
-        utilities.set_destination(item.dataset.href);
+        utilities.set_destination(drop_href(item));
         utilities.copy();
-        if (e.ctrlKey) {
+        if (is_copy) {
             utilities.paste();
         } else {
             utilities.move();
@@ -114,8 +117,29 @@ const handle_drop = (e, item) => {
     dragSelect.set_is_dragging(true);
 };
 
-// Icon plus name (or item count) pill shown under the cursor while dragging.
-const set_drag_image = (e, count, item) => {
+// HTML5 handlers below only serve drags that start in other apps.
+const handle_external_drag_over = (e, item) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    set_drop_target(item, true);
+};
+
+const handle_drag_leave = (e, item) => {
+    if (item && item.dataset.dragover === 'true' && !item.contains(e.relatedTarget)) {
+        delete item.dataset.dragover;
+        item.classList.remove('highlight_target');
+    }
+};
+
+const handle_external_drop_event = (e, item) => {
+    e.preventDefault();
+    e.stopPropagation();
+    clear_drag_visuals();
+    handle_external_drop(e, is_dir_item(item) ? drop_href(item) : utilities.get_location());
+};
+
+// Icon plus name (or item count) pill that follows the pointer; "copy" class adds the + badge.
+const make_drag_ghost = (count, item) => {
     const ghost = document.createElement('div');
     ghost.className = 'drag_ghost';
 
@@ -129,10 +153,159 @@ const set_drag_image = (e, count, item) => {
     const label = document.createElement('span');
     label.textContent = count > 1 ? `${count} items` : (item.dataset.href || '').split('/').pop();
     ghost.append(label);
+    return ghost;
+};
 
-    document.body.append(ghost);
-    e.dataTransfer.setDragImage(ghost, 16, 16);
-    setTimeout(() => ghost.remove(), 0);
+// Internal drag and drop on pointer events, so Ctrl can be read live (HTML5 drag can't on Wayland).
+const pointer_dnd = {
+    item: null,
+    x: 0,
+    y: 0,
+    active: false,
+    target: undefined,
+    is_copy: null,
+    ghost: null,
+    permission_path: '',
+    drop_allowed: null,
+    permission_request: 0,
+    permission_cache: new Map(),
+
+    arm(e, item) {
+        if (e.button !== 0 || e.target.closest('input, textarea')) return;
+        this.item = item;
+        this.x = e.clientX;
+        this.y = e.clientY;
+        document.addEventListener('pointermove', this.move);
+        document.addEventListener('pointerup', this.up);
+        document.addEventListener('keydown', this.key);
+    },
+
+    begin() {
+        this.active = true;
+        this.permission_cache.clear();
+        this.item.classList.add('highlight_select');
+        const count = utilities.get_selected_files().length;
+        this.ghost = make_drag_ghost(count, this.item);
+        document.body.append(this.ghost);
+        document.body.classList.add('dnd_active');
+        dragSelect.is_dragging = true;
+        dragSelect.is_dragging_divs = true;
+    },
+
+    update_permission(target) {
+        const destination = is_dir_item(target) ? drop_href(target) : '';
+        this.permission_path = destination;
+        this.drop_allowed = null;
+        const request_id = ++this.permission_request;
+        document.body.classList.remove('dnd_denied');
+        if (!destination) return;
+
+        if (this.permission_cache.has(destination)) {
+            this.drop_allowed = this.permission_cache.get(destination);
+            document.body.classList.toggle('dnd_denied', !this.drop_allowed);
+            if (!this.drop_allowed) {
+                utilities.set_msg(`Cannot drop here: no write access to ${destination}`);
+            }
+            return;
+        }
+
+        ipcRenderer.invoke('is_writable_directory', destination).then((writable) => {
+            const allowed = writable === true;
+            this.permission_cache.set(destination, allowed);
+            if (!this.active || request_id !== this.permission_request || this.permission_path !== destination) return;
+            this.drop_allowed = allowed;
+            document.body.classList.toggle('dnd_denied', !allowed);
+            if (!allowed) {
+                utilities.set_msg(`Cannot drop here: no write access to ${destination}`);
+            }
+        }).catch(() => {});
+    },
+
+    move: (e) => {
+        const self = pointer_dnd;
+        if (e.buttons === 0) {
+            self.finish();
+            return;
+        }
+        if (!self.active) {
+            if (Math.hypot(e.clientX - self.x, e.clientY - self.y) < 5) return;
+            self.begin();
+        }
+
+        // ponytail: native drag-out only off Linux, where startDrag is safe.
+        const outside = e.clientX < 0 || e.clientY < 0 || e.clientX > window.innerWidth || e.clientY > window.innerHeight;
+        if (outside && process.platform !== 'linux') {
+            const href = self.item.dataset.href;
+            self.finish();
+            if (href) ipcRenderer.send('start_drag_external', href);
+            return;
+        }
+
+        const is_copy = e.ctrlKey || e.metaKey;
+        self.ghost.style.left = `${e.clientX + 12}px`;
+        self.ghost.style.top = `${e.clientY + 12}px`;
+
+        const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tr, .card, .sidebar .item, .workspace_view') || null;
+        const target_changed = target !== self.target;
+        if (target_changed || is_copy !== self.is_copy) {
+            self.target = target;
+            self.is_copy = is_copy;
+            self.ghost.classList.toggle('copy', is_copy);
+            document.body.classList.toggle('dnd_copy', is_copy);
+            set_drop_target(target, is_copy);
+            if (target_changed) self.update_permission(target);
+        }
+    },
+
+    up: () => {
+        const self = pointer_dnd;
+        const { active, target, is_copy, drop_allowed, permission_path } = self;
+        self.finish();
+        if (active && drop_allowed === false) {
+            utilities.set_msg(`Cannot drop here: no write access to ${permission_path}`);
+            return;
+        }
+        if (active) perform_internal_drop(target, !!is_copy);
+    },
+
+    key: (e) => {
+        if (e.key !== 'Escape') return;
+        const self = pointer_dnd;
+        const was_active = self.active;
+        self.finish();
+        if (was_active) {
+            utilities.clear_highlight();
+            utilities.set_msg('Drag cancelled');
+        }
+    },
+
+    finish() {
+        document.removeEventListener('pointermove', this.move);
+        document.removeEventListener('pointerup', this.up);
+        document.removeEventListener('keydown', this.key);
+
+        if (this.active) {
+            // Swallow the click that follows the pointerup so the drop doesn't change the selection.
+            const stop = (ev) => ev.stopPropagation();
+            window.addEventListener('click', stop, { capture: true, once: true });
+            setTimeout(() => window.removeEventListener('click', stop, true), 0);
+        }
+
+        this.ghost?.remove();
+        document.body.classList.remove('dnd_active', 'dnd_copy');
+        document.body.classList.remove('dnd_denied');
+        clear_drag_visuals();
+        dragSelect.is_dragging_divs = false;
+        this.active = false;
+        this.item = null;
+        this.target = undefined;
+        this.is_copy = null;
+        this.ghost = null;
+        this.permission_path = '';
+        this.drop_allowed = null;
+        this.permission_request++;
+        this.permission_cache.clear();
+    }
 };
 
 // Bridge a minimal, whitelisted API to the isolated renderer world for titlebar.js
@@ -2524,10 +2697,7 @@ class DragSelect {
 
         active_tab_content.draggable = false;
 
-        // Set draggable property for current items (do this after DOM updates as needed)
-        Array.from(active_tab_content.querySelectorAll('.tr, .card')).forEach(item => {
-            item.draggable = true;
-        });
+        // Items are dragged with pointer events; native drag would cancel them.
 
         // Delegated event listeners for .tr and .card elements
 
@@ -2563,24 +2733,15 @@ class DragSelect {
             }
         });
 
-        // Dragstart
-        active_tab_content.addEventListener('dragstart', (e) => {
-
-            e.stopPropagation();
-
+        active_tab_content.addEventListener('pointerdown', (e) => {
             const item = e.target.closest('.tr, .card');
-            if (item) {
-                // console.log('dragstart');
-                this.is_dragging = true;
-                this.is_dragging_divs = true;
-            }
-
+            if (item) pointer_dnd.arm(e, item);
         });
 
-        // Dragover
+        // Dragover (drags from other apps)
         active_tab_content.addEventListener('dragover', (e) => {
             e.stopPropagation();
-            handle_drag_over(e, e.target.closest('.tr, .card'));
+            handle_external_drag_over(e, e.target.closest('.tr, .card'));
         });
 
         // Dragleave
@@ -2588,21 +2749,9 @@ class DragSelect {
             handle_drag_leave(e, e.target.closest('.tr, .card'));
         });
 
-        // Dragend fires on the source even when the drop is cancelled or lands elsewhere
-        active_tab_content.addEventListener('dragend', (e) => {
-            this.is_dragging_divs = false;
-            clear_drag_visuals();
-            // Esc (or a drop on an invalid target) ends the drag with dropEffect 'none'.
-            if (e.dataTransfer?.dropEffect === 'none') {
-                utilities.clear_highlight();
-                utilities.set_msg('Drag cancelled');
-            }
-        });
-
         // Drop
         active_tab_content.addEventListener('drop', (e) => {
-            handle_drop(e, e.target.closest('.tr, .card'));
-            this.is_dragging_divs = false;
+            handle_external_drop_event(e, e.target.closest('.tr, .card'));
         });
 
         // Selection rectangle and scroll handling
@@ -3057,6 +3206,9 @@ class DeviceManager {
         href_div.classList.add('device_href');
 
         let device_path = device.path;
+        if (device_path) {
+            item.dataset.drop_href = device_path;
+        }
 
         let a = document.createElement('a');
         a.preventDefault = true;
@@ -3700,6 +3852,14 @@ class SideBarManager {
 
             home_view_item.append(icon_div, link_div);
             this.home_view.append(home_view_item);
+
+            if (dir === 'Home') {
+                home_view_item.dataset.drop_href = utilities.home_dir;
+            } else if (dir === 'File System') {
+                home_view_item.dataset.drop_href = '/';
+            } else if (dir !== 'Dashboard' && dir !== 'Recent') {
+                home_view_item.dataset.drop_href = `${utilities.home_dir}/${dir}`;
+            }
 
             // home_view_item.dataset.href = `${utilities.home_dir}/${dir}`;
 
@@ -4353,20 +4513,17 @@ class IconManager {
 
             // get active tab content
             tab_content.forEach(t => {
-                let icon_div = t.querySelector(`[data-href="${href}"]`);
-                if (!icon_div) {
-                    console.log('Error: Setting folder icon div');
-                    return;
-                }
-                let img = icon_div.querySelector('img');
-                if (img) {
+                const icon_items = Array.from(t.querySelectorAll('[data-href]'))
+                    .filter((item) => item.dataset.href === href);
+                icon_items.forEach((icon_item) => {
+                    const img = icon_item.querySelector('.icon > img.img, img.img');
+                    if (!img) return;
 
                     img.src = icon;
-                    const view_container = img.closest('.view_container');
+                    const view_container = img.closest('.list_view, .grid_view');
                     const view_type = view_container?.classList.contains('list_view') ? 'list_view' : 'grid_view';
                     this.apply_icon_size_to_media(img, view_type);
-
-                }
+                });
 
             })
 
@@ -5330,6 +5487,36 @@ class FileManager {
 
                 // Never transform non-file special views.
                 if (v.classList.contains('settings_view')) {
+                    return;
+                }
+
+                if (tab?.dataset.href === 'Dashboard') {
+                    const workspace_view = tab_content.querySelector('.workspace_dashboard_view');
+                    if (workspace_view) {
+                        this.apply_view_settings_to_container(workspace_view, this.view);
+                        iconManager.apply_icon_size_to_container(workspace_view, this.view);
+                    }
+
+                    const recent_files_view = tab_content.querySelector('.recent_files_view');
+                    if (recent_files_view) {
+                        this.apply_view_settings_to_container(recent_files_view, this.view);
+                        recent_files_view.querySelectorAll('.recent_date_items').forEach((items) => {
+                            items.classList.toggle('list_view', this.view === 'list_view');
+                            items.classList.toggle('grid_view', this.view === 'grid_view');
+                            items.classList.toggle('grid3', this.view === 'grid_view');
+                            items.querySelectorAll('.card').forEach((card) => {
+                                this.apply_column_settings_to_card(card, this.view);
+                            });
+                        });
+                        iconManager.apply_icon_size_to_container(recent_files_view, this.view);
+                    }
+
+                    const recent_folders_view = tab_content.querySelector('.recent_folders');
+                    if (recent_folders_view) {
+                        this.apply_view_settings_to_container(recent_folders_view, this.view);
+                        iconManager.apply_icon_size_to_container(recent_folders_view, this.view);
+                    }
+
                     return;
                 }
 
@@ -6459,7 +6646,9 @@ class FileManager {
         //     files_arr = files_arr.filter(f => f.is_hidden === false);
         // }
 
-        let file_groups = group_files(files_arr, this.get_group_by_setting());
+        const group_by = this.get_group_by_setting();
+        const recent_group_by = is_recent_view && group_by === 'None' ? 'Date Modified' : group_by;
+        let file_groups = group_files(files_arr, recent_group_by);
         if (file_groups) {
             file_groups.forEach((group) => {
                 group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
@@ -6845,8 +7034,6 @@ class FileManager {
         let href = document.createElement('a');
         let input = document.createElement('input');
 
-        card.draggable = true;
-
         if (this.show_hidden === false && f.is_hidden === true) {
             card.classList.add('hidden');
         }
@@ -6961,12 +7148,6 @@ class FileManager {
 
         // handle rename
         this.handleRename(input, f);
-
-        // Handle drag drop events
-        this.handleDragStart(card);
-        this.handleDragOver(card);
-        this.handleDragLeave(card);
-        this.handleDrop(card);
 
         this.handleDataAttributes(card, f);
         this.handleTitle(card, f);
@@ -7086,7 +7267,8 @@ class FileManager {
         recent_folders_views.forEach((recent_folders_view) => {
             recent_folders_view.innerHTML = '';
             if (recent_folders.length > 0) {
-                const recent_folders_div = utilities.add_div(['recent_folders', 'grid_view', 'grid3']);
+                const recent_folders_div = utilities.add_div(['recent_folders']);
+                this.apply_view_settings_to_container(recent_folders_div, this.view);
                 for (let i = 0; i < recent_folders.length; ++i) {
                     let card = this.get_view_item(recent_folders[i]);
                     recent_folders_div.appendChild(card);
@@ -7094,6 +7276,7 @@ class FileManager {
                 }
                 recent_folders_view.append(recent_folders_div);
                 utilities.lazy_load_icons(recent_folders_view);
+                iconManager.apply_icon_size_to_container(recent_folders_div, this.view);
             } else {
                 recent_folders_view.innerHTML = '<div class="no_recent_folders">No recent folders</div>';
             }
@@ -7102,13 +7285,28 @@ class FileManager {
         recent_files_views.forEach((recent_files_view) => {
             recent_files_view.innerHTML = '';
             if (recent_files.length > 0) {
-                const recent_files_div = utilities.add_div(['recent_files', 'grid_view', 'grid3']);
-                for (let i = 0; i < recent_files.length; ++i) {
-                    let card = this.get_view_item(recent_files[i]);
-                    recent_files_div.appendChild(card);
-                }
-                recent_files_view.append(recent_files_div);
+                this.apply_view_settings_to_container(recent_files_view, this.view);
+                const group_by = this.get_group_by_setting();
+                const recent_group_by = group_by === 'None' ? 'Date Modified' : group_by;
+                const groups = group_files(recent_files, recent_group_by);
+                groups.forEach((group) => {
+                    const section = utilities.add_div(['recent_date_group']);
+                    const heading = document.createElement('h2');
+                    heading.classList.add('recent_date_group_heading');
+                    heading.textContent = group.label;
+
+                    const items = utilities.add_div(['recent_date_items']);
+                    if (this.view === 'list_view') {
+                        items.classList.add('list_view');
+                    } else {
+                        items.classList.add('grid_view', 'grid3');
+                    }
+                    group.files.forEach((file) => items.appendChild(this.get_view_item(file)));
+                    section.append(heading, items);
+                    recent_files_view.append(section);
+                });
                 utilities.lazy_load_icons(recent_files_view);
+                iconManager.apply_icon_size_to_container(recent_files_view, this.view);
             } else {
                 recent_files_view.innerHTML = '<div class="no_recent_files">No recent files</div>';
             }
@@ -7132,6 +7330,7 @@ class FileManager {
 
         workspace_views.forEach((workspace_view_div) => {
             workspace_view_div.innerHTML = '';
+            this.apply_view_settings_to_container(workspace_view_div, this.view);
 
             if (workspace_arr && workspace_arr.length > 0) {
                 for (let i = 0; i < workspace_arr.length; ++i) {
@@ -7141,6 +7340,7 @@ class FileManager {
                 }
 
                 utilities.lazy_load_icons(workspace_view_div);
+                iconManager.apply_icon_size_to_container(workspace_view_div, this.view);
             } else {
                 workspace_view_div.innerHTML = '<div class="no_workspace">No workspace items</div>';
             }

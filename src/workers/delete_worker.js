@@ -59,6 +59,9 @@ class DeleteWorker {
 
         let file;
         try {
+            if (this.gio.exists && !this.gio.exists(source)) {
+                return callback(new Error(`File not found: ${source}`));
+            }
             file = this.gio.get_file(source);
         } catch (err) {
             return callback(new Error(`Error getting file: ${err.message}`));
