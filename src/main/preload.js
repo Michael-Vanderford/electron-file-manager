@@ -6454,9 +6454,10 @@ class FileManager {
         const location = utilities.get_location() || '';
         const is_real_location = location.startsWith('/') || /^[a-z]+:\/\//i.test(location);
 
-        const names = this.virtual_view?.active_tab_content === active_tab_content
-            ? this.virtual_view.files_arr.filter((f) => this.virtual_view.selected_ids.has(f.id)).map((f) => f.name)
-            : Array.from(active_tab_content?.querySelectorAll('.highlight_select') || []).map((el) => el.dataset.name || '');
+        const is_active_virtual = Boolean(this.virtual_view && active_tab_content && this.virtual_view.active_tab_content === active_tab_content && Array.isArray(this.virtual_view.files_arr));
+        const names = is_active_virtual
+            ? this.virtual_view.files_arr.filter((f) => this.virtual_view.selected_ids?.has(f.id)).map((f) => f.name)
+            : Array.from(active_tab_content?.querySelectorAll?.('.highlight_select') || []).map((el) => el.dataset?.name || '');
 
         return {
             location,
@@ -9613,7 +9614,7 @@ class FileManager {
         tabManager.set_tab_data_arr(merged);
         this.files_arr = merged;
 
-        const virtual_view = this.virtual_view?.active_tab_content === active_tab_content
+        const virtual_view = (this.virtual_view && active_tab_content && this.virtual_view.active_tab_content === active_tab_content)
             ? this.virtual_view
             : null;
         if (virtual_view) {
