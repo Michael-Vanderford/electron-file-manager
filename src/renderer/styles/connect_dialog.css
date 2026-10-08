@@ -1,0 +1,37 @@
+.button.connect_network {
+    margin: 2px 0 6px 15px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background-color: transparent;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--text);
+    line-height: 1.2;
+    font-size: 12px;
+}
+
+.button.connect_network:hover {
+    background-color: var(--button-hover);
+}
+
+.button.connect_network .bi {
+    font-size: 10px;
+}
+
+.connect .button {
+    width: 100px;
+    border: 1px solid var(--border);
+    background: var(--button);
+    color: var(--button-text);
+}
+
+.connect .button:active {
+    background: var(--button-connect-active);
+}
+
+.connect .button:hover {
+    background: var(--button-connect-hover);
+}

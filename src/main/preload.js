@@ -324,6 +324,38 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
     cut: () => utilities?.cut(),
     copy: () => utilities?.copy(),
     paste: () => utilities?.paste(),
+    newTab: () => ipcRenderer.send('ls', utilities.get_location(), true),
+    newFolder: () => utilities?.mkdir(),
+    rename: () => utilities?.edit(),
+    delete: () => utilities?.delete(),
+    selectAll: () => utilities?.select_all(),
+    find: () => fileManager?.toggle_find_view(),
+    refresh: () => fileManager?.get_files(utilities.get_location()),
+    setView: (view) => {
+        if (view === 'grid_view' || view === 'list_view') ipcRenderer.emit('switch_view', null, view);
+    },
+    setGroupBy: (value) => {
+        if (['None', 'Type', 'Date Modified', 'Size'].includes(value)) fileManager?.set_group_by(value);
+    },
+    back: () => ipcRenderer.send('go_back', tabManager.getTabId()),
+    forward: () => ipcRenderer.send('go_forward', tabManager.getTabId()),
+    up: () => {
+        const location = utilities.get_location() || '';
+        if (!location.startsWith('/') || location === '/') return;
+        const parent = location.replace(/\/+$/, '').split('/').slice(0, -1).join('/') || '/';
+        tabManager.add_tab_history(parent);
+        fileManager.get_files(parent);
+    },
+    goTo: (label) => {
+        if (!['Home', 'Dashboard', 'Recent', 'File System'].includes(label)) return;
+        Array.from(document.querySelectorAll('.sidebar .home.item'))
+            .find((el) => el.textContent.trim() === label)?.click();
+    },
+    command: (cmd) => {
+        const allowed = ['terminal', 'properties', 'connect', 'add_workspace', 'extract', 'compress_zip', 'compress_gz', 'compress_xz'];
+        if (allowed.includes(cmd)) ipcRenderer.emit('context-menu-command', null, cmd);
+    },
+    getMenuState: () => fileManager?.get_menu_state() || {},
 });
 
 
@@ -4329,6 +4361,7 @@ class IconManager {
     constructor() {
 
         this.readonly_icon = '';
+        this.folder_icon_cache = new Map();
         this.settings = settingsManager.get_settings();
 
 
@@ -4343,6 +4376,7 @@ class IconManager {
         });
 
         ipcRenderer.on('icon_theme_changed', () => {
+            this.folder_icon_cache.clear();
             this.refresh_visible_icons();
             workspaceManager?.get_workspace();
         });
@@ -4514,6 +4548,10 @@ class IconManager {
 
     // set folder icon
     set_folder_icon(href, icon) {
+
+        if (icon) {
+            this.folder_icon_cache.set(href, icon);
+        }
 
         try {
 
@@ -4739,7 +4777,11 @@ class TabManager {
         }
     }
 
-    get_tab_menu () {
+    get_tab_menu (location) {
+
+        if (location === 'Dashboard' || location === 'Recent') {
+            return null;
+        }
 
         const menu = utilities.add_div(['tab-menu']);
 
@@ -4937,6 +4979,7 @@ class TabManager {
 
             // update disk space
             utilities.get_disk_space(tab.dataset.href);
+            fileManager?.update_toolbar_state();
 
             // navigation.getCardCount(); // get new card count for navigation
             // navigation.getCardGroups();
@@ -5014,27 +5057,6 @@ class TabManager {
             // tab_content.classList.remove('highlight');
         })
 
-        // tab_content.addEventListener('drop', (e) => {
-        //     e.preventDefault();
-        //     e.stopPropagation();
-        //     if (e.ctrlKey) {
-        //         alert('2680 fix me - tab_content.addEventListener drop');
-        //         console.log('2680 fix me - tab_content.addEventListener drop');
-        //         // utilities.copy();
-        //         // console.log('dropping on tab content', e);
-        //     }
-        // })
-
-        // navigation.getCardCount(); // get new card count for navigation
-        // navigation.getCardGroups();
-
-        // if (label !== 'Home' && label !== 'Settings' && label !== 'Recent' && label !== 'Search Results') {
-        //     this.addTabHistory(this.location_input.value);
-        // }
-
-        // ipcRenderer.send('switch_tab', this.tab_id);
-
-        // this.settings.tabs = [];
         dragSelect.initialize();
 
     }
@@ -5165,107 +5187,6 @@ class TabManager {
         return this.tab_id;
     }
 
-    // get tab history
-    getTabHistory(tab_id, direction = 0) {
-
-        // console.log('get tab history', tab_id, direction);
-
-        // ipcRenderer.invoke('get_tab_history').then(history => {
-        // // this.tab_history_arr = history;
-        // let tab_history = this.tab_history_arr.filter(item => item.tab_id === parseInt(tab_id));
-        // if (tab_history.length === 0) {
-        //     return;
-        // }
-
-        // if (direction === 1) {
-        //     tab_history.reverse();
-        // }
-
-        // // Create the popup element
-        // const popup = document.createElement('div');
-        // popup.classList.add('history-popup'); // Add a CSS class for styling
-
-        // // Create the title
-        // const title = document.createElement('h2');
-        // title.textContent = 'Navigation History';
-
-        // // Create the list of history items
-        // tab_history.forEach((item, idx) => {
-
-        //     // if (idx > 0) {
-
-        //     const menu_item = utilities.add_div(['item']);
-        //     menu_item.textContent = item.location;
-        //     popup.append(menu_item);
-
-        //     menu_item.addEventListener('click', (e) => {
-        //         fileManager.get_files(item.location);
-        //         // this.history_idx = this.historyArr.length - 1;
-        //         utilities.clear_highlight();
-        //     })
-
-        //     // }
-
-        // });
-
-        // popup.addEventListener('mouseleave', (e) => {
-        //     popup.remove();
-        // })
-
-        // // Determine position based on space below and above
-        // const windowHeight = window.innerHeight;
-        // const popupHeight = popup.offsetHeight;
-        // const triggerElement = this.back_btn // Replace with your trigger element
-        // const triggerRect = triggerElement.getBoundingClientRect();
-        // const triggerTop = triggerRect.top;
-        // const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
-        // const spaceAbove = triggerTop;
-
-        // if (spaceBelow > popupHeight) {
-        //     popup.style.top = triggerTop + triggerRect.height + 10 + 'px';
-        // } else if (spaceAbove > popupHeight) {
-        //     popup.style.top = triggerTop - popupHeight + 'px';
-        // } else {
-        //     // Handle cases where neither direction has enough space
-        //     // console.warn('Not enough space to display popup!');
-        // }
-        // popup.style.left = triggerRect.left + 10 + 'px';
-
-        // // Append the popup to the body
-        // const nav_menu = document.querySelector('.navigation');
-        // nav_menu.appendChild(popup);
-
-        // // console.log(this.historyArr)
-        // return tab_history;
-
-        // })
-
-    }
-
-    // get history idx by tab
-    getTabHistoryIdx(tab_id) {
-        // let tab_history_idx = 0;
-        // this.tab_history_idx_arr.forEach(item => {
-        //     if (item.tab_id === tab_id) {
-        //         tab_history_idx = item.tab_idx;
-        //         return;
-        //     }
-        // })
-        // return tab_history_idx;
-    }
-
-    // set history idx by tab
-    setTabHistoryIdx(tab_id, idx) {
-
-        // this.tab_history_idx_arr.forEach(item => {
-        //     if (item.tab_id === tab_id) {
-        //         item.tab_idx = idx;
-        //         return;
-        //     }
-        // })
-
-    }
-
     // tab history back
     tabHistoryBack(tab_id) {
         ipcRenderer.send('go_back', tab_id);
@@ -5332,6 +5253,8 @@ class FileManager {
             // console.log('error getting main');
             return;
         }
+
+        this.init_tab_toolbar();
 
         // get view settings
         this.view = settingsManager.get_view_settings();
@@ -6443,38 +6366,59 @@ class FileManager {
 
     };
 
-    // Helper to add toolbar to tab content
-    add_tab_toolbar(tab_content) {
+    // Initialize persistent toolbar once
+    init_tab_toolbar() {
+
+        if (document.querySelector('.tab-content-toolbar')) {
+            return;
+        }
+
         const toolbar = document.createElement('div');
         toolbar.classList.add('tab-content-toolbar');
 
-        const btn_cut = document.createElement('button');
-        btn_cut.classList.add('toolbar-btn');
-        btn_cut.innerHTML = '<i class="bi bi-scissors"></i>';
-        btn_cut.title = 'Cut';
-        btn_cut.onclick = () => utilities.cut();
+        const make_btn = (icon, title, handler) => {
+            const btn = document.createElement('button');
+            btn.classList.add('toolbar-btn');
+            btn.innerHTML = `<i class="bi bi-${icon}"></i>`;
+            btn.title = title;
+            btn.onclick = handler;
+            return btn;
+        };
+        const make_sep = () => {
+            const sep = document.createElement('div');
+            sep.classList.add('toolbar-sep');
+            return sep;
+        };
 
-        const btn_copy = document.createElement('button');
-        btn_copy.classList.add('toolbar-btn');
-        btn_copy.innerHTML = '<i class="bi bi-copy"></i>';
-        btn_copy.title = 'Copy';
-        btn_copy.onclick = () => utilities.copy();
+        const btn_new_folder = make_btn('folder-plus', 'New Folder', () => utilities.mkdir());
+        const btn_cut = make_btn('scissors', 'Cut', () => utilities.cut());
+        const btn_copy = make_btn('copy', 'Copy', () => utilities.copy());
+        const btn_paste = make_btn('clipboard-check', 'Paste', () => utilities.paste());
+        const btn_rename = make_btn('pencil', 'Rename (F2)', () => utilities.edit());
+        const btn_delete = make_btn('trash', 'Delete', () => utilities.delete());
+        const btn_compress = make_btn('file-earmark-zip', 'Compress to zip', () => utilities.compress('zip'));
+        const btn_extract = make_btn('box-arrow-in-down', 'Extract', () => utilities.extract());
+        const btn_properties = make_btn('info-circle', 'Properties', () => ipcRenderer.emit('context-menu-command', null, 'properties'));
 
-        const btn_paste = document.createElement('button');
-        btn_paste.classList.add('toolbar-btn');
-        btn_paste.innerHTML = '<i class="bi bi-clipboard-check"></i>';
-        btn_paste.title = 'Paste';
-        btn_paste.onclick = () => utilities.paste();
+        toolbar.append(
+            btn_new_folder, make_sep(),
+            btn_cut, btn_copy, btn_paste, make_sep(),
+            btn_rename, btn_delete, make_sep(),
+            btn_compress, btn_extract, make_sep(),
+            btn_properties
+        );
 
-        const btn_new_folder = document.createElement('button');
-        btn_new_folder.classList.add('toolbar-btn');
-        btn_new_folder.innerHTML = '<i class="bi bi-folder-plus"></i>';
-        btn_new_folder.title = 'New Folder';
-        btn_new_folder.onclick = () => utilities.mkdir();
-
-        toolbar.append(btn_new_folder, btn_cut, btn_copy, btn_paste);
-
-        this.toolbar_buttons = { new_folder: btn_new_folder, cut: btn_cut, copy: btn_copy, paste: btn_paste };
+        this.toolbar_buttons = {
+            new_folder: btn_new_folder,
+            cut: btn_cut,
+            copy: btn_copy,
+            paste: btn_paste,
+            rename: btn_rename,
+            delete: btn_delete,
+            compress: btn_compress,
+            extract: btn_extract,
+            properties: btn_properties
+        };
         if (!this.toolbar_observer) {
             let frame = null;
             this.toolbar_observer = new MutationObserver(() => {
@@ -6496,33 +6440,71 @@ class FileManager {
         const tab_header = document.querySelector('.tab-header');
         if (tab_header) {
             tab_header.after(toolbar);
-        } else {
-            const main_div = document.querySelector('.main');
-            if (main_div) {
-                main_div.prepend(toolbar);
-            } else {
-                tab_content.prepend(toolbar);
-            }
+        } else if (this.main) {
+            this.main.prepend(toolbar);
         }
+    }
+
+    add_tab_toolbar() {
+        return this.init_tab_toolbar();
+    }
+
+    get_selection_state() {
+        const active_tab_content = tabManager.get_active_tab_content();
+        const location = utilities.get_location() || '';
+        const is_real_location = location.startsWith('/') || /^[a-z]+:\/\//i.test(location);
+
+        const names = this.virtual_view?.active_tab_content === active_tab_content
+            ? this.virtual_view.files_arr.filter((f) => this.virtual_view.selected_ids.has(f.id)).map((f) => f.name)
+            : Array.from(active_tab_content?.querySelectorAll('.highlight_select') || []).map((el) => el.dataset.name || '');
+
+        return {
+            location,
+            is_real_location,
+            count: names.length,
+            has_archive: names.some((name) => /\.(zip|tar|gz|xz|bz2|7z)$/i.test(name))
+        };
+    }
+
+    set_group_by(value) {
+        const latest_settings = settingsManager.get_settings() || {};
+        const group_prop = latest_settings?.schema?.properties?.['Default View']?.properties?.['Group By'];
+        if (!group_prop) return;
+        group_prop.default = value;
+        settingsManager.update_settings(latest_settings);
+        this.refresh_file_tabs_for_grouping();
+    }
+
+    get_menu_state() {
+        const state = this.get_selection_state();
+        return {
+            count: state.count,
+            has_archive: state.has_archive,
+            is_real_location: state.is_real_location,
+            can_go_up: state.is_real_location && state.location !== '/',
+            has_clipboard: utilities.has_clipboard(),
+            view: this.view,
+            group_by: this.get_group_by_setting(),
+            sidebar_visible: !sideBarManager?.sidebar_collapsed
+        };
     }
 
     update_toolbar_state() {
         const buttons = this.toolbar_buttons;
         if (!buttons) return;
 
-        const active_tab_content = tabManager.get_active_tab_content();
-        const location = utilities.get_location() || '';
-        const is_real_location = location.startsWith('/') || /^[a-z]+:\/\//i.test(location);
-
-        const selected_count = this.virtual_view?.active_tab_content === active_tab_content
-            ? this.virtual_view.selected_ids.size
-            : (active_tab_content?.querySelectorAll('.highlight_select').length || 0);
+        const { is_real_location, count: selected_count, has_archive } = this.get_selection_state();
         const has_selection = selected_count > 0;
 
         buttons.new_folder.disabled = !is_real_location;
         buttons.cut.disabled = !has_selection;
         buttons.copy.disabled = !has_selection;
         buttons.paste.disabled = !is_real_location || !utilities.has_clipboard();
+        buttons.rename.disabled = selected_count !== 1;
+        buttons.delete.disabled = !has_selection;
+        buttons.compress.disabled = !has_selection || !is_real_location;
+        buttons.extract.disabled = !has_archive || !is_real_location;
+        buttons.properties.disabled = !has_selection && !is_real_location;
     }
 
     show_column_menu(e) {
@@ -6711,11 +6693,6 @@ class FileManager {
             active_tab_content = document.querySelector('.active-tab-content');
         }
 
-        // Toolbar should be outside the view_container, so it survives view re-renders.
-        if (!document.querySelector('.tab-content-toolbar')) {
-            this.add_tab_toolbar(active_tab_content);
-        }
-
         const is_recent_view = this.is_recent_tab_content(active_tab_content);
         delete active_tab_content.dataset.groupingStale;
         if (is_recent_view) {
@@ -6830,6 +6807,8 @@ class FileManager {
         // handle the first arrow down event for card selection
         this.handleInitKeyNav(view_container);
 
+        this.update_toolbar_state();
+
         // // hide hidden files if schema setting exists and default is false
         // let schema = settingsManager.get_schema().properties;
         // let show_hidden = schema['Default View'] ? schema['Default View'].properties['Show Hidden'].default : null;
@@ -6912,6 +6891,7 @@ class FileManager {
         });
 
         this.render_virtual_range(true);
+        this.update_toolbar_state();
         utilities.set_msg(`Loaded ${files_arr.length} items`);
     }
 
@@ -7291,12 +7271,8 @@ class FileManager {
 
         let active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content) {
-
-            // utilities.set_msg('Error: Unable to open Dashboard view');
             tabManager.add_tab('Dashboard');
             active_tab_content = tabManager.get_active_tab_content() //document.querySelector('.active-tab-content');
-            // return;
-
         }
 
         tabManager.update_tab('Dashboard');
@@ -7755,10 +7731,34 @@ class FileManager {
                 results_view.classList.add('grid_view', 'grid3');
             }
 
-            matches.forEach((match) => {
-                const item = this.get_view_item(match);
-                results_view.append(item);
-            });
+            const groups = group_files(matches, this.get_group_by_setting());
+            if (groups) {
+                groups.forEach((group) => {
+                    const section = document.createElement('section');
+                    section.classList.add('recent_date_group');
+
+                    const heading = document.createElement('h2');
+                    heading.classList.add('recent_date_group_heading');
+                    heading.textContent = group.label;
+
+                    const items = document.createElement('div');
+                    items.classList.add('recent_date_items');
+                    if (this.view === 'list_view') {
+                        items.classList.add('list_view');
+                    } else {
+                        items.classList.add('grid_view', 'grid3');
+                    }
+                    group.files.forEach((match) => items.append(this.get_view_item(match)));
+
+                    section.append(heading, items);
+                    results_view.append(section);
+                });
+            } else {
+                matches.forEach((match) => {
+                    const item = this.get_view_item(match);
+                    results_view.append(item);
+                });
+            }
 
             results_list.append(results_view);
 
@@ -8924,7 +8924,13 @@ class FileManager {
 
             if (f.is_dir || f.type === 'inode/directory') {
 
-                ipcRenderer.send('get_folder_icon', f.href);
+                // Cached icon avoids a blank flash while the async lookup runs.
+                const cached_folder_icon = iconManager.folder_icon_cache.get(f.href);
+                if (cached_folder_icon) {
+                    img.src = cached_folder_icon;
+                } else {
+                    ipcRenderer.send('get_folder_icon', f.href);
+                }
 
             } else if (f.is_dir === false) {
 
@@ -9026,6 +9032,7 @@ class FileManager {
                 source: f.href,
                 size: cached_size
             });
+            return;
         }
 
         ipcRenderer.send('get_folder_size', f.href);

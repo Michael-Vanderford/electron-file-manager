@@ -1,4 +1,5 @@
 @import 'toolbar.css';
+@import 'connect_dialog.css';
 
 /* Responsive grid columns for .grid_view */
 @media (min-width: 1200px) {
@@ -896,27 +897,8 @@ hr {
     font-size: 12px;
 }
 
-.button.connect_network {
-    margin: 2px 0 6px 15px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background-color: transparent;
-    border: 1px solid var(--border);
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 4px;
-    color: var(--text);
-    line-height: 1.2;
-    font-size: 12px;
-}
-
-.button.connect_network:hover {
-    background-color: var(--highlight);
-}
-
-.button.connect_network .bi {
-    font-size: 10px;
+.button-dialog:hover {
+    background-color: red;
 }
 
 .workspace_accordion_container {
@@ -2221,21 +2203,6 @@ td .div_name a {
     width: 50px !important;
 }
 
-.connect .button {
-    width: 100px;
-    border: 1px solid var(--border);
-    background: var(--button);
-    color: var(--button-text);
-}
-
-.connect .button:active {
-    background: var(--button-active);
-}
-
-.connect .button:hover {
-    background: var(--button-hover);
-}
-
 .connect .msg {
     background: var(--main);
     color: var(--warning);
@@ -2366,18 +2333,16 @@ span {
 @media (max-width: 768px) {}
 
 /* Preserve draggable handles usability on small touch screens */
-@media (pointer: coarse) and (max-width: 1024px) {}
+@media (pointer: coarse) and (max-width: 1024px) {} 
 
 /* Define dark color scheme */
 :root,
 :root.theme-dark {
     --menu: #303134;
     --sidebar: #262626;
-    /* --sidebar: #0c0c0c; */
     --input: #484848;
     --input-focus: #1b557c;
     --main: #222;
-    /* --main: #0c0c0c; */
     --minibar: #222222;
     --border: #333333;
     --msg: #222222;
@@ -2410,8 +2375,6 @@ span {
 
     --link: #4183c4;
     --highlight: #233246;
-    /* --highlight-select: #233246; */
-    /* --highlight-select: #069; */
     --highlight-select: rgba(255, 255, 255, 0.05);
     --highlight-target: #233246;
     --highlight-select-border: #707070;
@@ -2459,26 +2422,24 @@ span {
         --button: #707070;
         --button-text: #ffffff;
         --button-active: #5c636a;
-        --button-hover: #5c636a;
+        --button-hover: #cfcfcf;
         --button-hover-warning: #960000;
         --button-nav: #f0f0f0;
         --button-nav-hover: #dcdcdc;
         --button-nav-text: #333333;
+        --button-connect: #707070;
+        --button-connect-hover: #5c636a;
         --location: #f0f0f0;
         --location-border: #dcdcdc;
         --progress: #f7f7f7;
 
         --link: #4183c4;
-        /* --highlight: rgba(0, 0, 0, 0.1); */
-        /* --highlight-select: rgba(0, 0, 0, 0.1); */
         --highlight: #e1edfb;
         --highlight-select: #e1edfb;
-        /* --highlight-select-border: #707070; */
         --highlight-active: #333333;
 
         --black: #000000;
         --white: #FFFFFF;
-        /* --warning: #960000; */
         --warning: #FFA500;
         --danger: #ff2b2b;
         --error: #ff2b2b;

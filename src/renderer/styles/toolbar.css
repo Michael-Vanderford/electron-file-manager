@@ -1,11 +1,14 @@
 .tab-content-toolbar {
     display: flex;
     gap: 8px;
-    padding: 2px 2px;
+    padding: 4px 10px;
     align-items: center;
-    margin-left: 10px;
-    margin-top: 6px;
-    border-radius: 4px;
+    position: sticky;
+    top: 26px;
+    z-index: 2;
+    background: var(--main);
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
 }
 .tab-content-toolbar .toolbar-btn {
     background: none;
@@ -30,4 +33,9 @@
 }
 .tab-content-toolbar .toolbar-btn:disabled:hover {
     background: none;
+}
+.tab-content-toolbar .toolbar-sep {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
 }

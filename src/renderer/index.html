@@ -18,32 +18,79 @@
                 <div class="menu-item" tabindex="0">File
                     <div class="menu-dropdown">
                         <div class="menu-dropdown-item" data-action="new-window">New Window</div>
-                        <!-- <div class="menu-dropdown-item" data-action="open">Open...</div> -->
-                        <!-- <div class="menu-dropdown-item" data-action="save">Save</div> -->
+                        <div class="menu-dropdown-item" data-action="new-tab">New Tab<span class="menu-shortcut">Ctrl+T</span></div>
+                        <div class="menu-dropdown-item" data-action="new-folder" data-requires="location">New Folder<span class="menu-shortcut">Ctrl+Shift+N</span></div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="add-workspace" data-requires="location">Add to Workspace</div>
+                        <div class="menu-dropdown-item" data-action="terminal" data-requires="location">Open Terminal Here</div>
+                        <div class="menu-dropdown-item" data-action="properties" data-requires="selection-or-location">Properties</div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="connect">Connect to Network...</div>
+                        <hr />
                         <div class="menu-dropdown-item" data-action="exit">Exit</div>
                     </div>
                 </div>
                 <div class="menu-item" tabindex="0">Edit
                     <div class="menu-dropdown">
-                        <!-- <div class="menu-dropdown-item" data-action="undo">Undo</div>
-                        <div class="menu-dropdown-item" data-action="redo">Redo</div> -->
-                        <div class="menu-dropdown-item" data-action="cut">Cut</div>
-                        <div class="menu-dropdown-item" data-action="copy">Copy</div>
-                        <div class="menu-dropdown-item" data-action="paste">Paste</div>
+                        <div class="menu-dropdown-item" data-action="cut" data-requires="selection">Cut<span class="menu-shortcut">Ctrl+X</span></div>
+                        <div class="menu-dropdown-item" data-action="copy" data-requires="selection">Copy<span class="menu-shortcut">Ctrl+C</span></div>
+                        <div class="menu-dropdown-item" data-action="paste" data-requires="clipboard">Paste<span class="menu-shortcut">Ctrl+V</span></div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="rename" data-requires="single">Rename<span class="menu-shortcut">F2</span></div>
+                        <div class="menu-dropdown-item" data-action="delete" data-requires="selection">Delete<span class="menu-shortcut">Del</span></div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="select-all">Select All<span class="menu-shortcut">Ctrl+A</span></div>
+                        <div class="menu-dropdown-item" data-action="find">Find<span class="menu-shortcut">Ctrl+F</span></div>
+                        <hr />
+                        <div class="menu-submenu">
+                            <div class="menu-dropdown-item" data-requires="selection-location">Compress</div>
+                            <div class="menu-subdropdown">
+                                <div class="menu-dropdown-item" data-action="compress-zip" data-requires="selection-location">Zip</div>
+                                <div class="menu-dropdown-item" data-action="compress-gz" data-requires="selection-location">tar.gz</div>
+                                <div class="menu-dropdown-item" data-action="compress-xz" data-requires="selection-location">tar.xz</div>
+                            </div>
+                        </div>
+                        <div class="menu-dropdown-item" data-action="extract" data-requires="archive">Extract</div>
                     </div>
                 </div>
                 <div class="menu-item" tabindex="0">View
                     <div class="menu-dropdown">
                         <div class="menu-submenu">
-                            <div class="menu-dropdown-item">Appearance</div>
+                            <div class="menu-dropdown-item">Layout</div>
                             <div class="menu-subdropdown">
-                                <div class="menu-dropdown-item" data-action="sidebar">SideBar</div>
+                                <div class="menu-dropdown-item" data-action="view-grid" data-view="grid_view">Grid View</div>
+                                <div class="menu-dropdown-item" data-action="view-list" data-view="list_view">List View</div>
+                            </div>
+                        </div>
+                        <div class="menu-submenu">
+                            <div class="menu-dropdown-item">Group By</div>
+                            <div class="menu-subdropdown">
+                                <div class="menu-dropdown-item" data-action="group-none" data-group="None">None</div>
+                                <div class="menu-dropdown-item" data-action="group-type" data-group="Type">Type</div>
+                                <div class="menu-dropdown-item" data-action="group-date" data-group="Date Modified">Date Modified</div>
+                                <div class="menu-dropdown-item" data-action="group-size" data-group="Size">Size</div>
                             </div>
                         </div>
                         <hr />
-                        <div class="menu-dropdown-item" data-action="reload">Reload</div>
+                        <div class="menu-dropdown-item" data-action="sidebar" data-checked="sidebar">SideBar<span class="menu-shortcut">Ctrl+B</span></div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="refresh" data-requires="location">Refresh<span class="menu-shortcut">F5</span></div>
+                        <div class="menu-dropdown-item" data-action="reload">Reload<span class="menu-shortcut">Ctrl+R</span></div>
+                        <hr />
                         <div class="menu-dropdown-item" data-action="toggle-devtools">Toggle Developer Tools</div>
                         <div class="menu-dropdown-item" data-action="fullscreen">Toggle Full Screen</div>
+                    </div>
+                </div>
+                <div class="menu-item" tabindex="0">Go
+                    <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="back">Back<span class="menu-shortcut">Alt+Left</span></div>
+                        <div class="menu-dropdown-item" data-action="forward">Forward<span class="menu-shortcut">Alt+Right</span></div>
+                        <div class="menu-dropdown-item" data-action="up" data-requires="up">Up One Level</div>
+                        <hr />
+                        <div class="menu-dropdown-item" data-action="go-home">Home</div>
+                        <div class="menu-dropdown-item" data-action="go-dashboard">Dashboard</div>
+                        <div class="menu-dropdown-item" data-action="go-recent">Recent</div>
+                        <div class="menu-dropdown-item" data-action="go-root">File System</div>
                     </div>
                 </div>
                 <div class="menu-item" tabindex="0">Help

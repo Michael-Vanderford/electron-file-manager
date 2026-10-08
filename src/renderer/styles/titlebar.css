@@ -56,37 +56,45 @@ hr {
     position: absolute;
     top: 100%;
     left: 0;
-    min-width: 140px;
-    background: #232323;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
+    min-width: 160px;
+    background: #252526;
+    color: #cccccc;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 1px solid #454545;
+    border-radius: 0;
     z-index: 2;
     flex-direction: column;
     padding: 4px 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 .menu-item.open .menu-dropdown {
     display: flex;
 }
 .menu-dropdown-item {
-    padding: 6px 18px 6px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 4px 32px 4px 28px;
     cursor: pointer;
     font-size: 12px;
     white-space: nowrap;
-    transition: background 0.2s;
+    color: #cccccc;
+    position: relative;
+    transition: background 0.1s;
 }
 .menu-dropdown-item:hover {
-    background: #444;
+    background: #2a2d2e;
+    color: #fff;
 }
 
 .menu-submenu {
     position: relative;
 }
 .menu-submenu > .menu-dropdown-item::after {
-    content: ' >';
-    float: right;
-    margin-left: 12px;
+    content: '>';
+    position: absolute;
+    right: 8px;
+    opacity: 0.5;
 }
 .menu-submenu .menu-subdropdown {
     display: none;
@@ -199,4 +207,33 @@ hr {
 .titlebar-btn.titlebar-close:hover {
     background: #c00;
     color: #fff;
+}
+.menu-dropdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+}
+.menu-dropdown-item .menu-shortcut {
+    margin-left: auto;
+    opacity: 0.5;
+    padding: 0;
+    font-size: 11px;
+    color: inherit;
+}
+.menu-dropdown-item.disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.menu-dropdown-item.disabled:hover {
+    background: none;
+}
+.menu-dropdown-item.checked::before {
+    content: '\2713';
+    position: absolute;
+    left: 8px;
+    width: 16px;
+    text-align: center;
+    color: #fff;
+    font-weight: bold;
 }
