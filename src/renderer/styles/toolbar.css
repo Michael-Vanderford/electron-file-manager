@@ -7,7 +7,6 @@
     top: 26px;
     z-index: 2;
     background: var(--main);
-    border-bottom: 1px solid var(--border);
     border-radius: 0;
 }
 .tab-content-toolbar .toolbar-btn {
@@ -20,7 +19,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s;    
+    transition: background 0.2s;
 }
 .tab-content-toolbar .toolbar-btn:hover {
     background-color: var(--highlight);

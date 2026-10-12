@@ -1,5 +1,16 @@
 const ipcRenderer = require('electron').ipcRenderer;
 
+ipcRenderer.on('theme-preference-changed', (_event, preference, system_theme) => {
+    const root = document.documentElement;
+    const theme = ['dark', 'light', 'modern'].includes(String(preference).toLowerCase())
+        ? String(preference).toLowerCase()
+        : null;
+    if (theme) root.dataset.theme = theme;
+    else delete root.dataset.theme;
+    root.classList.toggle('theme-dark', !theme && system_theme === 'dark');
+    root.classList.toggle('theme-light', !theme && system_theme === 'light');
+});
+
 class SettingsManager {
 
     constructor() {

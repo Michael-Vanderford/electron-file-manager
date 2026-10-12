@@ -88,6 +88,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 case 'add-workspace': window.titlebarAPI.command('add_workspace'); break;
                 case 'terminal': window.titlebarAPI.command('terminal'); break;
                 case 'properties': window.titlebarAPI.command('properties'); break;
+                case 'settings': window.titlebarAPI.command('settings'); break;
                 case 'connect': window.titlebarAPI.command('connect'); break;
                 case 'rename': window.titlebarAPI.rename(); break;
                 case 'delete': window.titlebarAPI.delete(); break;

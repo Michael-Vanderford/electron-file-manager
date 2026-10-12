@@ -4,8 +4,9 @@ const { group_files } = require('../common/file_groups');
 const dnd = require('../common/dnd');
 const Chart = require('chart.js/auto');
 
-const INTERNAL_DRAG_TYPE = 'application/x-sfm-internal';
+// Drag and drop related utilities and handlers /////////////////////////////////////////////////////////////
 
+const INTERNAL_DRAG_TYPE = 'application/x-sfm-internal';
 const is_internal_drag = (e) => Array.from(e.dataTransfer?.types || []).includes(INTERNAL_DRAG_TYPE);
 
 const get_external_paths = (e) => {
@@ -232,7 +233,7 @@ const pointer_dnd = {
             self.begin();
         }
 
-        // ponytail: native drag-out only off Linux, where startDrag is safe.
+        // native drag-out only off Linux, where startDrag is safe.
         const outside = e.clientX < 0 || e.clientY < 0 || e.clientX > window.innerWidth || e.clientY > window.innerHeight;
         if (outside && process.platform !== 'linux') {
             const href = self.item.dataset.href;
@@ -337,6 +338,11 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
     setGroupBy: (value) => {
         if (['None', 'Type', 'Date Modified', 'Size'].includes(value)) fileManager?.set_group_by(value);
     },
+    setTheme: (theme) => {
+        if (['dark', 'light', 'system', 'modern'].includes(theme)) {
+            fileManager?.set_theme(theme);
+        }
+    },
     back: () => ipcRenderer.send('go_back', tabManager.getTabId()),
     forward: () => ipcRenderer.send('go_forward', tabManager.getTabId()),
     up: () => {
@@ -352,7 +358,7 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
             .find((el) => el.textContent.trim() === label)?.click();
     },
     command: (cmd) => {
-        const allowed = ['terminal', 'properties', 'connect', 'add_workspace', 'extract', 'compress_zip', 'compress_gz', 'compress_xz'];
+        const allowed = ['terminal', 'properties', 'settings', 'connect', 'add_workspace', 'extract', 'compress_zip', 'compress_gz', 'compress_xz'];
         if (allowed.includes(cmd)) ipcRenderer.emit('context-menu-command', null, cmd);
     },
     getMenuState: () => fileManager?.get_menu_state() || {},
@@ -361,11 +367,30 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
 
 // Globals
 let section = 0;
+let system_theme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+let active_theme_preference = 'system';
 
-ipcRenderer.on('theme-changed', (event, theme) => {
+function normalize_theme(value) {
+    const theme = String(value || 'system').toLowerCase();
+    return ['dark', 'light', 'system', 'modern'].includes(theme) ? theme : 'system';
+}
+
+function apply_theme(preference, next_system_theme = system_theme) {
+    active_theme_preference = normalize_theme(preference);
+    system_theme = next_system_theme === 'dark' ? 'dark' : 'light';
     const root = document.documentElement;
-    root.classList.toggle('theme-dark', theme === 'dark');
-    root.classList.toggle('theme-light', theme === 'light');
+    if (active_theme_preference === 'system') delete root.dataset.theme;
+    else root.dataset.theme = active_theme_preference;
+    root.classList.toggle('theme-dark', active_theme_preference === 'system' && system_theme === 'dark');
+    root.classList.toggle('theme-light', active_theme_preference === 'system' && system_theme === 'light');
+}
+
+ipcRenderer.on('theme-changed', (_event, theme) => {
+    apply_theme(active_theme_preference, theme);
+});
+
+ipcRenderer.on('theme-preference-changed', (_event, preference, next_system_theme) => {
+    apply_theme(preference, next_system_theme);
 });
 
 class EventManager {
@@ -435,14 +460,16 @@ class SettingsManager {
             // console.log('settings updated', updated_settings);
             this.settings = updated_settings;
             this.schema = this.get_schema();
+            apply_theme(this.settings?.schema?.properties?.['Default View']?.properties?.Theme?.default);
+            fileManager?.apply_tab_toolbar_visibility?.();
         })
 
         // settings menu
-        this.settings_menu = document.querySelector('.settings_menu');
-        this.settings_menu_button = this.settings_menu.querySelector('.button.settings');
-        this.settings_menu_button.addEventListener('click', (e) => {
-            fileManager.get_settings_view();
-        });
+        // this.settings_menu = document.querySelector('.settings_menu');
+        // this.settings_menu_button = this.settings_menu.querySelector('.button.settings');
+        // this.settings_menu_button.addEventListener('click', (e) => {
+        //     fileManager.get_settings_view();
+        // });
     }
 
     init_settings() {
@@ -648,7 +675,17 @@ class SettingsManager {
                             enum: ['None', 'Type', 'Date Modified', 'Size'],
                             default: 'None'
                         },
+                        'Theme': {
+                            type: 'string',
+                            enum: ['Light', 'Dark', 'System', 'Modern'],
+                            default: 'System'
+                        },
+
                         'Show Hidden': {
+                            type: 'boolean',
+                            default: true
+                        },
+                        'Show Tab Toolbar': {
                             type: 'boolean',
                             default: true
                         }
@@ -3423,7 +3460,7 @@ class WorkspaceManager {
     }
 
     // Get Workspace
-    get_workspace(callback) {
+    get_workspace() {
 
         ipcRenderer.invoke('get_workspace').then(res => {
 
@@ -3711,7 +3748,7 @@ class WorkspaceManager {
                 });
             }
 
-            return callback(workspace);
+            return workspace;
 
         })
     }
@@ -6369,7 +6406,10 @@ class FileManager {
     // Initialize persistent toolbar once
     init_tab_toolbar() {
 
-        if (document.querySelector('.tab-content-toolbar')) {
+        const existing_toolbar = document.querySelector('.tab-content-toolbar');
+        if (existing_toolbar) {
+            this.tab_toolbar = existing_toolbar;
+            this.apply_tab_toolbar_visibility();
             return;
         }
 
@@ -6443,10 +6483,24 @@ class FileManager {
         } else if (this.main) {
             this.main.prepend(toolbar);
         }
+        this.tab_toolbar = toolbar;
+        this.apply_tab_toolbar_visibility();
     }
 
     add_tab_toolbar() {
         return this.init_tab_toolbar();
+    }
+
+    is_tab_toolbar_visible() {
+        const setting = settingsManager?.get_settings()?.schema?.properties?.['Default View']?.properties?.['Show Tab Toolbar']?.default;
+        return setting !== false;
+    }
+
+    apply_tab_toolbar_visibility() {
+        const toolbar = this.tab_toolbar || document.querySelector('.tab-content-toolbar');
+        if (!toolbar) return;
+        this.tab_toolbar = toolbar;
+        toolbar.classList.toggle('hidden', !this.is_tab_toolbar_visible());
     }
 
     get_selection_state() {
@@ -6476,6 +6530,15 @@ class FileManager {
         this.refresh_file_tabs_for_grouping();
     }
 
+    set_theme(value) {
+        const latest_settings = settingsManager.get_settings() || {};
+        const theme_prop = latest_settings?.schema?.properties?.['Default View']?.properties?.Theme;
+        if (!theme_prop) return;
+        theme_prop.default = normalize_theme(value);
+        apply_theme(theme_prop.default);
+        settingsManager.update_settings(latest_settings);
+    }
+
     get_menu_state() {
         const state = this.get_selection_state();
         return {
@@ -6486,6 +6549,7 @@ class FileManager {
             has_clipboard: utilities.has_clipboard(),
             view: this.view,
             group_by: this.get_group_by_setting(),
+            theme: this.get_theme(),
             sidebar_visible: !sideBarManager?.sidebar_collapsed
         };
     }
@@ -6683,6 +6747,13 @@ class FileManager {
         return default_view?.properties?.['Group By']?.default || 'None';
     }
 
+    get_theme() {
+        const latest_settings = settingsManager.get_settings() || {};
+        const default_view = settingsManager.get_settings()?.schema?.properties?.['Default View'];
+        const theme_prop = default_view?.properties?.['Theme'];
+        return theme_prop?.default || 'System';
+    }
+
     get_view(files_arr) {
 
         this.clear_filter();
@@ -6733,9 +6804,6 @@ class FileManager {
         // hide hidden files if schema setting exists and default is false
         this.schema = settingsManager.get_schema();
         this.show_hidden = this.schema['Default View'] ? this.schema['Default View'].properties['Show Hidden'].default : null;
-        // if (show_hidden ==  true) {
-        //     files_arr = files_arr.filter(f => f.is_hidden === false);
-        // }
 
         const group_by = this.get_group_by_setting();
         const recent_group_by = is_recent_view && group_by === 'None' ? 'Date Modified' : group_by;
@@ -6783,6 +6851,7 @@ class FileManager {
             }
         }
 
+        apply_theme(this.get_theme());
 
         if (preserved_find_main_container) {
             const preserved_results_window = preserved_find_main_container.querySelector('.find_results_window');
@@ -8114,6 +8183,11 @@ class FileManager {
                                     }
                                 }
 
+                                if (propKey === 'Show Tab Toolbar') {
+                                    latest_settings.show_tab_toolbar = checkbox.checked;
+                                    this.apply_tab_toolbar_visibility();
+                                }
+
                                 settingsManager.update_settings(latest_settings);
 
                                 if (key === 'List View Columns' || key === 'Grid View Columns') {
@@ -8188,11 +8262,16 @@ class FileManager {
                                     latest_settings.terminal = e.target.value;
                                 }
 
+                                if (propKey === 'Theme') {
+                                    apply_theme(e.target.value);
+                                }
+
                                 settingsManager.update_settings(latest_settings);
 
                                 if (key === 'Default View' && propKey === 'Group By') {
                                     this.refresh_file_tabs_for_grouping();
                                 }
+
                             });
 
                             const item = utilities.add_div(['settings_item']);
@@ -8208,208 +8287,6 @@ class FileManager {
             }
 
         })
-
-        // console.log('view_container', view_container);
-
-        // Object.keys(settings).forEach((key, idx) => {
-
-        //     const value = settings[key];
-
-        //     if (typeof value === 'string') {
-
-        //         console.log('key', key, 'value', value);
-
-        //         let input = document.createElement('input');
-        //         input.classList.add('input');
-
-        //         let settings_item = utilities.add_div(['settings_item']);
-        //         let label = document.createElement('label');
-
-        //         label.innerText = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
-
-        //         switch (key.toLocaleLowerCase()) {
-        //             case 'view': {
-        //                 input = document.createElement('select');
-        //                 let options = ['list_view', 'grid_view']
-        //                 options.forEach((option, i) => {
-        //                     let option_select = document.createElement('option');
-        //                     option_select.text = option
-        //                     option_select.value = option
-        //                     input.append(option_select);
-
-        //                     if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
-        //                         option_select.selected = true
-        //                     }
-        //                 })
-
-        //                 input.addEventListener('change', (e) => {
-        //                     // ipcRenderer.send('change_theme', input.value);
-        //                     // ipcRenderer.send('update_settings', [key], input.value)
-        //                 })
-
-        //                 settings_item.append(label, input)
-        //                 break;
-        //             }
-        //             case 'theme': {
-        //                 input = document.createElement('select');
-        //                 let options = ['Light', 'Dark']
-        //                 options.forEach((option, i) => {
-        //                     let option_select = document.createElement('option');
-        //                     option_select.text = option
-        //                     option_select.value = option
-        //                     input.append(option_select);
-
-        //                     if (option.toLocaleLowerCase() === value.toLocaleLowerCase()) {
-        //                         option_select.selected = true
-        //                     }
-        //                 })
-
-        //                 input.addEventListener('change', (e) => {
-        //                     ipcRenderer.send('change_theme', input.value);
-        //                     ipcRenderer.send('update_settings', [key], input.value)
-        //                 })
-
-        //                 settings_item.append(label, input)
-        //                 break;
-        //             }
-        //             case 'terminal': {
-        //                 input.addEventListener('change', (e) => {
-        //                     ipcRenderer.send('update_settings', [key], input.value)
-        //                 })
-        //                 settings_item.append(label, input);
-        //                 break;
-        //             }
-        //             case 'disk_utility': {
-        //                 input.addEventListener('change', (e) => {
-        //                     ipcRenderer.send('update_settings', [key], input.value)
-        //                 })
-        //                 settings_item.append(label, input);
-
-        //                 break;
-        //             }
-        //         }
-
-        //         input.value = settings[key];
-        //         view_container.append(settings_item);
-
-        //     }
-
-
-        //     if (typeof value === 'object') {
-
-        //         let header = document.createElement('h4');
-        //         let hr = document.createElement('hr');
-
-        //         header.classList.add('header');
-
-        //         header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`; //key.toUpperCase();
-        //         view_container.append(hr, header);
-
-        //         for (let sub_key in settings[key]) {
-
-        //             let input;
-        //             let settings_item = utilities.add_div(['settings_item']);
-
-        //             let sub_value = settings[`${key}`][`${sub_key}`];
-        //             let type = typeof sub_value;
-
-        //             let label = document.createElement('label');
-        //             label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
-
-        //             // Create input field for non-nested properties
-        //             switch (type) {
-        //                 case 'boolean': {
-
-        //                     let item = utilities.add_div(['settings_checkbox_item']);
-
-        //                     input = document.createElement('input');
-        //                     input.type = 'checkbox';
-        //                     input.checked = sub_value;
-
-        //                     input.addEventListener('click', (e) => {
-        //                         if (input.checked) {
-        //                             ipcRenderer.send('update_settings', settings);
-        //                             fileManager.get_view();
-        //                         } else {
-        //                             ipcRenderer.send('update_settings', settings);
-        //                             fileManager.get_view();
-        //                         }
-
-        //                         switch (key) {
-        //                             case 'File Menu': {
-        //                                 // ipcRenderer.send('show_menubar')
-        //                                 break;
-        //                             }
-        //                             case 'Header Menu': {
-        //                                 // this.showHeaderMenu();
-        //                                 break;
-        //                             }
-        //                             case 'Navigation Menu': {
-        //                                 // this.moveNavMenu();
-        //                                 break;
-        //                             }
-        //                             case 'Minibar': {
-        //                                 // this.showMinibar();
-        //                                 break;
-        //                             }
-        //                         }
-
-        //                     })
-
-        //                     if (sub_key === 'name') {
-        //                         input.disabled = true;
-        //                     }
-        //                     item.append(label, input);
-        //                     view_container.append(item);
-        //                     break;
-        //                 }
-        //                 case 'string': {
-        //                     input = document.createElement('input');
-        //                     input.type = 'text';
-        //                     input.value = sub_value
-        //                     if (key.toLocaleLowerCase() === 'keyboard_shortcuts') {
-        //                         console.log(sub_key, sub_value)
-        //                         input.disabled = true;
-        //                     }
-        //                     settings_item.append(label, input);
-        //                     view_container.append(settings_item);
-        //                     break;
-        //                 }
-        //                 case 'number': {
-        //                     input = document.createElement('input');
-        //                     input.type = 'number';
-        //                     input.value = sub_value;
-
-        //                     settings_item.append(label, input);
-        //                     view_container.append(settings_item);
-
-        //                     break;
-        //                 }
-        //                 default: {
-        //                     // input = document.createElement('input');
-        //                     // input.type = 'text';
-        //                     // input.value = sub_value;
-
-        //                     // settings_item.append(label, input);
-        //                     // view_container.append(settings_item);
-
-        //                     break;
-        //                 }
-
-        //             }
-
-        //             // let label = document.createElement('label');
-        //             // label.textContent = `${sub_key.charAt(0).toUpperCase() + sub_key.slice(1)}:`;
-        //             // settings_item.append(label, input);
-        //             // form.append(settings_item);
-
-        //         }
-
-        //         // viewManager.resize();
-
-        //     }
-
-        // })
 
         active_tab_content.appendChild(view_container);
 
@@ -10241,6 +10118,10 @@ class MenuManager {
                     utilities.clear();
                     break;
                 }
+                case 'settings': {
+                    fileManager.get_settings_view();
+                    break;
+                }
                 case 'connect': {
                     ipcRenderer.send('connect');
                     break;
@@ -10381,6 +10262,7 @@ function init() {
 
     utilities = new Utilities();
     settingsManager = new SettingsManager();
+    apply_theme(settingsManager.get_settings()?.schema?.properties?.['Default View']?.properties?.Theme?.default);
     keyboardManager = new KeyBoardManager();
     iconManager = new IconManager();
     tabManager = new TabManager();

@@ -193,6 +193,7 @@ hr {
 .back.button,
 .forward.button {
     margin-top: 2px;
+    margin-right: 5px;
     background-color: var(--button-nav);
     color: var(--button-nav-text);
     border: 1px solid var(--dialog);
@@ -236,6 +237,7 @@ hr {
     color: #ccc;
     background-color: var(--location);
     border: 1px solid var(--location-border);
+    border-bottom: 1px solid var(--location-border-bottom);
     border-radius: 5px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -304,6 +306,7 @@ hr {
     color: var(--text);
     background-color: var(--location);
     border: 1px solid var(--location-border);
+    border-bottom: 1px solid var(--location-border-bottom);
 }
 
 .filter {
@@ -313,6 +316,7 @@ hr {
     margin-left: 5px;
     background-color: var(--location);
     border: 1px solid var(--location-border);
+    border-bottom: 1px solid var(--location-border-bottom);
     border-radius: 5px;
     height: 100%;
     width: 300px;
@@ -808,7 +812,8 @@ hr {
     /* vertical box shadow on right side */
     /* box-shadow: 22px 0 25px rgba(0, 0, 0, 0.1); */
     /* box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.3); */
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+    /* box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37); */
+    box-shadow: 0 4px 8px 0 --var(--shadow);
 
     width: 100%;
     margin: 5px;
@@ -1184,8 +1189,7 @@ tr {
     /* background: var(--sidebar); */
     border: 1px solid var(--border);
     border-radius: 8px;
-    /* box-shadow: 5px 0 5px -2px rgba(0, 0, 0, 0.3); */
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 4px 8px 0 var(--shadow);
 
 }
 
@@ -1586,7 +1590,7 @@ tr {
 }
 
 .dashboard_view {
-    background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x);
+    /* background-image: -webkit-image-set(url('../assets/dashboard_light.png') 1x, url('../assets/dashboard_light@2x.png') 2x); */
     margin-left: 10px;
     margin-right: 20px;
 }
@@ -1640,7 +1644,7 @@ tr {
     /* color: var(--text); */
     /* margin-bottom: 5px; */
     /* box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
-    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 4px 8px 0 - var(--shadow);
 }
 
 .dashboard_view .overview {
@@ -1942,12 +1946,11 @@ a.chart-title:hover {
 }
 
 .list_view .card:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--highlight);
 }
 
 .list_view .card:focus {
     outline: none;
-    background: rgba(0, 102, 153, 0.2);
 }
 
 .table_container {
@@ -2333,128 +2336,116 @@ span {
 @media (max-width: 768px) {}
 
 /* Preserve draggable handles usability on small touch screens */
-@media (pointer: coarse) and (max-width: 1024px) {} 
+@media (pointer: coarse) and (max-width: 1024px) {}
 
-/* Define dark color scheme */
-:root,
-:root.theme-dark {
-    --menu: #303134;
-    --sidebar: #262626;
-    --input: #484848;
+/* Shared colors and automatic system theme */
+:root {
+    color-scheme: light dark;
+
+    --menu: light-dark(#f7f7f7, #303134);
+    --sidebar: light-dark(#f0f0f0, #262626);
+    --input: light-dark(#f0f0f0, #484848);
     --input-focus: #1b557c;
-    --main: #222;
-    --minibar: #222222;
-    --border: #333333;
-    --msg: #222222;
+    --main: light-dark(#ffffff, #222222);
+    --minibar: light-dark(#ffffff, #222222);
+
+    --border: light-dark(#dcdcdc, #333333);
+    --shadow: rgba(0, 0, 0, 0.37);
+
+    --msg: light-dark(#f7f7f7, #222222);
     --msg-text: #ffa500;
-    --dialog: #262626;
-    --text: #C0C0C0;
-    --active: #ffffff;
+    --dialog: light-dark(#dcdcdc, #262626);
+    --text: light-dark(#333333, #c0c0c0);
+    --active: light-dark(#e1edfb, #ffffff);
     --inactive: #484848;
-    --tabs: #292929;
-    --button: #484848;
-    --button-active: #1b557c;
-    --button-hover: #5c636a;
+    --tabs: light-dark(#ffffff, #292929);
+
+    --button: light-dark(#707070, #484848);
+    --button-text: #ffffff;
+    --button-active: light-dark(#5c636a, #1b557c);
+    --button-hover: light-dark(#cfcfcf, #5c636a);
     --button-hover-warning: #960000;
-    --button-nav: #292929;
-    --button-nav-hover: #5c636a;
-    --button-nav-text: #cfcfcf;
-    --location: #2c2c2c;
-    --location-border: #3b3a3a;
-    --progress: #2c2c2c;
+    --button-nav: light-dark(#f0f0f0, #292929);
+    --button-nav-hover: light-dark(#dcdcdc, #5c636a);
+    --button-nav-text: light-dark(#333333, #cfcfcf);
+    --button-connect: light-dark(#707070, #484848);
+    --button-connect-hover: #5c636a;
+
+    --location: light-dark(#f0f0f0, #2c2c2c);
+    --location-border: light-dark(#dcdcdc, #3b3a3a);
+    --location-border-bottom: #2c2c2c;
+
+    --progress: light-dark(#f7f7f7, #2c2c2c);
     --scrollbar: #3b3a3a;
     --scrollbar-hover: #5c636a;
 
-    --svg: #ffffff;
+    --svg: rgba(155, 155, 155, 0.9);
 
     --msg-connect: #ffa500;
     --msg-connect-error: #ff0000;
     --msg-connect-success: #008000;
 
-    --svg: rgba(155, 155, 155, .9);
-
     --link: #4183c4;
-    --highlight: #233246;
-    --highlight-select: rgba(255, 255, 255, 0.05);
+    --highlight: light-dark(#dbdbdb, #233246);
+    --highlight-select: light-dark(#cdcdcd, rgba(255, 255, 255, 0.05));
     --highlight-target: #233246;
     --highlight-select-border: #707070;
-    --highlight-active: #C5B359;
+    --highlight-active: light-dark(#333333, #c5b359);
 
     --not-writable: #cfcfcf;
 
     --black: #000000;
-    --white: #FFFFFF;
-    --warning: #FFA500;
+    --white: #ffffff;
+    --warning: #ffa500;
     --danger: #ff2b2b;
     --error: #ff2b2b;
     --success: #008000;
     --blue: #233654;
     --lightblue: #506585;
-    --yellow: #FFFF00;
-    --orange: #FFA500;
+    --yellow: #ffff00;
+    --orange: #ffa500;
 
-    --grey: #505050;
-
-    --light: #C0C0C0;
-    --lighter: #cfcfcf;
-    --lightest: #cacaca;
+    --grey: light-dark(#707070, #505050);
+    --light: light-dark(#e6e6e6, #c0c0c0);
+    --lighter: light-dark(#dcdcdc, #cfcfcf);
+    --lightest: light-dark(#f0f0f0, #cacaca);
 
     --blur: blur(5px);
     --brightness: brightness(0.8);
     --contrast: contrast(1.2);
-
 }
 
-@media (prefers-color-scheme: light) {
-    :root:not(.theme-dark) {
-        --menu: #f7f7f7;
-        --sidebar: #f0f0f0;
-        --input: #f0f0f0;
-        --input-focus: #1b557c;
-        --main: #ffffff;
-        --minibar: #ffffff;
-        --border: #dcdcdc;
-        --msg: #f7f7f7;
-        --dialog: #dcdcdc;
-        --text: #333333;
-        --active: #e1edfb;
-        --tabs: #ffffff;
-        --button: #707070;
-        --button-text: #ffffff;
-        --button-active: #5c636a;
-        --button-hover: #cfcfcf;
-        --button-hover-warning: #960000;
-        --button-nav: #f0f0f0;
-        --button-nav-hover: #dcdcdc;
-        --button-nav-text: #333333;
-        --button-connect: #707070;
-        --button-connect-hover: #5c636a;
-        --location: #f0f0f0;
-        --location-border: #dcdcdc;
-        --progress: #f7f7f7;
-
-        --link: #4183c4;
-        --highlight: #e1edfb;
-        --highlight-select: #e1edfb;
-        --highlight-active: #333333;
-
-        --black: #000000;
-        --white: #FFFFFF;
-        --warning: #FFA500;
-        --danger: #ff2b2b;
-        --error: #ff2b2b;
-        --success: #008000;
-        --blue: #233654;
-        --lightblue: #506585;
-        --yellow: #FFFF00;
-        --orange: #FFA500;
-
-        --grey: #707070;
-        --light: #e6e6e6;
-        --lighter: #dcdcdc;
-        --lightest: #f0f0f0;
-    }
+/* Legacy dark class: applies only without a data-theme override */
+:root.theme-dark:not([data-theme]) {
+    color-scheme: dark;
 }
+
+/* Explicit light, regardless of system preference */
+:root[data-theme="light"] {
+    color-scheme: light;
+}
+
+/* Explicit dark, regardless of system preference */
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}
+
+/* Modern: dark palette, with only its differences overridden */
+:root[data-theme="modern"] {
+    color-scheme: dark;
+
+    --menu: #222222;
+    --sidebar: #222222;
+    --main: #222222;
+    --minibar: #222222;
+
+    --border: #292929;
+    --shadow: transparent;
+
+    --location: #222222;
+    --location-border: #222222;
+}
+
 .drag_ghost {
     position: fixed;
     top: -1000px;

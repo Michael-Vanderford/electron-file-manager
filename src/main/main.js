@@ -7,7 +7,7 @@ const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
 const exec = require('child_process').exec;
 const execFile = require('child_process').execFile;
 const os = require('os');
@@ -113,6 +113,15 @@ class DirectorySizeCache {
 
 nativeTheme.themeSource = 'system';
 
+function normalize_theme_preference(value) {
+    const preference = String(value || 'system').toLowerCase();
+    return ['dark', 'light', 'system', 'modern'].includes(preference) ? preference : 'system';
+}
+
+function get_theme_preference(settings = settingsManager?.get_settings?.()) {
+    return normalize_theme_preference(settings?.schema?.properties?.['Default View']?.properties?.Theme?.default);
+}
+
 function should_use_dark_system_theme() {
     if (process.platform !== 'linux') {
         return nativeTheme.shouldUseDarkColors;
@@ -141,12 +150,34 @@ function send_theme_to_window(browser_window) {
         return;
     }
 
-    browser_window.webContents.send('theme-changed', should_use_dark_system_theme() ? 'dark' : 'light');
+    const system_theme = should_use_dark_system_theme() ? 'dark' : 'light';
+    browser_window.webContents.send('theme-changed', system_theme);
+    browser_window.webContents.send('theme-preference-changed', get_theme_preference(), system_theme);
 }
 
 nativeTheme.on('updated', () => {
     BrowserWindow.getAllWindows().forEach(send_theme_to_window);
 });
+
+let system_theme_watcher = null;
+function start_system_theme_watcher() {
+    if (process.platform !== 'linux' || system_theme_watcher) return;
+    try {
+        system_theme_watcher = spawn('gsettings', ['monitor', 'org.gnome.desktop.interface', 'color-scheme'], {
+            stdio: ['ignore', 'pipe', 'ignore']
+        });
+        system_theme_watcher.stdout.on('data', () => BrowserWindow.getAllWindows().forEach(send_theme_to_window));
+        system_theme_watcher.on('error', () => { system_theme_watcher = null; });
+        system_theme_watcher.on('exit', () => { system_theme_watcher = null; });
+    } catch (_) {
+        system_theme_watcher = null;
+    }
+}
+
+function stop_system_theme_watcher() {
+    if (system_theme_watcher) system_theme_watcher.kill();
+    system_theme_watcher = null;
+}
 
 // flags
 let is_first_run = 0;
@@ -487,7 +518,9 @@ class SettingsManager {
                         "Sort By": { type: 'string', enum: ['name', 'location', 'size', 'mtime', 'ctime', 'atime', 'type', 'count'], default: 'mtime' },
                         "Sort Direction": { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
                         'Group By': { type: 'string', enum: ['None', 'Type', 'Date Modified', 'Size'], default: 'None' },
-                        'Show Hidden': { type: 'boolean', default: true }
+                        'Theme': { type: 'string', enum: ['dark', 'light', 'system', 'modern'], default: 'system' },
+                        'Show Hidden': { type: 'boolean', default: true },
+                        'Show Tab Toolbar': { type: 'boolean', default: true }
                     }
                 },
                 'Icons': {
@@ -548,6 +581,7 @@ class SettingsManager {
             location: home_dir,
             disk_utility: 'gnome-disks',
             show_hidden: true,
+            show_tab_toolbar: true,
             tabs: [
                 {
                     tab: {
@@ -603,6 +637,11 @@ class SettingsManager {
         BrowserWindow.getAllWindows().forEach((wnd) => {
             if (!wnd.isDestroyed()) {
                 wnd.webContents.send('settings_updated', this.settings);
+                wnd.webContents.send(
+                    'theme-preference-changed',
+                    get_theme_preference(this.settings),
+                    should_use_dark_system_theme() ? 'dark' : 'light'
+                );
             }
         });
     }
@@ -3448,6 +3487,7 @@ class DialogManager {
         })
 
         dialog.loadFile(path.join(__dirname, '..', 'renderer', 'dialogs', data.load_file));
+        dialog.webContents.once('did-finish-load', () => send_theme_to_window(dialog));
         // dialog.webContents.openDevTools()
         return dialog;
     }
@@ -4732,12 +4772,14 @@ app.on('ready', () => {
             }
         });
     });
+    start_system_theme_watcher();
 
 });
 
 app.on('before-quit', () => {
     watcher.unwatchAll();
     iconManager.stop_theme_watcher();
+    stop_system_theme_watcher();
 });
 
 app.whenReady().then(() => {
