@@ -33,6 +33,17 @@ class DeviceManager {
             // get total, used, free for disk space
             for (let i = 0; i < mounts.length; i++) {
 
+                // Network mount stats can perform remote I/O. An unavailable
+                // server must not delay discovery of the other devices.
+                if ((mounts[i].type || '').toLowerCase() === 'network' || /\/gvfs\//i.test(mounts[i].path || '')) {
+                    continue;
+                }
+
+                if (!fs.existsSync(mounts[i].path)) {
+                    console.log(`mount path does not exist: ${mounts[i].path}`);
+                    continue;
+                }
+
                 try {
                     // add disk stats to mounts array
                     Object.assign(mounts[i], libfs.disk_stats(mounts[i].path));
@@ -113,6 +124,13 @@ class DeviceManager {
             console.log(filter_arr);
 
             for (let i = 0; i < filter_arr.length; i++) {
+                // GIO network mount paths are URIs. Querying filesystem stats
+                // for an offline server can block the worker long enough that
+                // no device list is sent at all. Keep the mount visible and
+                // leave its capacity unknown until it is reachable.
+                if (/^(smb|sftp|ftp|dav|davs):\/\//i.test(filter_arr[i].path || '')) {
+                    continue;
+                }
                 try {
                     Object.assign(filter_arr[i], libfs.disk_stats(filter_arr[i].path));
                 } catch (err) {

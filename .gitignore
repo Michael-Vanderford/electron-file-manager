@@ -5,3 +5,4 @@ dist
 src/gio/build/Release/obj.target/gio.node
 src/gio/build/Release/obj.target/gio.o
 test-results
+update.sh
