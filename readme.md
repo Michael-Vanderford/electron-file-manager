@@ -1,19 +1,18 @@
 # Electron File Manager for Linux
 
-> A fast, keyboard-friendly file manager for Linux, built with Electron and native GIO bindings.
+> A fast, keyboard-friendly file manager for Linux, built with Electron.
 
 ---
 
-
-## Screenshots
-
 <div align="left">
-    <img src="screenshots/dashboard.png" alt="Dashboard view" width="400"/>
+    <img src="screenshots/default.png" alt="default" width="100%" />
+    <a href="screenshots">Screenshots</a>
+    <!-- <img src="screenshots/dashboard.png" alt="Dashboard view" width="400"/>
 	<img src="screenshots/thumb_nails.png" alt="Thumbnails view" width="400"/>
 	<img src="screenshots/search.png" alt="Search UI" width="400"/>
 	<img src="screenshots/properties.png" alt="Properties view" width="400"/>
 	<img src="screenshots/settings.png" alt="Settings view" width="400"/>
-    <img src="screenshots/light.png" alt="light theme" width="400"/>
+    <img src="screenshots/light.png" alt="light theme" width="400"/> -->
 	<!-- <img src="screenshots/copy_overwrite.png" alt="Copy/Overwrite dialog" width="400"/> -->
 </div>
 
@@ -147,7 +146,7 @@ Output is written to the `dist/` directory.
 
 ## Deb Install
 
-sudo dpkg -i dist/electron-file-manager_2.0.2_amd64.deb
+sudo dpkg -i dist/electron-file-manager_2.1.0_amd64.deb
 ---
 
 ## Tech Stack

@@ -8,9 +8,9 @@
         "start": "electron . --ozone-platform=x11 --no-sandbox",
         "build": "npx electron-builder --linux",
         "build:win": "npx electron-builder --win",
-        "test": "npm run test:unit",
-        "test:unit": "jest --runInBand --testPathIgnorePatterns=autocomplete.test.js",
-        "test:e2e": "playwright test"
+        "test": "npm run test:unit; npm run test:e2e",
+        "test:unit": "jest --runInBand",
+        "test:e2e": "npx playwright test"
     },
     "build": {
         "appId": "com.stringboard.sfm",
@@ -56,7 +56,7 @@
     },
     "license": "LGPL-2.1-or-later",
     "devDependencies": {
-        "@playwright/test": "^1.59.1",
+        "@playwright/test": "^1.64.1",
         "@types/jest": "^30.0.0",
         "bootstrap-icons": "^1.11.3",
         "electron": "^44.4.5",
