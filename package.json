@@ -54,7 +54,7 @@
         "name": "Michael Vanderford",
         "email": "michael.vanderford@gmail.com"
     },
-    "license": "LGPL-2.1-or-later",
+    "license": "MIT",
     "devDependencies": {
         "@playwright/test": "^1.64.1",
         "@types/jest": "^30.0.0",
