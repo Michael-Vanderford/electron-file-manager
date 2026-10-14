@@ -4462,18 +4462,24 @@ class MenuManager {
 
     // Templated Menu
     add_templates_menu(menu, location) {
-        let template_menu = menu.getMenuItemById('templates');
-        let templates = fs.readdirSync(path.join(utilities.home_dir, 'Templates'));
-        templates.forEach((file, idx) => {
-            let source = path.join(utilities.home_dir, 'Templates', file);
-            let destination = path.format({ dir: location, base: file });
-            template_menu.submenu.append(new MenuItem({
-                label: file.replace(path.extname(file), ''),
-                click: () => {
-                    this.create_file_from_template(source, destination);
-                }
-            }));
-        })
+
+        try {
+            let template_menu = menu.getMenuItemById('templates');
+            let templates = fs.readdirSync(path.join(utilities.home_dir, 'Templates'));
+            templates.forEach((file, idx) => {
+                let source = path.join(utilities.home_dir, 'Templates', file);
+                let destination = path.format({ dir: location, base: file });
+                template_menu.submenu.append(new MenuItem({
+                    label: file.replace(path.extname(file), ''),
+                    click: () => {
+                        this.create_file_from_template(source, destination);
+                    }
+                }));
+            })
+        } catch (err) {
+            win.send('set_msg', `Error adding templates menu: ${err}`);
+        }
+
     }
 
     create_file_from_template(source, destination) {

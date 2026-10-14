@@ -19,6 +19,20 @@
 
 ---
 
+### Change log for 2026-10-14
+- Added custom themes and updated the app to version 2.1.0.
+- Added file operation controls, tab content quick actions, and populated titlebar menus.
+- Improved drag and drop with writable-directory checks and clearer visual feedback.
+- Added file grouping and improved file watcher and recent-file handling.
+- Improved device handling when remote connections fail.
+- Added a dashboard with disk usage charts and workspace items; improved its layout and handling of missing recent-file data.
+- Improved directory-size caching, operation progress, and sidebar behavior.
+- Refactored filesystem and device handling around libfs and the libgio-node package.
+- Updated Linux build settings, icons, screenshots, and installation documentation.
+- Added Playwright end-to-end setup and tests for folder navigation, selection, tab state create/rename/delete, and copy/move.
+- Updated dependency versions in package.json and package-lock.json.
+- Added error handling for a missing Templates directory when building the menu.
+
 ## Features
 
 ### Navigation
