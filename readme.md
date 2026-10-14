@@ -170,8 +170,8 @@ Please open an issue first to discuss significant changes.
 
 ## License
 
-Licensed under the **GNU Lesser General Public License v2.1 or later** (LGPL-2.1-or-later).
-See [LICENSE](LICENSE) for details.
+Licensed under **MIT.
+See [LICENSE.md](LICENSE.md) for details.
 
 ---
 
