@@ -38,3 +38,8 @@
     height: 16px;
     background: var(--border);
 }
+.tab-content-toolbar .toolbar-btn.settings {
+    /* far right */
+    margin-left: auto;
+    margin-right: 5px;
+}

@@ -1708,6 +1708,14 @@ class Utilities {
         return /\/\.?gvfs\//.test(dir) || /\/run\/user\/\d+\/gvfs\//.test(dir);
     }
 
+    is_sftp_path(dir) {
+        if (!dir || typeof dir !== 'string') {
+            return false;
+        }
+
+        return /\/\.?sftp\//.test(dir) || /\/run\/user\/\d+\/sftp\//.test(dir);
+    }
+
     emit_folder_size_cache_invalidated(paths = []) {
         const unique_paths = Array.from(new Set((paths || [])
             .map((p) => this.normalize_folder_size_path(p))
@@ -1753,9 +1761,9 @@ class Utilities {
             return;
         }
 
-        // if (!normalized_href || this.is_gvfs_path(normalized_href)) {
-        //     return;
-        // }
+        if (!normalized_href || this.is_gvfs_path(normalized_href) || this.is_sftp_path(normalized_href)) {
+            return;
+        }
 
         const cached_size = this.directory_size_cache.get(normalized_href);
         if (cached_size !== null) {
@@ -4186,6 +4194,7 @@ class MenuManager {
     }
 
     set_current_view(view) {
+
         if (view !== 'grid_view' && view !== 'list_view') {
             return;
         }

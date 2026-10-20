@@ -40,7 +40,7 @@ class DeviceManager {
                 }
 
                 if (!fs.existsSync(mounts[i].path)) {
-                    console.log(`mount path does not exist: ${mounts[i].path}`);
+                    console.log(`mount path does not exist: ${mounts[i].name}`);
                     continue;
                 }
 

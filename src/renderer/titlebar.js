@@ -112,6 +112,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 case 'go-dashboard': window.titlebarAPI.goTo('Dashboard'); break;
                 case 'go-recent': window.titlebarAPI.goTo('Recent'); break;
                 case 'go-root': window.titlebarAPI.goTo('File System'); break;
+                case 'settings': window.titlebarAPI.command('settings'); break;
                 // Add more actions as needed
                 default:
                     // Placeholder for other actions

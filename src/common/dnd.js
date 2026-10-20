@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 const path = require('path');
 
 function path_to_file_uri(p) {

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 const { DeleteWorker } = require('../delete_worker.js');
 
 function createDirent(name, href, is_dir, is_symlink = false) {

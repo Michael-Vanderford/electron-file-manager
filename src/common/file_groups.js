@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { group_recent_files } = require('./recent_groups');
 
 const TYPE_GROUPS = [

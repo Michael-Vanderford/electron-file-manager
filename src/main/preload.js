@@ -219,7 +219,7 @@ const pointer_dnd = {
             if (!allowed) {
                 utilities.set_msg(`Cannot drop here: no write access to ${destination}`);
             }
-        }).catch(() => {});
+        }).catch(() => { });
     },
 
     move: (e) => {
@@ -500,8 +500,8 @@ class SettingsManager {
         if (
             this.settings?.schema?.properties?.['Default View']?.properties?.View &&
             (!this.settings.schema.properties['Default View'].properties.View.default ||
-             this.settings.schema.properties['Default View'].properties.View.default === '' ||
-             this.settings.schema.properties['Default View'].properties.View.default === undefined)
+                this.settings.schema.properties['Default View'].properties.View.default === '' ||
+                this.settings.schema.properties['Default View'].properties.View.default === undefined)
         ) {
             this.settings.schema.properties['Default View'].properties.View.default = 'grid_view';
             updated = true;
@@ -1422,49 +1422,49 @@ class Utilities {
             }
 
             ipcRenderer.invoke('autocomplete', val).then(res => {
-                    if (request_id !== autocomplete_request) {
-                        return;
-                    }
+                if (request_id !== autocomplete_request) {
+                    return;
+                }
 
-                    if (Array.isArray(res) && res.length > 0) {
-                        this.autocomplete_idx = 0;
-                        popup.innerHTML = '';
-                        res.forEach((dir, i) => {
-                            const menu_item = this.add_div(['item']);
-                            menu_item.textContent = dir;
-                            popup.append(menu_item);
-                            menu_item.addEventListener('click', (e) => {
-                                fileManager.get_files(dir);
-                                popup.remove();
-                            })
-                            if (i === 0) {
-                                menu_item.classList.add('highlight_select');
-                            }
+                if (Array.isArray(res) && res.length > 0) {
+                    this.autocomplete_idx = 0;
+                    popup.innerHTML = '';
+                    res.forEach((dir, i) => {
+                        const menu_item = this.add_div(['item']);
+                        menu_item.textContent = dir;
+                        popup.append(menu_item);
+                        menu_item.addEventListener('click', (e) => {
+                            fileManager.get_files(dir);
+                            popup.remove();
                         })
-                        // Append the popup to the body
-                        const nav_menu = document.querySelector('.navigation');
-                        nav_menu.appendChild(popup);
-                        // Determine position based on space below and above
-                        const windowHeight = window.innerHeight;
-                        const popupHeight = popup.offsetHeight;
-                        const triggerElement = this.location_input // Replace with your trigger element
-                        const triggerRect = triggerElement.getBoundingClientRect();
-                        const triggerTop = triggerRect.top;
-                        const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
-                        const spaceAbove = triggerTop;
-                        if (spaceBelow > popupHeight) {
-                            popup.style.top = triggerTop + triggerRect.height + 5 + 'px';
-                        } else if (spaceAbove > popupHeight) {
-                            popup.style.top = triggerTop - popupHeight + 'px';
-                        } else {
-                            // Handle cases where neither direction has enough space
-                            console.warn('Not enough space to display popup!');
+                        if (i === 0) {
+                            menu_item.classList.add('highlight_select');
                         }
-                        popup.style.left = triggerRect.left + 5 + 'px';
+                    })
+                    // Append the popup to the body
+                    const nav_menu = document.querySelector('.navigation');
+                    nav_menu.appendChild(popup);
+                    // Determine position based on space below and above
+                    const windowHeight = window.innerHeight;
+                    const popupHeight = popup.offsetHeight;
+                    const triggerElement = this.location_input // Replace with your trigger element
+                    const triggerRect = triggerElement.getBoundingClientRect();
+                    const triggerTop = triggerRect.top;
+                    const spaceBelow = windowHeight - (triggerTop + triggerRect.height);
+                    const spaceAbove = triggerTop;
+                    if (spaceBelow > popupHeight) {
+                        popup.style.top = triggerTop + triggerRect.height + 5 + 'px';
+                    } else if (spaceAbove > popupHeight) {
+                        popup.style.top = triggerTop - popupHeight + 'px';
                     } else {
-                        popup.innerHTML = '';
-                        popup.remove();
+                        // Handle cases where neither direction has enough space
+                        console.warn('Not enough space to display popup!');
                     }
+                    popup.style.left = triggerRect.left + 5 + 'px';
+                } else {
+                    popup.innerHTML = '';
+                    popup.remove();
+                }
             }).catch(() => {
                 if (request_id === autocomplete_request) {
                     popup.innerHTML = '';
@@ -2987,11 +2987,11 @@ class DragSelect {
     // Start (or stop) the auto-scroll animation loop
     _startAutoScroll(e, selectionRectangle, active_tab_content) {
         const SCROLL_ZONE = 60;  // px from edge that triggers scrolling
-        const MAX_SPEED  = 15;  // max px scrolled per frame
+        const MAX_SPEED = 15;  // max px scrolled per frame
 
         const containerRect = active_tab_content.getBoundingClientRect();
         const distFromBottom = containerRect.bottom - e.clientY;
-        const distFromTop    = e.clientY - containerRect.top;
+        const distFromTop = e.clientY - containerRect.top;
 
         let scrollSpeed = 0;
         if (distFromBottom < SCROLL_ZONE && distFromBottom >= 0) {
@@ -4814,7 +4814,7 @@ class TabManager {
         }
     }
 
-    get_tab_menu (location) {
+    get_tab_menu(location) {
 
         if (location === 'Dashboard' || location === 'Recent') {
             return null;
@@ -5439,7 +5439,7 @@ class FileManager {
                 return;
             }
 
-             if (view === this.view) {
+            if (view === this.view) {
                 return;
             }
 
@@ -5551,27 +5551,11 @@ class FileManager {
                 tabManager.add_tab(this.location);
                 utilities.set_location(this.location);
 
-                // // set location in settings, utilities and breadcrumbs
-                // // this handles unreachable paths on startup or when a valid location becomes unreachable
-                // // get_ls(location, add_tab) in main will set the location back to home dir
-                // settingsManager.set_location(this.location);
-                // utilities.set_destination(this.location);
-                // this.get_breadcrumbs(this.location);
-
             }
 
-            // set location in settings, utilities and breadcrumbs
-            // this handles unreachable paths on startup or when a valid location becomes unreachable
-            // get_ls(location, add_tab) in main will set the location back to home dir
             settingsManager.set_location(this.location);
             utilities.set_destination(this.location);
             this.get_breadcrumbs(this.location);
-
-            // if (this.view === 'list_view') {
-            //     this.get_list_view(files_arr);
-            // } else if (this.view === 'grid_view') {
-            //     this.get_grid_view(files_arr);
-            // }
 
             // populate view from files array
             this.get_view(files_arr);
@@ -6040,10 +6024,7 @@ class FileManager {
         }
 
         const dirName = this.location === '/' ? 'Root' : this.location.split('/').pop() || 'Root';
-        // this.filter.setAttribute('data-placeholder', `Search <${dirName}>`);
-        // this.filter.title = `Filter <${dirName}>`;
 
-        // if filter active then handle ctrl+v
         this.filter.addEventListener('paste', (e) => {
             this.run_filer();
         })
@@ -6141,18 +6122,34 @@ class FileManager {
             }
 
             let active_tab_content = document.querySelector('.active-tab-content');
-
-
-
             let items = active_tab_content.querySelectorAll('.card');
             items.forEach((item) => {
+
                 if (item.closest('.dashboard_workspace_view')) return;
+
                 if (item.dataset.name.toLocaleLowerCase().includes(this.quick_search_sting)) {
                     item.classList.remove('hidden');
+
+                    const group = item.closest('.recent_date_group');
+                    if (group) {
+                        group.classList.remove('hidden');
+                    }
+
                 } else {
+
                     item.classList.remove('highlight_select');
                     item.classList.add('hidden');
+
+                    // hide group based on results
+                    const group = item.closest('.recent_date_group');
+                    if (group) {
+                        let visible_items = group.querySelectorAll('.card:not(.hidden)');
+                        if (visible_items.length === 0) {
+                            group.classList.add('hidden');
+                        }
+                    }
                 }
+
             });
             // reset nav idx for up down navigation
             // navigation.clearNavIdx();
@@ -6176,6 +6173,11 @@ class FileManager {
             cards.forEach((card) => {
                 card.classList.remove('hidden');
             })
+
+            const group = active_tab_content.querySelector('.recent_date_group');
+            if (group) {
+                group.classList.remove('hidden');
+            }
 
             let filter = document.querySelector('.filter');
             if (filter) {
@@ -6418,12 +6420,13 @@ class FileManager {
 
         const make_btn = (icon, title, handler) => {
             const btn = document.createElement('button');
-            btn.classList.add('toolbar-btn');
+            btn.classList.add(`toolbar-btn`, `${title.toLowerCase().replace(/\s+/g, '-')}`);
             btn.innerHTML = `<i class="bi bi-${icon}"></i>`;
             btn.title = title;
             btn.onclick = handler;
             return btn;
         };
+
         const make_sep = () => {
             const sep = document.createElement('div');
             sep.classList.add('toolbar-sep');
@@ -6439,13 +6442,68 @@ class FileManager {
         const btn_compress = make_btn('file-earmark-zip', 'Compress to zip', () => utilities.compress('zip'));
         const btn_extract = make_btn('box-arrow-in-down', 'Extract', () => utilities.extract());
         const btn_properties = make_btn('info-circle', 'Properties', () => ipcRenderer.emit('context-menu-command', null, 'properties'));
+        const btn_sort = make_btn('sort-down', 'Sort', () => ipcRenderer.emit('context-menu-command', null, 'sort'));
+        const btn_toggle_list = make_btn('list', 'List View', () => toggleView('list_view'));
+        const btn_toggle_grid = make_btn('grid', 'Grid View', () => toggleView('grid_view'));
+        const btn_settings = make_btn('gear ml-auto', 'Settings', () => ipcRenderer.emit('context-menu-command', null, 'settings'));
+
+        // Initialize the current view based on settings
+        const currentView = settingsManager?.get_view_settings();
+        console.log(`Current view: ${currentView}`);
+        if (currentView === 'list_view') {
+            btn_toggle_list.disabled = true;
+            btn_toggle_grid.disabled = false;
+            btn_toggle_list.style.display = 'none';
+        } else if (currentView === 'grid_view') {
+            btn_toggle_grid.disabled = true;
+            btn_toggle_list.disabled = false;
+            btn_toggle_grid.style.display = 'none';
+
+        }
+
+        // Helper function to toggle between view modes based on current settings
+        const toggleView = (targetView) => {
+
+            // if (currentView === targetView) {
+            //     return;
+            // }
+
+            if (targetView === 'list_view') {
+
+                btn_toggle_list.disabled = true;
+                btn_toggle_grid.disabled = false;
+
+                btn_toggle_list.style.display = 'none';
+                btn_toggle_grid.style.display = 'block';
+
+            } else if (targetView === 'grid_view') {
+
+                btn_toggle_grid.disabled = true;
+                btn_toggle_list.disabled = false;
+
+                btn_toggle_list.style.display = 'block';
+                btn_toggle_grid.style.display = 'none';
+
+            }
+
+            ipcRenderer.emit('context-menu-command', 'switch_view', targetView.toLocaleLowerCase());
+            console.log(`Toggling view to: ${targetView}`);
+
+        };
+
+        // btn_toggle_list.addEventListener('click', () => toggleView('list_view'));
+        // btn_toggle_grid.addEventListener('click', () => toggleView('grid_view'));
+
 
         toolbar.append(
             btn_new_folder, make_sep(),
             btn_cut, btn_copy, btn_paste, make_sep(),
             btn_rename, btn_delete, make_sep(),
             btn_compress, btn_extract, make_sep(),
-            btn_properties
+            btn_properties, make_sep(),
+            btn_sort, make_sep(),
+            btn_toggle_list, btn_toggle_grid, make_sep(),
+            btn_settings
         );
 
         this.toolbar_buttons = {
@@ -6457,7 +6515,10 @@ class FileManager {
             delete: btn_delete,
             compress: btn_compress,
             extract: btn_extract,
-            properties: btn_properties
+            properties: btn_properties,
+            toggle_list: btn_toggle_list,
+            toggle_grid: btn_toggle_grid,
+            settings: btn_settings
         };
         if (!this.toolbar_observer) {
             let frame = null;
@@ -6655,12 +6716,12 @@ class FileManager {
             document.addEventListener('keydown', dismiss);
         }, 0);
 
-            menu.addEventListener('mouseleave', () => {
-                menu.remove();
-                document.removeEventListener('mousedown', dismiss);
-                document.removeEventListener('keydown', dismiss);
-            });
-        }
+        menu.addEventListener('mouseleave', () => {
+            menu.remove();
+            document.removeEventListener('mousedown', dismiss);
+            document.removeEventListener('keydown', dismiss);
+        });
+    }
 
     handleSort(col) {
 
@@ -6803,19 +6864,51 @@ class FileManager {
 
         // hide hidden files if schema setting exists and default is false
         this.schema = settingsManager.get_schema();
-        this.show_hidden = this.schema['Default View'] ? this.schema['Default View'].properties['Show Hidden'].default : null;
+        this.show_hidden = this.schema['Default View'] ? this.schema['Default View'].properties['Show Hidden'].default : false;
 
         const group_by = this.get_group_by_setting();
         const recent_group_by = is_recent_view && group_by === 'None' ? 'Date Modified' : group_by;
         let file_groups = group_files(files_arr, recent_group_by);
         if (file_groups) {
             file_groups.forEach((group) => {
-                group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
+                // account for hidden files
+                if (!this.show_hidden) {
+                    group.files = group.files.filter((file) => file.is_hidden === false);
+                }
+
+                group.files = utilities.sort(
+                    group.files,
+                    this.sort_by,
+                    this.sort_direction
+                );
             });
+
+            // Remove groups that contain no visible files
+            file_groups = file_groups.filter((group) => group.files.length > 0);
+
             files_arr = file_groups.flatMap((group) => group.files);
         } else {
+            if (!this.show_hidden) {
+                files_arr = files_arr.filter((file) => file.is_hidden === false);
+            }
+
             files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
         }
+        // if (file_groups) {
+        //     file_groups.forEach((group) => {
+
+        //         // account for hidden files
+        //         if (!this.show_hidden) {
+        //             group.files = group.files.filter(file => file.is_hidden === false);
+        //             console.log('Filtered hidden files:', group.files);
+        //         }
+
+        //         group.files = utilities.sort(group.files, this.sort_by, this.sort_direction);
+        //     });
+        //     files_arr = file_groups ? file_groups.flatMap((group) => group.files) : [];
+        // } else {
+        //     files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
+        // }
 
         if (files_arr.length >= this.virtual_view_threshold) {
             this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups);
@@ -6824,7 +6917,7 @@ class FileManager {
 
         this.virtual_view = null;
 
-        if (file_groups) {
+        if (file_groups && file_groups.length > 0) {
             file_groups.forEach((group) => {
                 const section = document.createElement('section');
                 section.classList.add('recent_date_group');
@@ -6982,6 +7075,7 @@ class FileManager {
     }
 
     rebuild_virtual_group_rows(virtual_view) {
+
         const visible_ids = new Set(virtual_view.filtered_files_arr.map((file) => file.id));
         const rows = [];
         const heading_height = 34;
@@ -7174,8 +7268,8 @@ class FileManager {
     get_view_item(f) {
 
         if (!f || !f.href) {
-            console.log('error getting view item', f);
-            return -1;
+            console.log('error getting view item');
+            return;
         }
 
         this.settings = settingsManager.get_schema();
@@ -7521,8 +7615,8 @@ class FileManager {
 
         const data = {
             labels: [
-            `${utilities.get_file_size(stats.used)} Used`,
-            `${utilities.get_file_size(stats.free)} Available`
+                `${utilities.get_file_size(stats.used)} Used`,
+                `${utilities.get_file_size(stats.free)} Available`
             ],
             datasets: [{
                 label: `${stats.display_name}`,
@@ -7591,27 +7685,27 @@ class FileManager {
             type: 'doughnut',
             data,
             options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            radius: '50%',
-            cutout: '84%',
-            cutoutPercentage: 85,
-            rotation: -90,
-            circumference: 180,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                title: { display: false, text: '' },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => {
-                            const label = ctx.label || '';
-                            return `${label}: ${utilities.get_file_size(ctx.raw)}`;
+                responsive: true,
+                maintainAspectRatio: false,
+                radius: '50%',
+                cutout: '84%',
+                cutoutPercentage: 85,
+                rotation: -90,
+                circumference: 180,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: { display: false, text: '' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => {
+                                const label = ctx.label || '';
+                                return `${label}: ${utilities.get_file_size(ctx.raw)}`;
+                            }
                         }
                     }
                 }
-            }
             }
         });
 
@@ -7648,7 +7742,7 @@ class FileManager {
         function base64EncodeUnicode(str) {
             // First we escape the string using encodeURIComponent to get the UTF-8 encoding,
             // then we convert the percent encodings into raw bytes, and finally btoa.
-            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function (match, p1) {
                 return String.fromCharCode('0x' + p1);
             }));
         }
@@ -10180,6 +10274,14 @@ class MenuManager {
                     utilities.clear();
                     break;
                 }
+                case 'list_view': {
+                    ipcRenderer.emit('switch_view', null, 'list_view');
+                    break;
+                }
+                case 'grid_view': {
+                    ipcRenderer.emit('switch_view', null, 'grid_view');
+                    break;
+                }
                 case 'sidebar_properties': {
                     let sidebar = document.querySelector('.sidebar');
                     let items = sidebar.querySelectorAll('.item');
@@ -10221,19 +10323,19 @@ class WindowManager {
 
     constructor() {
 
-        // let main = document.querySelector('.main');
-        window.addEventListener('resize', (e) => {
+        // // let main = document.querySelector('.main');
+        // window.addEventListener('resize', (e) => {
 
-            let content = document.querySelector('.active-tab-content');
+        //     let content = document.querySelector('.active-tab-content');
 
-            const tag = e.target.tagName.toLowerCase();
-            const isEditable = e.target.isContentEditable;
-            if (tag === 'input' || tag === 'textarea' || isEditable) {
-                // Let the input handle the event, do not trigger custom shortcuts
-                return;
-            }
+        //     const tag = e.target.tagName.toLowerCase();
+        //     const isEditable = e.target.isContentEditable;
+        //     if (tag === 'input' || tag === 'textarea' || isEditable) {
+        //         // Let the input handle the event, do not trigger custom shortcuts
+        //         return;
+        //     }
 
-        })
+        // })
 
     }
 

@@ -118,6 +118,11 @@ class FileManager {
     async get_files(location, add_tab, window_id = null, request_token = null) {
         const request_key = Number.isInteger(window_id) ? window_id : 'default';
         this.latest_request_tokens.set(request_key, request_token);
+        const MAX_TOKENS = 10;
+        if (this.latest_request_tokens.size > MAX_TOKENS) {
+            const oldestKeys = Array.from(this.latest_request_tokens.keys()).slice(0, this.latest_request_tokens.size - MAX_TOKENS);
+            oldestKeys.forEach(key => this.latest_request_tokens.delete(key));
+        }
         const is_current_request = () => {
             return this.latest_request_tokens.get(request_key) === request_token;
         };
@@ -231,6 +236,8 @@ if (!isMainThread) {
             case 'get_folder_size': {
 
                 const source = data && typeof data.source === 'string' ? data.source : '';
+
+                console.log('Getting folder size for source:', source);
 
                 if (!source) {
                     parentPort.postMessage({
