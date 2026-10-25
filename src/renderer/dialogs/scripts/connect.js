@@ -3,7 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 ipcRenderer.on('theme-preference-changed', (_event, preference, system_theme) => {
     const root = document.documentElement;
-    const theme = ['dark', 'light', 'modern'].includes(String(preference).toLowerCase())
+    const theme = ['dark', 'light', 'modern-dark', 'modern-light'].includes(String(preference).toLowerCase())
         ? String(preference).toLowerCase()
         : null;
     if (theme) root.dataset.theme = theme;

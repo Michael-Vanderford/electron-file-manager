@@ -18,7 +18,7 @@
 
 ---
 
-### Change log for 2026-10-14
+### Change log for 2026-10-16
 - Added custom themes and updated the app to version 2.1.0.
 - Added file operation controls, tab content quick actions, and populated titlebar menus.
 - Improved drag and drop with writable-directory checks and clearer visual feedback.

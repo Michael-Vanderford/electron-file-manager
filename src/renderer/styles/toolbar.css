@@ -24,9 +24,31 @@
 .tab-content-toolbar .toolbar-btn:hover {
     background-color: var(--highlight);
 }
-.tab-content-toolbar .toolbar-btn i {
+.tab-content-toolbar .toolbar-btn i,
+.tab-content-toolbar .toolbar-btn [class^="bi-"],
+.tab-content-toolbar .toolbar-btn [class*=" bi-"] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    margin: 0;
+    padding: 0;
     font-size: 12px;
-}.tab-content-toolbar .toolbar-btn:disabled {
+    line-height: 1;
+}
+
+.tab-content-toolbar .toolbar-btn i::before,
+.tab-content-toolbar .toolbar-btn [class^="bi-"]::before,
+.tab-content-toolbar .toolbar-btn [class*=" bi-"]::before {
+    display: block;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    text-align: center;
+    vertical-align: 0;
+}
+.tab-content-toolbar .toolbar-btn:disabled {
     opacity: 0.35;
     cursor: not-allowed;
 }

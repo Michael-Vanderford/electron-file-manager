@@ -436,6 +436,13 @@ hr {
     accent-color: var(--accent);
 }
 
+.col_context_menu_item input[type="radio"] {
+    margin: 0;
+    flex: 0 0 14px;
+    cursor: pointer;
+    accent-color: var(--accent);
+}
+
 .col_context_menu_item span {
     flex: 1;
     text-align: left;
@@ -2431,7 +2438,7 @@ span {
 }
 
 /* Modern: dark palette, with only its differences overridden */
-:root[data-theme="modern"] {
+:root[data-theme="modern-dark"] {
     color-scheme: dark;
 
     --menu: #222222;
@@ -2444,6 +2451,22 @@ span {
 
     --location: #222222;
     --location-border: #222222;
+}
+
+/* Modern: dark palette, with only its differences overridden */
+:root[data-theme="modern-light"] {
+    color-scheme: light;
+
+    --menu: #f0f0f0;
+    --sidebar: #f0f0f0;
+    --main: #f0f0f0;
+    --minibar: #f0f0f0;
+
+    --border: #dcdcdc;
+    --shadow: transparent;
+
+    --location: #f0f0f0;
+    --location-border: #dcdcdc;
 }
 
 .drag_ghost {

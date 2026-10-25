@@ -237,7 +237,7 @@ if (!isMainThread) {
 
                 const source = data && typeof data.source === 'string' ? data.source : '';
 
-                console.log('Getting folder size for source:', source);
+                // console.log('Getting folder size for source:', source);
 
                 if (!source) {
                     parentPort.postMessage({

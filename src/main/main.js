@@ -16,7 +16,7 @@ const iconManager = require('./lib/IconManager');
 const { XMLParser } = require('fast-xml-parser');
 // const gio = require('libgio-node');
 
-const file_icon_cache = new Map();
+const FILE_ICON_CACHE = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
 const MAX_FOLDER_SIZE_CACHE_ENTRIES = 1000;
 const FOLDER_SIZE_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -115,7 +115,7 @@ nativeTheme.themeSource = 'system';
 
 function normalize_theme_preference(value) {
     const preference = String(value || 'system').toLowerCase();
-    return ['dark', 'light', 'system', 'modern'].includes(preference) ? preference : 'system';
+    return ['dark', 'light', 'system', 'modern-dark', 'modern-light'].includes(preference) ? preference : 'system';
 }
 
 function get_theme_preference(settings = settingsManager?.get_settings?.()) {
@@ -183,7 +183,7 @@ function stop_system_theme_watcher() {
 let is_first_run = 0;
 
 function get_cached_file_icon(href) {
-    return file_icon_cache.get(href);
+    return FILE_ICON_CACHE.get(href);
 }
 
 function set_cached_file_icon(href, icon_data_url) {
@@ -191,19 +191,19 @@ function set_cached_file_icon(href, icon_data_url) {
         return;
     }
 
-    if (file_icon_cache.has(href)) {
-        file_icon_cache.set(href, icon_data_url);
+    if (FILE_ICON_CACHE.has(href)) {
+        FILE_ICON_CACHE.set(href, icon_data_url);
         return;
     }
 
-    if (file_icon_cache.size >= MAX_FILE_ICON_CACHE_ENTRIES) {
-        const oldest_key = file_icon_cache.keys().next().value;
+    if (FILE_ICON_CACHE.size >= MAX_FILE_ICON_CACHE_ENTRIES) {
+        const oldest_key = FILE_ICON_CACHE.keys().next().value;
         if (oldest_key) {
-            file_icon_cache.delete(oldest_key);
+            FILE_ICON_CACHE.delete(oldest_key);
         }
     }
 
-    file_icon_cache.set(href, icon_data_url);
+    FILE_ICON_CACHE.set(href, icon_data_url);
 }
 
 app.disableHardwareAcceleration();
@@ -518,7 +518,7 @@ class SettingsManager {
                         "Sort By": { type: 'string', enum: ['name', 'location', 'size', 'mtime', 'ctime', 'atime', 'type', 'count'], default: 'mtime' },
                         "Sort Direction": { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
                         'Group By': { type: 'string', enum: ['None', 'Type', 'Date Modified', 'Size'], default: 'None' },
-                        'Theme': { type: 'string', enum: ['dark', 'light', 'system', 'modern'], default: 'system' },
+                        'Theme': { type: 'string', enum: ['dark', 'light', 'system', 'modern-dark', 'modern-light'], default: 'system' },
                         'Show Hidden': { type: 'boolean', default: true },
                         'Show Tab Toolbar': { type: 'boolean', default: true }
                     }
@@ -3608,6 +3608,10 @@ class MenuManager {
                     submenu: this.sort_menu()
                 },
                 {
+                    label: 'Group By',
+                    submenu: this.group_by_menu(e.sender)
+                },
+                {
                     type: 'separator'
                 },
                 {
@@ -4179,6 +4183,24 @@ class MenuManager {
             menu.popup(BrowserWindow.fromWebContents(e.sender))
         })
 
+        // Group By Menu
+        ipcMain.on('group_by_menu', (e) => {
+
+            const template = this.group_by_menu(e.sender);
+            const menu = Menu.buildFromTemplate(template)
+            menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+        });
+
+        // Sort Menu
+        ipcMain.on('sort_menu', (e) => {
+
+            const template = this.sort_menu();
+            const menu = Menu.buildFromTemplate(template)
+            menu.popup(BrowserWindow.fromWebContents(e.sender))
+
+        });
+
     }
 
     get_current_view() {
@@ -4589,6 +4611,18 @@ class MenuManager {
 
     }
 
+    group_by_menu(webContents) {
+        this.settings = settingsManager.get_settings() || {};
+        const group_by = this.settings?.schema?.properties?.['Default View']?.properties?.['Group By']?.default || 'None';
+        return ['None', 'Type', 'Date Modified', 'Size'].map((value) => ({
+            label: value,
+            type: 'radio',
+            checked: value === group_by,
+            click: () => webContents.send('set_group_by', value)
+        }));
+
+    }
+
 }
 
 const settingsManager = new SettingsManager();
@@ -4780,7 +4814,7 @@ app.on('ready', () => {
     // });
 
     iconManager.start_theme_watcher(() => {
-        file_icon_cache.clear();
+        FILE_ICON_CACHE.clear();
         BrowserWindow.getAllWindows().forEach((window) => {
             if (!window.isDestroyed()) {
                 window.webContents.send('icon_theme_changed');

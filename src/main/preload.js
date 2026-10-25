@@ -339,7 +339,7 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
         if (['None', 'Type', 'Date Modified', 'Size'].includes(value)) fileManager?.set_group_by(value);
     },
     setTheme: (theme) => {
-        if (['dark', 'light', 'system', 'modern'].includes(theme)) {
+        if (['dark', 'light', 'system', 'modern-dark', 'modern-light'].includes(theme)) {
             fileManager?.set_theme(theme);
         }
     },
@@ -372,7 +372,7 @@ let active_theme_preference = 'system';
 
 function normalize_theme(value) {
     const theme = String(value || 'system').toLowerCase();
-    return ['dark', 'light', 'system', 'modern'].includes(theme) ? theme : 'system';
+    return ['dark', 'light', 'system', 'modern-dark', 'modern-light'].includes(theme) ? theme : 'system';
 }
 
 function apply_theme(preference, next_system_theme = system_theme) {
@@ -677,7 +677,7 @@ class SettingsManager {
                         },
                         'Theme': {
                             type: 'string',
-                            enum: ['Light', 'Dark', 'System', 'Modern'],
+                            enum: ['Light', 'Dark', 'System', 'Modern-Dark', 'Modern-Light'],
                             default: 'System'
                         },
 
@@ -950,9 +950,7 @@ class SettingsManager {
     // update settings
     update_settings(settings) {
         this.settings = settings;
-
         // console.log('update settings', this.settings);
-
         ipcRenderer.send('update_settings', this.settings);
     }
 
@@ -5378,7 +5376,7 @@ class FileManager {
         // sort menu
         ipcRenderer.on('sort_by', (e, sort, sort_direction) => {
 
-            // console.log('sort by', sort, sort_direction)
+            console.log('sort by', sort, sort_direction);
 
             if (sort === null || sort === undefined || sort === '') {
                 utilities.set_msg(`Error: Sort is null or undefined ${sort}`);
@@ -5393,42 +5391,12 @@ class FileManager {
                 return;
             }
 
-            this.sort_by = sort;
-            this.sort_direction = sort_direction;
+            this.apply_sort(sort, sort_direction);
 
-            const active_tab_content = tabManager.get_active_tab_content();
-            const is_recent_view = this.is_recent_tab_content(active_tab_content);
-            if (!is_recent_view) {
-                let view_container = document.querySelector('.view_container');
-                let items = Array.from(view_container.querySelectorAll('.card'));
-                let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
-                sortedItems.forEach(item => view_container.appendChild(item));
-            }
+        });
 
-            // Save sort settings
-            const latest_settings = settingsManager.get_settings() || {};
-            if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort By']) {
-                latest_settings.schema.properties['Default View'].properties['Sort By'].default = this.sort_by;
-            }
-            if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort Direction']) {
-                latest_settings.schema.properties['Default View'].properties['Sort Direction'].default = this.sort_direction;
-            }
-            latest_settings.sort_by = this.sort_by;
-            latest_settings.sort_direction = this.sort_direction;
-            settingsManager.update_settings(latest_settings);
-            this.settings = latest_settings;
-
-            if (is_recent_view && Array.isArray(this.recent_files_arr)) {
-                this.get_view(this.recent_files_arr);
-            }
-
-            // this.get_files(this.location);
-
-            // // save sort direction
-            // this.settings.sort_by = this.sort_by;
-            // this.settings.sort_direction = this.sort_direction;
-            // settingsManager.update_settings(this.settings);
-
+        ipcRenderer.on('set_group_by', (_e, group_by) => {
+            this.set_group_by(group_by);
         });
 
         // switch view
@@ -5535,7 +5503,7 @@ class FileManager {
                 return;
             }
 
-            console.log('running ls done');
+            // console.log('running ls done');
 
             this.files_arr = files_arr;
             if (this.view === '' || this.view === undefined) {
@@ -5722,39 +5690,16 @@ class FileManager {
 
         // remove item
         ipcRenderer.on('remove_item', (e, id) => {
-
             if (id === undefined || id === null) {
                 utilities.set_msg('Error: Getting file id');
-                // console.log('error getting file id');
                 return;
             }
-
-            // let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
-            let active_tab_content = document.querySelector('.main');
-            let item = active_tab_content.querySelector(`[data-id="${id}"]`);
-            if (item) {
-                item.remove();
-                this.check_for_empty_folder();
-                utilities.get_disk_space(this.location);
-            } else {
-                // utilities.set_msg(`Error: Removing item ${id}`);
-                // console.log('error removing item', id);
-            }
-
+            this.remove_view_items([id]);
         });
 
         // remove items
         ipcRenderer.on('remove_items', (e, files_arr) => {
-            // const active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
-            const active_tab_content = document.querySelector('.main');
-            files_arr.forEach(f => {
-                let item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
-                if (item) {
-                    item.remove();
-                }
-            })
-            this.check_for_empty_folder();
-            utilities.get_disk_space(this.location);
+            this.remove_view_items(files_arr);
         });
 
         ipcRenderer.on('overwrite_copy', (e, overwrite_arr) => {
@@ -6408,6 +6353,12 @@ class FileManager {
     // Initialize persistent toolbar once
     init_tab_toolbar() {
 
+        const settings = settingsManager.get_schema();
+        if (!settings) {
+            console.error('Failed to load settings.');
+            return;
+        }
+
         const existing_toolbar = document.querySelector('.tab-content-toolbar');
         if (existing_toolbar) {
             this.tab_toolbar = existing_toolbar;
@@ -6442,14 +6393,58 @@ class FileManager {
         const btn_compress = make_btn('file-earmark-zip', 'Compress to zip', () => utilities.compress('zip'));
         const btn_extract = make_btn('box-arrow-in-down', 'Extract', () => utilities.extract());
         const btn_properties = make_btn('info-circle', 'Properties', () => ipcRenderer.emit('context-menu-command', null, 'properties'));
-        const btn_sort = make_btn('sort-down', 'Sort', () => ipcRenderer.emit('context-menu-command', null, 'sort'));
+        const btn_show_hidden = make_btn('eye', 'Show Hidden', () => toggleShowHidden());
+        const btn_sort = make_btn('sort-down', 'Sort', (e) => { showSortMenu(e);});
+        const btn_group_by = make_btn('collection', 'Group By', (e) => { showGroupByMenu(e);});
         const btn_toggle_list = make_btn('list', 'List View', () => toggleView('list_view'));
         const btn_toggle_grid = make_btn('grid', 'Grid View', () => toggleView('grid_view'));
         const btn_settings = make_btn('gear ml-auto', 'Settings', () => ipcRenderer.emit('context-menu-command', null, 'settings'));
 
+
+        // Prefer the saved value, fall back to the schema default, then false
+        const view = settings?.['Default View'];
+        const raw = view?.['Show Hidden'] ?? view?.properties?.['Show Hidden']?.default ?? false;
+
+        // Guard against string values like "false" being treated as truthy
+        let show_hidden = raw === true || raw === 'true';
+        // console.log('Show Hidden:', show_hidden);
+
+        // Button shows the action a click will perform
+        const updateShowHiddenButton = () => {
+            if (show_hidden) {
+                btn_show_hidden.innerHTML = `<i class="bi bi-eye-slash"></i>`;
+                btn_show_hidden.title = 'Hide Hidden Files';
+            } else {
+                btn_show_hidden.innerHTML = `<i class="bi bi-eye"></i>`;
+                btn_show_hidden.title = 'Show Hidden Files';
+            }
+        };
+
+        // Set the initial button state
+        updateShowHiddenButton();
+
+        // Toggle the visibility of hidden files in the file manager
+        const toggleShowHidden = () => {
+            // Flip the state first, then apply it
+            show_hidden = !show_hidden;
+
+            if (show_hidden) {
+                fileManager.show_hidden_files();
+            } else {
+                fileManager.hide_hidden_files();
+            }
+
+            updateShowHiddenButton();
+
+            // // update settings
+            // settings['Default View'] = settings['Default View'] || {};
+            // settings['Default View']['Show Hidden'] = show_hidden;
+            // settingsManager?.update_settings();
+        };
+
         // Initialize the current view based on settings
         const currentView = settingsManager?.get_view_settings();
-        console.log(`Current view: ${currentView}`);
+        // console.log(`Current view: ${currentView}`);
         if (currentView === 'list_view') {
             btn_toggle_list.disabled = true;
             btn_toggle_grid.disabled = false;
@@ -6464,36 +6459,31 @@ class FileManager {
         // Helper function to toggle between view modes based on current settings
         const toggleView = (targetView) => {
 
-            // if (currentView === targetView) {
-            //     return;
-            // }
+            if (targetView !== 'list_view' && targetView !== 'grid_view') return;
 
-            if (targetView === 'list_view') {
+            const isList = targetView === 'list_view';
 
-                btn_toggle_list.disabled = true;
-                btn_toggle_grid.disabled = false;
+            // The button for the *other* view is the one that's shown and enabled
+            btn_toggle_list.disabled = isList;
+            btn_toggle_grid.disabled = !isList;
 
-                btn_toggle_list.style.display = 'none';
-                btn_toggle_grid.style.display = 'block';
+            btn_toggle_list.style.display = isList ? 'none' : 'block';
+            btn_toggle_grid.style.display = isList ? 'block' : 'none';
 
-            } else if (targetView === 'grid_view') {
-
-                btn_toggle_grid.disabled = true;
-                btn_toggle_list.disabled = false;
-
-                btn_toggle_list.style.display = 'block';
-                btn_toggle_grid.style.display = 'none';
-
-            }
-
-            ipcRenderer.emit('context-menu-command', 'switch_view', targetView.toLocaleLowerCase());
-            console.log(`Toggling view to: ${targetView}`);
+            ipcRenderer.emit('context-menu-command', 'switch_view', targetView);
 
         };
 
-        // btn_toggle_list.addEventListener('click', () => toggleView('list_view'));
-        // btn_toggle_grid.addEventListener('click', () => toggleView('grid_view'));
+        // btn_sort.addEventListener('click', (e) => showSortMenu(e));
+        const showSortMenu = (e) => {
+            e.preventDefault();
+            ipcRenderer.send('sort_menu');
+        };
 
+        const showGroupByMenu = (e) => {
+            e.preventDefault();
+            ipcRenderer.send('group_by_menu');
+        };
 
         toolbar.append(
             btn_new_folder, make_sep(),
@@ -6501,7 +6491,9 @@ class FileManager {
             btn_rename, btn_delete, make_sep(),
             btn_compress, btn_extract, make_sep(),
             btn_properties, make_sep(),
+            btn_show_hidden, make_sep(),
             btn_sort, make_sep(),
+            btn_group_by, make_sep(),
             btn_toggle_list, btn_toggle_grid, make_sep(),
             btn_settings
         );
@@ -6516,6 +6508,8 @@ class FileManager {
             compress: btn_compress,
             extract: btn_extract,
             properties: btn_properties,
+            show_hidden: btn_show_hidden,
+            group_by: btn_group_by,
             toggle_list: btn_toggle_list,
             toggle_grid: btn_toggle_grid,
             settings: btn_settings
@@ -6723,6 +6717,72 @@ class FileManager {
         });
     }
 
+    apply_sort(sort, sort_direction) {
+        if (sort !== undefined && sort !== null && sort !== '') {
+            this.sort_by = sort;
+        }
+        if (sort_direction !== undefined && sort_direction !== null && sort_direction !== '') {
+            this.sort_direction = sort_direction;
+        }
+
+        // Save sort settings
+        const latest_settings = settingsManager.get_settings() || {};
+        if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort By']) {
+            latest_settings.schema.properties['Default View'].properties['Sort By'].default = this.sort_by;
+        }
+        if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort Direction']) {
+            latest_settings.schema.properties['Default View'].properties['Sort Direction'].default = this.sort_direction;
+        }
+        latest_settings.sort_by = this.sort_by;
+        latest_settings.sort_direction = this.sort_direction;
+        settingsManager.update_settings(latest_settings);
+        this.settings = latest_settings;
+
+        const active_tab_content = tabManager.get_active_tab_content();
+        const is_recent_view = this.is_recent_tab_content(active_tab_content);
+        const group_by = this.get_group_by_setting();
+        const tab_files = active_tab_content ? tabManager.get_tab_data_arr(active_tab_content.dataset.id) : null;
+        const files_arr = is_recent_view
+            ? this.recent_files_arr
+            : ((Array.isArray(tab_files) && tab_files.length > 0) ? tab_files : this.files_arr);
+
+        const is_virtual = (this.virtual_view && active_tab_content && this.virtual_view.active_tab_content === active_tab_content)
+            || (Array.isArray(files_arr) && files_arr.length >= this.virtual_view_threshold);
+
+        if (is_recent_view || group_by !== 'None' || is_virtual) {
+            if (Array.isArray(files_arr)) {
+                this.get_view(files_arr);
+            }
+        } else {
+            let view_container = document.querySelector('.view_container');
+            if (view_container) {
+                let items = Array.from(view_container.querySelectorAll('.card'));
+                let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
+                sortedItems.forEach(item => view_container.appendChild(item));
+            }
+        }
+
+        // update sort icons in list view header if present
+        let sort_icons = document.querySelectorAll('.th_sort_icon');
+        sort_icons.forEach(icon => {
+            icon.classList.remove('bi', 'bi-caret-up-fill', 'bi-caret-down-fill');
+        });
+        let active_col = document.querySelector(`.sort_column[data-col_name="${this.sort_by}"]`);
+        if (active_col) {
+            let sort_icon = active_col.querySelector('.th_sort_icon');
+            if (sort_icon) {
+                sort_icon.classList.add('bi', this.sort_direction === 'desc' ? 'bi-caret-down-fill' : 'bi-caret-up-fill');
+            }
+        }
+
+        // Mark inactive tabs as stale so they re-render with the new sort settings when activated
+        document.querySelectorAll('.tab-content').forEach((tab_content) => {
+            if (tab_content !== active_tab_content) {
+                tab_content.dataset.groupingStale = 'true';
+            }
+        });
+    }
+
     handleSort(col) {
 
         col.addEventListener('click', (e) => {
@@ -6730,64 +6790,11 @@ class FileManager {
             e.preventDefault();
             e.stopPropagation();
 
-            this.sort_by = col.dataset.col_name;
+            const next_direction = (this.sort_by === col.dataset.col_name)
+                ? (this.sort_direction === 'asc' ? 'desc' : 'asc')
+                : 'asc';
 
-            if (this.sort_direction === 'asc') {
-                this.sort_direction = 'desc';
-            } else {
-                this.sort_direction = 'asc';
-            }
-
-            const latest_settings = settingsManager.get_settings() || {};
-            if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort By']) {
-                latest_settings.schema.properties['Default View'].properties['Sort By'].default = this.sort_by;
-            }
-            if (latest_settings?.schema?.properties?.['Default View']?.properties?.['Sort Direction']) {
-                latest_settings.schema.properties['Default View'].properties['Sort Direction'].default = this.sort_direction;
-            }
-            latest_settings.sort_by = this.sort_by;
-            latest_settings.sort_direction = this.sort_direction;
-            settingsManager.update_settings(latest_settings);
-            this.settings = latest_settings;
-
-            const active_tab_content = tabManager.get_active_tab_content();
-            const is_recent_view = this.is_recent_tab_content(active_tab_content);
-            const group_by = this.get_group_by_setting();
-            if (!is_recent_view && group_by === 'None') {
-                let view_container = document.querySelector('.view_container');
-                if (!view_container) {
-                    console.log('error getting view container');
-                    utilities.set_msg('Error: getting view container');
-                    return;
-                }
-
-                let items = Array.from(view_container.querySelectorAll('.card'));
-                let sortedItems = utilities.sortItems(items, this.sort_by, this.sort_direction);
-                sortedItems.forEach(item => view_container.appendChild(item));
-            }
-
-            if (is_recent_view || group_by !== 'None') {
-                const files_arr = is_recent_view
-                    ? this.recent_files_arr
-                    : tabManager.get_tab_data_arr(active_tab_content?.dataset.id);
-                if (Array.isArray(files_arr)) {
-                    this.get_view(files_arr);
-                }
-                return;
-            }
-
-            // update sort icons
-            let sort_icons = document.querySelectorAll('.th_sort_icon');
-            sort_icons.forEach(icon => {
-                icon.classList.remove('bi', 'bi-caret-up-fill', 'bi-caret-down-fill');
-            });
-            let sort_icon = col.querySelector('.th_sort_icon');
-            if (this.sort_direction === 'desc') {
-                sort_icon.classList.add('bi', 'bi-caret-down-fill');
-            } else {
-                sort_icon.classList.add('bi', 'bi-caret-up-fill');
-            }
-
+            this.apply_sort(col.dataset.col_name, next_direction);
 
         });
 
@@ -6813,6 +6820,55 @@ class FileManager {
         const default_view = settingsManager.get_settings()?.schema?.properties?.['Default View'];
         const theme_prop = default_view?.properties?.['Theme'];
         return theme_prop?.default || 'System';
+    }
+
+    get_active_files() {
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content) return [];
+        const files = this.is_recent_tab_content(active_tab_content)
+            ? this.recent_files_arr
+            : tabManager.get_tab_data_arr(active_tab_content.dataset.id);
+        return Array.isArray(files) ? files : [];
+    }
+
+    remove_view_items(items) {
+        const active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content || !Array.isArray(items)) return;
+
+        const ids = new Set();
+        const hrefs = new Set();
+        items.forEach((item) => {
+            const id = typeof item === 'string' ? item : item?.id;
+            const href = typeof item === 'object' ? item?.href : item;
+            if (id) ids.add(id);
+            if (href) {
+                hrefs.add(href);
+                try {
+                    ids.add(btoa(href));
+                } catch (_) {
+                }
+            }
+        });
+
+        const files = this.get_active_files();
+        const remaining = files.filter((file) => !ids.has(file.id) && !hrefs.has(file.href));
+        const is_recent_view = this.is_recent_tab_content(active_tab_content);
+        if (is_recent_view) {
+            this.recent_files_arr = remaining;
+        } else {
+            tabManager.set_tab_data_arr(remaining);
+            this.files_arr = remaining;
+        }
+
+        const is_virtual = this.virtual_view?.active_tab_content === active_tab_content;
+        if (is_recent_view || this.get_group_by_setting() !== 'None' || is_virtual) {
+            this.get_view(remaining);
+        } else {
+            ids.forEach((id) => active_tab_content.querySelector(`[data-id="${id}"]`)?.remove());
+        }
+
+        this.check_for_empty_folder();
+        utilities.get_disk_space(this.location);
     }
 
     get_view(files_arr) {
@@ -8747,7 +8803,15 @@ class FileManager {
     show_hidden_files() {
 
         this.show_hidden = true;
+        let settings = settingsManager.get_settings() || {};
+        settings.schema.properties['Default View'].properties['Show Hidden'].default = this.show_hidden;
+        settingsManager.update_settings(settings);
         if (this.update_virtual_filter(this.quick_search_sting || '')) {
+            return;
+        }
+
+        if (this.get_group_by_setting() !== 'None') {
+            this.get_view(this.get_active_files());
             return;
         }
 
@@ -8769,11 +8833,17 @@ class FileManager {
     hide_hidden_files() {
 
         this.show_hidden = false;
+        let settings = settingsManager.get_settings() || {};
+        settings.schema.properties['Default View'].properties['Show Hidden'].default = this.show_hidden;
+        settingsManager.update_settings(settings);
         if (this.update_virtual_filter(this.quick_search_sting || '')) {
             return;
         }
 
-        // console.log('hide hidden files');
+        if (this.get_group_by_setting() !== 'None') {
+            this.get_view(this.get_active_files());
+            return;
+        }
 
         let views = document.querySelectorAll('.grid_view, .list_view');
         // console.log('views', views);
@@ -9757,8 +9827,24 @@ class FileManager {
         }
 
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
-        let item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
+        const current = this.get_active_files();
+        const has_file = current.some((file) => file.id === f.id);
+        const files = has_file ? current.map((file) => file.id === f.id ? f : file) : current;
+        if (has_file) {
+            if (this.is_recent_tab_content(active_tab_content)) {
+                this.recent_files_arr = files;
+            } else {
+                tabManager.set_tab_data_arr(files);
+                this.files_arr = files;
+            }
 
+            if (this.get_group_by_setting() !== 'None' || this.virtual_view?.active_tab_content === active_tab_content) {
+                this.get_view(files);
+                return;
+            }
+        }
+
+        let item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
         if (item) {
 
             // Get card
