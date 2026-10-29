@@ -1730,6 +1730,9 @@ a.chart-title:hover {
 
 .virtual_view {
     align-content: start;
+    /* Spacer heights already preserve the virtual scroll position. Browser
+       anchoring would compensate a second time and trigger another render. */
+    overflow-anchor: none;
 }
 
 .virtual_view .virtual_spacer,

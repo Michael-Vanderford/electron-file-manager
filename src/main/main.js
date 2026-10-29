@@ -1,3 +1,9 @@
+// Packaged Electron executables always enter this file, including decoder children.
+if (process.argv.includes('--thumbnail-worker')) {
+    require('../workers/thumbnail_worker');
+    return;
+}
+
 // @ts-nocheck
 
 // Provide app and Electron version to renderer
@@ -12,6 +18,8 @@ const exec = require('child_process').exec;
 const execFile = require('child_process').execFile;
 const os = require('os');
 const libfs = require('../common/libfs');
+const dnd = require('../common/dnd');
+const { probe: device_probe } = require('../common/device_probe');
 const iconManager = require('./lib/IconManager');
 const { XMLParser } = require('fast-xml-parser');
 // const gio = require('libgio-node');
@@ -914,19 +922,7 @@ ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
     // let stats = {};
     try {
 
-        let f = libfs.get_file(location);
-        if (f == null || f === undefined) {
-            return;
-        }
-
-        let stats = await libfs.disk_stats(location);
-        Object.assign(f, stats);
-
-        // let stats = await gio.disk_stats(path);
-        // Object.assign(stats, { path: path });
-        // return stats
-
-        return f
+        return await device_probe('dashboard', location);
 
     } catch (err) {
         return {
@@ -938,43 +934,72 @@ ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
 
 })
 
-ipcMain.handle('find', async (e, query, location, options) => {
+const active_find_workers = new Map();
+
+ipcMain.on('find_ack', (e, search_id) => {
+    active_find_workers.get(`${e.sender.id}:${search_id}`)?.ack?.();
+});
+
+ipcMain.on('cancel_find', (e, search_id) => {
+    active_find_workers.get(`${e.sender.id}:${search_id}`)?.();
+});
+
+ipcMain.handle('find', async (e, query, location, options, search_id) => {
     const sender = e.sender;
     const find_worker = new worker.Worker(path.join(__dirname, '../workers/find_worker.js'));
+    const worker_key = `${sender.id}:${search_id}`;
+    let finished = false;
+
+    const cleanup = () => {
+        if (finished) return;
+        finished = true;
+        active_find_workers.delete(worker_key);
+        sender.removeListener('destroyed', on_sender_destroyed);
+        find_worker.terminate();
+    };
+    const send = (channel, payload) => {
+        if (!sender.isDestroyed()) sender.send(channel, { search_id, ...payload });
+    };
+    const on_sender_destroyed = () => cleanup();
+    cleanup.ack = () => { if (!finished) find_worker.postMessage({ cmd: 'continue' }); };
+    active_find_workers.set(worker_key, cleanup);
+    sender.once('destroyed', on_sender_destroyed);
 
     find_worker.postMessage({
         cmd: 'find',
         query: query,
         location: location,
-        options: options
+        options: options,
+        search_id
     });
 
     find_worker.on('message', (msg) => {
+        if (finished) return;
         switch (msg.cmd) {
+            case 'find_batch':
+                send('find_batch', { files: msg.files });
+                break;
             case 'find_result':
-                sender.send('find_result', msg.file);
+                send('find_result', { file: msg.file });
                 break;
             case 'find_done':
-                sender.send('find_done', { error: msg.err });
+                send('find_done', { error: msg.err });
+                cleanup();
                 break;
             case 'find_error':
-                sender.send('find_error', msg.err);
+                send('find_error', { error: msg.err });
+                cleanup();
                 break;
             case 'find_results': // Backward compatibility
-                sender.send('find_results', msg.res);
+                send('find_results', { results: msg.res });
+                cleanup();
                 break;
         }
     });
 
     find_worker.on('error', (err) => {
-        sender.send('find_error', String(err.message || err));
-        find_worker.terminate();
-    });
-
-    // To prevent zombie workers, we should terminate when the window closes or
-    // if the renderer requests cancellation.
-    sender.on('destroyed', () => {
-        find_worker.terminate();
+        send('find_error', { error: String(err.message || err) });
+        cleanup();
     });
 
     return { streaming: true };
@@ -1645,38 +1670,21 @@ class Utilities {
                         this.emit_folder_size_cache_invalidated(Array.from(invalidated_paths));
                     }
 
-                    if (this.is_main && !data.cancelled) {
-
-                        // remove old items
-                        win.send('remove_items', data.files_arr);
-
-                        // get moved from location
-                        let root_source = path.dirname(data.files_arr[0].source);
-                        let file = libfs.get_file(root_source);
-                        file.id = btoa(file.href);
-
-                        // check file object
-                        if (file.href === undefined || file.href === null) {
-                            win.send('set_msg', 'Error: File not found.');
-                            break;
-                        } else {
-                            // update moved from item
-                            win.send('update_item', file);
-                        }
-
-                    } else if (!this.is_main && !data.cancelled) {
-
-                        let file = libfs.get_file(this.root_destination);
-                        file.id = btoa(file.href);
-
-                        if (file.href === undefined || file.href === null) {
-                            win.send('set_msg', 'Error: File not found.');
-                            break;
-                        } else {
-                            win.send('update_item', file);
-                        }
-
-                    }
+                    const moved = data.files_arr || [];
+                    // Source identity must never use the destination href.
+                    win.send('remove_items', moved.map(file => ({
+                        id: btoa(file.source), href: file.source
+                    })));
+                    const by_location = new Map();
+                    moved.forEach(file => {
+                        const destination = libfs.get_file(file.destination);
+                        if (!destination?.href) return;
+                        destination.id = btoa(destination.href);
+                        const location = path.dirname(destination.href);
+                        if (!by_location.has(location)) by_location.set(location, []);
+                        by_location.get(location).push(destination);
+                    });
+                    by_location.forEach((files, location) => win.send('add_items', files, location));
 
                     if (data.cancelled) {
                         win.send('set_msg', 'Move cancelled.');
@@ -2005,13 +2013,20 @@ class Utilities {
 
         files_arr.forEach(f => {
 
+            const source = f.href;
+            const source_location = f.location || path.dirname(source);
+            if (f.is_dir && dnd.is_self_or_descendant(location, source)) {
+                e.sender.send('set_msg', `Cannot move ${f.name} into itself.`);
+                return;
+            }
+
             f.destination = path.join(location, f.name); // set destination
-            f.source = f.href; // set source to current href
+            f.source = source; // set source to current href
             f.href = f.destination; // set href to destination
-            f.location = f.destination;
+            f.location = location;
 
             // handle duplicate file names
-            if (f.location == location && fs.existsSync(f.destination)) {
+            if (source_location === location && fs.existsSync(f.destination)) {
 
                 let dup_idx = 1;
                 while (fs.existsSync(f.destination)) {
@@ -2039,14 +2054,6 @@ class Utilities {
         // send copy_arr to renderer
         if (move_arr.length > 0) {
 
-            if (this.is_main) {
-                e.sender.send('add_items', move_arr, location);
-            } else {
-                // handle updated to location
-                // refresh directory stats
-                e.sender.send('remove_items', move_arr)
-            }
-
             // send copy_arr to worker
             let move_cmd = {
                 cmd: 'move',
@@ -2061,6 +2068,10 @@ class Utilities {
 
         if (overwrite_arr.length > 0) {
             win.send('overwrite_move', overwrite_arr);
+        }
+
+        if (move_arr.length === 0 && overwrite_arr.length === 0) {
+            this.run_watcher = true;
         }
 
         move_arr = [];
@@ -2234,7 +2245,7 @@ class Utilities {
     };
 
     // get disk space
-    get_disk_space(href, sender = null) {
+    async get_disk_space(href, sender = null) {
 
         const target = sender && !sender.isDestroyed() ? sender : win;
 
@@ -2246,11 +2257,12 @@ class Utilities {
         }
 
         try {
+            const stats = await device_probe('stats', href);
             let options = {
-                disksize: this.get_file_size(parseInt(libfs.disk_stats(href).total)),
-                usedspace: this.get_file_size(parseInt(libfs.disk_stats(href).used)),
-                availablespace: this.get_file_size(parseInt(libfs.disk_stats(href).free))
-            }
+                disksize: this.get_file_size(parseInt(stats.total)),
+                usedspace: this.get_file_size(parseInt(stats.used)),
+                availablespace: this.get_file_size(parseInt(stats.free))
+            };
             let df = [];
             df.push(options);
             if (target && !target.isDestroyed()) {
@@ -2258,7 +2270,9 @@ class Utilities {
             }
 
         } catch (err) {
-            // console.log(err); // commented out for non-error logging
+            if (target && !target.isDestroyed()) {
+                target.send('disk_space', [{ disksize: 'Unknown', usedspace: 'Unknown', availablespace: 'Unknown' }]);
+            }
         }
 
     }
@@ -2384,6 +2398,15 @@ class WorkspaceManager {
 
 }
 
+// Image decoding stays in a separate Electron process.
+const { ThumbnailManager } = require('./lib/ThumbnailManager');
+let thumbnails;
+ipcMain.handle('get_thumbnail', (event, href) => {
+    thumbnails ||= new ThumbnailManager(path.join(app.getPath('userData'), 'thumbnails'));
+    return thumbnails.get(href);
+});
+app.on('before-quit', () => thumbnails?.close());
+
 // Icon IPC //////
 
 // Get File Icon
@@ -2498,6 +2521,9 @@ class DeviceManager {
         this.device_worker.on('message', (data) => {
             const cmd = data.cmd;
             switch (cmd) {
+                case 'set_msg':
+                    win.send('set_msg', data.msg);
+                    break;
                 case 'devices':
                     // console.log('devices data', data);
                     win.send('devices', data.devices);
@@ -2511,15 +2537,17 @@ class DeviceManager {
             }
         })
 
-        // Monitor USB Devices
+        // Debounce event bursts and retry after the OS finishes exposing the volume.
         libfs.monitor(data => {
-            if (data) {
-                console.log('monitor data', data);
-                if (data != 'mtp') {
-                    this.device_worker.postMessage({ cmd: 'get_mounts' });
-                    // this.device_worker.postMessage({ cmd: 'get_devices' });
-                }
-            }
+            if (!data || data === 'mtp') return;
+            clearTimeout(this.device_refresh_timer);
+            clearTimeout(this.device_retry_timer);
+            const refresh = () => {
+                this.device_worker.postMessage({ cmd: 'get_mounts' });
+                this.device_worker.postMessage({ cmd: 'get_devices' });
+            };
+            this.device_refresh_timer = setTimeout(refresh, 150);
+            this.device_retry_timer = setTimeout(refresh, 1000);
         });
 
     }
@@ -2540,21 +2568,10 @@ class DeviceManager {
             }
 
             // Get mounts after mounting
-            libfs.get_mounts((err, mounts) => {
-
-                if (err) {
-                    win.send('set_msg', `Error: getting mounts after mounting ${device_name}: ${err}`);
-                    return;
-                }
-
-                // find device path
-                let device_path = mounts.filter(mount => mount.name === device_name).map(mount => mount.path)[0];
-
-                // send device path to renderer in mount_done event
-                win.send('mount_done', device_path);
-
-
-            });
+            device_probe('mounts').then(mounts => {
+                const device_path = mounts.find(mount => mount.name === device_name)?.path;
+                if (device_path) win.send('mount_done', device_path);
+            }).catch(error => win.send('set_msg', `Error: getting mounts: ${error.message}`));
 
 
 
@@ -2667,7 +2684,7 @@ class NetworkManager {
             }, 20000);
 
             try {
-                libfs.connect_network_drive(server, username, password, use_ssh_key ? 1 : 0, type, (err) => {
+                libfs.connect_network_drive(server, 0, username, password, use_ssh_key ? 1 : 0, type, (err) => {
                     clearTimeout(timeout);
                     if (settled) {
                         return;

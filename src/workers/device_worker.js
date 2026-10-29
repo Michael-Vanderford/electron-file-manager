@@ -1,10 +1,7 @@
 // @ts-nocheck
-const { parentPort, workerData, isMainThread } = require('worker_threads');
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-// const gio = require('../gio/build/Release/gio.node');
+const { parentPort, isMainThread } = require('worker_threads');
 const libfs = require('../common/libfs');
+const { probe } = require('../common/device_probe');
 
 class DeviceManager {
 
@@ -13,64 +10,46 @@ class DeviceManager {
 
     }
 
-    // Get Mounts
-    get_mounts() {
-
-        // gio.umount("michael.vanderford@gmail.com", (err, res) => {
-        //     console.log('umount res', err, res);
-        // });
-
-        libfs.get_mounts((err, mounts) => {
-            if (err) {
-                // console.log('error getting mounts', err);
-                parentPort.postMessage({
-                    cmd: 'set_msg',
-                    msg: `Error: get_mounts ${err}`
-                });
-                return;
-            }
-
-            // get total, used, free for disk space
-            for (let i = 0; i < mounts.length; i++) {
-
-                // Network mount stats can perform remote I/O. An unavailable
-                // server must not delay discovery of the other devices.
-                if ((mounts[i].type || '').toLowerCase() === 'network' || /\/gvfs\//i.test(mounts[i].path || '')) {
+    // Discovery and capacity probes run outside this worker's event loop.
+    async discover(operation) {
+        this.pending = this.pending || new Set();
+        this.cache = this.cache || {};
+        this.rescan = this.rescan || new Set();
+        if (this.pending.has(operation)) {
+            this.rescan.add(operation);
+            return;
+        }
+        this.pending.add(operation);
+        try {
+            const devices = (await probe(operation)).filter(device => device.name !== 'mtp');
+            const reachable = [];
+            for (const device of devices) {
+                // Unmounted drives must remain available for the Mount action.
+                if (!device.path && operation === 'devices') {
+                    reachable.push(device);
                     continue;
                 }
-
-                if (!fs.existsSync(mounts[i].path)) {
-                    console.log(`mount path does not exist: ${mounts[i].name}`);
-                    continue;
-                }
-
                 try {
-                    // add disk stats to mounts array
-                    Object.assign(mounts[i], libfs.disk_stats(mounts[i].path));
-                    // const stats = gio.disk_stats(mounts[i].path);
-                    // mounts[i].total = stats.total;
-                    // mounts[i].used = stats.used;
-                    // mounts[i].free = stats.free;
-                } catch (err) {
-                    console.log(`error getting mount stats ${err}`);
-                    parentPort.postMessage({
-                        cmd: 'set_msg',
-                        msg: `Error: get_mounts stats ${err}`
-                    });
+                    const stats = await probe('mount_info', device.path);
+                    reachable.push({ ...device, ...stats, unavailable: false });
+                } catch (error) {
+                    // An inaccessible or timed-out mount must not appear in the list.
                 }
-
             }
-
-            let mount_arr = mounts
-            let cmd = {
-                cmd: 'mounts',
-                mounts: mount_arr
-            }
-            // console.log('mounts data', mount_arr);
-            parentPort.postMessage(cmd);
-        })
-
+            this.cache[operation] = reachable;
+            parentPort.postMessage({ cmd: operation, [operation]: reachable });
+        } catch (error) {
+            // Discovery failure cannot verify that cached mounts are still accessible.
+            this.cache[operation] = [];
+            parentPort.postMessage({ cmd: operation, [operation]: [] });
+            parentPort.postMessage({ cmd: 'set_msg', msg: `Device discovery unavailable: ${error.message}` });
+        } finally {
+            this.pending.delete(operation);
+            if (this.rescan.delete(operation)) await this.discover(operation);
+        }
     }
+
+    get_mounts() { return this.discover('mounts'); }
 
     // Mount device
     mount(device) {
@@ -107,49 +86,7 @@ class DeviceManager {
         });
     }
 
-    // Get drives
-    get_devices() {
-
-        libfs.get_drives((err, data_arr) => {
-            if (err) {
-                console.log('error getting drives', err);
-                parentPort.postMessage({
-                    cmd: 'set_msg',
-                    msg: `Error: get_devices getting drives ${err}`
-                });
-                return;
-            }
-            let filter_arr = data_arr.filter(x => x.name != 'mtp')
-
-            console.log(filter_arr);
-
-            for (let i = 0; i < filter_arr.length; i++) {
-                // GIO network mount paths are URIs. Querying filesystem stats
-                // for an offline server can block the worker long enough that
-                // no device list is sent at all. Keep the mount visible and
-                // leave its capacity unknown until it is reachable.
-                if (/^(smb|sftp|ftp|dav|davs):\/\//i.test(filter_arr[i].path || '')) {
-                    continue;
-                }
-                try {
-                    Object.assign(filter_arr[i], libfs.disk_stats(filter_arr[i].path));
-                } catch (err) {
-                    console.log(`error getting device stats ${err}`);
-                    parentPort.postMessage({
-                        cmd: 'set_msg',
-                        msg: `Error: get_device stats ${err}`
-                    });
-                }
-            }
-
-            let cmd = {
-                cmd: 'devices',
-                devices: filter_arr
-            }
-            parentPort.postMessage(cmd);
-        })
-
-    }
+    get_devices() { return this.discover('devices'); }
 
 
 }
@@ -178,3 +115,5 @@ if (!isMainThread) {
     });
 
 }
+
+module.exports = { DeviceManager };

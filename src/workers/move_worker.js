@@ -75,6 +75,8 @@ class Utilities {
         let files_arr = [];
         let total_size = 0;
         let cancelled = false;
+        let failed = false;
+        const moved = [];
 
         for (const f of move_arr) {
             if (this.cancel_requested) {
@@ -96,6 +98,8 @@ class Utilities {
                         resolve(entries || []);
                     });
                 }).catch((err) => {
+                    failed = true;
+                    this.move_arr = [];
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: err.message || String(err)
@@ -128,6 +132,7 @@ class Utilities {
                 try {
                     fs.mkdirSync(f.destination, { recursive: true });
                 } catch (err) {
+                    failed = true;
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: `Error creating directory ${f.destination}: ${err.message}`
@@ -145,6 +150,7 @@ class Utilities {
                     resolve(result || {});
                 });
             }).catch((err) => {
+                failed = true;
                 parentPort.postMessage({
                     cmd: 'set_msg',
                     msg: `Error moving file from ${f.source} to ${f.destination}: ${err.message}`
@@ -155,6 +161,8 @@ class Utilities {
             if (!res) {
                 continue;
             }
+
+            moved.push(f);
 
             if (res.bytes_copied) {
                 bytes_copied += parseInt(res.bytes_copied, 10) || 0;
@@ -172,12 +180,14 @@ class Utilities {
             });
         }
 
-        if (!cancelled) {
-            const dirs = files_arr.filter((f) => f.is_dir);
+        if (!cancelled && !failed) {
+            const dirs = files_arr.filter((f) => f.is_dir).sort((a, b) => b.source.length - a.source.length);
             for (const dir of dirs) {
                 try {
-                    fs.rmSync(dir.source, { recursive: true, force: true });
+                    fs.rmdirSync(dir.source);
+                    moved.push(dir);
                 } catch (err) {
+                    failed = true;
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: `Error removing directory ${dir.source}: ${err.message}`
@@ -197,13 +207,13 @@ class Utilities {
 
         parentPort.postMessage({
             cmd: 'set_msg',
-            msg: cancelled ? 'Move cancelled.' : `Done moving ${files_arr.length} files.`
+            msg: cancelled ? 'Move cancelled.' : failed ? 'Move incomplete. Some items could not be moved.' : `Done moving ${moved.length} files.`
         });
 
         parentPort.postMessage({
             cmd: 'mv_done',
             cancelled,
-            files_arr: files_arr
+            files_arr: moved
         });
     }
 }
@@ -242,3 +252,5 @@ if (!isMainThread) {
         }
     });
 }
+
+module.exports = { Utilities };

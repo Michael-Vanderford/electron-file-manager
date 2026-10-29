@@ -1,0 +1,97 @@
+# Feature and regression baseline
+
+Recorded 2026-10-29 from the working tree, including the recent uncommitted changes. This is a behavior inventory, not a claim that all features work. Feature IDs remain stable so changes can cite them.
+
+**Status:** `Verified` means the named automated scenarios pass; `Partial` means only some behavior is tested; `Untested` means implementation exists but no relevant automated verification was identified. No manual feature certification has been performed for this baseline. Read the audit before treating a feature as complete.
+
+## Navigation and presentation
+
+| ID | Behavior to preserve | Implementation | Verification / gaps |
+| --- | --- | --- | --- |
+| NAV-01 | Open folders through cards and location input; navigate up, back, and forward. | `src/main/preload.js`: FileManager.get_files, get_breadcrumbs; TabManager history; `src/main/main.js`: FileManager | Verified: Playwright navigation test. Missing: invalid paths, inaccessible folders, network navigation. |
+| NAV-02 | Reopen the last active directory after restarting. | preload FileManager constructor; SettingsManager.set_location | Verified: Playwright same-profile restart; `startup_location.test.js`. Missing: deleted folder fallback, special views, multiple windows. |
+| NAV-03 | Tabs retain their directories, content, and history; restore saved tabs with the last active tab selected. | preload TabManager; main TabManager | Partial: Playwright switching between two tabs. Complete session restoration is not verified; see A-01. |
+| VIEW-01 | Grid and list views show the same files, respect column settings, and preserve file actions. | preload get_view, get_view_item, apply_column_settings_to_card | Partial: unit toolbar/grouped-view tests. E2E tests use the isolated profile's default view; no view matrix. |
+| VIEW-02 | Sorting and grouping preserve group structure and order files within groups. | preload apply_sort, add_to_grouped_view; `src/common/file_groups.js` | Partial: `sort_grouped_views.test.js`, `file_groups.test.js`, `recent_groups.test.js`. Missing: full interactive grouped transfers and grouping changes during background work. |
+| VIEW-03 | Large directories use virtual scrolling, preserve selection and show newly visible previews. | preload render_virtual_view, render_virtual_range, create_virtual_file_card | Partial: Playwright 1,001-image scrolling plus 7,000-SVG wheel/idle stability in grid and list views; transfer unit tests. Missing: virtual rename/delete/transfer, active filters and grouped virtual views. |
+| VIEW-04 | Hidden files, quick filtering, theme, icon sizes, and columns follow user settings. | preload show_hidden_files, hide_hidden_files, filter/settings handlers | Untested as integrated flows. Grouping/sorting has limited unit coverage. |
+| STATUS-01 | Loading spinner changes to completion status after rendering, including empty directories; completion messages auto-hide. | preload get_files, ls_done, Utilities.set_msg | Partial: Playwright spinner replacement for 0, 3, and 1,001 files. Auto-hide timing and failed listings remain untested. |
+
+## File operations
+
+| ID | Behavior to preserve | Implementation | Verification / gaps |
+| --- | --- | --- | --- |
+| FILE-01 | Select one, multiple, or all visible files; keyboard shortcuts operate on the selection. | preload Utilities.get_selected_files; DragSelect; virtual selection handlers | Partial: Playwright single/Ctrl/all selection. Missing: range selection, keyboard navigation, virtual multi-select end to end. |
+| FILE-02 | Copy/paste preserves sources, file contents, and destination cards. | preload copy/paste/add_items; main Utilities.paste; `src/workers/paste_worker.js` | Verified: Playwright local file, nested folder, multiple files, card persistence. Missing: permissions, cancellation, partial copy failures, network destinations. |
+| FILE-03 | Cut/paste moves the selected items, removes source entries, and retains destination entries. | preload cut/paste; main Utilities.move/init_move_worker; `src/workers/move_worker.js` | Partial: Playwright file/folder/multi-file moves; `move_worker.test.js` covers failure/cancellation/cleanup safety. Cross-device failure not covered: A-04. |
+| FILE-04 | Copy after Cut replaces cut intent; paste copies the new selection and preserves both sources. | preload Utilities.copy | Verified: unit and Playwright tests. Missing: Escape/cancel-cut and clipboard state after failures. |
+| FILE-05 | Conflicts allow overwrite/keep/skip; mixed conflicting and non-conflicting transfers reach the correct directory. | preload show_overwrite_view; main overwrite_one/overwrite_all | Untested. Destructive destination removal occurs before overwrite transfer; see A-05. |
+| FILE-06 | Create, rename, and delete folders; deletion handles confirmation and preserves unrelated files. | preload mkdir/edit/delete; main handlers; `src/workers/delete_worker.js` | Partial: Playwright create/rename/delete folder; delete worker unit tests. File deletion, trash semantics, cancellation and permission errors need integrated checks. |
+| FILE-07 | Internal drag/drop moves or copies to folders/sidebar; external drops import files safely. | preload drag/drop handlers; `src/common/dnd.js` | Partial: DND helper unit tests. No actual drag/drop Playwright coverage. |
+| FILE-08 | External filesystem changes update the correct directory/window without duplicate cards. | main Watcher; `src/common/libfs.js`: watch | Untested as a dedicated flow; fixture refreshes are not proof of watcher behavior. |
+| FILE-09 | Compression and extraction preserve files, progress, and cancellation behavior. | `src/workers/compression_worker.js`; main/preload compression handlers | Untested. |
+| FILE-10 | Properties show metadata, directory sizes, permissions, and open-with actions. | preload PropertiesManager, handleFolderSize; main/common filesystem handlers | Untested as integrated flows. Basic libfs permissions/metadata have unit coverage. |
+
+## Media and icons
+
+| ID | Behavior to preserve | Implementation | Verification / gaps |
+| --- | --- | --- | --- |
+| MEDIA-01 | Visible images use small cached previews, with full-image decoding outside the main/renderer processes. | `src/main/lib/ThumbnailManager.js`; `src/workers/thumbnail_worker.js`; preload handleIcon | Verified for PNG: Playwright 2,048-to-256 preview, cache reuse and metadata invalidation. Other image formats need compatibility checks: A-02. |
+| MEDIA-02 | Preview loading stays bounded, ignores detached cards, and does not block navigation or virtual scrolling. | preload lazy_load_icons; ThumbnailManager | Verified scenarios: unit queue/deduplication/timeout checks; Playwright pending navigation and virtual scrolling. No measured before/after benchmark on real photo directories. |
+| MEDIA-03 | Corrupt/unsupported images keep a usable fallback and do not prevent healthy previews. | thumbnail worker exception handling; preload generic image icon | Verified corrupt PNG + healthy PNG. Unsupported format matrix untested. |
+| MEDIA-04 | Folder/file icons, symlink and readonly emblems, and platform fallbacks remain visible. | main IconManager/get_icon handlers; preload handleIcon | Partial: `IconManager.test.js`. No integrated icon matrix or real Windows run. |
+| MEDIA-05 | SVG files display vector previews directly through Chromium with lazy loading in grid, list, and virtual views. Special characters in filenames are escaped; invalid SVGs fall back to the generic image icon. Large SVG directories stop scrolling when wheel input stops. | `src/main/preload.js`: handleIcon, Utilities.lazy_load_icons, render_virtual_range; `src/renderer/styles/index.css`: .virtual_view | Verified: Playwright normal/virtual SVG rendering, escaped filenames, scrolling away/back, and scroll stability with 7,000 SVGs in grid/list views. Invalid-SVG fallback is implemented but not separately tested. |
+| MEDIA-06 | Video previews retain supported behavior. | preload handleIcon | Untested compatibility after thumbnail changes. |
+
+## Devices, search, and settings
+
+| ID | Behavior to preserve | Implementation | Verification / gaps |
+| --- | --- | --- | --- |
+| DEV-01 | Discover devices without waiting indefinitely; omit inaccessible/timed-out mounts, retain unmounted drives, and show capacity for reachable GVFS mounts. | `src/workers/device_worker.js`; common/device_probe; workers/device_probe | Partial: discovery tests exclude inaccessible mounts and preserve unmounted drives; mount-info tests cover GVFS/GIO capacity and accessibility failures; Playwright renders a simulated verified GVFS capacity response. No real disconnected-mount certification. |
+| DEV-02 | USB hot-plug refreshes mounted and unmounted drives automatically, coalesces events, retries after OS volume discovery, and preserves unchanged sidebar entries. Mount/unmount, saved network connections, and connect actions remain available. | main DeviceManager/NetworkManager; worker discover; preload sidebar device handlers | Partial: `src/main/tests/device_hotplug.test.js` verifies event debouncing, both discovery requests, and the delayed retry; `src/workers/tests/device_worker.test.js` verifies a follow-up scan when hot-plug occurs during discovery; `e2e/file-management.spec.js` (“hot-plug updates device entries without rebuilding unchanged sidebar controls”) verifies simulated insertion, automount deduplication, removal, and unchanged DOM identity. Real USB/native GIO mount/unmount and reconnect flows remain unverified. |
+| DEV-03 | Disk-space queries time out, coalesce, limit stuck children, and recover after cooldown. | common/device_probe; main get_disk_space/get_dashboard_disk_stats | Partial: fake-process unit tests. Other synchronous filesystem access still exists: A-03. |
+| FIND-01 | Recursive Find streams acknowledged batches of at most 256 matches; large results use virtual rendering in the search scroll container. Closing, navigating, and removing tabs cancel active searches. Unique search IDs isolate queries and tabs; search files stay separate from directory data. Existing depth/date/size filters and grouping remain available. | preload find panel, render_virtual_view, close_find_view; main find/find_ack/cancel_find; `src/workers/find_worker.js` | Unit checks cover batch backpressure and option normalization. Playwright covers 7,001 results with bounded DOM, opening result directories, close/reopen, no matches, navigation during search, separate-tab results, size validation/filtering, grouping, and copying a result. An additional 16-case Playwright matrix verifies inclusive min/max size and date bounds, exact and zero sizes, depth limits/default/unrestricted recursion, combined filters, empty matches, clearing filters, case-insensitive names, and invalid ranges. Broader group/action combinations, blocked network search cancellation, and timing benchmarks remain gaps; autocomplete is still excluded. |
+| SPECIAL-01 | Recent, Dashboard, Workspace, bookmarks, and their context actions remain usable. | preload dashboard/recent/workspace/sidebar classes; main corresponding handlers | Partial: recent grouping helpers only. No end-to-end dashboard/workspace/session restoration tests. |
+| SETTINGS-01 | Persist view/theme/column settings, location, shortcuts, and window geometry without overwriting unrelated settings. | main/preload SettingsManager; WindowManager | Partial: same-profile directory restart. Settings migration and simultaneous windows untested. |
+| PLATFORM-01 | Development and packaged Linux/Windows launches support the same essential file flows. | package build configuration; main startup; thumbnail decoder entry | Partial: development Linux Electron under Xvfb only. Packaged decoder route, Windows build, and real desktop accessibility unverified. |
+
+## Repeatable checks
+
+```sh
+npm run test:regression
+# Linux without a usable display:
+xvfb-run -a npm run test:regression
+```
+
+The regression command runs all configured Jest suites, then the full Electron Playwright suite, stopping on failure. Profiles and file-operation fixtures live in temporary directories. Build artifacts under `dist/` are excluded from Jest discovery so a packaged `.snap` file is not mistaken for an obsolete Jest snapshot. The existing excluded autocomplete suite stays excluded; this command is not a promise to cover every feature above.
+
+For development, `npm run test:unit` and `npm run test:e2e -- --grep 'test name'` run smaller checks. Record exactly which command passed; do not equate focused checks with the full regression run.
+
+## Audit of recent changes
+
+These are code-review findings, not newly fixed behavior. Avoid implementing unrelated fixes as part of documentation work.
+
+| Finding | Affected IDs | Evidence and risk | Next check / fix |
+| --- | --- | --- | --- |
+| A-01: Complete tab restoration remains unreliable | NAV-02, NAV-03 | Startup issues several listing requests, but request generation only accepts the latest response. The final location is intentionally last, yet this does not prove all earlier tabs restore. `update_tab` only appends records inside its nonempty-tabs branch, so an initially empty saved list may remain empty. | Add restart test with three saved folders, per-tab contents/history, and an active tab other than the last. Restore tabs sequentially or route listing results to explicit tab identities. |
+| A-02: Image-format compatibility changed | MEDIA-01, MEDIA-03, MEDIA-05 | Previous SVG path loaded the original directly and XCF requested a file icon. SVG direct rendering has now been restored and covered by Playwright in normal/virtual views. Other raster images still go through `nativeImage.createFromPath`; empty results keep a generic icon. Raster E2E fixtures are PNG only. GIF animation and WebP/JPEG/XCF behavior are not established by those tests. SVG coverage is recorded under MEDIA-05. | Establish old supported formats, add representative fixtures, then preserve expected previews or explicit per-format fallbacks. |
+| A-03: Device timeout does not make all filesystem access nonblocking | NAV-01, DEV-01–03 | `main.js` still uses synchronous existence, metadata and access checks for listing validation, watcher events and transfer setup. Opening a stuck mount can still block outside the isolated probe path. Probe concurrency is capped per module instance/process, not globally across main and worker. | Simulate blocked validation/listing in an isolated test; move remaining relevant probes outside the main event loop with bounded waiting. |
+| A-04: Cross-device move failures are not covered by the safety test | FILE-03 | Move-worker tests inject `mv` errors, but `libfs.mv` performs recursive copy then recursive source removal on EXDEV. Destination/source verification and removal failures are not tested across that boundary. | Test EXDEV copy failure, unlink/removal failure, partial directory transfer, permissions, and cancellation. |
+| A-05: Overwrite can discard the existing destination before success | FILE-05 | `overwrite_one` and `overwrite_all` remove existing destination paths before starting the new copy/move. A later failure can leave neither the old destination nor a complete replacement. | Add failure-injection tests; design replacement/backup behavior before changing it. |
+| A-06: View reconstruction may lose transient UI state | VIEW-01–04, FILE-02–03 | `add_items` now rebuilds via `get_view`, which clears filters and resets scroll position. Grouped transfer unit tests are not integrated proof that filters, selection, focus, and scroll survive. | Add Playwright filtered/scrolled/grouped transfer scenarios and assert focus/selection/scroll invariants. |
+| A-07: Thumbnail cache has no cleanup policy | MEDIA-01 | Keys invalidate changed sources but old cached files remain. Cache resides under the app profile's `thumbnails` directory. | Define a size/age policy and verify cleanup never removes active files. |
+| A-08: Failure status and stale asynchronous results need broader checks | STATUS-01, DEV-03 | Success spinner tests do not cover failed listings. Async disk-space replies are not tied to a current-navigation token, so an earlier location's reply can overwrite a later one. | Test invalid/inaccessible listings and delayed out-of-order disk-space replies after navigation. |
+
+## Baseline validation
+
+Before adding these documents, all 15 configured unit suites passed: 86 tests. Native GIO emitted proxy warnings in the restricted environment; those checks still passed. `xvfb-run -a npm run test:regression` passed: **86 unit tests across 15 suites and all 20 Electron Playwright tests** (2026-10-29). No real disconnected network mount, packaged build, Windows run, or manual accessibility validation is included.
+
+Device behavior update: inaccessible mounts are intentionally hidden at the user’s request. Discovery failure no longer republishes unverified cached mounts. Capacity/accessibility probes remain isolated with the existing parent deadline; GIO commands also have a 2.5-second command deadline. No real mounts were modified for testing.
+
+Virtual-scroll regression: repeated wheel input in a 7,000-SVG directory reproduced continuous idle scrolling before the fix (over 10,000 pixels of movement in the sampled idle frames). Disabling browser scroll anchoring within `.virtual_view` prevents spacer replacement from causing additional scroll events. Playwright samples idle animation frames after five wheel gestures in both grid and list views and checks that scrolling stops.
+
+USB hot-plug update: scans now publish complete verified lists rather than partial prefixes. Mounted volumes and unmounted drives are merged, and device entries are reconciled by identity so unchanged controls are preserved. Monitor events trigger debounced discovery and one delayed retry; events received during discovery request a follow-up scan instead of being dropped.
+
+Search responsiveness update: results are delivered in acknowledged batches of up to 256 files, large results reuse virtual rows within the search scroll container, and completion renders the final result set. Search cancellation is attached to close, directory navigation, and tab removal; unique IDs prevent reused-panel collisions. Directory data remains separate from matches so closing search restores the folder. Current checks cover 7,001 actual matches; this is functional coverage rather than a measured performance guarantee for every dataset.
+
+Search option semantics verified with temporary fixtures: sizes are bytes; minimum/maximum and modified-from/to bounds include exact matches. Depth counts the search root as level 0, so the default 1 includes files in direct child directories; an empty depth field leaves recursion unrestricted. Datetime-local inputs are converted using the browser timezone. Reversed size/date ranges show validation messages without launching the search.

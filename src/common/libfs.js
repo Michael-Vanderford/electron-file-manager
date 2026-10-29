@@ -291,10 +291,12 @@ class LibFS {
                     let event;
                     if (filename) {
                         const fullPath = path.join(dir, filename);
+                        const exists = this.exists(fullPath);
                         event = {
                             eventType,
+                            event: eventType === 'rename' ? (exists ? 'created' : 'deleted') : 'modified',
                             filename: fullPath,
-                            file: this.exists(fullPath) ? this.get_file(fullPath) : { href: fullPath, name: filename }
+                            file: exists ? this.get_file(fullPath) : { href: fullPath, name: filename }
                         };
                     } else {
                         event = { eventType, filename: dir };
@@ -363,7 +365,7 @@ class LibFS {
         return { folders, files, total: folders + files };
     }
 
-    get_mounts(callback) {
+    get_mounts(callback, { include_stats = true } = {}) {
         if (this.gioNative && typeof this.gioNative.get_mounts === 'function') {
             return this.gioNative.get_mounts(callback);
         }
@@ -385,7 +387,7 @@ class LibFS {
                 const fsType = parts[2];
 
                 if (mountPath && (mountPath === '/' || mountPath.startsWith('/media') || mountPath.startsWith('/mnt') || mountPath.startsWith('/run/media'))) {
-                    const stats = this.disk_stats(mountPath);
+                    const stats = include_stats ? this.disk_stats(mountPath) : {};
                     mounts.push({
                         name: path.basename(mountPath) || mountPath,
                         path: mountPath,

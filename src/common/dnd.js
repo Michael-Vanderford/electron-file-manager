@@ -46,4 +46,15 @@ function is_self_or_descendant(target_dir, source) {
     return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
-module.exports = { path_to_file_uri, file_uri_to_path, parse_uri_list, build_drag_payload, is_self_or_descendant };
+function select_drag_item(item, clear_selection) {
+    if (!item.classList.contains('highlight_select') && !item.classList.contains('highlight')) {
+        clear_selection();
+    }
+    item.classList.add('highlight_select');
+}
+
+function is_active_destination(destination, location) {
+    return path.resolve(destination) === path.resolve(location);
+}
+
+module.exports = { path_to_file_uri, file_uri_to_path, parse_uri_list, build_drag_payload, is_self_or_descendant, select_drag_item, is_active_destination };

@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { path_to_file_uri, parse_uri_list, build_drag_payload, is_self_or_descendant } = require('../dnd');
+const { path_to_file_uri, parse_uri_list, build_drag_payload, is_self_or_descendant, select_drag_item, is_active_destination } = require('../dnd');
 
 test('uri round-trip for special characters', () => {
     const paths = ['/home/a b/c#d%e.txt', '/tmp/ünï/x'];
@@ -24,4 +24,41 @@ test('self/descendant detection', () => {
     assert.ok(is_self_or_descendant('/a/b/c', '/a/b'));
     assert.ok(!is_self_or_descendant('/a/bc', '/a/b'));
     assert.ok(!is_self_or_descendant('/a', '/a/b'));
+});
+
+test('dragging an unselected item clears the previous selection', () => {
+    const classes = new Set();
+    const item = {
+        classList: {
+            contains: (name) => classes.has(name),
+            add: (name) => classes.add(name)
+        }
+    };
+    let cleared = false;
+
+    select_drag_item(item, () => { cleared = true; });
+
+    assert.ok(cleared);
+    assert.ok(classes.has('highlight_select'));
+});
+
+test('dragging a selected item preserves multi-selection', () => {
+    const classes = new Set(['highlight_select']);
+    const item = {
+        classList: {
+            contains: (name) => classes.has(name),
+            add: (name) => classes.add(name)
+        }
+    };
+    let cleared = false;
+
+    select_drag_item(item, () => { cleared = true; });
+
+    assert.ok(!cleared);
+});
+
+test('cut/paste marks the active folder as the card insertion destination', () => {
+    assert.ok(is_active_destination('/home/user/Documents', '/home/user/Documents'));
+    assert.ok(is_active_destination('/home/user/Documents/', '/home/user/Documents'));
+    assert.ok(!is_active_destination('/home/user/Documents/archive', '/home/user/Documents'));
 });

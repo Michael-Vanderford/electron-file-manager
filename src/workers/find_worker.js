@@ -117,6 +117,21 @@ function normalize_find_options(raw_options = {}) {
 }
 
 
+async function stream_results(generator, port) {
+    let batch = [];
+    const flush = async () => {
+        const acknowledged = new Promise(resolve => port.once('message', resolve));
+        port.postMessage({ cmd: 'find_batch', files: batch });
+        batch = [];
+        await acknowledged;
+    };
+    for await (const file of generator) {
+        batch.push(file);
+        if (batch.length >= 256) await flush();
+    }
+    if (batch.length) await flush();
+}
+
 if (!isMainThread) {
 
     parentPort.on('message', async (msg) => {
@@ -136,12 +151,7 @@ if (!isMainThread) {
                 const result = await find(msg.query, msg.location, msg.options);
 
                 if (result.generator) {
-                    for await (const file of result.generator) {
-                        parentPort.postMessage({
-                            cmd: 'find_result',
-                            file: file
-                        });
-                    }
+                    await stream_results(result.generator, parentPort);
                     parentPort.postMessage({
                         cmd: 'find_done',
                         err: false
@@ -163,3 +173,4 @@ if (!isMainThread) {
     })
 
 }
+module.exports = { stream_results, normalize_find_options };
