@@ -888,7 +888,13 @@ hr {
 }
 
 .workspace_view {
-    /* height: 100vh; */
+    /* Keep the empty section usable as a drop target above Devices. */
+    min-height: 48px;
+}
+
+.workspace_empty {
+    padding: 12px 8px;
+    color: var(--text-secondary, var(--text));
 }
 
 .device_view {

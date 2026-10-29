@@ -3469,11 +3469,13 @@ class WorkspaceManager {
                 workspace.classList.add('workspace')
             }
             workspace.innerHTML = '';
-            this.sidebar.append(workspace);
-            workspace.append(document.createElement('hr'));
+            this.workspace_view.append(workspace);
+            workspace.append(document.createElement('hr'), workspace_accordion);
 
             if (res.length == 0) {
-                workspace.append('Drop a file or folder');
+                const empty = utilities.add_div(['workspace_empty']);
+                empty.textContent = 'Drop a file or folder';
+                workspace_accordion_container.append(empty);
             }
 
             workspace.addEventListener('mouseout', (e) => {
@@ -3481,6 +3483,7 @@ class WorkspaceManager {
             })
 
             workspace_accordion_toggle.addEventListener('click', (e) => {
+                e.preventDefault();
 
                 workspace_accordion_container.classList.toggle('hidden');
                 if (workspace_accordion_container.classList.contains('hidden')) {
@@ -3657,8 +3660,6 @@ class WorkspaceManager {
 
                 fileManager.handleTitle(tr, file);
 
-                workspace.append(workspace_accordion);
-                this.workspace_view.append(workspace);
 
             })
 

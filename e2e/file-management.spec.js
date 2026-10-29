@@ -656,3 +656,40 @@ for (const view of ['grid_view', 'list_view']) {
         });
     }
 }
+
+test('empty Workspace stays above Devices and accepts the first dragged item', async () => {
+    const source = path.join(fixture, 'workspace-source.txt');
+    await fs.writeFile(source, 'workspace contents');
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    const workspace = page.locator('.sidebar .workspace_view');
+    const empty = workspace.locator('.workspace_empty');
+    await expect(empty).toHaveText('Drop a file or folder');
+    await expect(workspace.locator('#workspace')).toHaveCount(1);
+    const aboveDevices = () => workspace.evaluate(element => {
+        const devices = document.querySelector('.device_view');
+        return !!(element.compareDocumentPosition(devices) & Node.DOCUMENT_POSITION_FOLLOWING)
+            && element.getBoundingClientRect().bottom <= devices.getBoundingClientRect().top;
+    });
+    expect(await aboveDevices()).toBe(true);
+    await card(source).click();
+    const origin = await card(source).boundingBox();
+    const target = await empty.boundingBox();
+    await page.mouse.move(origin.x + origin.width / 2, origin.y + origin.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 12 });
+    await page.mouse.up();
+    await expect(workspace.locator('.workspace_item')).toHaveCount(1);
+    await expect(empty).toHaveCount(0);
+    expect(await fs.readFile(source, 'utf8')).toBe('workspace contents');
+    expect(await aboveDevices()).toBe(true);
+    await page.reload();
+    await expect(workspace.locator('.workspace_item')).toHaveCount(1);
+    expect(await aboveDevices()).toBe(true);
+    // Exercise the existing remove-workspace command, scoped to the test profile.
+    await app.evaluate(({ BrowserWindow }, href) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('remove_workspace', href);
+    }, source);
+    await expect(empty).toBeVisible();
+    await expect(workspace.locator('.workspace_item')).toHaveCount(0);
+    expect(await aboveDevices()).toBe(true);
+});

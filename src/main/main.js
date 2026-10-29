@@ -1,10 +1,10 @@
+// @ts-nocheck
+
 // Packaged Electron executables always enter this file, including decoder children.
 if (process.argv.includes('--thumbnail-worker')) {
     require('../workers/thumbnail_worker');
     return;
 }
-
-// @ts-nocheck
 
 // Provide app and Electron version to renderer
 const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
