@@ -1,11 +1,5 @@
 // @ts-nocheck
 
-// Packaged Electron executables always enter this file, including decoder children.
-if (process.argv.includes('--thumbnail-worker')) {
-    require('../workers/thumbnail_worker');
-    return;
-}
-
 // Provide app and Electron version to renderer
 const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
 const packageJson = require('../../package.json');
@@ -28,6 +22,21 @@ const FILE_ICON_CACHE = new Map();
 const MAX_FILE_ICON_CACHE_ENTRIES = 2000;
 const MAX_FOLDER_SIZE_CACHE_ENTRIES = 1000;
 const FOLDER_SIZE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Packaged Electron executables always enter this file, including decoder children.
+if (process.argv.includes('--thumbnail-worker')) {
+    require('../workers/thumbnail_worker');
+    return;
+}
+
+if (process.env.TEST_PROFILE_DIR) {
+  const profile = path.resolve(process.env.TEST_PROFILE_DIR);
+
+  fs.mkdirSync(profile, { recursive: true });
+
+  app.setPath('userData', profile);
+  app.setPath('sessionData', profile);
+}
 
 class DirectorySizeCache {
     constructor(max_entries = MAX_FOLDER_SIZE_CACHE_ENTRIES, ttl_ms = FOLDER_SIZE_CACHE_TTL_MS) {
