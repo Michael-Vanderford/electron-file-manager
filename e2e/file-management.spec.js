@@ -632,3 +632,27 @@ for (const option of searchOptionCases) {
         if (!count) await expect(page.locator('.find_empty')).toHaveText('No matches found.');
     });
 }
+
+for (const view of ['grid_view', 'list_view']) {
+    for (const count of [3, 1001]) {
+        test(`loads ${count} files in ${view} without selecting the first card and keeps arrow navigation`, async () => {
+            for (let batch = 0; batch < count; batch += 200) {
+                await Promise.all(Array.from({ length: Math.min(200, count - batch) }, (_, index) =>
+                    fs.writeFile(path.join(fixture, `file-${batch + index}.txt`), 'contents')));
+            }
+            await page.evaluate(view => window.titlebarAPI.setView(view), view);
+            await page.evaluate(() => window.titlebarAPI.refresh());
+            await expect(page.locator('.footer .msg')).toHaveText(`Loaded ${count} items`);
+            const selected = page.locator('.active-tab-content .card.highlight_select');
+            await expect(selected).toHaveCount(0);
+            const container = page.locator('.active-tab-content .view_container');
+            await container.focus();
+            await page.keyboard.press('ArrowDown');
+            await expect(selected).toHaveCount(1);
+            await expect(container.locator('.card').first()).toHaveClass(/highlight_select/);
+            await page.keyboard.press('ArrowRight');
+            await expect(selected).toHaveCount(1);
+            await expect(container.locator('.card').first()).not.toHaveClass(/highlight_select/);
+        });
+    }
+}

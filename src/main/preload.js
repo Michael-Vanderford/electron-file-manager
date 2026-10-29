@@ -6927,7 +6927,6 @@ class FileManager {
 
         this.apply_view_settings_to_container(view_container, this.view);
         // Initialize keyboard navigation and focus the container
-        this.handleInitKeyNav(view_container);
 
         // hide hidden files if schema setting exists and default is false
         this.schema = settingsManager.get_schema();
@@ -7034,8 +7033,6 @@ class FileManager {
 
         this.lazy_load_files(files_arr);
 
-        // handle the first arrow down event for card selection
-        this.handleInitKeyNav(view_container);
 
         this.update_toolbar_state();
 
@@ -9136,7 +9133,7 @@ class FileManager {
 
     handleInitKeyNav() {
 
-        const view_container = document.querySelector('.view_container');
+        const view_container = tabManager.get_active_tab_content()?.querySelector('.view_container');
         if (!view_container) return;
         const cards = Array.from(view_container.querySelectorAll('.card'));
         if (!cards.length) return;
