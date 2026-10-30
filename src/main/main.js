@@ -1,18 +1,24 @@
 // @ts-nocheck
 
 // Provide app and Electron version to renderer
-const { app, Tray, BrowserWindow, ipcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
+const { app, Tray, BrowserWindow, ipcMain: nativeIpcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
 const packageJson = require('../../package.json');
 const window = require('electron').BrowserWindow;
 const worker = require('worker_threads');
 const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
-const exec = require('child_process').exec;
+const { run_configured, launch_desktop } = require('../common/process_tools');
 const execFile = require('child_process').execFile;
 const os = require('os');
 const libfs = require('../common/libfs');
 const dnd = require('../common/dnd');
+const safe_replace = require('../common/safe_replace');
+const { archive_destination } = require('../common/create_archive');
+const { pathToFileURL } = require('url');
+const { secureIpc } = require('./lib/SecureIpc');
+const { secureWindow } = require('./lib/WindowSecurity');
+const ipcMain = secureIpc(nativeIpcMain, path.join(__dirname, '../renderer'));
 const { probe: device_probe } = require('../common/device_probe');
 const iconManager = require('./lib/IconManager');
 const { XMLParser } = require('fast-xml-parser');
@@ -37,6 +43,10 @@ if (process.env.TEST_PROFILE_DIR) {
   app.setPath('userData', profile);
   app.setPath('sessionData', profile);
 }
+
+if (!app.isPackaged) require('../../scripts/build-preloads').buildPreloads();
+
+const replacement_journals = path.join(app.getPath('userData'), 'replacement-journals');
 
 class DirectorySizeCache {
     constructor(max_entries = MAX_FOLDER_SIZE_CACHE_ENTRIES, ttl_ms = FOLDER_SIZE_CACHE_TTL_MS) {
@@ -943,6 +953,23 @@ ipcMain.handle('get_dashboard_disk_stats', async (e, location) => {
 
 })
 
+ipcMain.on('path_operation', (event, operation, args) => {
+    if (!['isAbsolute', 'resolve', 'relative', 'basename', 'dirname'].includes(operation) ||
+        !Array.isArray(args) || !args.every(value => typeof value === 'string' && !value.includes('\0'))) {
+        event.returnValue = null;
+        return;
+    }
+    event.returnValue = path[operation](...args);
+});
+
+ipcMain.on('open_external', (event, url) => {
+    try {
+        const parsed = new URL(url);
+        if (!['https:', 'http:', 'mailto:'].includes(parsed.protocol)) return;
+        shell.openExternal(parsed.href).catch(error => event.sender.send('set_msg', error.message));
+    } catch (_) { /* Invalid external URL. */ }
+});
+
 const active_find_workers = new Map();
 
 ipcMain.on('find_ack', (e, search_id) => {
@@ -1079,50 +1106,25 @@ ipcMain.handle('find', async (e, query, location, options, search_id) => {
 
 // Overwrite a single conflicting file
 
-ipcMain.on('overwrite_one', (e, f, operation) => {
-    try {
-        if (fs.existsSync(f.destination)) {
-            if (fs.statSync(f.destination).isDirectory()) {
-                fs.rmSync(f.destination, { recursive: true, force: true });
-            } else {
-                fs.unlinkSync(f.destination);
-            }
-        }
-        if (operation === 'move') {
-            utilities.move_worker.postMessage({ cmd: 'move', move_arr: [f] });
-            utilities.move_in_progress = true;
-        } else {
-            utilities.paste_worker.postMessage({ cmd: 'paste', copy_arr: [f] });
-            utilities.copy_in_progress = true;
-        }
-    } catch (err) {
-        win.send('set_msg', `Error overwriting ${f.name}: ${err.message}`);
+function overwrite(e, files, operation) {
+    if (operation === 'compress') {
+        for (const file of files) utilities.start_compression(e, { ...file, overwrite: true });
+        return;
     }
-});
-
-// Overwrite all remaining conflicting files
-ipcMain.on('overwrite_all', (e, files_arr, operation) => {
-    files_arr.forEach(f => {
-        try {
-            if (fs.existsSync(f.destination)) {
-                if (fs.statSync(f.destination).isDirectory()) {
-                    fs.rmSync(f.destination, { recursive: true, force: true });
-                } else {
-                    fs.unlinkSync(f.destination);
-                }
-            }
-        } catch (err) {
-            win.send('set_msg', `Error removing ${f.destination}: ${err.message}`);
-        }
-    });
+    const entries = files.map(file => ({ ...file, overwrite: true }));
+    utilities.run_watcher = false;
+    e.sender.send('set_progress', { operation: operation === 'move' ? 'move' : 'copy', max: 1, value: 0, can_cancel: true, status: 'Preparing replacement' });
     if (operation === 'move') {
-        utilities.move_worker.postMessage({ cmd: 'move', move_arr: files_arr });
+        utilities.move_worker.postMessage({ cmd: 'move', move_arr: entries });
         utilities.move_in_progress = true;
     } else {
-        utilities.paste_worker.postMessage({ cmd: 'paste', copy_arr: files_arr });
+        utilities.paste_worker.postMessage({ cmd: 'paste', copy_arr: entries });
         utilities.copy_in_progress = true;
     }
-});
+}
+
+ipcMain.on('overwrite_one', (e, file, operation) => overwrite(e, [file], operation));
+ipcMain.on('overwrite_all', (e, files, operation) => overwrite(e, files, operation));
 
 /////////////////////////////////
 
@@ -1275,7 +1277,7 @@ class Utilities {
                 if (typeof p !== 'string' || !path.isAbsolute(p)) continue;
                 let stat;
                 try {
-                    stat = fs.statSync(p);
+                    stat = fs.lstatSync(p);
                 } catch (err) {
                     continue;
                 }
@@ -1292,6 +1294,7 @@ class Utilities {
                     ctime: stat.ctimeMs,
                     atime: stat.atimeMs,
                     is_dir: stat.isDirectory(),
+                    is_symlink: stat.isSymbolicLink(),
                     location: path.dirname(p),
                     is_hidden: name.startsWith('.')
                 });
@@ -1324,6 +1327,7 @@ class Utilities {
         })
 
         ipcMain.on('cancel_operation', (e, operation) => {
+            if (operation === 'compress') this.compression_worker?.postMessage({ cmd: 'cancel' });
             if (operation === 'delete' && this.delete_in_progress) {
                 this.delete_worker.postMessage({ cmd: 'cancel' });
                 const sender = this.delete_sender || e.sender || win;
@@ -1477,6 +1481,15 @@ class Utilities {
                         win.send('set_progress', data)
                     }
 
+                    if (data.cmd === 'extract_error') {
+                        this.run_watcher = true;
+                        if (!e.sender.isDestroyed()) {
+                            e.sender.send('set_progress', { operation: 'extract', max: 0, value: 0 });
+                            e.sender.send('set_msg', `Error extracting archive: ${data.msg}`);
+                        }
+                        compression_worker.terminate();
+                    }
+
                     if (data.cmd === 'extract_done') {
                         if (data.destination) {
                             this.invalidate_folder_size_for_item_path(data.destination);
@@ -1495,9 +1508,17 @@ class Utilities {
                         e.sender.send('set_msg', 'Done extracting files.', 1);
 
                         this.run_watcher = true;
+                        compression_worker.terminate();
 
                     }
                 })
+                compression_worker.on('error', error => {
+                    this.run_watcher = true;
+                    if (!e.sender.isDestroyed()) {
+                        e.sender.send('set_progress', { operation: 'extract', max: 0, value: 0 });
+                        e.sender.send('set_msg', `Error extracting archive: ${error.message}`);
+                    }
+                });
 
                 let data = {
                     id: progress_id += 1,
@@ -1511,56 +1532,10 @@ class Utilities {
             files_arr = [];
         })
 
-        // Compress
+        // Compress: conflicts are resolved before starting a worker or opening output.
         ipcMain.on('compress', (e, files_arr, location, type, size) => {
-
-            let progress_id = 0;
-            this.run_watcher = false;
-
-            let compression_worker = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'));
-            compression_worker.on('message', (data) => {
-                if (data.cmd === 'set_msg') {
-                    win.send('set_msg', data.msg, data.has_timeout);
-                }
-                if (data.cmd === 'set_progress') {
-                    win.send('set_progress', data)
-                }
-                if (data.cmd === 'compress_done') {
-                    if (location) {
-                        this.invalidate_folder_size_hierarchy(location);
-                    }
-
-                    // win.send('remove_item', data.file_path);
-                    let f = libfs.get_file(data.file_path);
-                    if (f) {
-                        f.id = btoa(data.file_path);
-                        win.send('get_item', f);
-                    }
-                    let close_progress = {
-                        id: data.id,
-                        value: 0,
-                        max: 0,
-                        status: ''
-                    }
-                    win.send('set_progress', close_progress);
-                    win.send('set_msg', 'Done compressing files.');
-
-                    this.run_watcher = false;
-
-                }
-            })
-
-            let compress_data = {
-                id: progress_id += 1,
-                cmd: 'compress',
-                location: location,
-                type: type,
-                size: size,
-                files_arr: files_arr
-            }
-            compression_worker.postMessage(compress_data);
-
-        })
+            this.start_compression(e, { files_arr, location, type, size });
+        });
 
         // On Get Folder Size
         ipcMain.on('get_folder_size', (e, href) => {
@@ -1573,8 +1548,61 @@ class Utilities {
 
     }
 
+    async start_compression(e, request) {
+        const sender = e.sender;
+        if (this.compression_worker) {
+            sender.send('set_msg', 'An archive is already being created.');
+            return;
+        }
+        let job;
+        try {
+            const destination = request.destination || archive_destination(request.files_arr, request.location, request.type);
+            for (const file of request.files_arr) await safe_replace.assert_destination(file.href, destination);
+            job = { ...request, destination, name: path.basename(destination), source: request.files_arr[0].href };
+            if (!request.overwrite && await safe_replace.lstat(destination)) {
+                sender.send('archive_conflict', job);
+                return;
+            }
+        } catch (error) { sender.send('set_msg', `Cannot create archive: ${error.message}`); return; }
+        // Recheck after async validation so two requests cannot start together.
+        if (this.compression_worker) { sender.send('set_msg', 'An archive is already being created.'); return; }
+        const previous_watcher_state = this.run_watcher;
+        this.run_watcher = false;
+        const archive_worker = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'), {
+            workerData: { journal_dir: replacement_journals }
+        });
+        this.compression_worker = archive_worker;
+        let finished = false;
+        const finish = (error, file_path) => {
+            if (finished) return;
+            finished = true;
+            this.compression_worker = null;
+            this.run_watcher = previous_watcher_state;
+            if (!sender.isDestroyed()) {
+                sender.send('set_progress', { operation: 'compress', max: 0, value: 0, can_cancel: false });
+                if (error?.code === 'EEXIST' && !job.overwrite) sender.send('archive_conflict', job);
+                else if (error) sender.send('set_msg', `Archive not completed: ${error.message}`);
+                else {
+                    this.invalidate_folder_size_hierarchy(job.location);
+                    sender.send('add_items', [libfs.get_file(file_path)], job.location);
+                    sender.send('set_msg', 'Done compressing files.');
+                }
+            }
+            archive_worker.terminate();
+        };
+        archive_worker.on('message', data => {
+            if (data.cmd === 'set_progress' && !sender.isDestroyed()) sender.send('set_progress', data);
+            if (data.cmd === 'compress_done') finish(null, data.file_path);
+            if (data.cmd === 'compress_error') finish(Object.assign(new Error(data.msg), { code: data.code }));
+        });
+        archive_worker.on('error', finish);
+        archive_worker.on('exit', () => { if (!finished) finish(new Error('Archive worker exited before completion.')); });
+        sender.send('set_progress', { operation: 'compress', max: Math.max(1, job.size || 0), value: 0, can_cancel: true, status: 'Compressing files' });
+        archive_worker.postMessage({ ...job, cmd: 'compress' });
+    }
+
     init_paste_worker() {
-        this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'));
+        this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'), { workerData: { journal_dir: replacement_journals } });
         this.paste_worker.on('message', (data) => {
             const cmd = data.cmd;
             switch (cmd) {
@@ -1590,50 +1618,23 @@ class Utilities {
                     break;
                 }
                 case 'cp_done': {
-
-                    // console.log('cp_done_data', data); // commented out for non-error logging
-                    this.run_watcher = false;
                     this.copy_in_progress = false;
-
-                    if (data.cancelled) {
-                        win.send('set_msg', 'Copy cancelled.');
-                    }
-
-                    if (this.is_main && !data.cancelled) {
-
-                        // get the base name of the file
-                        let file = libfs.get_file(data.destination);
-
-                        if (file.href === undefined || file.href === null) {
-                            win.send('set_msg', 'Error: File not found.');
-                            break;
-                        }
-
-                        file.id = btoa(file.href);
-                        win.send('update_item', file);
-
-                    } else if (!this.is_main && !data.cancelled) {
-
-                        // get the base name of the file
-                        let file = libfs.get_file(this.root_destination);
-                        file.id = btoa(file.href);
-
-                        if (file.href === undefined || file.href === null) {
-                            win.send('set_msg', 'Error: File not found.');
-                            break;
-                        } else {
+                    try {
+                        for (const entry of data.completed || []) {
+                            const file = libfs.get_file(entry.destination);
                             win.send('update_item', file);
                         }
-
-                    }
-
-                    if (this.root_destination) {
-                        this.invalidate_folder_size_hierarchy(this.root_destination);
-                    }
-
-                    this.get_disk_space(this.root_destination);
-                    this.run_watcher = true;
-
+                        for (const entry of data.failures || []) {
+                            if (!entry.overwrite && !fs.existsSync(entry.destination)) {
+                                win.send('remove_item', Buffer.from(entry.destination).toString('base64'));
+                            }
+                        }
+                        if (this.root_destination) {
+                            if (!this.is_main) win.send('update_item', libfs.get_file(this.root_destination));
+                            this.invalidate_folder_size_hierarchy(this.root_destination);
+                            this.get_disk_space(this.root_destination);
+                        }
+                    } finally { this.run_watcher = true; }
                     break;
                 }
                 default:
@@ -1644,7 +1645,7 @@ class Utilities {
     }
 
     init_move_worker() {
-        this.move_worker = new worker.Worker(path.join(__dirname, '../workers/move_worker.js'));
+        this.move_worker = new worker.Worker(path.join(__dirname, '../workers/move_worker.js'), { workerData: { journal_dir: replacement_journals } });
         this.move_worker.on('message', (data) => {
             const cmd = data.cmd;
             switch (cmd) {
@@ -1896,7 +1897,7 @@ class Utilities {
         let paste_arr = [];
         let overwrite_arr = [];
 
-        win.send('set_msg', '<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Gathering files...', true);
+        win.send('set_msg', { text: 'Gathering files...', loading: true }, true);
 
         copy_arr.forEach(f => {
 
@@ -1986,6 +1987,7 @@ class Utilities {
             this.copy_in_progress = true;
         }
 
+        if (!paste_arr.length) this.run_watcher = true;
         if (overwrite_arr.length > 0) {
             // send overwrite_arr to renderer
             e.sender.send('overwrite_copy', overwrite_arr);
@@ -3414,15 +3416,19 @@ class WindowManager {
             frame: false, // Hide native title bar
             titleBarStyle: 'hidden',
             webPreferences: {
-                sandbox: false,
-                nodeIntegration: true, // Needed for titlebar.js
-                contextIsolation: true, // Needed for titlebar.js
+                sandbox: true,
+                nodeIntegration: false,
+                contextIsolation: true,
+                webSecurity: true,
+                webviewTag: false,
                 enableRemoteModule: false,
                 nativeWindowOpen: true,
-                preload: path.join(__dirname, 'preload.js'),
+                preload: path.join(__dirname, 'generated', 'preload.js'),
             },
             icon: app_icon
         });
+
+        secureWindow(window, pathToFileURL(path.join(__dirname, '../renderer/index.html')).href);
 
         // hide menu
         window.setMenuBarVisibility(false);
@@ -3456,7 +3462,7 @@ class WindowManager {
         const indexPath = path.resolve('src/renderer/index.html');
         // console.log('Loading index.html from:', indexPath);
 
-        window.loadFile('src/renderer/index.html');
+        window.loadFile(path.join(__dirname, '../renderer/index.html'));
         window.webContents.on('did-finish-load', () => {
             send_theme_to_window(window);
         });
@@ -3516,10 +3522,12 @@ class DialogManager {
             y: y,
             frame: true,
             webPreferences: {
-                preload: path.join(__dirname, '..', 'renderer', 'dialogs', 'scripts', data.preload),
+                sandbox: true, nodeIntegration: false, contextIsolation: true, webSecurity: true, webviewTag: false,
+                preload: path.join(__dirname, 'generated', data.preload),
             },
         })
 
+        secureWindow(dialog, pathToFileURL(path.join(__dirname, '../renderer/dialogs', data.load_file)).href);
         dialog.loadFile(path.join(__dirname, '..', 'renderer', 'dialogs', data.load_file));
         dialog.webContents.once('did-finish-load', () => send_theme_to_window(dialog));
         // dialog.webContents.openDevTools()
@@ -3549,7 +3557,7 @@ class MenuManager {
         // }
 
         // for template creation
-        this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'));
+        this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'), { workerData: { journal_dir: replacement_journals } });
         this.paste_worker.on('message', (data) => {
             switch (data.cmd) {
                 case 'cp_template_done':
@@ -3696,7 +3704,7 @@ class MenuManager {
                 {
                     label: 'Terminal',
                     click: () => {
-                        exec(`gnome-terminal --working-directory="${destination}"`);
+                        execFile('gnome-terminal', [`--working-directory=${destination}`], error => { if (error) e.sender.send('set_msg', error.message); });
                     }
                 },
                 {
@@ -3721,7 +3729,7 @@ class MenuManager {
                     label: 'Disk Usage Analyzer',
                     // icon: path.join(__dirname, 'assets/icons/menu/diskusage.png'),
                     click: () => {
-                        exec(`baobab '${destination}'`);
+                        execFile('baobab', [destination], error => { if (error) e.sender.send('set_msg', error.message); });
                         win.send('clear_highlight');
                     }
 
@@ -3774,7 +3782,7 @@ class MenuManager {
                 {
                     label: 'Open with Code',
                     click: () => {
-                        exec(`cd "${f.href}"; code .`, (err) => {
+                        execFile('code', ['.'], { cwd: f.href }, (err) => {
                             win.send('clear_highlight');
                             if (err) {
                                 return;
@@ -3907,7 +3915,7 @@ class MenuManager {
                     label: 'Disk Usage Analyzer',
                     // icon: path.join(__dirname, 'assets/icons/menu/diskusage.png'),
                     click: () => {
-                        exec(`baobab '${f.href}'`);
+                        execFile('baobab', [f.href], error => { if (error) e.sender.send('set_msg', error.message); });
                         win.send('clear_highlight');
                     }
 
@@ -4126,7 +4134,7 @@ class MenuManager {
                     label: 'Disks',
                     click: () => {
                         let cmd = settings['disk_utility']
-                        exec(cmd, (err) => {
+                        run_configured(cmd, (err) => {
                             if (err) {
                                 win.send('msg', 'Error: ' + err.message);
                             }
@@ -4298,7 +4306,7 @@ class MenuManager {
             {
                 label: 'Disk Usage Analyzer',
                 click: () => {
-                    exec(`baobab '${location}'`);
+                    execFile('baobab', [location], error => { if (error) win.send('set_msg', error.message); });
                 }
             }
         ];
@@ -4366,7 +4374,7 @@ class MenuManager {
         //         // nodeIntegrationInWorker: true,
         //         // nativeWindowOpen: true,
         //         // sandbox: true,
-        //         preload: path.join(__dirname, 'preload.js'),
+        //         preload: path.join(__dirname, 'generated', 'preload.js'),
         //     },
         // })
 
@@ -4397,15 +4405,10 @@ class MenuManager {
                     label: launchers[i].name,
                     click: () => {
 
-                        // Set Default Application
-                        let set_default_launcher_cmd = `xdg-mime default ${path.basename(launchers[i].appid)} ${launchers[i].mimetype}`;
+                        launch_desktop(launchers[i], f.href, error => {
+                            if (error && !e.sender.isDestroyed()) e.sender.send('set_msg', error.message);
+                        });
 
-                        execSync(set_default_launcher_cmd);
-
-                        let cmd = launchers[i].cmd.toLocaleLowerCase().replace(/%u|%f/g, `'${f.href}'`);
-                        exec(cmd);
-
-                        // shell.openPath(file.href);
                         win.send('clear_highlight');
 
                     }
@@ -4445,8 +4448,7 @@ class MenuManager {
                     label: 'Convert to Mp3',
                     click: () => {
                         let filename = href.substring(0, href.length - path.extname(href).length) + '.mp3'
-                        let cmd = 'ffmpeg -i ' + href + ' ' + filename;
-                        exec(cmd, (err, stdout, stderr) => {
+                        execFile('ffmpeg', ['-i', href, filename], (err, stdout, stderr) => {
                             if (err) {
                                 win.send('notification', err);
                             } else {
@@ -4461,8 +4463,7 @@ class MenuManager {
                             }
                         })
 
-                        cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
-                        exec(cmd, (err, stdout, stderr) => {
+                        execFile('ffprobe', ['-i', href, '-show_entries', 'format=size', '-v', 'quiet', '-of', 'csv=p=0'], (err, stdout, stderr) => {
                             if (err) {
                                 win.send('notification', err)
                             } else {
@@ -4476,9 +4477,7 @@ class MenuManager {
                     label: 'Convert to Ogg Vorbis',
                     click: () => {
                         let filename = href.substring(0, href.length - path.extname(href).length) + '.ogg'
-                        let cmd = 'ffmpeg -i ' + href + ' -c:a libvorbis -q:a 4 ' + filename;
-
-                        exec(cmd, (err, stdout, stderr) => {
+                        execFile('ffmpeg', ['-i', href, '-c:a', 'libvorbis', '-q:a', '4', filename], (err, stdout, stderr) => {
                             if (err) {
                                 win.send('notification', err);
                             } else {
@@ -4493,8 +4492,7 @@ class MenuManager {
                             }
                         })
 
-                        cmd = 'ffprobe -i ' + href + ' -show_entries format=size -v quiet -of csv="p=0"'
-                        exec(cmd, (err, stdout, stderr) => {
+                        execFile('ffprobe', ['-i', href, '-show_entries', 'format=size', '-v', 'quiet', '-of', 'csv=p=0'], (err, stdout, stderr) => {
                             if (err) {
                                 win.send('notification', err)
                             } else {
@@ -4672,7 +4670,8 @@ const watcher = new Watcher();
 
 // Create main window
 let win;
-app.on('ready', () => {
+app.on('ready', async () => {
+    const recovery_errors = await safe_replace.recover(replacement_journals);
     const get_sender_window = (event) => {
         const sender_window = BrowserWindow.fromWebContents(event.sender);
         if (!sender_window || sender_window.isDestroyed()) {
@@ -4740,6 +4739,9 @@ app.on('ready', () => {
 
     // create main window
     win = windowManager.create_main_window();
+    if (recovery_errors.length) win.webContents.once('did-finish-load', () => {
+        win.send('set_msg', recovery_errors.join('\n'));
+    });
     networkManager.getNetworkSettings();
     setImmediate(() => {
         networkManager.reconnectSavedConnections().catch((err) => {

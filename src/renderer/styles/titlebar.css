@@ -237,3 +237,18 @@ hr {
     color: #fff;
     font-weight: bold;
 }
+
+.shortcuts-dialog-content {
+    width: 560px;
+    min-width: 0;
+    max-height: 90vh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+.shortcuts-dialog-content p { font-size: 0.9em; color: #ccc; }
+.shortcuts-list { overflow: auto; min-height: 0; margin-bottom: 18px; text-align: left; }
+.shortcuts-list table { width: 100%; border-collapse: collapse; }
+.shortcuts-list th, .shortcuts-list td { padding: 6px 10px; border-bottom: 1px solid #444; }
+.shortcuts-list kbd { white-space: nowrap; font: inherit; font-family: monospace; }
+.shortcuts-list:focus-visible, .menu-dropdown-item:focus-visible { outline: 2px solid #8cf; outline-offset: -2px; }

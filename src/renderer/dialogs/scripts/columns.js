@@ -52,8 +52,8 @@ class Utilities {
             } else {
                 msg_div.classList.remove('error');
             }
-            msg_div.innerHTML = '';
-            msg_div.innerHTML = msg;
+            msg_div.textContent = '';
+            msg_div.textContent = msg;
         } catch (err) {
             console.log('set_msg error', err);
         }

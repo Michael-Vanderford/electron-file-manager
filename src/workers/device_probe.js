@@ -11,7 +11,7 @@ process.once('message', ({ operation, location }) => {
             case 'devices': libfs.get_drives(reply); break;
             case 'mount_info': reply(null, mount_info(location)); break;
             case 'stats': reply(null, libfs.disk_stats(location)); break;
-            case 'dashboard': reply(null, { ...libfs.get_file(location), ...libfs.disk_stats(location) }); break;
+            case 'dashboard': reply(null, { ...libfs.get_file(location), ...mount_info(location) }); break;
             default: reply(new Error('Unknown device query.'));
         }
     } catch (error) {

@@ -27,6 +27,8 @@ test.beforeEach(async () => {
     await location.press('Enter');
     await expect.poll(() => currentLocation()).toBe(fixture);
     await expect(page.locator('.active-tab-content')).toBeVisible();
+    await expect(page.locator('.footer .msg')).toHaveText('Loaded 0 items');
+    await expect.poll(async () => path.resolve(await page.locator('.active-tab').getAttribute('data-href'))).toBe(fixture);
 });
 
 test.afterEach(async () => {
@@ -139,7 +141,8 @@ async function currentLocation() {
 }
 
 function card(href) {
-    return page.locator(`.active-tab-content .card[data-href=${JSON.stringify(href)}]`);
+    const escaped = href.replace(/["\\\n\r\f]/g, character => `\\${character.codePointAt(0).toString(16)} `);
+    return page.locator(`.active-tab-content .card[data-href="${escaped}"]`);
 }
 
 async function navigate(location) {
@@ -150,6 +153,17 @@ async function navigate(location) {
     await input.press('Enter');
     await expect.poll(() => currentLocation()).toBe(location);
     await expect(page.locator('.active-tab-content .view_container')).toBeVisible();
+    await expect.poll(async () => path.resolve(await page.locator('.active-tab').getAttribute('data-href'))).toBe(path.resolve(location));
+    await expect(page.locator('.footer .msg')).toHaveText(/^Loaded \d+ items$/);
+}
+
+// Bulk render/search fixtures are built outside the watched directory, then opened.
+// This avoids testing native watcher storms as an accidental setup step.
+async function buildOutsideView() {
+    const idle = path.join(profile, 'fixture-staging');
+    await fs.mkdir(idle, { recursive: true });
+    await navigate(idle);
+    return () => navigate(fixture);
 }
 
 async function exists(href) {
@@ -285,10 +299,12 @@ test('corrupt images retain a generic icon and do not block healthy previews', a
 });
 
 test('loads thumbnails after scrolling a virtual image directory', async () => {
+    const openFixture = await buildOutsideView();
     const source = path.join(fixture, '0000.png');
     await writeImage(source, 64);
     await Promise.all(Array.from({ length: 1000 }, (_, index) => fs.copyFile(source,
         path.join(fixture, `${String(index + 1).padStart(4, '0')}.png`))));
+    await openFixture();
     await page.evaluate(() => window.titlebarAPI.refresh());
     await expect(page.locator('.footer .msg')).toHaveText('Loaded 1001 items');
     await app.evaluate(({ BrowserWindow }) => {
@@ -354,6 +370,41 @@ test('restores the last opened directory after restarting with the same profile'
     await expect(page.locator('.footer .msg')).toHaveText('Loaded 1 items');
 });
 
+test('dashboard shows GVFS names and capacity and omits failed queries', async () => {
+    const mount = '/run/user/1000/gvfs/smb-share:server=test,share=files';
+    await app.evaluate(({ BrowserWindow, ipcMain }, mount) => {
+        // Isolated simulated probe responses: no real network mount is contacted.
+        ipcMain.removeHandler('get_dashboard_disk_stats');
+        ipcMain.removeHandler('get_recent_files_arr');
+        ipcMain.handle('get_recent_files_arr', () => []);
+        ipcMain.handle('get_dashboard_disk_stats', (_event, location) => {
+            BrowserWindow.getAllWindows()[0].webContents.send('mounts', [
+                { name: 'Test GVFS', path: mount, type: 'network' },
+                { name: 'Unavailable mount', path: '/mnt/unavailable', type: 'network' }
+            ]);
+            return location === mount
+            ? { display_name: 'smb-share:server=test,share=files', href: mount, total: 1024, used: 256, free: 768 }
+            : { error: true, message: 'Device query timed out' };
+        });
+        BrowserWindow.getAllWindows()[0].webContents.send('mounts', [
+            { name: 'Test GVFS', path: mount, type: 'network', total: 1024, used: 256, free: 768 },
+            { name: 'Unavailable mount', path: '/mnt/unavailable', type: 'network' }
+        ]);
+    }, mount);
+    await expect(page.locator('.device_item').filter({ hasText: 'Test GVFS' })).toBeVisible();
+    await app.evaluate(({ BrowserWindow }) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('get_dashboard_view');
+    });
+    const chart = page.locator('.overview .chart-container');
+    await expect(chart).toHaveCount(1);
+    await expect(chart.locator('.chart-title')).toHaveText('Test GVFS');
+    await expect(chart.locator('.chart-title')).toHaveAttribute('href', mount);
+    await expect(chart.locator('.chart-meta')).toContainText('256 Bytes Used');
+    await expect(chart.locator('.chart-meta')).toContainText('768 Bytes Free');
+    await expect(chart.locator('.chart-meta span')).toHaveText(['256 Bytes Used', '768 Bytes Free']);
+    await expect(chart.locator('canvas')).toBeVisible();
+});
+
 test('renders verified GVFS capacity in the device sidebar', async () => {
     // Simulate the verified worker response; no real network mounts are contacted.
     await app.evaluate(({ BrowserWindow }, devices) => {
@@ -371,10 +422,12 @@ test('renders verified GVFS capacity in the device sidebar', async () => {
 
 for (const fillerCount of [0, 1000]) {
     test(`renders SVG previews with escaped filenames in a ${fillerCount ? 'virtual' : 'normal'} directory`, async () => {
+        const openFixture = await buildOutsideView();
         await Promise.all(Array.from({ length: fillerCount }, (_, index) =>
             fs.writeFile(path.join(fixture, `filler-${index}.txt`), 'contents')));
         const source = path.join(fixture, '000-vector #1%.svg');
         await fs.writeFile(source, '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="red"/></svg>');
+        await openFixture();
         await page.evaluate(() => window.titlebarAPI.refresh());
         await expect(page.locator('.footer .msg')).toHaveText(`Loaded ${fillerCount + 1} items`);
         await app.evaluate(({ BrowserWindow }) => {
@@ -396,6 +449,7 @@ for (const fillerCount of [0, 1000]) {
 
 for (const view of ['grid_view', 'list_view']) {
     test(`does not continue scrolling after wheel input in a 7000-SVG ${view}`, async () => {
+        const openFixture = await buildOutsideView();
         const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="red"/></svg>';
         const source = path.join(fixture, '0000.svg');
         await fs.writeFile(source, svg);
@@ -405,6 +459,7 @@ for (const view of ['grid_view', 'list_view']) {
                 return target === source ? Promise.resolve() : fs.copyFile(source, target);
             }));
         }
+        await openFixture();
         await page.evaluate(view => window.titlebarAPI.setView(view), view);
         await page.evaluate(() => window.titlebarAPI.refresh());
         await expect(page.locator('.footer .msg')).toHaveText('Loaded 7000 items');
@@ -467,6 +522,7 @@ async function runSearch(query) {
 }
 
 test('large search results stay virtual and opening a result directory stays responsive', async () => {
+    const openFixture = await buildOutsideView();
     const target = path.join(fixture, 'match-directory');
     await fs.mkdir(target);
     await fs.writeFile(path.join(target, 'child.txt'), 'child');
@@ -474,6 +530,7 @@ test('large search results stay virtual and opening a result directory stays res
         await Promise.all(Array.from({ length: 200 }, (_, index) =>
             fs.writeFile(path.join(fixture, `match-${String(batch + index).padStart(4, '0')}.txt`), 'contents')));
     }
+    await openFixture();
     await runSearch('match');
     await expect(page.locator('.active-tab-content .find_results_header')).toHaveText('7001 results in search location.', { timeout: 20000 });
     const results = page.locator('.active-tab-content .find_results_list');
@@ -506,6 +563,7 @@ test('closing and reopening search does not mix results or leave the folder unus
 });
 
 test('navigation cancels a busy search and later results cannot replace the new directory', async () => {
+    const openFixture = await buildOutsideView();
     const next = path.join(fixture, 'next');
     await fs.mkdir(next);
     await fs.writeFile(path.join(next, 'sentinel.txt'), 'keep');
@@ -513,6 +571,7 @@ test('navigation cancels a busy search and later results cannot replace the new 
         await Promise.all(Array.from({ length: 200 }, (_, index) =>
             fs.writeFile(path.join(fixture, `match-${batch + index}.txt`), 'contents')));
     }
+    await openFixture();
     await runSearch('match');
     await navigate(next);
     await expect(card(path.join(next, 'sentinel.txt'))).toBeVisible();
@@ -636,10 +695,12 @@ for (const option of searchOptionCases) {
 for (const view of ['grid_view', 'list_view']) {
     for (const count of [3, 1001]) {
         test(`loads ${count} files in ${view} without selecting the first card and keeps arrow navigation`, async () => {
+            const openFixture = await buildOutsideView();
             for (let batch = 0; batch < count; batch += 200) {
                 await Promise.all(Array.from({ length: Math.min(200, count - batch) }, (_, index) =>
                     fs.writeFile(path.join(fixture, `file-${batch + index}.txt`), 'contents')));
             }
+            await openFixture();
             await page.evaluate(view => window.titlebarAPI.setView(view), view);
             await page.evaluate(() => window.titlebarAPI.refresh());
             await expect(page.locator('.footer .msg')).toHaveText(`Loaded ${count} items`);
@@ -692,4 +753,512 @@ test('empty Workspace stays above Devices and accepts the first dragged item', a
     await expect(empty).toBeVisible();
     await expect(workspace.locator('.workspace_item')).toHaveCount(0);
     expect(await aboveDevices()).toBe(true);
+});
+
+for (const view of ['grid_view', 'list_view']) {
+    for (const grouping of ['None', 'Type']) {
+        test(`empty folder message follows create delete and rebuild in ${view} grouped by ${grouping}`, async () => {
+            await page.evaluate(({ view, grouping }) => {
+                window.titlebarAPI.setView(view);
+                window.titlebarAPI.setGroupBy(grouping);
+            }, { view, grouping });
+            const message = page.locator('.active-tab-content > .empty_msg');
+            await expect(message).toHaveCount(1);
+            await expect(message).toHaveText('Folder is Empty');
+            // A paste with an empty clipboard must leave the empty state intact.
+            await page.keyboard.press('Control+V');
+            await expect(message).toHaveCount(1);
+            await page.evaluate(() => window.titlebarAPI.refresh());
+            await expect(page.locator('.footer .msg')).toHaveText('Loaded 0 items');
+            await expect(message).toHaveCount(1);
+            await page.keyboard.press('Control+Shift+N');
+            const input = page.locator('.active-tab-content .edit_name').first();
+            await expect(input).toBeVisible();
+            await expect(message).toHaveCount(0);
+            await input.fill('created');
+            await input.press('Enter');
+            const folder = card(path.join(fixture, 'created'));
+            await expect(folder).toBeVisible();
+            await folder.click();
+            await page.evaluate(() => window.titlebarAPI.delete());
+            await expect(folder).toHaveCount(0);
+            await expect(message).toHaveCount(1);
+            await expect(message).toHaveText('Folder is Empty');
+            await page.evaluate(() => window.titlebarAPI.setGroupBy('Size'));
+            await expect(message).toHaveCount(1);
+        });
+    }
+}
+
+for (const count of [3, 1001]) {
+    test(`filter empty state clears when matches return with ${count} files`, async () => {
+        const openFixture = await buildOutsideView();
+        await Promise.all(Array.from({ length: count }, (_, index) =>
+            fs.writeFile(path.join(fixture, `file-${index}.txt`), 'contents')));
+        await openFixture();
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        await expect(page.locator('.footer .msg')).toHaveText(`Loaded ${count} items`);
+        const message = page.locator('.active-tab-content > .empty_msg');
+        const filter = page.locator('.filter');
+        await filter.fill('zzzz-no-match');
+        await expect(message).toHaveText('No matching items');
+        await filter.fill('file-0');
+        await expect(message).toHaveCount(0);
+        await filter.fill('');
+        await expect(message).toHaveCount(0);
+        await expect(card(path.join(fixture, 'file-0.txt'))).toBeVisible();
+    });
+}
+
+test('Recent empty messaging follows population removal view changes and navigation', async () => {
+    const openFixture = await buildOutsideView();
+    const source = path.join(fixture, 'recent.txt');
+    await fs.writeFile(source, 'recent');
+    await openFixture();
+    await app.evaluate(({ BrowserWindow }) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('recent_files', [], true);
+    });
+    const message = page.locator('.active-tab-content > .empty_msg');
+    await expect(message).toHaveText('No recent files');
+    await page.evaluate(() => window.titlebarAPI.setView('list_view'));
+    await expect(message).toHaveCount(1);
+    await expect(message).toHaveText('No recent files');
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('recent_files', [{
+            href: source, location: source.slice(0, source.lastIndexOf('/')),
+            id: Buffer.from(source).toString('base64'), name: 'recent.txt', display_name: 'recent.txt',
+            is_dir: false, is_hidden: false, is_readable: true, is_writable: true,
+            content_type: 'text/plain', size: 6, mtime: Date.now() / 1000
+        }], false);
+    }, source);
+    await expect(card(source)).toBeVisible();
+    await expect(message).toHaveCount(0);
+    // Simulate the existing remove response; preserve the actual fixture file.
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('remove_items', [{ href: source }]);
+    }, source);
+    await expect(message).toHaveText('No recent files');
+    await page.locator('.tab').first().click();
+    await navigate(fixture);
+    await expect(message).toHaveCount(0);
+    await expect(card(source)).toBeVisible();
+    await page.locator('.tab').filter({ hasText: 'Recent' }).click();
+    await expect(message).toHaveText('No recent files');
+});
+
+for (const grouping of ['None', 'Type']) {
+    test(`hidden-only folder messaging follows visibility toggles grouped by ${grouping}`, async () => {
+        const source = path.join(fixture, '.hidden.txt');
+        await fs.writeFile(source, 'hidden');
+        const hide = page.locator('button[title="Hide Hidden Files"]');
+        if (await hide.count()) await hide.click();
+        await page.evaluate(grouping => window.titlebarAPI.setGroupBy(grouping), grouping);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        await expect(page.locator('.footer .msg')).toHaveText('Loaded 1 items');
+        const message = page.locator('.active-tab-content > .empty_msg');
+        await expect(message).toHaveText('No visible items');
+        await page.locator('button[title="Show Hidden Files"]').click();
+        await expect(card(source)).toBeVisible();
+        await expect(message).toHaveCount(0);
+        await page.locator('button[title="Hide Hidden Files"]').click();
+        await expect(card(source)).not.toBeVisible();
+        await expect(message).toHaveText('No visible items');
+        await page.locator('.filter').fill('hidden');
+        await expect(card(source)).not.toBeVisible();
+        await expect(message).toHaveText('No matching items');
+        await page.locator('.filter').fill('');
+        await expect(card(source)).not.toBeVisible();
+        await expect(message).toHaveText('No visible items');
+    });
+}
+
+test('watcher response additions and removals update the empty folder message without refresh', async () => {
+    const message = page.locator('.active-tab-content > .empty_msg');
+    await expect(message).toHaveText('Folder is Empty');
+    const source = path.join(fixture, 'external.txt');
+    await fs.writeFile(source, 'external');
+    // Exercise the renderer's watcher-response path without relying on native watch support.
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('get_item', {
+            href: source, location: source.slice(0, source.lastIndexOf('/')),
+            id: Buffer.from(source).toString('base64'), name: 'external.txt', display_name: 'external.txt',
+            is_dir: false, is_hidden: false, is_readable: true, is_writable: true,
+            content_type: 'text/plain', size: 8, mtime: Date.now() / 1000
+        });
+    }, source);
+    await expect(card(source)).toBeVisible();
+    await expect(message).toHaveCount(0);
+    await fs.rm(source);
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('remove_item', Buffer.from(source).toString('base64'));
+    }, source);
+    await expect(card(source)).toHaveCount(0);
+    await expect(message).toHaveCount(1);
+    await expect(message).toHaveText('Folder is Empty');
+});
+
+for (const operation of ['copy', 'cut']) {
+    test(`P0 ${operation} and delete a directory symlink without changing its target`, async () => {
+        const target = path.join(fixture, 'target'); const destination = path.join(fixture, 'destination');
+        await fs.mkdir(target); await fs.mkdir(destination);
+        await fs.writeFile(path.join(target, 'precious.txt'), 'preserve target');
+        const source = path.join(fixture, 'link'); const pasted = path.join(destination, 'link');
+        await fs.symlink(target, source);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        await card(source).click();
+        await page.keyboard.press(operation === 'copy' ? 'Control+C' : 'Control+X');
+        await navigate(destination); await page.keyboard.press('Control+V');
+        await expect.poll(() => fs.readlink(pasted).catch(() => '')).toBe(target);
+        await expect(card(pasted)).toBeVisible();
+        await card(pasted).click(); await page.evaluate(() => window.titlebarAPI.delete());
+        await expect.poll(() => fs.lstat(pasted).then(() => true, () => false)).toBe(false);
+        await expect(card(pasted)).toHaveCount(0);
+        expect(await fs.readFile(path.join(target, 'precious.txt'), 'utf8')).toBe('preserve target');
+        expect(await fs.lstat(source).then(() => true, () => false)).toBe(operation === 'copy');
+    });
+}
+
+for (const operation of ['copy', 'cut']) {
+    for (const kind of ['file', 'folder']) {
+        test(`P0 ${operation} overwrite ${kind} replaces only after completion`, async () => {
+            const from = path.join(fixture, 'from'); const to = path.join(fixture, 'to');
+            await fs.mkdir(from); await fs.mkdir(to);
+            const source = path.join(from, 'item'); const destination = path.join(to, 'item');
+            if (kind === 'folder') {
+                await fs.mkdir(source); await fs.mkdir(destination);
+                await fs.writeFile(path.join(source, 'new.txt'), 'new contents');
+                await fs.writeFile(path.join(destination, 'old.txt'), 'old contents');
+            } else { await fs.writeFile(source, 'new contents'); await fs.writeFile(destination, 'old contents'); }
+            await navigate(from); await card(source).click();
+            await page.keyboard.press(operation === 'copy' ? 'Control+C' : 'Control+X');
+            await navigate(to); await page.keyboard.press('Control+V');
+            await expect(page.locator('.overwrite_view')).toBeVisible();
+            expect(await fs.readFile(kind === 'folder' ? path.join(destination, 'old.txt') : destination, 'utf8')).toBe('old contents');
+            await page.locator('.overwrite_view').getByText('Overwrite', { exact: true }).click();
+            await expect.poll(() => fs.readFile(kind === 'folder' ? path.join(destination, 'new.txt') : destination, 'utf8').catch(() => '')).toBe('new contents');
+            await expect.poll(() => exists(source)).toBe(operation === 'copy');
+            if (kind === 'folder') expect(await exists(path.join(destination, 'old.txt'))).toBe(false);
+            await navigate(to); await expect(card(destination)).toBeVisible();
+        });
+    }
+}
+
+test('P0 failed overwrite and keep or skip preserve original destinations', async () => {
+    const from = path.join(fixture, 'from'); const to = path.join(fixture, 'to');
+    await fs.mkdir(from); await fs.mkdir(to);
+    for (const name of ['keep.txt', 'fail.txt', 'skip.txt', 'new.txt']) await fs.writeFile(path.join(from, name), `new ${name}`);
+    for (const name of ['keep.txt', 'fail.txt', 'skip.txt']) await fs.writeFile(path.join(to, name), `original ${name}`);
+    await navigate(from); await page.keyboard.press('Control+A'); await page.keyboard.press('Control+C');
+    await navigate(to); await page.keyboard.press('Control+V');
+    await expect(page.locator('.overwrite_view')).toBeVisible();
+    await expect.poll(() => fs.readFile(path.join(to, 'new.txt'), 'utf8').catch(() => '')).toBe('new new.txt');
+    // Row identity is the name cell's exact title, which also documents source/destination.
+    const nameCell = name => page.locator('.overwrite_view div[title]').filter({ hasText: new RegExp(`^${name.replace('.', '\\.')}$$`) }).first();
+    await nameCell('keep.txt').locator('..').getByText('Keep', { exact: true }).click();
+    await fs.rm(path.join(from, 'fail.txt'));
+    await nameCell('fail.txt').locator('..').getByText('Overwrite', { exact: true }).click();
+    await expect(page.locator('.footer .msg')).toContainText('Copy incomplete');
+    expect(await fs.readFile(path.join(to, 'fail.txt'), 'utf8')).toBe('original fail.txt');
+    await page.locator('.overwrite_view').getByText('Skip All', { exact: true }).click();
+    expect(await fs.readFile(path.join(to, 'keep.txt'), 'utf8')).toBe('original keep.txt');
+    expect(await fs.readFile(path.join(to, 'skip.txt'), 'utf8')).toBe('original skip.txt');
+});
+
+test('P0 cancelling an overwrite leaves the original and move source intact', async () => {
+    const from = path.join(fixture, 'from'); const to = path.join(fixture, 'to');
+    await fs.mkdir(from); await fs.mkdir(to);
+    const source = path.join(from, 'large.bin'); const destination = path.join(to, 'large.bin');
+    const handle = await fs.open(source, 'w'); await handle.truncate(128 * 1024 * 1024); await handle.close();
+    await fs.writeFile(destination, 'original');
+    await navigate(from); await card(source).click(); await page.keyboard.press('Control+X');
+    await navigate(to); await page.keyboard.press('Control+V');
+    await page.locator('.overwrite_view').getByText('Overwrite', { exact: true }).click();
+    await expect(page.locator('.progress_cancel')).toBeVisible();
+    await page.locator('.progress_cancel').click();
+    await expect(page.locator('.footer .msg')).toContainText('Move cancelled');
+    expect(await fs.readFile(destination, 'utf8')).toBe('original');
+    expect((await fs.stat(source)).size).toBe(128 * 1024 * 1024);
+});
+
+test('P0 archive creation offers conflicts and never truncates a selected archive', async () => {
+    const source = path.join(fixture, 'report.txt'); const archive = path.join(fixture, 'report.zip');
+    await fs.writeFile(source, 'archive input'); await fs.writeFile(archive, 'original archive');
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await card(source).click(); await page.locator('button[title="Compress to zip"]').click();
+    await expect(page.locator('.overwrite_view')).toBeVisible();
+    expect(await fs.readFile(archive, 'utf8')).toBe('original archive');
+    await page.locator('.overwrite_view').getByText('Keep', { exact: true }).click();
+    expect(await fs.readFile(archive, 'utf8')).toBe('original archive');
+    await navigate(fixture); await card(source).click(); await page.locator('button[title="Compress to zip"]').click();
+    await page.locator('.overwrite_view').getByText('Overwrite All', { exact: true }).click();
+    await expect.poll(async () => (await fs.readFile(archive)).subarray(0, 2).toString()).toBe('PK');
+    await expect(page.locator('.footer .msg')).toHaveText('Done compressing files.');
+    expect(await fs.readFile(source, 'utf8')).toBe('archive input');
+    const before = await fs.readFile(archive);
+    await navigate(fixture); await card(archive).click(); await page.locator('button[title="Compress to zip"]').click();
+    await expect(page.locator('.footer .msg')).toContainText('same entry');
+    expect(await fs.readFile(archive)).toEqual(before);
+});
+
+test('P0 startup restores a destination interrupted after its backup rename', async () => {
+    const source = path.join(fixture, 'source.txt'); const destination = path.join(fixture, 'destination.txt');
+    await fs.writeFile(source, 'new contents'); await fs.writeFile(destination, 'original');
+    await app.close(); app = null;
+    const script = `
+        const fs = require('fs/promises'); const rename = fs.rename.bind(fs);
+        fs.rename = async (from, to) => { await rename(from, to); if (to.endsWith('/original')) process.exit(23); };
+        require(${JSON.stringify(path.resolve('src/common/safe_replace.js'))}).transfer(
+            ${JSON.stringify(source)}, ${JSON.stringify(destination)},
+            ${JSON.stringify({ overwrite: true, journal_dir: path.join(profile, 'replacement-journals') })}
+        ).catch(() => process.exit(1));
+    `;
+    const child = require('node:child_process').spawnSync(process.execPath, ['-e', script]);
+    expect(child.status).toBe(23); expect(await exists(destination)).toBe(false);
+    const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
+    expect(await fs.readFile(destination, 'utf8')).toBe('original');
+    expect(await fs.readFile(source, 'utf8')).toBe('new contents');
+    expect(await fs.readdir(path.join(profile, 'replacement-journals'))).toEqual([]);
+});
+
+test('P0 symlink transfers remain safe in a grouped virtual list', async () => {
+    const openFixture = await buildOutsideView();
+    const target = path.join(fixture, 'target'); const destination = path.join(fixture, 'destination');
+    await fs.mkdir(target); await fs.mkdir(destination);
+    await fs.writeFile(path.join(target, 'precious.txt'), 'target bytes');
+    await Promise.all(Array.from({ length: 1001 }, (_, index) => fs.writeFile(path.join(fixture, `f-${index}.txt`), 'filler')));
+    const source = path.join(fixture, '000-link'); await fs.symlink(target, source);
+    await openFixture();
+    await page.evaluate(() => { window.titlebarAPI.setView('list_view'); window.titlebarAPI.setGroupBy('Type'); window.titlebarAPI.refresh(); });
+    await expect(page.locator('.active-tab-content .virtual_view')).toBeVisible();
+    await expect(page.locator('.footer .msg')).toHaveText('Loaded 1004 items');
+    // Target the row itself: a pointer click on its link opens it. Keyboard virtual
+    // selection has a separate model-sync defect (TODO R31), outside transfer safety.
+    await card(source).dispatchEvent('click');
+    await expect(card(source)).toHaveClass(/highlight_select/);
+    await page.evaluate(() => window.titlebarAPI.copy());
+    await expect(page.locator('.footer .msg')).toContainText('Copied 1 items');
+    await navigate(destination); await page.keyboard.press('Control+V');
+    const pasted = path.join(destination, '000-link');
+    await expect.poll(() => fs.readlink(pasted).catch(() => '')).toBe(target);
+    await expect(card(pasted)).toBeVisible();
+    await card(pasted).dispatchEvent('click');
+    await page.evaluate(() => window.titlebarAPI.delete());
+    await expect.poll(() => fs.lstat(pasted).then(() => true, () => false)).toBe(false);
+    expect(await fs.readFile(path.join(target, 'precious.txt'), 'utf8')).toBe('target bytes');
+});
+
+test('P0 cancelling archive overwrite preserves the original archive', async () => {
+    const source = path.join(fixture, 'large.bin'); const destination = path.join(fixture, 'large.zip');
+    const handle = await fs.open(source, 'w'); await handle.truncate(128 * 1024 * 1024); await handle.close();
+    await fs.writeFile(destination, 'original archive');
+    await page.evaluate(() => window.titlebarAPI.refresh()); await card(source).click();
+    await page.locator('button[title="Compress to zip"]').click();
+    await page.locator('.overwrite_view').getByText('Overwrite', { exact: true }).click();
+    await expect(page.locator('.progress_cancel')).toBeVisible(); await page.locator('.progress_cancel').click();
+    await expect(page.locator('.footer .msg')).toContainText(/cancel|abort/i);
+    await expect(page.locator('.progress_cancel')).not.toBeVisible();
+    expect(await fs.readFile(destination, 'utf8')).toBe('original archive');
+    expect((await fs.stat(source)).size).toBe(128 * 1024 * 1024);
+});
+
+test('Help keyboard shortcuts matches About and closes with keyboard focus restored', async () => {
+    const help = page.locator('.menu-item').filter({ has: page.locator('[data-action="about"]') });
+    await help.focus(); await page.keyboard.press('Enter');
+    const item = page.locator('[data-action="keyboard-shortcuts"]');
+    await item.focus(); await page.keyboard.press('Enter');
+    const dialog = page.getByRole('dialog', { name: 'Keyboard Shortcuts' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator('tr').filter({ hasText: 'Ctrl+Shift+N' })).toContainText('New folder');
+    await expect(dialog.locator('tr').filter({ hasText: 'F5' })).toContainText('Refresh folder');
+    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(dialog.locator('.shortcuts-list')).toBeFocused();
+    await page.keyboard.press('Shift+Tab');
+    await expect(dialog.getByRole('button', { name: 'Close' })).toBeFocused();
+    await page.keyboard.press('Control+Shift+N');
+    await expect(page.locator('.active-tab-content .edit_name:not(.hidden)')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).not.toBeVisible();
+    await expect(help).toBeFocused();
+    expect(await fs.readdir(fixture)).toEqual([]);
+    await help.click(); await item.click();
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).not.toBeVisible();
+    await help.click(); await page.locator('[data-action="about"]').click();
+    const about = page.getByRole('dialog', { name: 'About', exact: true });
+    await expect(about).toBeVisible();
+    await expect(about.locator('#about-app-version')).toContainText('Version');
+    await about.getByRole('button', { name: 'Close' }).click();
+    await expect(about).not.toBeVisible();
+});
+
+test('Security metadata and status render literally in grid list workspace breadcrumbs and properties', async () => {
+    const openFixture = await buildOutsideView();
+    const payload = '<img src=x onerror="document.body.dataset.injected=1">';
+    const name = `${payload}.txt`; const folderName = `folder-${payload}`;
+    const source = path.join(fixture, name); const folder = path.join(fixture, folderName);
+    await fs.writeFile(source, 'literal metadata'); await fs.mkdir(folder); await openFixture();
+    for (const view of ['grid_view', 'list_view']) {
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        await expect(card(source).locator('.href')).toHaveText(name);
+        await expect(card(source).locator('img[onerror]')).toHaveCount(0);
+    }
+    await page.locator('.active-tab-content .view_container').focus();
+    await page.keyboard.press('Control+A');
+    await page.evaluate(() => window.titlebarAPI.command('add_workspace'));
+    await expect(page.locator('.workspace_item').filter({ hasText: name }).first()).toBeVisible();
+    await expect(page.locator('.workspace_item img[onerror]')).toHaveCount(0);
+    await page.locator('.active-tab-content').click({ position: { x: 500, y: 300 } });
+    await navigate(folder);
+    await expect(page.locator('.breadcrumbs')).toContainText(folderName);
+    await page.evaluate(() => window.titlebarAPI.command('properties'));
+    await expect(page.locator('.active-tab-content')).toContainText(folderName);
+    await app.evaluate(({ BrowserWindow }, payload) => {
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        contents.send('set_msg', payload);
+        contents.send('set_progress', { operation: 'copy', max: 100, value: 10, status: payload });
+    }, payload);
+    await expect(page.locator('.footer .msg')).toHaveText(payload);
+    await expect(page.locator('.progress_status')).toContainText(payload);
+    await expect(page.locator('img[onerror]')).toHaveCount(0);
+    expect(await page.evaluate(() => document.body.dataset.injected)).toBeUndefined();
+});
+
+test('Security renderer has no Node access and blocks navigation popups and permissions', async () => {
+    const state = await app.evaluate(({ BrowserWindow }) => {
+        const window = BrowserWindow.getAllWindows()[0]; const prefs = window.webContents.getLastWebPreferences();
+        return { nodeIntegration: prefs.nodeIntegration, contextIsolation: prefs.contextIsolation, sandbox: prefs.sandbox, webSecurity: prefs.webSecurity };
+    });
+    expect(state).toEqual({ nodeIntegration: false, contextIsolation: true, sandbox: true, webSecurity: true });
+    expect(await page.evaluate(() => ({ require: typeof require, process: typeof process, rawIpc: typeof window.titlebarAPI.ipcRenderer })))
+        .toEqual({ require: 'undefined', process: 'undefined', rawIpc: 'undefined' });
+    expect(await page.evaluate(() => new Promise(resolve => navigator.geolocation.getCurrentPosition(() => resolve('allowed'), error => resolve(error.code))))).toBe(1);
+    expect(await page.evaluate(() => window.open('https://example.invalid/'))).toBeNull();
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    await expect(page.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute('content', /script-src 'self';/);
+    expect(await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content')).not.toContain("script-src 'self' 'unsafe-inline'");
+    const original = page.url();
+    const target = require('node:url').pathToFileURL(path.join(fixture, 'untrusted.html')).href;
+    await fs.writeFile(path.join(fixture, 'untrusted.html'), '<!doctype html><title>Blocked page</title>');
+    await page.evaluate(() => {
+        window.securityNavigations = [];
+        window.navigation.addEventListener('navigate', event => window.securityNavigations.push({ url: event.destination.url, blocked: event.defaultPrevented }));
+    });
+    for (const url of [target, 'about:blank']) {
+        await page.evaluate(url => { window.location.href = url; }, url);
+        await expect.poll(() => page.evaluate(() => window.securityNavigations)).toContainEqual({ url, blocked: true });
+        await expect(page).toHaveURL(original);
+        expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.getURL())).toBe(original);
+    }
+});
+
+test('Security external and email links use the system opener without creating renderer windows', async () => {
+    await app.evaluate(({ shell }) => {
+        globalThis.openedSecurityLinks = [];
+        shell.openExternal = async url => { globalThis.openedSecurityLinks.push(url); };
+    });
+    const help = page.locator('.menu-item').filter({ has: page.locator('[data-action="about"]') });
+    await help.click(); await page.locator('[data-action="about"]').click();
+    await page.getByRole('dialog', { name: 'About', exact: true }).getByRole('link', { name: 'Project Homepage' }).click();
+    await expect.poll(() => app.evaluate(() => globalThis.openedSecurityLinks)).toContain('https://github.com/michael-vanderford/sfm');
+    await page.getByRole('dialog', { name: 'About', exact: true }).getByRole('button', { name: 'Close' }).click();
+    await page.evaluate(() => {
+        const link = document.createElement('a'); link.id = 'security-mail'; link.href = 'mailto:test@example.invalid'; link.textContent = 'Email test';
+        link.style.cssText = 'position:fixed;bottom:80px;right:20px;z-index:10'; document.body.append(link);
+    });
+    await page.locator('#security-mail').click();
+    await expect.poll(() => app.evaluate(() => globalThis.openedSecurityLinks)).toContain('mailto:test@example.invalid');
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+});
+
+test('Security connect dialog stays sandboxed and renders server errors as literal text', async () => {
+    const payload = '<img src=x onerror="document.body.dataset.injected=1">';
+    await app.evaluate(({ ipcMain }, payload) => {
+        // Simulated service failure: no real network connection or credentials are used.
+        ipcMain.removeHandler('connect');
+        ipcMain.handle('connect', async (_event, settings) => { globalThis.securityConnection = settings; return { error: true, msg: payload }; });
+    }, payload);
+    const opening = app.waitForEvent('window');
+    await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await dialog.locator('#connection_type').selectOption('smb');
+    await dialog.locator('#txt_server').fill('test-server');
+    await dialog.locator('#txt_mount_point').fill(path.join(fixture, 'mount'));
+    await dialog.locator('#txt_username').fill('test-user'); await dialog.locator('#txt_password').fill('not-a-real-secret');
+    await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('.msg_connect')).toHaveText(payload);
+    await expect(dialog.locator('img[onerror]')).toHaveCount(0);
+    expect(await dialog.evaluate(() => ({ require: typeof require, process: typeof process, injected: document.body.dataset.injected })))
+        .toEqual({ require: 'undefined', process: 'undefined', injected: undefined });
+    const sandboxed = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/dialogs/connect.html')).webContents.getLastWebPreferences().sandbox);
+    expect(sandboxed).toBe(true);
+    await dialog.locator('#button_close').click();
+    await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+});
+
+test('Security extraction treats quotes dollars backticks newlines and leading hyphens as literal paths', async () => {
+    const openFixture = await buildOutsideView();
+    const source = path.join(fixture, 'entry.txt'); await fs.writeFile(source, 'archive contents');
+    const archiveName = '-archive\'$(touch SECURITY_MARKER)`touch SECOND_MARKER`\n.zip';
+    const archive = path.join(fixture, archiveName);
+    await require('../src/common/create_archive').create_archive({ files_arr: [{ href: source, is_dir: false }], location: fixture, type: 'zip', destination: archive },
+        { journal_dir: path.join(profile, 'test-archive-journals') });
+    await openFixture(); await card(archive).dispatchEvent('click');
+    await page.evaluate(() => window.titlebarAPI.command('extract'));
+    const output = path.join(fixture, archiveName.slice(0, -4), 'entry.txt');
+    await expect.poll(() => fs.readFile(output, 'utf8').catch(() => '')).toBe('archive contents');
+    expect(await fs.readFile(source, 'utf8')).toBe('archive contents');
+    expect(await exists(path.join(fixture, 'SECURITY_MARKER'))).toBe(false);
+    expect(await exists(path.join(fixture, 'SECOND_MARKER'))).toBe(false);
+    await expect(page.locator('.footer .msg')).toHaveText('Done extracting files.');
+});
+
+test('Security IPC rejects an untrusted file page even with an unsandboxed test preload', async () => {
+    const marker = path.join(fixture, 'must-not-be-created');
+    const attacker = path.join(profile, 'untrusted.html'); const preload = path.join(profile, 'untrusted-preload.js');
+    await fs.writeFile(attacker, '<!doctype html><title>Untrusted test page</title>');
+    await fs.writeFile(preload, `
+        const { ipcRenderer } = require('electron');
+        window.addEventListener('DOMContentLoaded', async () => {
+            const settings = ipcRenderer.sendSync('get_settings');
+            ipcRenderer.send('mkdir', ${JSON.stringify(marker)});
+            const result = await ipcRenderer.invoke('get_workspace').then(() => 'allowed', () => 'denied');
+            ipcRenderer.send('security_test_result', { settings, result });
+        });
+    `);
+    const result = await app.evaluate(async ({ BrowserWindow, ipcMain }, { attacker, preload }) => {
+        const attackerWindow = new BrowserWindow({ show: false, webPreferences: { sandbox: false, nodeIntegration: false, contextIsolation: true, preload } });
+        try {
+            const response = new Promise(resolve => ipcMain.once('security_test_result', (_event, data) => resolve(data)));
+            await attackerWindow.loadFile(attacker);
+            return await response;
+        } finally { attackerWindow.destroy(); }
+    }, { attacker, preload });
+    expect(result).toEqual({ settings: null, result: 'denied' });
+    expect(await exists(marker)).toBe(false);
+});
+
+test('Security legacy columns dialog uses its bundled sandbox preload and persists a column change', async () => {
+    const opening = app.waitForEvent('window');
+    await app.evaluate(({ BrowserWindow, Menu, ipcMain }) => {
+        // Invoke the actual native menu callback; no new renderer API is added for this legacy dialog.
+        const popup = Menu.prototype.popup;
+        Menu.prototype.popup = function () { this.items.find(item => item.label === 'Columns').click(); };
+        try {
+            const contents = BrowserWindow.getAllWindows()[0].webContents;
+            ipcMain.emit('columns_menu', { sender: contents, senderFrame: contents.mainFrame });
+        } finally { Menu.prototype.popup = popup; }
+    });
+    const dialog = await opening;
+    await expect(dialog.locator('#name')).toBeChecked(); await expect(dialog.locator('#name')).toBeDisabled();
+    const before = await dialog.locator('#ctime').isChecked(); await dialog.locator('#ctime').setChecked(!before);
+    await expect.poll(async () => {
+        const settings = JSON.parse(await fs.readFile(path.join(profile, 'settings.json'), 'utf8'));
+        return settings.schema.properties['List View Columns'].properties.ctime.default;
+    }).toBe(!before);
+    expect(await dialog.evaluate(() => ({ require: typeof require, process: typeof process }))).toEqual({ require: 'undefined', process: 'undefined' });
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/dialogs/columns.html')).webContents.getLastWebPreferences().sandbox)).toBe(true);
+    await dialog.close();
 });

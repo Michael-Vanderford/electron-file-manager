@@ -172,3 +172,15 @@ describe('DeleteWorker.count_files SMB timing', () => {
         }));
     });
 });
+
+it('reports a boolean filesystem removal failure without deleting the UI item', async () => {
+    const root = '/mock/denied.txt';
+    const gio = buildMockGio({});
+    gio.get_file.mockReturnValue({ href: root, name: 'denied.txt', is_dir: false, is_symlink: false });
+    gio.rm.mockReturnValue(false);
+    const parentPort = { postMessage: jest.fn() };
+    await new DeleteWorker({ gio, parentPort }).run([{ href: root, is_dir: false }]);
+    expect(parentPort.postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        cmd: 'delete_done', deleted_items: [], failed_items: 1, deleted_files: 0
+    }));
+});

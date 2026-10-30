@@ -4,6 +4,7 @@ const { parentPort, workerData, isMainThread } = require('worker_threads');
 const libfs = require('../common/libfs');
 const fs = require('fs');
 const path = require('path');
+const safe = require('../common/safe_replace');
 
 
 class Utilities {
@@ -43,6 +44,14 @@ class Utilities {
         file.source = source;
         file.destination = destination;
         this.files_arr.push(file);
+        if (file.is_symlink) {
+            if (--this.cp_recursive === 0) {
+                const entries = this.files_arr;
+                this.files_arr = [];
+                return callback(null, entries);
+            }
+            return;
+        }
 
         libfs.ls(source, (err, dirents) => {
 
@@ -59,7 +68,7 @@ class Utilities {
                     // sanitize file name
                     f.name = f.name.replace(/[^a-z0-9]/gi, '_');
                 }
-                if (f.is_dir) {
+                if (f.is_dir && !f.is_symlink) {
                     this.get_files_arr(f.href, path.format({ dir: destination, base: f.name }), callback);
                 } else {
                     f.source = f.href;
@@ -85,14 +94,33 @@ class Utilities {
         let destination = '';
 
         let files_arr = [];
+        const completed = [];
+        const failures = [];
 
         // calculate max bytes to copy
         let max = 0;
         let size = 0;
-        for (const f of copy_arr) {
+        for (const entry of copy_arr) {
+            const f = { ...entry, ...libfs.get_file(entry.source), source: entry.source, destination: entry.destination };
 
             if (this.cancel_requested) {
                 break;
+            }
+
+            try {
+                await safe.assert_destination(f.source, f.destination);
+                if (f.overwrite) {
+                    await safe.transfer(f.source, f.destination, {
+                        overwrite: true, journal_dir: workerData?.journal_dir, cancelled: () => this.cancel_requested
+                    });
+                    completed.push(f);
+                    destination = f.destination;
+                    continue;
+                }
+            } catch (error) {
+                failures.push({ ...f, error: error.message });
+                parentPort.postMessage({ cmd: 'set_msg', msg: error.message });
+                continue;
             }
 
             // cal size
@@ -101,7 +129,7 @@ class Utilities {
                 max += parseInt(f.size);
             }
             // handle directories
-            if (f.is_dir) {
+            if (f.is_dir && !f.is_symlink) {
                 // Expand directory entries before starting copy so progress can track actual work.
                 const dirents = await new Promise((resolve, reject) => {
                     this.get_files_arr(f.source, f.destination, (err, entries) => {
@@ -138,11 +166,26 @@ class Utilities {
                 break;
             }
 
+            const root = copy_arr.find(entry => f.source === entry.source || f.source.startsWith(entry.source + path.sep));
+            if (root) {
+                try {
+                    await safe.assert_parents(f.source, root.source);
+                    await safe.assert_parents(f.destination, root.destination);
+                } catch (error) {
+                    failures.push({ ...f, error: error.message });
+                    parentPort.postMessage({ cmd: 'set_msg', msg: error.message });
+                    continue;
+                }
+            }
+
             source = f.source;
             destination = f.destination;
-            if (f.is_dir) {
+            if (f.is_dir && !f.is_symlink) {
                 // fs.mkdirSync(destination, { recursive: true });
-                libfs.mkdir(destination);
+                if (!libfs.mkdir(destination)) {
+                    failures.push({ ...f, error: 'Could not create directory' });
+                    continue;
+                }
 
                 // // get size of destination directory
                 // let size = fs.statSync(destination).size;
@@ -175,6 +218,7 @@ class Utilities {
                         }
                     });
                 }).catch((err) => {
+                    failures.push({ ...f, error: err.message || String(err) });
                     let remove_card = {
                         cmd: 'remove_item',
                         id: f.id
@@ -208,11 +252,12 @@ class Utilities {
 
                 let msg = {
                     cmd: 'set_msg',
-                    msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`
+                    msg: { text: '', loading: true }
                 }
                 parentPort.postMessage(msg);
 
             }
+            completed.push(f);
 
         }
 
@@ -225,7 +270,8 @@ class Utilities {
         }
         const cp_done = {
             cmd: 'cp_done',
-            cancelled,
+            cancelled: cancelled || this.cancel_requested,
+            completed, failures,
             destination: destination
         }
 
@@ -235,7 +281,7 @@ class Utilities {
 
         let msg = {
             cmd: 'set_msg',
-            msg: cancelled ? 'Copy cancelled.' : `Done copying (${files_arr.length}) files`
+            msg: (cancelled || this.cancel_requested) ? 'Copy cancelled.' : failures.length ? `Copy incomplete: ${failures.length} items failed.` : `Done copying (${completed.length}) files`
         }
         parentPort.postMessage(msg);
 
@@ -247,6 +293,7 @@ class Utilities {
 }
 
 const utilities = new Utilities();
+let jobs = Promise.resolve();
 
 if (!isMainThread) {
 
@@ -254,7 +301,7 @@ if (!isMainThread) {
         const cmd = data.cmd;
         switch (cmd) {
             case 'paste':
-                utilities.poste(data.copy_arr).catch((err) => {
+                jobs = jobs.then(() => utilities.poste(data.copy_arr)).catch((err) => {
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: err && err.message ? err.message : String(err)
@@ -299,3 +346,4 @@ if (!isMainThread) {
     });
 
 }
+module.exports = { Utilities };

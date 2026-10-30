@@ -3,14 +3,13 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob:; media-src 'self' file: blob:; font-src 'self' data:; connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none';" />
         <title></title>
         <link rel="stylesheet" href="styles/index.css">
         <link rel="stylesheet" href="../assets/bootstrap-icons/font/bootstrap-icons.css">
         <link rel="stylesheet" href="styles/titlebar.css">
         <!-- <link rel="stylesheet" href="../../node_modules/material-design-icons/iconfont/material-icons.css"> -->
     </head>
-    <script src="../../node_modules/chart.js/dist/chart.umd.min.js"></script>
     <body>
 
         <div class="titlebar">
@@ -97,6 +96,7 @@
                 </div>
                 <div class="menu-item" tabindex="0">Help
                     <div class="menu-dropdown">
+                        <div class="menu-dropdown-item" data-action="keyboard-shortcuts" tabindex="0" role="button">Keyboard Shortcuts</div>
                         <div class="menu-dropdown-item" data-action="about">About</div>
                     </div>
                 </div>
@@ -175,8 +175,41 @@
             </div>
 
         </div>
+        <!-- Keyboard shortcuts use the same overlay and panel styling as About. -->
+        <div id="shortcuts-dialog" class="about-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" aria-describedby="shortcuts-description">
+            <div class="about-dialog-content shortcuts-dialog-content">
+                <h2 id="shortcuts-title" class="about-dialog-title">Keyboard Shortcuts</h2>
+                <p id="shortcuts-description">Use shortcuts with the file view focused. Text fields keep their editing shortcuts.</p>
+                <div class="shortcuts-list" tabindex="0" aria-label="Keyboard shortcut reference">
+                    <table>
+                        <thead><tr><th scope="col">Shortcut</th><th scope="col">Action</th></tr></thead>
+                        <tbody>
+                            <tr><td><kbd>Ctrl+T</kbd></td><td>New tab</td></tr>
+                            <tr><td><kbd>Ctrl+Shift+N</kbd></td><td>New folder</td></tr>
+                            <tr><td><kbd>Ctrl+L</kbd></td><td>Edit location</td></tr>
+                            <tr><td><kbd>Ctrl+F / ⌘+F</kbd></td><td>Find files</td></tr>
+                            <tr><td><kbd>Alt+Left / Backspace</kbd></td><td>Go back</td></tr>
+                            <tr><td><kbd>Alt+Right</kbd></td><td>Go forward</td></tr>
+                            <tr><td><kbd>Ctrl+A</kbd></td><td>Select all</td></tr>
+                            <tr><td><kbd>Ctrl+C</kbd></td><td>Copy selection</td></tr>
+                            <tr><td><kbd>Ctrl+X</kbd></td><td>Cut selection</td></tr>
+                            <tr><td><kbd>Ctrl+V</kbd></td><td>Paste</td></tr>
+                            <tr><td><kbd>F2</kbd></td><td>Rename selection</td></tr>
+                            <tr><td><kbd>Ctrl+Shift+E</kbd></td><td>Extract archive</td></tr>
+                            <tr><td><kbd>Ctrl+B</kbd></td><td>Toggle sidebar</td></tr>
+                            <tr><td><kbd>F5</kbd></td><td>Refresh folder</td></tr>
+                            <tr><td><kbd>Ctrl+R</kbd></td><td>Reload application</td></tr>
+                            <tr><td><kbd>Escape</kbd></td><td>Clear selection / close Find</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="about-dialog-footer">
+                    <button type="button" class="about-dialog-close-btn" data-dialog-close>Close</button>
+                </div>
+            </div>
+        </div>
         <!-- About Dialog -->
-        <div id="about-dialog" class="about-dialog hidden">
+        <div id="about-dialog" class="about-dialog hidden" role="dialog" aria-modal="true" aria-label="About">
             <div class="about-dialog-content">
                 <!-- <div class="about-dialog-title">About SFM</div> -->
                 <div class="about-dialog-body">
@@ -189,7 +222,7 @@
                     <div style="color:#aaa;">Licensed under MIT</div>
                 </div>
                 <div class="about-dialog-footer">
-                    <button id="about-dialog-close" class="about-dialog-close-btn">Close</button>
+                    <button id="about-dialog-close" class="about-dialog-close-btn" data-dialog-close>Close</button>
                 </div>
             </div>
         </div>

@@ -3,6 +3,8 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron');
 const { group_files } = require('../common/file_groups');
 const dnd = require('../common/dnd');
 const Chart = require('chart.js/auto');
+const { render_status } = require('../common/ui_text');
+const path = require('path');
 
 // Drag and drop related utilities and handlers /////////////////////////////////////////////////////////////
 
@@ -1591,9 +1593,9 @@ class Utilities {
             us.classList.add('item')
             as.classList.add('item')
 
-            ds.innerHTML = `Disk Space: ${data[0].disksize}`;
-            us.innerHTML = `Used Space: ${data[0].usedspace}`;
-            as.innerHTML = `Available: ${data[0].availablespace}`;
+            ds.textContent = `Disk Space: ${data[0].disksize}`;
+            us.textContent = `Used Space: ${data[0].usedspace}`;
+            as.textContent = `Available: ${data[0].availablespace}`;
 
             disk_space.append(ds, us, as)
 
@@ -1679,7 +1681,7 @@ class Utilities {
 
             breadcrumb_item.classList.add('breadcrumb_item', 'flex');
             i.classList.add('bi', 'bi-hdd');
-            label.innerHTML = `File System`;
+            label.textContent = `File System`;
 
             breadcrumb_item.append(i);
             breadcrumb_item.title = `File System`;
@@ -1708,11 +1710,11 @@ class Utilities {
 
                         i.classList.add('bi', 'bi-house');
                         breadcrumb_item.append(i)
-                        label.innerHTML = 'Home'
+                        label.textContent = 'Home'
                         breadcrumb_item.title = `Home`;
 
                     } else {
-                        label.innerHTML = breadcrumb;
+                        label.textContent = breadcrumb;
                         breadcrumb_item.title = `${breadcrumb}`;
                     }
 
@@ -1807,13 +1809,13 @@ class Utilities {
         try {
             let footer = document.querySelector('.footer');
             let msg_div = footer.querySelector('.msg');
+            const text = render_status(msg_div, msg);
             // check if message contains error
-            if (msg.toLocaleLowerCase().includes('error')) {
+            if (text.toLocaleLowerCase().includes('error')) {
                 msg_div.classList.add('error');
             } else {
                 msg_div.classList.remove('error');
             }
-            msg_div.innerHTML = `${msg}`;
             footer.classList.remove('footer-hidden');
 
             if (keep_visible) {
@@ -1857,7 +1859,7 @@ class Utilities {
     add_header(text) {
         let header = this.add_div(['header']) //document.createElement('h5');
         header.title = text
-        header.innerHTML = text
+        header.textContent = text
         return header;
     }
 
@@ -2023,7 +2025,6 @@ class Utilities {
         this.copy_arr = [];
         this.cut_arr = [];
         this.clear_highlight();
-        this.clear_empty_folder();
         fileManager?.update_toolbar_state?.();
 
     }
@@ -2204,7 +2205,7 @@ class Utilities {
         let delete_arr = this.get_selected_delete_files();
         if (delete_arr.length > 0) {
             ipcRenderer.send('delete', delete_arr);
-            this.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" />`, true);
+            this.set_msg({ text: '', loading: true }, true);
         } else {
             this.set_msg('Nothing to delete');
         }
@@ -2238,7 +2239,7 @@ class Utilities {
         let progress_bar = document.querySelector('.progress_bar');
 
         if (!progress_data || progress_data.max === 0) {
-            if (progress_status) progress_status.innerHTML = '';
+            if (progress_status) progress_status.textContent = '';
             if (progress) progress.classList.add('hidden');
             this.current_progress_operation = null;
             this.current_progress_can_cancel = false;
@@ -2358,7 +2359,7 @@ class Utilities {
         }
 
         if (progress_status) {
-            progress_status.innerHTML = statusMessage;
+            progress_status.textContent = statusMessage;
         }
 
         if (progress_data.operation) {
@@ -2543,14 +2544,6 @@ class Utilities {
     //     // }
 
     // }
-
-    // clear empty folder message
-    clear_empty_folder() {
-        let empty_folder = document.querySelector('.empty_msg');
-        if (empty_folder) {
-            empty_folder.innerHTML = '';
-        }
-    }
 
     // get selected files
     get_selected_files() {
@@ -3521,7 +3514,7 @@ class WorkspaceManager {
                 input.tabIndex = idx;
                 input.id = idx;
 
-                a.innerHTML = file.name;
+                a.textContent = file.name;
                 a.preventDefault = true;
 
                 let href_div = utilities.add_div(['href_div']);
@@ -3910,7 +3903,7 @@ class SideBarManager {
             icon_div.appendChild(icon_i);
 
             let link_div = document.createElement('div');
-            link_div.innerHTML = dir;
+            link_div.textContent = dir;
 
             home_view_item.append(icon_div, link_div);
             this.home_view.append(home_view_item);
@@ -4858,7 +4851,7 @@ class TabManager {
 
         tab.draggable = true;
 
-        col1.innerHTML = label;
+        col1.textContent = label;
         btn_close.classList.add('bi', 'bi-x');
 
         col2.append(btn_close);
@@ -5146,7 +5139,7 @@ class TabManager {
         tab.title = location;
         tab.dataset.href = location
         let label = utilities.get_base_name(location);
-        col1.innerHTML = label;
+        col1.textContent = label;
 
     }
 
@@ -5568,6 +5561,7 @@ class FileManager {
             }
 
             if (this.add_to_grouped_view([f], false, should_edit ? f.id : null)) {
+                this.check_for_empty_folder();
                 utilities.lazy_load_icons(active_tab_content);
                 this.handleFolderSize(f);
                 if (should_edit) this.start_edit_item(f);
@@ -5607,6 +5601,7 @@ class FileManager {
 
             utilities.lazy_load_icons(active_tab_content);
             this.handleFolderSize(f);
+            this.check_for_empty_folder();
             if (should_edit) this.start_edit_item(f);
 
         });
@@ -5693,6 +5688,8 @@ class FileManager {
             this.remove_view_items(files_arr);
         });
 
+        ipcRenderer.on('archive_conflict', (e, job) => this.show_overwrite_view([job], 'compress'));
+
         ipcRenderer.on('overwrite_copy', (e, overwrite_arr) => {
             this.show_overwrite_view(overwrite_arr, 'copy');
         });
@@ -5708,6 +5705,7 @@ class FileManager {
             settingsManager.set_location('Recent');
             utilities.set_location('Recent');
             utilities.get_breadcrumbs('Recent');
+            tabManager.update_tab('Recent');
             this.recent_files_arr = files_arr;
             this.get_view(files_arr);
             if (typeof this.refresh_recent_dashboard_views === 'function') {
@@ -5800,11 +5798,11 @@ class FileManager {
         const saved = active_tab_content.dataset.savedContent;
         if (saved) {
             try {
-                active_tab_content.innerHTML = atob(saved);
                 delete active_tab_content.dataset.savedContent;
+                this.get_view(tabManager.get_tab_data_arr(active_tab_content.dataset.id));
                 restored_from_saved = true;
 
-                // Saved HTML may contain lazy placeholders; hydrate restored cards.
+                // Rebuilt cards may contain lazy placeholders; hydrate them.
                 if (Array.isArray(this.files_arr) && this.files_arr.length > 0) {
                     this.lazy_load_files(this.files_arr);
                 }
@@ -5863,45 +5861,35 @@ class FileManager {
         }
     }
 
-    // set / remove empty folder message
+    // Keep one empty state for the active directory or Recent view.
     check_for_empty_folder() {
+        const content = tabManager.get_active_tab_content();
+        if (!content) return;
+        content.querySelectorAll(':scope > .empty_msg').forEach(message => message.remove());
+        const view = content.querySelector(':scope > .view_container');
+        if (!view || view.querySelector('.dashboard_view') || content.search_matches) return;
 
-        let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
-        let items = active_tab_content.querySelectorAll('.card, .tr');
+        const virtual = this.virtual_view?.active_tab_content === content ? this.virtual_view : null;
+        const has_items = virtual
+            ? virtual.filtered_files_arr.length > 0
+            : Array.from(view.querySelectorAll('.card, .tr')).some(item => !item.closest('.hidden'));
+        if (has_items) return;
 
-        // console.log('check for empty folder', items.length);
-
-        if (items.length === 0) {
-            this.folder_is_empty();
-        } else {
-            let empty_msg = active_tab_content.querySelector('.empty_msg');
-            if (empty_msg) {
-                empty_msg.remove();
-            }
-        }
-
-    }
-
-    // Folder is Empty
-    folder_is_empty() {
-
-        let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
-
-        let div = document.createElement('div');
-        div.classList.add('empty_msg');
-
-        let i = document.createElement('i');
-        i.classList.add('bi', 'bi-folder');
-
-        let msg = document.createElement('div');
-        msg.classList.add('msg');
-        msg.innerHTML = 'Folder is Empty';
-
-        div.append(i, msg);
-        active_tab_content.append(div);
-
-        utilities.set_msg('');
-
+        const filtering = Boolean(document.querySelector('.filter')?.innerText.trim());
+        const recent = this.is_recent_tab_content(content);
+        const message = document.createElement('div');
+        message.className = 'empty_msg';
+        message.setAttribute('role', 'status');
+        const icon = document.createElement('i');
+        icon.classList.add('bi', recent ? 'bi-clock-history' : 'bi-folder');
+        icon.setAttribute('aria-hidden', 'true');
+        const text = document.createElement('div');
+        text.className = 'msg';
+        const hidden_items = this.show_hidden === false && this.get_active_files().some(file => file.is_hidden);
+        text.textContent = filtering ? 'No matching items' : hidden_items ? 'No visible items'
+            : recent ? 'No recent files' : 'Folder is Empty';
+        message.append(icon, text);
+        content.append(message);
     }
 
     // init column resize
@@ -6054,7 +6042,7 @@ class FileManager {
         } else {
             filterValue = this.filter.innerText;
         }
-        this.quick_search_sting = filterValue;
+        this.quick_search_sting = filterValue.replace(/\n/g, '');
         this.filter.focus();
 
         if (this.quick_search_sting === '') {
@@ -6075,7 +6063,8 @@ class FileManager {
 
                 if (item.closest('.dashboard_workspace_view')) return;
 
-                if (item.dataset.name.toLocaleLowerCase().includes(this.quick_search_sting)) {
+                if ((this.show_hidden !== false || item.dataset.is_hidden !== 'true') &&
+                    item.dataset.name.toLocaleLowerCase().includes(this.quick_search_sting)) {
                     item.classList.remove('hidden');
 
                     const group = item.closest('.recent_date_group');
@@ -6099,6 +6088,7 @@ class FileManager {
                 }
 
             });
+            this.check_for_empty_folder();
             // reset nav idx for up down navigation
             // navigation.clearNavIdx();
             // set indexes for up down navigation
@@ -6110,22 +6100,20 @@ class FileManager {
     // clear filter
     clear_filter() {
 
-        if (this.update_virtual_filter()) {
-            return;
-        }
+        this.quick_search_sting = '';
+        this.update_virtual_filter();
 
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
         if (active_tab_content) {
 
             let cards = active_tab_content.querySelectorAll('.card, .tr');
             cards.forEach((card) => {
-                card.classList.remove('hidden');
-            })
+                card.classList.toggle('hidden', this.show_hidden === false && card.dataset.is_hidden === 'true');
+            });
 
-            const group = active_tab_content.querySelector('.recent_date_group');
-            if (group) {
-                group.classList.remove('hidden');
-            }
+            active_tab_content.querySelectorAll('.recent_date_group').forEach(group => {
+                group.classList.toggle('hidden', !group.querySelector('.card:not(.hidden)'));
+            });
 
             let filter = document.querySelector('.filter');
             if (filter) {
@@ -6140,6 +6128,7 @@ class FileManager {
 
         }
 
+        this.check_for_empty_folder();
         // utilities.set_msg(`Loaded ${cards.length} items`);
 
         // reset nav idx for up down navigation
@@ -7032,6 +7021,7 @@ class FileManager {
             active_tab_content.appendChild(view_container);
         }
 
+        this.check_for_empty_folder();
         this.lazy_load_files(files_arr);
 
 
@@ -7307,6 +7297,7 @@ class FileManager {
         }
         virtual_view.active_tab_content.scrollTop = 0;
         this.render_virtual_range(true);
+        this.check_for_empty_folder();
         return true;
     }
 
@@ -7415,31 +7406,31 @@ class FileManager {
                     let item = utilities.add_div(['item']);
                     content.appendChild(item);
 
-                    item.innerHTML = f[key] ? f[key] : '';
+                    item.textContent = f[key] ?? '';
                     item.classList.add(key);
                     item.dataset.columnKey = key;
 
                     switch (key) {
                         case 'size':
-                            item.innerHTML = f.is_dir ? '-' : utilities.get_file_size(f["size"]);
+                            item.textContent = f.is_dir ? '-' : utilities.get_file_size(f["size"]);
                             break;
                         case 'mtime':
-                            item.innerHTML = utilities.get_date_time(f.mtime);
+                            item.textContent = utilities.get_date_time(f.mtime);
                             break;
                         case 'ctime':
-                            item.innerHTML = utilities.get_date_time(f.ctime);
+                            item.textContent = utilities.get_date_time(f.ctime);
                             break;
                         case 'atime':
-                            item.innerHTML = utilities.get_date_time(f.atime);
+                            item.textContent = utilities.get_date_time(f.atime);
                             break;
                         case 'type':
-                            item.innerHTML = f.content_type;
+                            item.textContent = f.content_type;
                             break;
                         case 'location':
-                            item.innerHTML = f.location;
+                            item.textContent = f.location;
                             break;
                         case 'count':
-                            item.innerHTML = f.count;
+                            item.textContent = f.count;
                             break;
                     }
                 }
@@ -7553,7 +7544,9 @@ class FileManager {
                     if (!device.path) return;
 
                     ipcRenderer.invoke('get_dashboard_disk_stats', device.path).then(stats => {
-                        const chart = this.renderChart(stats);
+                        const chart = this.renderChart(stats.error ? stats : {
+                            ...stats, display_name: device.name || stats.display_name, href: device.path
+                        });
                         if (chart) {
                             overview.append(chart);
                         }
@@ -7681,6 +7674,8 @@ class FileManager {
 
     renderChart(stats) {
 
+        if (!stats || stats.error) return null;
+
         // change colors based on usage percentage
         let usedPercentage = (parseInt(stats.used) / (parseInt(stats.used) + parseInt(stats.free))) * 100;
         let backgroundColor;
@@ -7757,7 +7752,11 @@ class FileManager {
 
         const chartMeta = document.createElement('div');
         chartMeta.className = 'chart-meta';
-        chartMeta.innerHTML = `<span>${utilities.get_file_size(stats.used)} Used</span><span>${utilities.get_file_size(stats.free)} Free</span>`;
+        const usedLabel = document.createElement('span');
+        usedLabel.textContent = `${utilities.get_file_size(stats.used)} Used`;
+        const freeLabel = document.createElement('span');
+        freeLabel.textContent = `${utilities.get_file_size(stats.free)} Free`;
+        chartMeta.append(usedLabel, freeLabel);
         container.appendChild(chartMeta);
 
         const chart = new Chart(chartCanvas, {
@@ -8130,7 +8129,7 @@ class FileManager {
             results_list.innerHTML = '';
 
             cleanup_active_search?.();
-            const this_search_id = require('crypto').randomUUID();
+            const this_search_id = globalThis.crypto.randomUUID();
             search_id = this_search_id;
 
             if (!q) {
@@ -8163,7 +8162,7 @@ class FileManager {
                 return;
             }
 
-            results_header.innerHTML = `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" class="spinner" />Searching in ${search_location}...`;
+            render_status(results_header, { text: `Searching in ${search_location}...`, loading: true });
             find_submit.disabled = true;
             this.virtual_view?.dispose?.();
             this.virtual_view = null;
@@ -8365,7 +8364,7 @@ class FileManager {
             if (settings.schema.properties[key].type === 'object') {
                 header = document.createElement('h4');
                 header.classList.add('header');
-                header.innerHTML = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+                header.textContent = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
                 view_container.append(header);
 
                 const properties = settings.schema.properties[key].properties;
@@ -8778,7 +8777,7 @@ class FileManager {
             return;
         }
 
-        if (this.get_group_by_setting() !== 'None') {
+        if (this.get_group_by_setting() !== 'None' || this.get_active_files().some(file => file.is_hidden)) {
             this.get_view(this.get_active_files());
             return;
         }
@@ -8794,6 +8793,7 @@ class FileManager {
                 file.classList.remove('hidden');
             })
         });
+        this.check_for_empty_folder();
 
     }
 
@@ -8822,6 +8822,7 @@ class FileManager {
                 file.classList.add('hidden');
             })
         });
+        this.check_for_empty_folder();
 
     }
 
@@ -9370,11 +9371,13 @@ class FileManager {
         title.innerHTML = `<strong>${overwrite_arr.length} file conflict${overwrite_arr.length !== 1 ? 's' : ''}</strong>`;
         title.style.flex = '1';
 
-        const btn_overwrite_all = utilities.add_div();
+        const btn_overwrite_all = document.createElement('button');
+        btn_overwrite_all.type = 'button';
         btn_overwrite_all.innerHTML = 'Overwrite All';
         btn_overwrite_all.style.cssText = 'cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu);';
 
-        const btn_skip_all = utilities.add_div();
+        const btn_skip_all = document.createElement('button');
+        btn_skip_all.type = 'button';
         btn_skip_all.innerHTML = 'Skip All';
         btn_skip_all.style.cssText = 'cursor: pointer; padding: 4px 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu);';
 
@@ -9423,7 +9426,8 @@ class FileManager {
             dest_div.title = f.destination;
             dest_div.style.cssText = 'flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; opacity: 0.7;';
 
-            const btn_overwrite = utilities.add_div();
+            const btn_overwrite = document.createElement('button');
+            btn_overwrite.type = 'button';
             btn_overwrite.textContent = 'Overwrite';
             btn_overwrite.style.cssText = 'cursor: pointer; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu); white-space: nowrap; flex-shrink: 0;';
             btn_overwrite.addEventListener('click', () => {
@@ -9431,7 +9435,8 @@ class FileManager {
                 remove_row(f, row);
             });
 
-            const btn_keep = utilities.add_div();
+            const btn_keep = document.createElement('button');
+            btn_keep.type = 'button';
             btn_keep.textContent = 'Keep';
             btn_keep.style.cssText = 'cursor: pointer; padding: 3px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--menu); white-space: nowrap; flex-shrink: 0;';
             btn_keep.addEventListener('click', () => {
@@ -9484,7 +9489,7 @@ class FileManager {
 
             breadcrumb_item.classList.add('breadcrumb_item', 'flex');
             i.classList.add('bi', 'bi-hdd');
-            label.innerHTML = `File System`;
+            label.textContent = `File System`;
 
             breadcrumb_item.append(i, label);
             breadcrumb_item.title = `File System`;
@@ -9515,11 +9520,11 @@ class FileManager {
 
                         i.classList.add('bi', 'bi-house');
                         breadcrumb_item.append(i)
-                        label.innerHTML = 'Home'
+                        label.textContent = 'Home'
                         breadcrumb_item.title = `Home`;
 
                     } else {
-                        label.innerHTML = breadcrumb;
+                        label.textContent = breadcrumb;
                         breadcrumb_item.title = `${breadcrumb}`;
                     }
 
@@ -9584,6 +9589,7 @@ class FileManager {
             return;
         }
 
+        navigating_tab?.querySelectorAll(':scope > .empty_msg').forEach(message => message.remove());
         const request_id = ++this.list_request_id;
 
         // check if location is valid on the file system
@@ -9610,7 +9616,7 @@ class FileManager {
             }
         });
 
-        utilities.set_msg(`<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Loading...`, true);
+        utilities.set_msg({ text: 'Loading...', loading: true }, true);
 
         this.location0 = this.location;
         this.location = location;
@@ -10544,3 +10550,12 @@ document.addEventListener('DOMContentLoaded', init);
 
 // this.sort_by = sort;
 // this.sort_direction = sort_direction;
+
+// Keep external/email links working while denying arbitrary renderer navigation/popups.
+document.addEventListener('click', event => {
+    const anchor = event.target.closest?.('a[href]');
+    if (!anchor || !/^(https?:|mailto:)$/.test(anchor.protocol)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.isTrusted) ipcRenderer.send('open_external', anchor.href);
+}, true);

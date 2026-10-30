@@ -29,7 +29,9 @@ class ThumbnailManager {
             const entry = process.defaultApp
                 ? [path.join(__dirname, '../../workers/thumbnail_worker.js')]
                 : ['--thumbnail-worker'];
-            this.child = spawn(process.execPath, [...entry, '--no-sandbox', '--disable-gpu'], {
+            // Respect an explicit caller opt-out (used by restricted Linux test hosts), not a production default.
+            const sandbox_flags = process.argv.includes('--no-sandbox') ? ['--no-sandbox'] : [];
+            this.child = spawn(process.execPath, [...entry, ...sandbox_flags, '--disable-gpu'], {
                 env, stdio: ['ignore', 'ignore', 'ignore', 'ipc']
             });
             const child = this.child;

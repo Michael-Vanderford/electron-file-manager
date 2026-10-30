@@ -79,7 +79,7 @@ ipcRenderer.on('connect', (e) => {
 
         input.focus();
         msg_connect.classList.replace('msg_connect', 'msg_connect_error');
-        msg_connect.innerHTML = `${input.placeholder} Required.`;
+        msg_connect.textContent = `${input.placeholder} Required.`;
         return false;
     }
 
@@ -104,17 +104,17 @@ ipcRenderer.on('connect', (e) => {
 
     connection_type.addEventListener('change', (e) => {
         if (connection_type.value === 'sshfs') {
-            msg_connect.innerHTML = `! Using sshfs requires sshfs be installed.`
+            msg_connect.textContent = `! Using sshfs requires sshfs be installed.`
             mount_point_div.classList.remove('hidden');
             chk_pk.disabled = false;
             chk_pk.checked = true;
         } else if (connection_type.value === 'smb') {
-            msg_connect.innerHTML = '';
+            msg_connect.textContent = '';
             mount_point_div.classList.remove('hidden');
             chk_pk.disabled = true;
             chk_pk.checked = false;
         } else {
-            msg_connect.innerHTML = '';
+            msg_connect.textContent = '';
             mount_point_div.classList.add('hidden');
             chk_pk.disabled = false;
         }
@@ -123,7 +123,7 @@ ipcRenderer.on('connect', (e) => {
     })
 
     if (connection_type.value === 'sshfs') {
-        msg_connect.innerHTML = `! Using sshfs requires sshfs be installed.`
+        msg_connect.textContent = `! Using sshfs requires sshfs be installed.`
     }
 
     btn_connect.addEventListener('click', (e) => {
@@ -152,7 +152,7 @@ ipcRenderer.on('connect', (e) => {
         if (state == 1) {
 
             msg_connect.classList.replace('msg_connect_error', 'msg_connect');
-            msg_connect.innerHTML = `Connecting to ${server.value}`;
+            msg_connect.textContent = `Connecting to ${server.value}`;
 
             str_server = server.value.trim();
 
@@ -178,7 +178,7 @@ ipcRenderer.on('connect', (e) => {
                     msg_connect.classList.add('msg_connect_success');
                     msg_connect.classList.remove('msg_connect_error');
                 }
-                msg_connect.innerHTML = res.msg || '';
+                msg_connect.textContent = res.msg || '';
             })
 
 
@@ -338,6 +338,6 @@ ipcRenderer.on('msg_connect', (e, data) => {
         msg_connect.classList.add('msg_connect_success');
         msg_connect.classList.remove('msg_connect_error');
     }
-    msg_connect.innerHTML = data.msg;
+    msg_connect.textContent = data.msg;
 
 })

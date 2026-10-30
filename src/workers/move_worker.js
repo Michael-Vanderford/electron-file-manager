@@ -1,9 +1,10 @@
 // @ts-nocheck
-const { parentPort, isMainThread } = require('worker_threads');
+const { parentPort, isMainThread, workerData } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
 const libfs = require('../common/libfs');
 const fs = require('fs');
 const path = require('path');
+const safe = require('../common/safe_replace');
 
 class Utilities {
     constructor() {
@@ -35,6 +36,14 @@ class Utilities {
         file.source = source;
         file.destination = destination;
         this.move_arr.push(file);
+        if (file.is_symlink) {
+            if (--this.cp_recursive === 0) {
+                const entries = this.move_arr;
+                this.move_arr = [];
+                return callback(null, entries);
+            }
+            return;
+        }
 
         libfs.ls(source, (err, dirents) => {
             if (err) {
@@ -52,7 +61,7 @@ class Utilities {
                 f.source = f.href;
                 f.destination = path.join(destination, f.name);
 
-                if (f.is_dir) {
+                if (f.is_dir && !f.is_symlink) {
                     this.get_files_arr(f.source, f.destination, callback);
                 } else {
                     this.move_arr.push(f);
@@ -78,17 +87,34 @@ class Utilities {
         let failed = false;
         const moved = [];
 
-        for (const f of move_arr) {
+        for (const entry of move_arr) {
+            const f = { ...entry, ...libfs.get_file(entry.source), source: entry.source, destination: entry.destination };
             if (this.cancel_requested) {
                 cancelled = true;
                 break;
+            }
+
+            try {
+                await safe.assert_destination(f.source, f.destination);
+                if (f.overwrite) {
+                    await safe.transfer(f.source, f.destination, {
+                        overwrite: true, move: true, journal_dir: workerData?.journal_dir, cancelled: () => this.cancel_requested
+                    });
+                    moved.push(f);
+                    continue;
+                }
+            } catch (error) {
+                failed = true;
+                cancelled ||= error.code === 'ECANCELED';
+                parentPort.postMessage({ cmd: 'set_msg', msg: error.message });
+                continue;
             }
 
             if (f.size) {
                 total_size += parseInt(f.size, 10);
             }
 
-            if (f.is_dir) {
+            if (f.is_dir && !f.is_symlink) {
                 const dirents = await new Promise((resolve, reject) => {
                     this.get_files_arr(f.source, f.destination, (err, entries) => {
                         if (err) {
@@ -128,7 +154,19 @@ class Utilities {
                 break;
             }
 
-            if (f.is_dir) {
+            const root = move_arr.find(entry => f.source === entry.source || f.source.startsWith(entry.source + path.sep));
+            if (root) {
+                try {
+                    await safe.assert_parents(f.source, root.source);
+                    await safe.assert_parents(f.destination, root.destination);
+                } catch (error) {
+                    failed = true;
+                    parentPort.postMessage({ cmd: 'set_msg', msg: error.message });
+                    continue;
+                }
+            }
+
+            if (f.is_dir && !f.is_symlink) {
                 try {
                     fs.mkdirSync(f.destination, { recursive: true });
                 } catch (err) {
@@ -181,7 +219,7 @@ class Utilities {
         }
 
         if (!cancelled && !failed) {
-            const dirs = files_arr.filter((f) => f.is_dir).sort((a, b) => b.source.length - a.source.length);
+            const dirs = files_arr.filter((f) => f.is_dir && !f.is_symlink).sort((a, b) => b.source.length - a.source.length);
             for (const dir of dirs) {
                 try {
                     fs.rmdirSync(dir.source);
@@ -212,18 +250,20 @@ class Utilities {
 
         parentPort.postMessage({
             cmd: 'mv_done',
-            cancelled,
+            cancelled: cancelled || this.cancel_requested,
+            failed,
             files_arr: moved
         });
     }
 }
 
 const utilities = new Utilities();
+let jobs = Promise.resolve();
 
 if (!isMainThread) {
     parentPort.on('message', (data) => {
         if (data.cmd === 'move') {
-            utilities.move(data.move_arr).catch((err) => {
+            jobs = jobs.then(() => utilities.move(data.move_arr)).catch((err) => {
                 parentPort.postMessage({
                     cmd: 'set_msg',
                     msg: err && err.message ? err.message : String(err)

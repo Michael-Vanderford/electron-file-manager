@@ -3,7 +3,7 @@ const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
 const os = require('os');
-const { execSync, exec } = require('child_process');
+const { execFileSync, execFile } = require('child_process');
 
 let gioNative = null;
 try {
@@ -218,7 +218,7 @@ class LibFS {
         }
 
         try {
-            const output = execSync(`df -B1 "${location}"`, { encoding: 'utf8' });
+            const output = execFileSync('df', ['-B1', '--', location], { encoding: 'utf8', timeout: 2500 });
             const lines = output.trim().split('\n');
             if (lines.length >= 2) {
                 const parts = lines[1].split(/\s+/);
@@ -239,7 +239,7 @@ class LibFS {
             if (err) {
                 if (err.code === 'EXDEV') {
                     // Cross-device link error, copy and unlink
-                    fs.cp(source, destination, { recursive: true }, (cpErr) => {
+                    fs.cp(source, destination, { recursive: true, dereference: false, verbatimSymlinks: true }, (cpErr) => {
                         if (cpErr) return callback(cpErr);
                         fs.rm(source, { recursive: true, force: true }, (rmErr) => {
                             callback(rmErr, true);
@@ -414,7 +414,7 @@ class LibFS {
             return callback(new Error('Mounting is only supported on Linux'));
         }
 
-        exec(`udisksctl mount -b "${device.device || device}"`, (err, stdout, stderr) => {
+        execFile('udisksctl', ['mount', '-b', String(device.device || device)], (err, stdout, stderr) => {
             if (err) {
                 return callback(err);
             }
@@ -431,11 +431,9 @@ class LibFS {
             return callback(new Error('Unmounting is only supported on Linux'));
         }
 
-        exec(`udisksctl unmount -b "${device.device || device}" || udisksctl unmount -p "${device.path || device}"`, (err) => {
-            if (err) {
-                return callback(err);
-            }
-            callback(null, true);
+        execFile('udisksctl', ['unmount', '-b', String(device.device || device)], error => {
+            if (!error) return callback(null, true);
+            execFile('udisksctl', ['unmount', '-p', String(device.path || device)], fallback_error => callback(fallback_error, !fallback_error));
         });
     }
 
@@ -553,7 +551,7 @@ class LibFS {
     }
 
     cp_async(source, destination, callback) {
-        fs.cp(source, destination, { recursive: true, force: true }, (err) => {
+        fs.cp(source, destination, { recursive: true, force: false, errorOnExist: true, dereference: false, verbatimSymlinks: true }, (err) => {
             if (typeof callback === 'function') {
                 callback(err, err ? null : { completed: true });
             }

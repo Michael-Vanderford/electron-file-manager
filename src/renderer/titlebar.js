@@ -80,6 +80,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 case 'fullscreen': window.titlebarAPI.toggleFullscreen(); break;
                 case 'exit': window.titlebarAPI.close(); break;
                 case 'about': showAboutDialog(); break;
+                case 'keyboard-shortcuts': showHelpDialog('shortcuts-dialog'); break;
                 case 'cut': window.titlebarAPI.cut(); break;
                 case 'copy': window.titlebarAPI.copy(); break;
                 case 'paste': window.titlebarAPI.paste(); break;
@@ -133,28 +134,53 @@ window.addEventListener('DOMContentLoaded', () => {
                 const appDesc = document.getElementById('about-app-description');
                 if (appVer && versions.appVersion) appVer.textContent = `Version ${versions.appVersion}`;
                 if (elecVer && versions.electronVersion) elecVer.textContent = `Electron version: ${versions.electronVersion}`;
-                if (appName && versions.appName) appName.innerHTML = `<strong>${versions.appName}</strong>`;
+                if (appName && versions.appName) appName.textContent = versions.appName;
                 if (appDesc && versions.appDescription) appDesc.textContent = versions.appDescription;
             });
-            dialog.classList.remove('hidden');
-            // Trap focus
-            const closeBtn = document.getElementById('about-dialog-close');
-            if (closeBtn) {
-                closeBtn.focus();
-                closeBtn.onclick = () => {
-                    dialog.classList.add('hidden');
-                };
-            }
-            // Close on Escape
-            function escListener(e) {
-                if (e.key === 'Escape') {
-                    dialog.classList.add('hidden');
-                    document.removeEventListener('keydown', escListener);
-                }
-            }
-            document.addEventListener('keydown', escListener);
+            showHelpDialog('about-dialog');
         }
     }
+
+    // Shared by About and the shortcut reference; remove handlers on every close.
+    function showHelpDialog(id) {
+        const dialog = document.getElementById(id);
+        const returnFocus = document.activeElement?.closest('.menu-item') || document.activeElement;
+        const closeButton = dialog.querySelector('[data-dialog-close]');
+        dialog.classList.remove('hidden');
+        const close = () => {
+            dialog.classList.add('hidden');
+            closeButton.removeEventListener('click', close);
+            document.removeEventListener('keydown', onKeyDown, true);
+            returnFocus?.focus();
+        };
+        const onKeyDown = event => {
+            // A help modal must not trigger file operations in the view behind it.
+            event.stopImmediatePropagation();
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                close();
+            } else if (event.key === 'Tab') {
+                const focusable = [...dialog.querySelectorAll('a[href], button, [tabindex="0"]')];
+                const index = focusable.indexOf(document.activeElement);
+                event.preventDefault();
+                focusable[(index + (event.shiftKey ? -1 : 1) + focusable.length) % focusable.length].focus();
+            }
+        };
+        closeButton.addEventListener('click', close);
+        document.addEventListener('keydown', onKeyDown, true);
+        closeButton.focus();
+    }
+
+    // Help remains reachable without a pointer.
+    titlebar.querySelectorAll('.menu-item, [data-action="keyboard-shortcuts"]').forEach(item => {
+        item.addEventListener('keydown', event => {
+            if (event.target === item && ['Enter', ' '].includes(event.key)) {
+                event.preventDefault();
+                event.stopPropagation();
+                item.click();
+            }
+        });
+    });
 
     window.addEventListener('click', (e) => {
         if (!titlebar.contains(e.target)) {

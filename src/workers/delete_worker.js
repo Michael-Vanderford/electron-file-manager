@@ -3,6 +3,7 @@ const { parentPort, isMainThread } = require('worker_threads');
 // const gio = require('../gio/build/Release/gio.node');
 const libfs = require('../common/libfs');
 const path = require('path');
+const { assert_parents } = require('../common/safe_replace');
 
 class DeleteWorker {
 
@@ -49,7 +50,7 @@ class DeleteWorker {
     get_files_arr(source, callback) {
 
         // this.post_message({ cmd: 'set_msg', msg: `Scanning ${source}...` }, true);
-        this.post_message({ cmd: 'set_msg', msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning files for delete...` }, true);
+        this.post_message({ cmd: 'set_msg', msg: { text: 'Scanning files for delete...', loading: true } }, true);
 
         if (this.cancel_requested) {
             return callback(null, []);
@@ -59,15 +60,23 @@ class DeleteWorker {
 
         let file;
         try {
-            if (this.gio.exists && !this.gio.exists(source)) {
+            file = this.gio.get_file(source);
+            if (this.gio.exists && !this.gio.exists(source) && !file.is_symlink) {
                 return callback(new Error(`File not found: ${source}`));
             }
-            file = this.gio.get_file(source);
         } catch (err) {
             return callback(new Error(`Error getting file: ${err.message}`));
         }
 
         this.files_arr.push(file);
+        if (file.is_symlink) {
+            if (--this.scan_recursive === 0) {
+                const entries = this.files_arr;
+                this.files_arr = [];
+                return callback(null, entries);
+            }
+            return;
+        }
 
         this.gio.ls(source, (err, dirents) => {
             if (err) {
@@ -132,7 +141,7 @@ class DeleteWorker {
         this.throw_if_cancelled();
 
         try {
-            this.gio.rm(target_path);
+            if (this.gio.rm(target_path) === false) throw new Error(`Could not delete ${target_path}`);
         } catch (err) {
             throw new Error(err && err.message ? err.message : String(err));
         }
@@ -145,8 +154,9 @@ class DeleteWorker {
     }
 
     async get_delete_plan(item) {
-        if (!item.is_dir) {
-            return [item];
+        const current = this.gio.get_file(item.href);
+        if (!current.is_dir || current.is_symlink) {
+            return [{ ...item, ...current }];
         }
 
         const entries = await this.get_files_arr_async(item.href);
@@ -168,7 +178,7 @@ class DeleteWorker {
 
         // Show a plain status message while counting files — no ETA yet.
         // this.post_message({ cmd: 'set_msg', msg: `Scanning ${delete_arr.length} item${delete_arr.length !== 1 ? 's' : ''}...</i>` });
-        this.post_message({ cmd: 'set_msg', msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning ${delete_arr.length}</i>`}, true);
+        this.post_message({ cmd: 'set_msg', msg: { text: `Scanning ${delete_arr.length}`, loading: true }}, true);
 
         for (const item of delete_arr) {
             if (this.cancel_requested) {
@@ -179,7 +189,7 @@ class DeleteWorker {
             // Update status during scan for each top-level item
             this.post_message({
                 cmd: 'set_msg',
-                msg: `<img src="../renderer/icons/spinner.gif" style="width: 12px; height: 12px" alt="loading" /> Scanning ${delete_arr.indexOf(item) + 1}/${delete_arr.length}: ${path.basename(item.href)}...`
+                msg: { text: `Scanning ${delete_arr.indexOf(item) + 1}/${delete_arr.length}: ${path.basename(item.href)}...`, loading: true }
             });
 
             const item_scan_start = Date.now();
@@ -258,7 +268,8 @@ class DeleteWorker {
             try {
                 for (const entry of delete_plan) {
                     this.throw_if_cancelled();
-                    await this.delete_path(entry.href, entry.is_dir, entry.name);
+                    if (this.gio === libfs) await assert_parents(entry.href, item.href);
+                    await this.delete_path(entry.href, entry.is_dir && !entry.is_symlink, entry.name);
                 }
                 deleted_items.push(item);
             } catch (err) {
