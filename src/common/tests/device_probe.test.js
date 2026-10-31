@@ -3,8 +3,11 @@ jest.mock('child_process', () => ({ fork: jest.fn() }));
 const { fork } = require('child_process');
 let probe;
 let children;
+let now;
 beforeEach(() => {
     jest.useFakeTimers();
+    now = 1000000;
+    jest.spyOn(Date, 'now').mockImplementation(() => now);
     jest.resetModules();
     children = [];
     const childProcess = require('child_process');
@@ -17,7 +20,7 @@ beforeEach(() => {
     });
     probe = require('../device_probe').probe;
 });
-afterEach(() => jest.useRealTimers());
+afterEach(() => { jest.useRealTimers(); jest.restoreAllMocks(); });
 
 test('coalesces requests and accepts a successful reply', async () => {
     const request = probe('stats', '/local');
@@ -37,6 +40,7 @@ test('times out without waiting for exit, ignores late replies, and retries afte
     await expect(probe('stats', '/offline')).rejects.toThrow('retry shortly');
     expect(children).toHaveLength(1);
     children[0].emit('exit', null);
+    now += 30000;
     jest.advanceTimersByTime(30000);
     const retry = probe('stats', '/offline');
     children[1].emit('message', { result: { total: 10 } });
@@ -67,6 +71,7 @@ test('child errors reject the request promptly', async () => {
 test('an early child exit rejects instead of waiting for the timeout', async () => {
     const request = probe('devices');
     children[0].emit('exit', 1);
+    children[0].emit('close', 1);
     await expect(request).rejects.toThrow('exited before responding');
 });
 
@@ -75,4 +80,21 @@ test('an error reply releases the request and reports the probe failure', async 
     children[0].emit('message', { error: 'permission denied' });
     await expect(request).rejects.toThrow('permission denied');
     children[0].emit('exit', 1);
+});
+
+test('a reply buffered at process exit is accepted before close', async () => {
+    const request = probe('validate', '/local');
+    children[0].emit('exit', 0);
+    children[0].emit('message', { result: true });
+    children[0].emit('close', 0);
+    await expect(request).resolves.toBe(true);
+});
+
+test('interactive metadata has bounded reserved capacity when four disk probes are stuck', async () => {
+    const requests = Array.from({ length: 4 }, (_, i) => probe('stats', `/disk-${i}`).catch(error => error));
+    const interactive = Array.from({ length: 4 }, (_, i) => probe('validate', `/path-${i}`).catch(error => error));
+    expect(children).toHaveLength(8);
+    await expect(probe('validate', '/overflow')).rejects.toThrow('retry shortly');
+    jest.advanceTimersByTime(3000);
+    await Promise.all([...requests, ...interactive]);
 });

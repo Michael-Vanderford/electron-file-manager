@@ -101,7 +101,11 @@ class Utilities {
         let max = 0;
         let size = 0;
         for (const entry of copy_arr) {
-            const f = { ...entry, ...libfs.get_file(entry.source), source: entry.source, destination: entry.destination };
+            let f;
+            try {
+                if (!fs.existsSync(entry.source) && !libfs.get_file(entry.source).is_symlink) throw new Error(`File not found: ${entry.source}`);
+                f = { ...entry, ...libfs.get_file(entry.source), source: entry.source, destination: entry.destination };
+            } catch (error) { failures.push({ ...entry, error: error.message }); continue; }
 
             if (this.cancel_requested) {
                 break;
@@ -139,6 +143,11 @@ class Utilities {
                         }
                         resolve(entries || []);
                     });
+                }).catch(error => {
+                    failures.push({ ...f, error: error.message });
+                    this.files_arr = [];
+                    this.cp_recursive = 0;
+                    return [];
                 });
                 dirents.forEach((ff) => {
                     files_arr.push(ff);
@@ -157,6 +166,7 @@ class Utilities {
             return a.source.length - b.source.length;
         });
 
+        const failed_directories = [];
         let bytes_copied = 0;
         let cancelled = false;
         for (const f of files_arr) {
@@ -166,6 +176,10 @@ class Utilities {
                 break;
             }
 
+            if (failed_directories.some(directory => f.source.startsWith(directory + path.sep))) {
+                failures.push({ ...f, error: 'Parent directory could not be created.' });
+                continue;
+            }
             const root = copy_arr.find(entry => f.source === entry.source || f.source.startsWith(entry.source + path.sep));
             if (root) {
                 try {
@@ -182,10 +196,9 @@ class Utilities {
             destination = f.destination;
             if (f.is_dir && !f.is_symlink) {
                 // fs.mkdirSync(destination, { recursive: true });
-                if (!libfs.mkdir(destination)) {
-                    failures.push({ ...f, error: 'Could not create directory' });
-                    continue;
-                }
+                try {
+                    if (!libfs.mkdir(destination)) throw new Error(`Could not create directory: ${destination}`);
+                } catch (error) { failed_directories.push(f.source); failures.push({ ...f, error: error.message }); continue; }
 
                 // // get size of destination directory
                 // let size = fs.statSync(destination).size;
@@ -272,10 +285,11 @@ class Utilities {
             cmd: 'cp_done',
             cancelled: cancelled || this.cancel_requested,
             completed, failures,
+            cancelled_entries: (cancelled || this.cancel_requested) ? files_arr.filter(file => !completed.includes(file) && !failures.some(failure => failure.source === file.source)) : [],
             destination: destination
         }
 
-        parentPort.postMessage(cp_done);
+
 
         parentPort.postMessage(set_progress);
 
@@ -284,6 +298,7 @@ class Utilities {
             msg: (cancelled || this.cancel_requested) ? 'Copy cancelled.' : failures.length ? `Copy incomplete: ${failures.length} items failed.` : `Done copying (${completed.length}) files`
         }
         parentPort.postMessage(msg);
+        parentPort.postMessage(cp_done);
 
         files_arr = [];
         copy_arr = [];
@@ -305,6 +320,9 @@ if (!isMainThread) {
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: err && err.message ? err.message : String(err)
+                    });
+                    parentPort.postMessage({
+                        cmd: 'cp_done', completed: [], failures: data.copy_arr.map(entry => ({ ...entry, error: err.message })), cancelled: utilities.cancel_requested
                     });
                     parentPort.postMessage({
                         cmd: 'set_progress',

@@ -186,9 +186,10 @@ class Utilities {
                         return;
                     }
                     resolve(result || {});
-                });
+                }, { journal_dir: workerData?.journal_dir, cancelled: () => this.cancel_requested });
             }).catch((err) => {
                 failed = true;
+                cancelled ||= err.code === 'ECANCELED';
                 parentPort.postMessage({
                     cmd: 'set_msg',
                     msg: `Error moving file from ${f.source} to ${f.destination}: ${err.message}`

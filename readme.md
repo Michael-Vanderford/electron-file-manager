@@ -121,6 +121,10 @@
 - Linux (x86-64)
 - Node.js ≥ 18
 - `sshfs` (optional, for SSHFS network mounts)
+- `xz` for creating TAR.XZ archives; `gzip`, `xz`, and `bzip2` for standalone compressed streams
+- Python ≥ 3.9 and the libarchive runtime library for ZIP, TAR, TAR.GZ, TAR.XZ, TAR.BZ2, and 7z extraction (`python3` on Linux; `python` on Windows)
+
+Archive extraction validates each entry before writing. Paths escaping the output directory, links, special files, and duplicate file entries fail with an explicit error; partial output from reported failures or cancellation is removed. Regular file permissions (excluding special privilege bits) and modification times are retained. Archives containing links must be inspected/extracted with another tool. This is an intentional containment policy. Missing extraction prerequisites produce an error rather than using an unchecked fallback.
 
 ---
 
@@ -180,3 +184,10 @@ See [LICENSE.md](LICENSE.md) for details.
 
 **Michael Vanderford** — [michael.vanderford@gmail.com](mailto:michael.vanderford@gmail.com)
 [https://github.com/michael-vanderford/sfm](https://github.com/michael-vanderford/sfm)
+## Reliability and release checks
+
+Preferences use atomic private-file replacement and last-good backups. Keep the profile's `.bak` and retained `.corrupt` files when investigating recovery problems. Linux password storage requires a secure Electron safeStorage backend; `basic_text` is not accepted. When secure storage is locked/unavailable, legacy plaintext configurations remain private and recoverable, automatic reconnect is disabled, and new password saves are refused with a message. A successful migration removes plaintext from the active and backup files.
+
+JPEG/PNG previews use a small-image disk cache. GIF/WebP render directly through Chromium to preserve decoding and animation. The cache budget is soft for files served during the current app session; valid XCF and broader target-platform codec checks remain pending.
+
+Run `npm run test:regression` for development checks. The opt-in packaged smoke gate is `EFM_PACKAGED_EXECUTABLE=/absolute/path/to/executable npx playwright test e2e/packaged.spec.js` (under Xvfb on headless Linux). See [release checks](docs/release-checks.md) and [feature verification](docs/features.md) for exact scope and remaining platform/service gaps.

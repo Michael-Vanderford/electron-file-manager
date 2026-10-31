@@ -132,3 +132,22 @@ describe('libfs class', () => {
         });
     });
 });
+
+it('reports synchronous and callback filesystem failures consistently', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'libfs-failure-'));
+    const file = path.join(root, 'file');
+    fs.writeFileSync(file, 'original');
+    try {
+        expect(libfs.mkdir(path.join(file, 'child'))).toBe(false);
+        await new Promise(resolve => libfs.mkdir(path.join(file, 'child'), (err, success) => {
+            expect(err).toBeTruthy();
+            expect(success).toBe(false);
+            resolve();
+        }));
+        const failure = jest.spyOn(fs, 'rmSync').mockImplementation(() => { throw new Error('EACCES'); });
+        try { expect(libfs.rm(file)).toBe(false); } finally { failure.mockRestore(); }
+        expect(fs.readFileSync(file, 'utf8')).toBe('original');
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});

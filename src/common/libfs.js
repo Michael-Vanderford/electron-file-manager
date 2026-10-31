@@ -1,3 +1,4 @@
+const { path_id } = require('./path_id');
 // @ts-nocheck
 const fs = require('fs');
 const fsPromises = fs.promises;
@@ -12,25 +13,7 @@ try {
     gioNative = null;
 }
 
-const CONTENT_TYPE_BY_EXT = {
-    '.txt': 'text/plain', '.md': 'text/markdown', '.json': 'application/json',
-    '.js': 'text/javascript', '.mjs': 'text/javascript', '.cjs': 'text/javascript',
-    '.ts': 'text/x-typescript', '.html': 'text/html', '.htm': 'text/html',
-    '.css': 'text/css', '.xml': 'application/xml', '.csv': 'text/csv',
-    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif', '.bmp': 'image/bmp', '.svg': 'image/svg+xml',
-    '.webp': 'image/webp', '.ico': 'image/vnd.microsoft.icon',
-    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
-    '.mp4': 'video/mp4', '.mkv': 'video/x-matroska', '.avi': 'video/x-msvideo',
-    '.mov': 'video/quicktime', '.webm': 'video/webm',
-    '.pdf': 'application/pdf', '.doc': 'application/msword',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.xls': 'application/vnd.ms-excel',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    '.zip': 'application/zip', '.tar': 'application/x-tar', '.gz': 'application/gzip',
-    '.7z': 'application/x-7z-compressed', '.rar': 'application/vnd.rar',
-    '.exe': 'application/x-msdownload', '.sh': 'application/x-sh',
-};
+const { get_content_type, perms_from_stats } = require('./file_metadata');
 
 class LibFS {
     constructor() {
@@ -38,12 +21,7 @@ class LibFS {
         this.gioNative = gioNative;
     }
 
-    get_content_type(name, is_dir) {
-        if (is_dir) {
-            return 'inode/directory';
-        }
-        return CONTENT_TYPE_BY_EXT[path.extname(name).toLowerCase()] || 'application/octet-stream';
-    }
+    get_content_type(name, is_dir) { return get_content_type(name, is_dir); }
 
     is_accessible(href, mode) {
         try {
@@ -55,20 +33,7 @@ class LibFS {
     }
 
     // derives read/write perms from stat mode bits, avoiding extra access() round trips on remote mounts
-    perms_from_stats(stats) {
-        const mode = stats.mode;
-        const uid = process.getuid ? process.getuid() : -1;
-        const gid = process.getgid ? process.getgid() : -1;
-        let bits;
-        if (stats.uid === uid) {
-            bits = (mode >> 6) & 0o7;
-        } else if (stats.gid === gid) {
-            bits = (mode >> 3) & 0o7;
-        } else {
-            bits = mode & 0o7;
-        }
-        return { is_readable: !!(bits & 0o4), is_writable: !!(bits & 0o2) };
-    }
+    perms_from_stats(stats) { return perms_from_stats(stats); }
 
     build_file_from_stats(href, lstats, stats, broken_symlink) {
         const name = path.basename(href) || href;
@@ -199,11 +164,7 @@ class LibFS {
         return fs.existsSync(href);
     }
 
-    disk_stats(location) {
-        if (process.platform !== 'linux') {
-            return { total: 0, used: 0, free: 0 };
-        }
-
+    disk_stats(location, { strict = false } = {}) {
         try {
             if (typeof fs.statfsSync === 'function') {
                 const stats = fs.statfsSync(location);
@@ -231,25 +192,20 @@ class LibFS {
             // ignore
         }
 
+        if (strict) throw new Error('Filesystem capacity is unavailable.');
         return { total: 0, used: 0, free: 0 };
     }
 
-    mv(source, destination, callback) {
-        fs.rename(source, destination, (err) => {
-            if (err) {
-                if (err.code === 'EXDEV') {
-                    // Cross-device link error, copy and unlink
-                    fs.cp(source, destination, { recursive: true, dereference: false, verbatimSymlinks: true }, (cpErr) => {
-                        if (cpErr) return callback(cpErr);
-                        fs.rm(source, { recursive: true, force: true }, (rmErr) => {
-                            callback(rmErr, true);
-                        });
-                    });
-                    return;
-                }
-                return callback(err);
-            }
-            callback(null, true);
+    mv(source, destination, callback, options = {}) {
+        fs.rename(source, destination, error => {
+            if (!error) return callback(null, true);
+            if (error.code !== 'EXDEV') return callback(error);
+            // Verify a staged copy before any source cleanup. Preserve cancellation,
+            // links and partial-failure safety at the actual EXDEV boundary.
+            require('./safe_replace').transfer(source, destination, {
+                ...options, move: true,
+                journal_dir: options.journal_dir || path.join(os.tmpdir(), 'efm-replacement-journals')
+            }).then(() => callback(null, true), callback);
         });
     }
 
@@ -288,24 +244,24 @@ class LibFS {
                         return;
                     }
 
-                    let event;
-                    if (filename) {
-                        const fullPath = path.join(dir, filename);
-                        const exists = this.exists(fullPath);
-                        event = {
-                            eventType,
-                            event: eventType === 'rename' ? (exists ? 'created' : 'deleted') : 'modified',
-                            filename: fullPath,
-                            file: exists ? this.get_file(fullPath) : { href: fullPath, name: filename }
-                        };
-                    } else {
-                        event = { eventType, filename: dir };
-                    }
-
-                    current_entry.callbacks.forEach((cb) => cb(event));
+                    if (!filename) return;
+                    const fullPath = path.join(dir, String(filename));
+                    const notify = (event, error) => {
+                        if (current_entry !== this.watchers.get(dir)) return;
+                        current_entry.callbacks.forEach(cb => cb({ event, filename: fullPath, error }));
+                    };
+                    fsPromises.lstat(fullPath).then(() => notify(eventType === 'rename' ? 'created' : 'modified'), error => {
+                        if (error.code !== 'ENOENT') { notify('error', error); return; }
+                        fsPromises.stat(dir).then(() => notify('deleted'), directory_error => {
+                            notify('error', directory_error);
+                            current_entry.watcher.close();
+                            if (this.watchers.get(dir) === current_entry) this.watchers.delete(dir);
+                        });
+                    });
                 });
                 // dir deleted/unmounted: drop the entry so no stale callbacks or handle remain
-                fs_watcher.on('error', () => {
+                fs_watcher.on('error', error => {
+                    entry.callbacks.forEach(cb => cb({ event: 'error', filename: dir, error }));
                     try { fs_watcher.close(); } catch (err) { }
                     if (this.watchers.get(dir)?.watcher === fs_watcher) {
                         this.watchers.delete(dir);
@@ -314,8 +270,8 @@ class LibFS {
                 entry = { watcher: fs_watcher, callbacks: new Map() };
                 this.watchers.set(dir, entry);
             } catch (err) {
-                // handle invalid directory or watch limits
-                return;
+                // Surface watch limits and invalid directories to the owning window.
+                throw err;
             }
         }
 
@@ -522,16 +478,21 @@ class LibFS {
 
     rm(targetPath, callback) {
         if (typeof callback === 'function') {
-            fs.rm(targetPath, { recursive: true, force: true }, (err) => {
-                callback(err, !err);
+            fs.lstat(targetPath, (error, stat) => {
+                if (error) { callback(error.code === 'ENOENT' ? null : error, error.code === 'ENOENT'); return; }
+                const done = error => callback(error, !error);
+                if (stat.isSymbolicLink()) fs.unlink(targetPath, done);
+                else fs.rm(targetPath, { recursive: true, force: true }, done);
             });
             return;
         }
         try {
-            fs.rmSync(targetPath, { recursive: true, force: true });
+            // A dangling link is an existing entry even when its target is absent.
+            if (fs.lstatSync(targetPath).isSymbolicLink()) fs.unlinkSync(targetPath);
+            else fs.rmSync(targetPath, { recursive: true, force: true });
             return true;
         } catch (err) {
-            return false;
+            return err.code === 'ENOENT';
         }
     }
 

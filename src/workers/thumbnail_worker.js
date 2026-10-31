@@ -2,11 +2,16 @@ const { app, nativeImage } = require('electron');
 const fs = require('fs/promises');
 const path = require('path');
 const { createHash } = require('crypto');
-const { pathToFileURL } = require('url');
+const { pathToFileURL, fileURLToPath } = require('url');
+
+const { prune_cache } = require('../common/thumbnail_cache');
+const pinned = new Set();
+let next_cleanup = 0;
 
 app.disableHardwareAcceleration();
 process.on('disconnect', () => app.quit());
-process.on('message', async ({ href, cache }) => {
+process.on('message', async ({ href, cache, retain = [] }) => {
+    retain.forEach(url => { try { pinned.add(fileURLToPath(url)); } catch (error) { } });
     let url = null;
     try {
         await app.whenReady();
@@ -27,7 +32,12 @@ process.on('message', async ({ href, cache }) => {
             await fs.writeFile(temp, thumbnail.toPNG());
             await fs.rename(temp, target);
         }
+        pinned.add(target);
         url = pathToFileURL(target).href;
+        if (Date.now() >= next_cleanup) {
+            next_cleanup = Date.now() + 60000;
+            try { await prune_cache(cache, pinned); } catch (error) { /* A cleanup failure must not discard a valid preview. */ }
+        }
     } catch {
         // Corrupt and unsupported files keep the generic image icon.
     }

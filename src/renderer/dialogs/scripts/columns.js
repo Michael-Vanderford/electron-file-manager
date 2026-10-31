@@ -1,3 +1,4 @@
+const { changes } = require('../../../common/settings_patch');
 const ipcRenderer = require('electron').ipcRenderer;
 
 ipcRenderer.on('theme-preference-changed', (_event, preference, system_theme) => {
@@ -15,6 +16,7 @@ class SettingsManager {
 
     constructor() {
         this.settings = ipcRenderer.sendSync('get_settings');
+        this.original = structuredClone(this.settings || {});
         if (!this.settings) {
             this.settings = {};
         }
@@ -178,7 +180,8 @@ class ColumnManager {
                     if (key === 'name') {
                         columns[key].default = true;
                         input.checked = true;
-                        ipcRenderer.send('update_settings', settings);
+                        ipcRenderer.send('update_settings', changes(settingsManager.original, settings));
+                        settingsManager.original = structuredClone(settings);
                         return;
                     }
                     if (input.checked) {
@@ -186,7 +189,8 @@ class ColumnManager {
                     } else {
                         columns[key].default = false;
                     }
-                    ipcRenderer.send('update_settings', settings);
+                    ipcRenderer.send('update_settings', changes(settingsManager.original, settings));
+                        settingsManager.original = structuredClone(settings);
                     ipcRenderer.send('ls', settings.location);
                 })
             }

@@ -1,3 +1,4 @@
+const { path_id } = require('../common/path_id');
 // @ts-nocheck
 const { parentPort, workerData, isMainThread } = require('worker_threads');
 const fs = require('fs');
@@ -6,25 +7,7 @@ const path = require('path');
 const FILE_METADATA_CONCURRENCY = 32;
 
 // minimal extension -> mime map; unknown extensions fall back to a generic type
-const CONTENT_TYPE_BY_EXT = {
-    '.txt': 'text/plain', '.md': 'text/markdown', '.json': 'application/json',
-    '.js': 'text/javascript', '.mjs': 'text/javascript', '.cjs': 'text/javascript',
-    '.ts': 'text/x-typescript', '.html': 'text/html', '.htm': 'text/html',
-    '.css': 'text/css', '.xml': 'application/xml', '.csv': 'text/csv',
-    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif', '.bmp': 'image/bmp', '.svg': 'image/svg+xml',
-    '.webp': 'image/webp', '.ico': 'image/vnd.microsoft.icon',
-    '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.flac': 'audio/flac',
-    '.mp4': 'video/mp4', '.mkv': 'video/x-matroska', '.avi': 'video/x-msvideo',
-    '.mov': 'video/quicktime', '.webm': 'video/webm',
-    '.pdf': 'application/pdf', '.doc': 'application/msword',
-    '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    '.xls': 'application/vnd.ms-excel',
-    '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    '.zip': 'application/zip', '.tar': 'application/x-tar', '.gz': 'application/gzip',
-    '.7z': 'application/x-7z-compressed', '.rar': 'application/vnd.rar',
-    '.exe': 'application/x-msdownload', '.sh': 'application/x-sh',
-};
+const { get_content_type, perms_from_stats } = require('../common/file_metadata');
 
 class FileManager {
 
@@ -53,28 +36,10 @@ class FileManager {
 
     }
 
-    get_content_type(name, is_dir) {
-        if (is_dir) {
-            return 'inode/directory';
-        }
-        return CONTENT_TYPE_BY_EXT[path.extname(name).toLowerCase()] || 'application/octet-stream';
-    }
+    get_content_type(name, is_dir) { return get_content_type(name, is_dir); }
 
     // derives read/write perms from stat mode bits, avoiding extra access() round trips on remote/gvfs mounts
-    perms_from_stats(stats) {
-        const mode = stats.mode;
-        const uid = process.getuid ? process.getuid() : -1;
-        const gid = process.getgid ? process.getgid() : -1;
-        let bits;
-        if (stats.uid === uid) {
-            bits = (mode >> 6) & 0o7;
-        } else if (stats.gid === gid) {
-            bits = (mode >> 3) & 0o7;
-        } else {
-            bits = mode & 0o7;
-        }
-        return { is_readable: !!(bits & 0o4), is_writable: !!(bits & 0o2) };
-    }
+    perms_from_stats(stats) { return perms_from_stats(stats); }
 
     // builds a FileInfo-shaped object mirroring the previous gio.ls() output
     async build_file_obj(dir, name) {
@@ -111,7 +76,7 @@ class FileManager {
             mtime: Math.floor(stats.mtimeMs / 1000),
             atime: Math.floor(stats.atimeMs / 1000),
             ctime: Math.floor(stats.ctimeMs / 1000),
-            id: btoa(href),
+            id: path_id(href),
         };
     }
 
@@ -135,7 +100,8 @@ class FileManager {
                 return;
             }
             parentPort.postMessage({
-                cmd: 'set_msg',
+                cmd: 'ls_failed',
+                location,
                 msg: (err && err.message) ? err.message : String(err),
                 window_id: window_id,
                 request_token: request_token
@@ -143,6 +109,7 @@ class FileManager {
             return;
         }
 
+        const failures = [];
         const files_arr = new Array(names.length);
         let next_index = 0;
         const worker_count = Math.min(FILE_METADATA_CONCURRENCY, names.length);
@@ -159,6 +126,7 @@ class FileManager {
                     if (!is_current_request()) {
                         return;
                     }
+                    failures.push({ href: path.join(location, names[index]), error: err.message });
                     parentPort.postMessage({
                         cmd: 'set_msg',
                         msg: (err && err.message) ? err.message : String(err),
@@ -177,6 +145,7 @@ class FileManager {
 
         parentPort.postMessage({
             cmd: 'ls_done',
+            location, failures,
             files_arr: files_arr.filter(Boolean),
             add_tab: add_tab,
             window_id: window_id,

@@ -39,7 +39,8 @@ for (const channel of ['update_settings','update_list_view_settings','update_win
 for (const channel of ['set_execute','clear_execute','get_thumbnail','mkdir','remove_workspace','start_drag_external']) schemas[channel] = tuple(localPath);
 for (const channel of ['open','get_folder_size','get_disk_space','get_icon','get_folder_icon','get_workspace_folder_icon','get_dashboard_disk_stats']) schemas[channel] = tuple(resource);
 for (const channel of ['get_readonly_icon','get_symlink_icon']) schemas[channel] = tuple(optional(resource));
-for (const channel of ['remove_tab','go_back','go_forward','switch_tab']) schemas[channel] = tuple(id);
+for (const channel of ['remove_tab','go_back','go_forward']) schemas[channel] = tuple(id);
+schemas.switch_tab = tuple(id, optional(location));
 for (const channel of ['add_tab','add_tab_history']) schemas[channel] = tuple(location, id);
 for (const channel of ['add_workspace','reorder_workspace','delete','get_properties']) schemas[channel] = tuple(files);
 for (const channel of ['paste','move','extract']) schemas[channel] = tuple(files, localPath);
@@ -49,7 +50,7 @@ schemas.connect = args => !args.length || tuple(network)(args);
 schemas.ls = tuple(location, optional(bool));
 schemas.is_writable_directory = tuple(localPath);
 schemas.set_copy_arr = tuple(files, optional(location));
-schemas.get_recent_files = tuple(optional(bool));
+schemas.get_recent_files = tuple(optional(bool), optional(id));
 schemas.autocomplete = tuple(text);
 schemas.validate_location = tuple(location);
 schemas.new_window = tuple(optional(location));

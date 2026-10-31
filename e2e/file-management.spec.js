@@ -19,6 +19,8 @@ test.beforeEach(async () => {
     });
     page = await app.firstWindow();
     await page.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(page.locator('.footer .msg')).toHaveText(/^Loaded \d+ items$/);
+    await expect(page.locator('.active-tab')).toBeVisible();
     await page.locator('body').click({ position: { x: 10, y: 10 } });
     await page.keyboard.press('Control+L');
     const location = page.locator('input.location');
@@ -488,8 +490,17 @@ for (const view of ['grid_view', 'list_view']) {
 test('hot-plug updates device entries without rebuilding unchanged sidebar controls', async () => {
     const sendDevices = async (mounts, drives) => app.evaluate(({ BrowserWindow }, { mounts, drives }) => {
         const contents = BrowserWindow.getAllWindows()[0].webContents;
+        if (!contents.deviceFixtureSend) {
+            contents.deviceFixtureSend = contents.send.bind(contents);
+            contents.send = (channel, ...args) => {
+                if (['mounts', 'devices'].includes(channel) && !globalThis.publishingDeviceFixtures) return;
+                return contents.deviceFixtureSend(channel, ...args);
+            };
+        }
+        globalThis.publishingDeviceFixtures = true;
         contents.send('mounts', mounts);
         contents.send('devices', drives);
+        globalThis.publishingDeviceFixtures = false;
     }, { mounts, drives });
     const existing = { name: 'Existing test mount', path: '/mnt/existing-test', type: 'drive' };
     await sendDevices([existing], []);
@@ -512,6 +523,40 @@ test('hot-plug updates device entries without rebuilding unchanged sidebar contr
     await sendDevices([existing], []);
     await expect(newDevice).toHaveCount(0);
     expect(await oldNode.evaluate(node => node.isConnected)).toBe(true);
+});
+
+test('Android MTP entries use the friendly volume label and disappear on disconnect', async () => {
+    const phone = { name: 'mtp', path: 'mtp://[usb:001,009]/', type: 'phone' };
+    const publish = async connected => app.evaluate(({ BrowserWindow }, { connected, phone, modulePath }) => {
+        const childProcess = process.mainModule.require('child_process');
+        const original = childProcess.execFileSync;
+        let devices;
+        try {
+            childProcess.execFileSync = () => 'Volume(0): SAMSUNG Android\n  Mount(0): SAMSUNG Android -> mtp://[usb:001,009]/\nMount(0): mtp -> mtp://[usb:001,009]/\n';
+            devices = process.mainModule.require(modulePath).label_devices([phone]);
+        } finally {
+            childProcess.execFileSync = original;
+        }
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        if (!contents.deviceFixtureSend) {
+            contents.deviceFixtureSend = contents.send.bind(contents);
+            contents.send = (channel, ...args) => {
+                if (['mounts', 'devices'].includes(channel) && !globalThis.publishingDeviceFixtures) return;
+                return contents.deviceFixtureSend(channel, ...args);
+            };
+        }
+        globalThis.publishingDeviceFixtures = true;
+        contents.send('mounts', connected ? devices : []);
+        contents.send('devices', connected ? devices : []);
+        globalThis.publishingDeviceFixtures = false;
+    }, { connected, phone, modulePath: path.resolve('src/common/device_labels.js') });
+    await publish(true);
+    const entry = page.locator('.device_item').filter({ hasText: 'SAMSUNG Android' });
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toBeVisible();
+    await expect(entry.locator('a')).toHaveAttribute('href', phone.path);
+    await publish(false);
+    await expect(entry).toHaveCount(0);
 });
 
 async function runSearch(query) {
@@ -1261,4 +1306,677 @@ test('Security legacy columns dialog uses its bundled sandbox preload and persis
     expect(await dialog.evaluate(() => ({ require: typeof require, process: typeof process }))).toEqual({ require: 'undefined', process: 'undefined' });
     expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().find(window => window.webContents.getURL().endsWith('/dialogs/columns.html')).webContents.getLastWebPreferences().sandbox)).toBe(true);
     await dialog.close();
+});
+
+for (const count of [2, 1001]) {
+    test(`Windows stock folder icons reach grid list grouped Workspace and ${count > 1000 ? 'virtual' : 'normal'} views`, async () => {
+        const openFixture = await buildOutsideView();
+        const folders = Array.from({ length: count }, (_, index) => path.join(fixture, `${String(index).padStart(4, '0')}-folder`));
+        await Promise.all(folders.map(folder => fs.mkdir(folder)));
+        await fs.writeFile(path.join(fixture, 'plain.txt'), 'file icon control');
+        const expectedIcon = await app.evaluate(({ nativeImage }, modulePath) => {
+            // Exercise the Windows dispatch and real IPC/rendering on Linux; only the OS stock-icon query is simulated.
+            const manager = process.mainModule.require(modulePath);
+            manager.platform = 'win32'; delete manager.windows_folder_icon;
+            const dataURL = nativeImage.createFromBitmap(Buffer.alloc(32 * 32 * 4, 180), { width: 32, height: 32 }).toDataURL();
+            globalThis.windowsStockIconQueries = 0;
+            manager.load_windows_folder_icon = async () => { globalThis.windowsStockIconQueries++; return dataURL; };
+            return dataURL;
+        }, path.resolve('src/main/lib/IconManager.js'));
+        await openFixture();
+        for (const view of ['grid_view', 'list_view']) {
+            for (const group of ['None', 'Type']) {
+                await page.evaluate(({ view, group }) => { window.titlebarAPI.setView(view); window.titlebarAPI.setGroupBy(group); }, { view, group });
+                await expect(card(folders[0]).locator('.icon img.img')).toHaveAttribute('src', expectedIcon);
+                await expect.poll(() => card(folders[0]).locator('.icon img.img').evaluate(image => image.complete && image.naturalWidth === 32)).toBe(true);
+                if (count > 1000) {
+                    await expect(page.locator('.active-tab-content .virtual_view')).toBeVisible();
+                    await page.locator('.active-tab-content').evaluate(container => { container.scrollTop = container.scrollHeight; });
+                }
+                await expect(card(folders.at(-1)).locator('.icon img.img')).toHaveAttribute('src', expectedIcon);
+            }
+        }
+        await card(folders.at(-1)).dispatchEvent('click');
+        await page.evaluate(() => window.titlebarAPI.command('add_workspace'));
+        await expect(page.locator('.workspace_item img')).toHaveAttribute('src', expectedIcon);
+        expect(await app.evaluate(() => globalThis.windowsStockIconQueries)).toBe(1);
+        // Files still take the existing file-icon route rather than the folder provider.
+        await page.evaluate(() => window.titlebarAPI.setGroupBy('None'));
+        await page.locator('.active-tab-content').evaluate(container => { container.scrollTop = container.scrollHeight; });
+        const file = card(path.join(fixture, 'plain.txt')).locator('.icon img.img');
+        await expect(file).toBeAttached();
+        await expect(file).not.toHaveAttribute('src', expectedIcon);
+    });
+}
+
+test.describe('Windows Shell integration', () => {
+    test.skip(process.platform !== 'win32', 'Requires the real Windows Shell and Windows PowerShell.');
+    test('displays a native folder icon from the actual Windows helper', async () => {
+        const folder = path.join(fixture, 'native-folder'); await fs.mkdir(folder);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        const image = card(folder).locator('.icon img.img');
+        await expect(image).toHaveAttribute('src', /^data:image\/png;base64,/, { timeout: 15000 });
+        await expect.poll(() => image.evaluate(icon => icon.complete && icon.naturalWidth > 0)).toBe(true);
+    });
+});
+
+test('R07 permission failures preserve delete cards and recover New Folder', async () => {
+    test.skip(process.platform === 'win32' || process.getuid?.() === 0, 'Requires unprivileged POSIX permissions');
+    const file = path.join(fixture, 'retained.txt');
+    await fs.writeFile(file, 'preserve me');
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    const card = page.locator(`.active-tab-content .card[data-href="${file}"]`);
+    await expect(card).toBeVisible();
+    await fs.chmod(fixture, 0o555);
+    try {
+        await card.click();
+        await page.evaluate(() => window.titlebarAPI.delete());
+        await expect(page.locator('.footer .msg')).toHaveText('0 files deleted, 1 items failed.');
+        await expect(card).toBeVisible();
+        expect(await fs.readFile(file, 'utf8')).toBe('preserve me');
+        await page.keyboard.press('Control+Shift+N');
+        await expect(page.locator('.footer .msg')).toContainText('Error creating folder in');
+        expect(await fs.readdir(fixture)).toEqual(['retained.txt']);
+        await expect(page.locator('.active-tab-content .edit_name:visible')).toHaveCount(0);
+    } finally {
+        await fs.chmod(fixture, 0o755);
+    }
+    await page.keyboard.press('Control+Shift+N');
+    await expect(page.locator(`.active-tab-content .card[data-href="${path.join(fixture, 'New Folder')}"] .edit_name`)).toBeVisible();
+});
+
+test('P1 Unicode paths survive grouping copy move and delete', async () => {
+    const openFixture = await buildOutsideView();
+    let source = path.join(fixture, '😀中文-café.txt');
+    const destination = path.join(fixture, '目的地😀');
+    await fs.writeFile(source, 'unicode contents'); await fs.mkdir(destination);
+    await openFixture();
+    await page.evaluate(() => window.titlebarAPI.setGroupBy('Type'));
+    await card(source).click(); await page.keyboard.press('F2');
+    const renamed = '改名😀-café.txt';
+    await card(source).locator('.edit_name').fill(renamed);
+    await card(source).locator('.edit_name').press('Enter');
+    source = path.join(fixture, renamed);
+    await expect(card(source)).toBeVisible();
+    await card(source).click(); await page.keyboard.press('Control+C');
+    await navigate(destination); await page.keyboard.press('Control+V');
+    const copied = path.join(destination, path.basename(source));
+    await expect(card(copied)).toBeVisible();
+    expect(await fs.readFile(copied, 'utf8')).toBe('unicode contents');
+    await card(copied).click(); await page.keyboard.press('Control+X');
+    await navigate(fixture); await fs.unlink(source); await page.keyboard.press('Control+V');
+    await expect.poll(() => exists(copied)).toBe(false);
+    await expect(card(source)).toBeVisible();
+    await card(source).click(); await page.evaluate(() => window.titlebarAPI.delete());
+    await expect.poll(() => exists(source)).toBe(false);
+    await expect(card(source)).toHaveCount(0);
+});
+
+test('P1 watcher additions survive regrouping and view changes', async () => {
+    const source = path.join(fixture, 'external😀.txt'); await fs.writeFile(source, 'model');
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('get_item', {
+            href: source, location: source.slice(0, source.lastIndexOf('/')), id: Buffer.from(source).toString('base64'),
+            name: source.slice(source.lastIndexOf('/') + 1), display_name: source.slice(source.lastIndexOf('/') + 1),
+            is_dir: false, is_hidden: false, is_readable: true, is_writable: true,
+            content_type: 'text/plain', size: 5, mtime: Date.now() / 1000
+        });
+    }, source);
+    await expect(card(source)).toBeVisible();
+    await page.evaluate(() => window.titlebarAPI.setGroupBy('Type'));
+    await expect(card(source)).toBeVisible();
+    await page.evaluate(() => window.titlebarAPI.setView('list_view'));
+    await expect(card(source)).toBeVisible();
+    await page.evaluate(() => window.titlebarAPI.setGroupBy('None'));
+    await expect(card(source)).toBeVisible();
+});
+
+for (const view of ['grid_view', 'list_view']) for (const grouping of ['None', 'Type']) {
+test(`P1 virtual tabs retain independent scrolling and hidden backing entries in ${view} grouped ${grouping}`, async () => {
+    const openFixture = await buildOutsideView();
+    const other = path.join(fixture, 'other'); await fs.mkdir(other);
+    await Promise.all(Array.from({ length: 1001 }, (_, index) => Promise.all([
+        fs.writeFile(path.join(fixture, `file-${String(index).padStart(4, '0')}.txt`), 'a'),
+        fs.writeFile(path.join(other, `other-${String(index).padStart(4, '0')}.txt`), 'b')
+    ])));
+    const hidden = path.join(fixture, '.hidden😀.txt'); await fs.writeFile(hidden, 'hidden');
+    await openFixture();
+    await page.evaluate(view => window.titlebarAPI.setView(view), view);
+    await page.evaluate(grouping => window.titlebarAPI.setGroupBy(grouping), grouping);
+    const hide = page.locator('button[title="Hide Hidden Files"]');
+    if (await hide.count()) await hide.click();
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await expect(page.locator('.footer .msg')).toHaveText('Loaded 1003 items');
+    await page.evaluate(() => window.titlebarAPI.newTab());
+    await expect(page.locator('.tab')).toHaveCount(2);
+    await expect(page.locator('.footer .msg')).toHaveText('Loaded 1003 items');
+    await navigate(other);
+    await page.locator('.tab').first().click();
+    await page.locator('.active-tab-content').evaluate(node => { node.scrollTop = node.scrollHeight; });
+    await expect(card(path.join(fixture, 'file-1000.txt'))).toBeVisible();
+    await page.locator('.tab').last().click();
+    await page.locator('.active-tab-content').evaluate(node => { node.scrollTop = node.scrollHeight; });
+    await expect(card(path.join(other, 'other-1000.txt'))).toBeVisible();
+    await page.evaluate(() => window.titlebarAPI.newTab());
+    await expect(page.locator('.tab')).toHaveCount(3);
+    await navigate(path.join(profile, 'fixture-staging'));
+    await page.locator('.tab').last().locator('.tab_close').click();
+    await expect(page.locator('.tab')).toHaveCount(2);
+    await expect(card(path.join(other, 'other-1000.txt'))).toBeVisible();
+    await page.locator('.tab').first().click();
+    await page.locator('button[title="Show Hidden Files"]').click();
+    const filter = page.locator('.filter'); await filter.fill('.hidden');
+    await expect(card(hidden)).toBeVisible();
+});
+
+}
+
+test('P1 missing navigation keeps the previous contents and ends loading', async () => {
+    const file = path.join(fixture, 'retained.txt'); await fs.writeFile(file, 'retained');
+    await page.evaluate(() => window.titlebarAPI.refresh()); await expect(card(file)).toBeVisible();
+    await page.keyboard.press('Control+L'); const input = page.locator('input.location');
+    await input.fill(path.join(fixture, 'missing')); await input.press('Enter');
+    await expect(page.locator('.footer .msg')).toContainText('Could not load');
+    await expect(card(file)).toBeVisible();
+    await expect(page.locator('.footer .msg .spinner')).toHaveCount(0);
+    await expect.poll(() => currentLocation()).toBe(fixture);
+});
+
+test('P1 restores three directories with a middle active tab', async () => {
+    const directories = ['first', 'middle', 'last'].map(name => path.join(fixture, name));
+    for (const directory of directories) { await fs.mkdir(directory); await fs.writeFile(path.join(directory, 'sentinel.txt'), directory); }
+    await navigate(directories[0]);
+    for (const directory of directories.slice(1)) { await page.evaluate(() => window.titlebarAPI.newTab()); await navigate(directory); }
+    await page.locator('.tab').nth(1).click();
+    await expect.poll(() => currentLocation()).toBe(directories[1]);
+    await app.close(); app = null;
+    const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(page.locator('.tab')).toHaveCount(3);
+    await expect.poll(() => currentLocation()).toBe(directories[1]);
+    for (let index = 0; index < directories.length; index++) {
+        await page.locator('.tab').nth(index).click();
+        await expect(card(path.join(directories[index], 'sentinel.txt'))).toBeVisible();
+    }
+});
+
+test('P1 mixed copy results report failure without a destination ghost card', async () => {
+    const openFixture = await buildOutsideView();
+    const good = path.join(fixture, 'good.txt'), missing = path.join(fixture, 'missing.txt');
+    const destination = path.join(fixture, 'destination');
+    await fs.writeFile(good, 'good bytes'); await fs.writeFile(missing, 'gone'); await fs.mkdir(destination);
+    await openFixture(); await card(good).click(); await card(missing).click({ modifiers: ['Control'] });
+    await page.keyboard.press('Control+C'); await fs.unlink(missing);
+    await navigate(destination); await page.keyboard.press('Control+V');
+    await expect(page.locator('.footer .msg')).toContainText('Copy incomplete: 1 items failed.');
+    await expect(card(path.join(destination, 'good.txt'))).toBeVisible();
+    await expect(card(path.join(destination, 'missing.txt'))).toHaveCount(0);
+    expect(await fs.readFile(good, 'utf8')).toBe('good bytes');
+    expect(await fs.readFile(path.join(destination, 'good.txt'), 'utf8')).toBe('good bytes');
+});
+
+test('P1 two windows keep transfer destinations and completion replies independent', async () => {
+    const openFixture = await buildOutsideView();
+    const sourceOne = path.join(fixture, 'one.txt'), sourceTwo = path.join(fixture, 'two.txt');
+    const targetOne = path.join(fixture, 'target-one'), targetTwo = path.join(fixture, 'target-two');
+    await fs.writeFile(sourceOne, Buffer.alloc(16 * 1024 * 1024, 65)); await fs.writeFile(sourceTwo, 'two');
+    await fs.mkdir(targetOne); await fs.mkdir(targetTwo); await openFixture();
+    const created = app.waitForEvent('window');
+    await page.evaluate(location => window.titlebarAPI.newWindow(location), fixture);
+    const second = await created;
+    await second.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(second.locator(`.active-tab-content .card[data-href="${sourceTwo}"]`)).toBeVisible();
+    await card(sourceOne).click(); await page.keyboard.press('Control+C'); await navigate(targetOne);
+    await second.locator(`.active-tab-content .card[data-href="${sourceTwo}"]`).click();
+    await second.keyboard.press('Control+C'); await second.keyboard.press('Control+L');
+    await second.locator('input.location').fill(targetTwo); await second.locator('input.location').press('Enter');
+    await expect(second.locator('.footer .msg')).toHaveText('Loaded 0 items');
+    await page.evaluate(() => window.titlebarAPI.paste());
+    await second.bringToFront(); await second.evaluate(() => window.titlebarAPI.paste());
+    await expect(card(path.join(targetOne, 'one.txt'))).toBeVisible();
+    await expect(second.locator(`.active-tab-content .card[data-href="${path.join(targetTwo, 'two.txt')}"]`)).toBeVisible();
+    expect(await exists(path.join(targetOne, 'two.txt'))).toBe(false);
+    expect(await exists(path.join(targetTwo, 'one.txt'))).toBe(false);
+    await second.close();
+});
+
+test('P1 delayed Dashboard and old disk-space replies cannot replace a directory', async () => {
+    const sentinel = path.join(fixture, 'sentinel.txt'); await fs.writeFile(sentinel, 'current');
+    await app.evaluate(({ BrowserWindow, ipcMain }) => {
+        ipcMain.removeHandler('get_dashboard_view');
+        ipcMain.handle('get_dashboard_view', () => new Promise(resolve => setTimeout(() => resolve({ dashboard_view: '<div class="overview">stale dashboard</div>' }), 600)));
+        BrowserWindow.getAllWindows()[0].webContents.send('get_dashboard_view');
+    });
+    await navigate(fixture);
+    await expect(card(sentinel)).toBeVisible();
+    await app.evaluate(async ({ BrowserWindow }) => {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        BrowserWindow.getAllWindows()[0].webContents.send('disk_space', [{ disksize: 'STALE', usedspace: 'STALE', availablespace: 'STALE' }], '/old-directory');
+    });
+    await expect(card(sentinel)).toBeVisible();
+    await expect(page.locator('.active-tab-content .overview')).toHaveCount(0);
+    await expect(page.locator('.disk_space')).not.toContainText('STALE');
+});
+
+test('P1 delayed Recent replies stay with their request and cannot replace navigation', async () => {
+    const file = path.join(fixture, 'current.txt'); await fs.writeFile(file, 'current');
+    await app.evaluate(({ ipcMain }) => {
+        ipcMain.removeAllListeners('get_recent_files');
+        ipcMain.on('get_recent_files', (event, add_tab, request_id) => {
+            setTimeout(() => {
+                if (!event.sender.isDestroyed()) event.sender.send('recent_files', [], add_tab, request_id);
+            }, 600);
+        });
+    });
+    await page.locator('.sidebar').getByText('Recent', { exact: true }).click();
+    await navigate(fixture);
+    await expect(card(file)).toBeVisible();
+    await app.evaluate(async () => { await new Promise(resolve => setTimeout(resolve, 800)); });
+    await expect(card(file)).toBeVisible();
+    await expect.poll(() => currentLocation()).toBe(fixture);
+    await expect(page.locator('.active-tab')).not.toContainText('Recent');
+});
+
+test('P1 rejected archive entries report failure and allow a subsequent extraction', async () => {
+    const openFixture = await buildOutsideView();
+    const archive = path.join(fixture, 'hostile.tar');
+    const { execFile } = require('node:child_process');
+    await new Promise((resolve, reject) => execFile('python3', ['-c', "import tarfile,io,sys\nwith tarfile.open(sys.argv[1],'w') as a:\n t=tarfile.TarInfo('../sentinel');t.size=6;a.addfile(t,io.BytesIO(b'change'))", archive], error => error ? reject(error) : resolve()));
+    const sentinel = path.join(fixture, 'sentinel'); await fs.writeFile(sentinel, 'original');
+    const source = path.join(fixture, 'healthy.txt'); await fs.writeFile(source, 'healthy');
+    const healthy = path.join(fixture, 'healthy.zip');
+    await require('../src/common/create_archive').create_archive({ files_arr: [{ href: source }], location: fixture, type: 'zip', destination: healthy }, { journal_dir: path.join(profile, 'journals') });
+    await openFixture(); await card(archive).click(); await page.evaluate(() => window.titlebarAPI.command('extract'));
+    await expect(page.locator('.footer .msg')).toContainText('Error extracting archive');
+    expect(await fs.readFile(sentinel, 'utf8')).toBe('original'); expect(await exists(path.join(fixture, 'hostile'))).toBe(false);
+    await expect(page.locator('.progress_cancel')).not.toBeVisible();
+    await card(healthy).click(); await page.evaluate(() => window.titlebarAPI.command('extract'));
+    await expect(page.locator('.footer .msg')).toHaveText('Done extracting files.');
+    expect(await fs.readFile(path.join(fixture, 'healthy', 'healthy.txt'), 'utf8')).toBe('healthy');
+});
+
+for (const view of ['grid_view', 'list_view']) {
+    test(`date grouping hides headings with no visible files in ${view}`, async () => {
+        const openFixture = await buildOutsideView();
+        const visible = path.join(fixture, 'today.txt');
+        const hidden = path.join(fixture, '.old.txt');
+        await fs.writeFile(visible, 'today'); await fs.writeFile(hidden, 'old');
+        const old = new Date('2000-01-01T12:00:00Z'); await fs.utimes(hidden, old, old);
+        await openFixture();
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        const hide = page.locator('button[title="Hide Hidden Files"]');
+        if (await hide.count()) await hide.click();
+        await page.evaluate(() => window.titlebarAPI.setGroupBy('Date Modified'));
+        const headings = page.locator('.active-tab-content .recent_date_group_heading:visible');
+        await expect(headings).toHaveText(['Today']);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        await expect(page.locator('.footer .msg')).toHaveText('Loaded 2 items');
+        await expect(headings).toHaveText(['Today']);
+        await page.locator('button[title="Show Hidden Files"]').click();
+        await expect(headings).toHaveText(['Today', 'A long time ago']);
+        await expect(card(hidden)).toBeVisible();
+        await page.locator('.filter').fill('today');
+        await expect(headings).toHaveText(['Today']);
+        await page.locator('.filter').fill('');
+        await page.locator('button[title="Hide Hidden Files"]').click();
+        await page.locator('.active-tab-content .view_container').focus();
+        await page.keyboard.press('ArrowDown');
+        await expect(card(visible)).toHaveClass(/highlight_select/);
+        await page.evaluate(() => window.titlebarAPI.delete());
+        await expect(card(visible)).toHaveCount(0);
+        await expect(headings).toHaveCount(0);
+        await expect(page.locator('.active-tab-content > .empty_msg')).toContainText('No visible items');
+        await page.locator('button[title="Show Hidden Files"]').click();
+        await expect(headings).toHaveText(['A long time ago']);
+        await expect(card(hidden)).toBeVisible();
+    });
+}
+
+for (const view of ['grid_view', 'list_view']) for (const count of [40, 1001]) for (const grouping of ['None', 'Date Modified']) {
+    test(`delete removes only its card in ${view} with ${count} files grouped ${grouping}`, async () => {
+        const openFixture = await buildOutsideView();
+        await Promise.all(Array.from({ length: count }, (_, index) => fs.writeFile(path.join(fixture, `file-${String(index).padStart(4, '0')}.txt`), 'contents')));
+        await openFixture();
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        await page.evaluate(grouping => window.titlebarAPI.setGroupBy(grouping), grouping);
+        await page.locator('.filter').fill('file-');
+        await page.locator('.active-tab-content').evaluate(node => { node.scrollTop = 180; });
+        const target = page.locator('.active-tab-content .card:not(.hidden)').first();
+        const removed = await target.getAttribute('data-href');
+        // Isolate delete rendering from the separate grouped pointer/keyboard selection issues.
+        await target.dispatchEvent('click');
+        await expect(target).toHaveClass(/highlight_select/);
+        await page.locator('.filter').focus();
+        await page.evaluate(removed => {
+            const content = document.querySelector('.active-tab-content');
+            window.deleteSnapshot = {
+                view: content.querySelector('.view_container'),
+                survivor: Array.from(content.querySelectorAll('.card')).find(card => card.dataset.href !== removed),
+                scroll: content.scrollTop,
+                focus: document.activeElement
+            };
+        }, removed);
+        await page.evaluate(() => window.titlebarAPI.delete());
+        await expect.poll(() => exists(removed)).toBe(false);
+        await expect(card(removed)).toHaveCount(0);
+        await expect(page.locator('.footer .msg')).toHaveText('1 files deleted.');
+        expect(await page.evaluate(() => {
+            const content = document.querySelector('.active-tab-content');
+            const saved = window.deleteSnapshot;
+            return {
+                sameView: content.querySelector('.view_container') === saved.view,
+                sameSurvivor: saved.survivor.isConnected,
+                sameFocus: document.activeElement === saved.focus,
+                sameScroll: Math.abs(content.scrollTop - saved.scroll) < 2
+            };
+        })).toEqual({ sameView: true, sameSurvivor: true, sameFocus: true, sameScroll: true });
+        await expect(page.locator('.filter')).toHaveText('file-');
+        // A later rebuild must use the updated model rather than resurrecting the deleted entry.
+        await page.evaluate(() => window.titlebarAPI.setGroupBy('Type'));
+        await expect(card(removed)).toHaveCount(0);
+    });
+}
+
+test('deleting a Find result updates cards and count without rebuilding results', async () => {
+    const removed = path.join(fixture, 'match-one.txt');
+    const survivor = path.join(fixture, 'match-two.txt');
+    await fs.writeFile(removed, 'one'); await fs.writeFile(survivor, 'two');
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await expect(page.locator('.footer .msg')).toHaveText('Loaded 2 items');
+    await runSearch('match');
+    await expect(page.locator('.find_results_header')).toHaveText('2 results in search location.');
+    await card(removed).dispatchEvent('click');
+    await expect(card(removed)).toHaveClass(/highlight_select/);
+    await page.evaluate(survivor => {
+        window.findDeleteSnapshot = {
+            view: document.querySelector('.find_results_list .view_container'),
+            card: Array.from(document.querySelectorAll('.find_results_list .card')).find(node => node.dataset.href === survivor)
+        };
+    }, survivor);
+    await page.evaluate(() => window.titlebarAPI.delete());
+    await expect(card(removed)).toHaveCount(0);
+    await expect(page.locator('.find_results_header')).toHaveText('1 result in search location.');
+    expect(await page.evaluate(() => window.findDeleteSnapshot.view.isConnected && window.findDeleteSnapshot.card.isConnected)).toBe(true);
+    await page.locator('.find_close').click();
+    await expect(card(removed)).toHaveCount(0);
+    await expect(card(survivor)).toBeVisible();
+});
+
+test('P2 autocomplete selects a temporary directory with keyboard and cancels on Escape', async () => {
+    const alpha = path.join(fixture, 'suggest-alpha');
+    const beta = path.join(fixture, 'suggest-beta');
+    await fs.mkdir(alpha); await fs.mkdir(beta);
+    await page.keyboard.press('Control+L');
+    const input = page.locator('input.location');
+    await input.fill(path.join(fixture, 'suggest-'));
+    await expect(page.locator('.autocomplete-popup .item')).toHaveCount(2);
+    const suggested = await page.locator('.autocomplete-popup .item').nth(1).innerText();
+    await input.press('ArrowDown');
+    await expect(input).toHaveValue(suggested);
+    await input.press('Enter');
+    await expect.poll(() => currentLocation()).toBe(path.resolve(suggested));
+    await expect(page.locator('.autocomplete-popup')).toHaveCount(0);
+    await page.keyboard.press('Control+L');
+    await input.fill(path.join(fixture, 'suggest-'));
+    await expect(page.locator('.autocomplete-popup .item')).toHaveCount(2);
+    await input.press('Escape');
+    await expect(page.locator('.autocomplete-popup')).toHaveCount(0);
+    expect(await currentLocation()).toBe(path.resolve(suggested));
+});
+
+for (const operation of ['copy', 'move']) {
+    test(`P2 physical keyboard ${operation} uses grouped virtual selection`, async () => {
+        const openFixture = await buildOutsideView();
+        await Promise.all(Array.from({ length: 1001 }, (_, i) => fs.writeFile(path.join(fixture, `file-${String(i).padStart(4, '0')}.txt`), `value-${i}`)));
+        const destination = path.join(fixture, 'destination'); await fs.mkdir(destination);
+        await openFixture();
+        await page.evaluate(() => { window.titlebarAPI.setView('list_view'); window.titlebarAPI.setGroupBy('Type'); });
+        await expect(page.locator('.active-tab-content .virtual_view')).toBeVisible();
+        await page.locator('body').click({ position: { x: 10, y: 10 } });
+        await page.keyboard.press('ArrowDown');
+        await page.keyboard.press('ArrowDown');
+        const selected = page.locator('.active-tab-content .card.highlight_select');
+        await expect(selected).toHaveCount(1);
+        const source = await selected.getAttribute('data-href');
+        const bytes = await fs.readFile(source, 'utf8');
+        await page.keyboard.press(operation === 'copy' ? 'Control+c' : 'Control+x');
+        await navigate(destination);
+        await page.keyboard.press('Control+v');
+        const target = path.join(destination, path.basename(source));
+        await expect.poll(() => exists(target)).toBe(true);
+        expect(await fs.readFile(target, 'utf8')).toBe(bytes);
+        await expect(card(target)).toBeVisible();
+        await expect.poll(() => exists(source)).toBe(operation === 'copy');
+    });
+}
+
+test('P2 native watcher create modify rename delete and navigation stay scoped across windows', async () => {
+    const other = path.join(profile, 'other-directory'); await fs.mkdir(other);
+    const created = app.waitForEvent('window');
+    await page.evaluate(location => window.titlebarAPI.newWindow(location), other);
+    const second = await created;
+    await second.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(second.locator('.footer .msg')).toHaveText('Loaded 0 items');
+    const file = path.join(fixture, 'native.txt');
+    await fs.writeFile(file, 'one');
+    await expect(card(file)).toBeVisible();
+    await expect(second.locator('.card')).toHaveCount(0);
+    await fs.writeFile(file, 'longer changed bytes');
+    await expect(card(file)).toHaveAttribute('data-size', String(Buffer.byteLength('longer changed bytes')));
+    const renamed = path.join(fixture, 'renamed.txt'); await fs.rename(file, renamed);
+    await expect(card(file)).toHaveCount(0); await expect(card(renamed)).toBeVisible();
+    await fs.unlink(renamed); await expect(card(renamed)).toHaveCount(0);
+    await navigate(other);
+    await fs.writeFile(path.join(fixture, 'after-navigation.txt'), 'old subscription');
+    await fs.writeFile(path.join(other, 'current.txt'), 'current subscription');
+    await expect(card(path.join(other, 'current.txt'))).toBeVisible();
+    await expect(page.locator('.card')).toHaveCount(1);
+    await expect(second.locator('.card')).toHaveCount(1);
+    await second.close();
+    await fs.writeFile(path.join(other, 'after-close.txt'), 'still subscribed');
+    await expect(card(path.join(other, 'after-close.txt'))).toBeVisible();
+    await fs.rm(other, { recursive: true });
+    await expect(page.locator('.footer .msg')).toContainText('Automatic updates unavailable');
+});
+
+test('P2 preferences recover from truncated settings workspace and window files on restart', async () => {
+    const file = path.join(fixture, 'workspace.txt'); await fs.writeFile(file, 'fixture');
+    await page.evaluate(() => window.titlebarAPI.refresh()); await expect(card(file)).toBeVisible();
+    await card(file).click();
+    await page.evaluate(() => window.titlebarAPI.command('add_workspace'));
+    await expect(page.locator('.workspace_view')).toContainText('workspace.txt');
+    await page.evaluate(() => window.titlebarAPI.setView('list_view'));
+    await page.evaluate(() => window.titlebarAPI.setGroupBy('Type'));
+    await expect.poll(async () => JSON.parse(await fs.readFile(path.join(profile, 'settings.json'), 'utf8')).view).toBe('list_view');
+    await app.close(); app = null;
+    // Ensure each backup contains a valid committed state, then simulate truncation.
+    for (const name of ['settings', 'workspace', 'window']) {
+        const target = path.join(profile, `${name}.json`);
+        await fs.copyFile(target, `${target}.bak`);
+        await fs.writeFile(target, '{');
+    }
+    const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(page.locator('.active-tab-content .view_container.list_view')).toBeVisible();
+    await expect(page.locator('.workspace_view')).toContainText('workspace.txt');
+    await expect(card(file)).toBeVisible();
+});
+
+test('P2 grouped list pointer selection survives filter and hidden-file toggles', async () => {
+    const openFixture = await buildOutsideView();
+    const visible = path.join(fixture, 'today.txt'), hidden = path.join(fixture, '.old.txt');
+    await fs.writeFile(visible, 'visible bytes'); await fs.writeFile(hidden, 'hidden bytes');
+    await fs.utimes(hidden, new Date('2000-01-01'), new Date('2000-01-01'));
+    const destination = path.join(profile, 'target'); await fs.mkdir(destination);
+    await openFixture();
+    await page.evaluate(() => { window.titlebarAPI.setView('list_view'); window.titlebarAPI.setGroupBy('Date Modified'); });
+    const hide = page.locator('button[title="Hide Hidden Files"]'); if (await hide.count()) await hide.click();
+    await page.locator('button[title="Show Hidden Files"]').click();
+    await page.locator('.filter').fill('today'); await page.locator('.filter').fill('');
+    await page.locator('button[title="Hide Hidden Files"]').click();
+    const row = card(visible); await row.click({ position: { x: 8, y: 10 } });
+    await expect(row).toHaveClass(/highlight_select/);
+    await page.keyboard.press('Control+c');
+    await navigate(destination); await page.keyboard.press('Control+v');
+    await expect(card(path.join(destination, 'today.txt'))).toBeVisible();
+    expect(await fs.readFile(path.join(destination, 'today.txt'), 'utf8')).toBe('visible bytes');
+    expect(await exists(visible)).toBe(true);
+    expect(await exists(path.join(destination, '.old.txt'))).toBe(false);
+});
+
+for (const name of ['still.jpg', 'still.webp', 'animated.gif']) {
+    test(`P2 media thumbnail compatibility for ${name}`, async () => {
+        const file = path.join(fixture, name);
+        await fs.copyFile(path.join(__dirname, 'fixtures/media', name), file);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        const preview = name.endsWith('.jpg') ? await thumbnail(file) : card(file).locator('.icon .img').first();
+        if (!name.endsWith('.jpg')) {
+            await expect(preview).toHaveAttribute('src', require('node:url').pathToFileURL(file).href);
+            await expect.poll(() => preview.evaluate(image => image.complete && image.naturalWidth > 0)).toBe(true);
+        }
+        expect(await preview.evaluate(image => [image.naturalWidth, image.naturalHeight])).toEqual([32, 24]);
+        // GIF/WebP use Chromium directly, retaining animated originals.
+        if (name.endsWith('.gif')) {
+            const first = await preview.screenshot();
+            await expect.poll(async () => !(await preview.screenshot()).equals(first), { intervals: [70, 110, 170] }).toBe(true);
+        }
+        expect(await fs.readFile(file)).toEqual(await fs.readFile(path.join(__dirname, 'fixtures/media', name)));
+    });
+}
+
+test('P2 WebM video preview loads metadata', async () => {
+    const file = path.join(fixture, 'clip.webm');
+    await fs.copyFile(path.join(__dirname, 'fixtures/media/clip.webm'), file);
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    const video = card(file).locator('video');
+    await expect(video).toBeVisible();
+    await expect.poll(() => video.evaluate(element => element.readyState)).toBeGreaterThanOrEqual(1);
+    expect(await video.evaluate(element => [element.videoWidth, element.videoHeight])).toEqual([32, 24]);
+});
+
+for (const operation of ['copy', 'move']) for (const view of ['grid_view', 'list_view']) for (const count of [40, 1001]) for (const group of ['None', 'Type']) {
+    test(`P2 ${operation} paste preserves filter scroll focus and selection in ${view} ${count} ${group}`, async () => {
+        const openFixture = await buildOutsideView();
+        await Promise.all(Array.from({ length: count }, (_, i) => fs.writeFile(path.join(fixture, `file-${String(i).padStart(4, '0')}.txt`), 'retained')));
+        const sourceDirectory = path.join(profile, 'source'); await fs.mkdir(sourceDirectory);
+        const source = path.join(sourceDirectory, 'file-new.txt'); await fs.writeFile(source, 'new contents');
+        await navigate(sourceDirectory); await card(source).dispatchEvent('click'); await page.evaluate(operation => window.titlebarAPI[operation === 'copy' ? 'copy' : 'cut'](), operation);
+        await expect(page.locator('.footer .msg')).toContainText(operation === 'copy' ? 'Copied 1 items' : 'Cut 1 items');
+        await openFixture();
+        await page.evaluate(({ view, group }) => { window.titlebarAPI.setView(view); window.titlebarAPI.setGroupBy(group); }, { view, group });
+        await page.locator('.filter').fill('file-');
+        await page.locator('.active-tab-content').evaluate(content => { content.scrollTop = 180; });
+        const first = page.locator('.active-tab-content .card').first();
+        await first.dispatchEvent('click');
+        const selectedId = await first.getAttribute('data-id');
+        await page.locator('.filter').focus();
+        const before = await page.locator('.active-tab-content').evaluate(content => content.scrollTop);
+        await page.evaluate(() => window.titlebarAPI.paste());
+        await expect.poll(() => exists(path.join(fixture, 'file-new.txt'))).toBe(true);
+        await expect(page.locator('.footer .msg')).toContainText(operation === 'copy' ? 'Done copying (1) files' : 'Done moving 1 files.');
+        await expect(page.locator('.filter')).toHaveText('file-');
+        await expect(page.locator('.filter')).toBeFocused();
+        expect(await page.locator('.active-tab-content').evaluate(content => content.scrollTop)).toBe(before);
+        await expect(page.locator(`.active-tab-content .card[data-id="${selectedId}"]`)).toHaveClass(/highlight_select/);
+        expect(await fs.readFile(path.join(fixture, 'file-new.txt'), 'utf8')).toBe('new contents');
+        expect(await exists(source)).toBe(operation === 'copy');
+    });
+}
+
+test('P2 two windows preserve independent preference edits and workspace reorder additions', async () => {
+    const first = path.join(fixture, 'first.txt'), secondFile = path.join(fixture, 'second.txt');
+    await fs.writeFile(first, 'one'); await fs.writeFile(secondFile, 'two');
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    const created = app.waitForEvent('window');
+    await page.evaluate(location => window.titlebarAPI.newWindow(location), fixture);
+    const second = await created; await second.waitForFunction(() => window.titlebarAPI?.getLocation());
+    await expect(second.locator('.footer .msg')).toHaveText('Loaded 2 items');
+    await Promise.all([
+        page.evaluate(() => window.titlebarAPI.setView('list_view')),
+        second.evaluate(() => window.titlebarAPI.setTheme('dark'))
+    ]);
+    await expect.poll(async () => {
+        const settings = JSON.parse(await fs.readFile(path.join(profile, 'settings.json'), 'utf8'));
+        return [settings.view, settings.schema.properties['Default View'].properties.Theme.default];
+    }).toEqual(['list_view', 'dark']);
+    await app.evaluate(({ BrowserWindow, ipcMain }, { first, secondFile }) => {
+        const windows = BrowserWindow.getAllWindows();
+        const event = window => ({ sender: window.webContents, senderFrame: window.webContents.mainFrame });
+        ipcMain.emit('add_workspace', event(windows[0]), [{ href: first }]);
+        ipcMain.emit('add_workspace', event(windows[1]), [{ href: secondFile }]);
+        // A stale reorder must not delete an entry added by the other window.
+        ipcMain.emit('reorder_workspace', event(windows[0]), [first]);
+    }, { first, secondFile });
+    await expect(page.locator('.workspace_view')).toContainText('first.txt');
+    await expect(page.locator('.workspace_view')).toContainText('second.txt');
+    await expect(second.locator('.workspace_view')).toContainText('second.txt');
+    await second.close();
+});
+
+for (const view of ['grid_view', 'list_view']) for (const count of [40, 1001]) for (const group of ['None', 'Type']) {
+    test(`P2 rename preserves filter scroll and command selection in ${view} ${count} ${group}`, async () => {
+        const openFixture = await buildOutsideView();
+        await Promise.all(Array.from({ length: count }, (_, i) => fs.writeFile(path.join(fixture, `file-${String(i).padStart(4, '0')}.txt`), 'rename bytes')));
+        await openFixture();
+        await page.evaluate(({ view, group }) => { window.titlebarAPI.setView(view); window.titlebarAPI.setGroupBy(group); }, { view, group });
+        await page.locator('.filter').fill('file-');
+        await page.locator('.active-tab-content').evaluate(content => { content.scrollTop = 180; });
+        const source = await page.locator('.active-tab-content').evaluate(content => {
+            const bounds = content.getBoundingClientRect();
+            return Array.from(content.querySelectorAll('.card')).find(card => {
+                const rect = card.getBoundingClientRect();
+                return rect.top > bounds.top + 60 && rect.bottom < bounds.bottom;
+            }).dataset.href;
+        });
+        const target = card(source);
+        await target.dispatchEvent('click');
+        const before = await page.locator('.active-tab-content').evaluate(content => content.scrollTop);
+        await page.evaluate(() => window.titlebarAPI.rename());
+        const input = target.locator('.edit_name'); await expect(input).toBeVisible();
+        await input.fill('file-renamed.txt'); await input.press('Enter');
+        const renamed = path.join(fixture, 'file-renamed.txt');
+        await expect.poll(() => exists(renamed)).toBe(true);
+        await expect(card(source)).toHaveCount(0);
+        await expect(page.locator('.filter')).toHaveText('file-');
+        expect(await page.locator('.active-tab-content').evaluate(content => content.scrollTop)).toBe(before);
+        expect(await fs.readFile(renamed, 'utf8')).toBe('rename bytes');
+        expect(await exists(source)).toBe(false);
+        // Sorting can move the renamed card outside the virtual range. Its
+        // command selection must still target the new identity without scrolling.
+        await page.evaluate(() => window.titlebarAPI.copy());
+        await expect(page.locator('.footer .msg')).toContainText('Copied 1 items');
+        const destination = path.join(profile, 'rename-copy'); await fs.mkdir(destination);
+        await navigate(destination); await page.evaluate(() => window.titlebarAPI.paste());
+        await expect.poll(() => exists(path.join(destination, 'file-renamed.txt'))).toBe(true);
+    });
+}
+
+test('P2 native watcher subscriptions follow repeated tab switches', async () => {
+    const other = path.join(profile, 'tab-other'); await fs.mkdir(other);
+    await page.evaluate(() => window.titlebarAPI.newTab());
+    await expect(page.locator('.tab')).toHaveCount(2); await navigate(other);
+    for (let cycle = 0; cycle < 2; cycle++) {
+        await page.locator('.tab').first().click();
+        const first = path.join(fixture, `first-${cycle}.txt`); await fs.writeFile(first, 'first tab');
+        await expect(card(first)).toBeVisible();
+        await page.locator('.tab').nth(1).click();
+        const second = path.join(other, `second-${cycle}.txt`); await fs.writeFile(second, 'second tab');
+        await expect(card(second)).toBeVisible(); await expect(card(first)).toHaveCount(0);
+    }
+});
+
+test('P2 Escape clears grouped virtual command selection', async () => {
+    const openFixture = await buildOutsideView();
+    await Promise.all(Array.from({ length: 1001 }, (_, i) => fs.writeFile(path.join(fixture, `file-${i}.txt`), 'selection fixture')));
+    await openFixture();
+    await page.evaluate(() => { window.titlebarAPI.setView('list_view'); window.titlebarAPI.setGroupBy('Type'); });
+    await page.locator('body').click({ position: { x: 10, y: 10 } });
+    await page.keyboard.press('ArrowDown');
+    await expect(page.locator('.active-tab-content .card.highlight_select')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('.active-tab-content .card.highlight_select')).toHaveCount(0);
+    await page.evaluate(() => window.titlebarAPI.copy());
+    await expect(page.locator('.footer .msg')).toContainText('Copied 0 items');
 });

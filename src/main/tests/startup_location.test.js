@@ -7,7 +7,7 @@ const end = source.indexOf("        this.filter = document.querySelector('.filte
 
 test.each([
     [[], ['/last']],
-    [[{ tab: { location: '/last' } }, { tab: { location: '/other' } }], ['/other', '/last']]
+    [[{ tab: { location: '/last' } }, { tab: { location: '/other' } }], ['/last', '/other']]
 ])('restores saved location after listeners initialize, with tabs %j', (tabs, expected) => {
     let startRestore;
     const manager = { location: '/last', get_files: jest.fn() };
@@ -15,9 +15,11 @@ test.each([
         manager,
         tabManager: { get_tabs: () => tabs },
         queueMicrotask: callback => { startRestore = callback; },
-        ipcRenderer: { send: jest.fn() }
+        ipcRenderer: { send: jest.fn() }, document: { querySelectorAll: () => [] }
     });
     expect(manager.get_files).not.toHaveBeenCalled();
     startRestore();
+    expect(manager.get_files).toHaveBeenCalledTimes(1);
+    while (manager.restore_locations.length) manager.restore_next();
     expect(manager.get_files.mock.calls.map(([location]) => location)).toEqual(expected);
 });

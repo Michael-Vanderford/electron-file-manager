@@ -2,7 +2,7 @@
 // getSymlinkIcon.js
 const fs = require('fs');
 const path = require('path');
-const { execSync, execFileSync, spawn } = require('child_process');
+const { execSync, execFileSync, execFile, spawn } = require('child_process');
 
 class IconManager {
 
@@ -26,7 +26,13 @@ class IconManager {
             return '';
         }
 
-        return execSync('gsettings get org.gnome.desktop.interface icon-theme').toString().replace(/'/g, '').trim();
+        try {
+            return execFileSync('gsettings', ['get', 'org.gnome.desktop.interface', 'icon-theme'], {
+                encoding: 'utf8', timeout: 1500, stdio: ['ignore', 'pipe', 'ignore']
+            }).replace(/'/g, '').trim();
+        } catch (error) {
+            return '';
+        }
     }
 
     get_symlink_icon() {
@@ -416,15 +422,21 @@ class IconManager {
 
     /**
      * @param {string} href
-     * @param {{ getFileIcon: (path: string, options: { size: number }) => Promise<{ toDataURL: () => string }> }} electron_app
+     * @param {{ getFileIcon: (path: string, options: { size: 'normal' }) => Promise<{ toDataURL: () => string }> }} electron_app
      */
     async get_folder_icon_for_platform(href, electron_app) {
         if (this.platform === 'linux') {
             return this.get_folder_icon(null, href);
         }
 
+        if (this.platform === 'win32') {
+            // One native stock-icon lookup per session, shared by cards and Workspace.
+            this.windows_folder_icon ||= this.load_windows_folder_icon();
+            return await this.windows_folder_icon || path.join(this.fallback_icon_dir, 'folder.svg');
+        }
+
         try {
-            const icon = await electron_app.getFileIcon(href, { size: 32 });
+            const icon = await electron_app.getFileIcon(href, { size: 'normal' });
             if (icon && typeof icon.toDataURL === 'function') {
                 const dataUrl = icon.toDataURL();
                 if (dataUrl && dataUrl !== 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfAwAAswEA6S9S6AAAAABJRU5ErkJggg==') {
@@ -435,6 +447,30 @@ class IconManager {
         } catch (err) {
             return path.join(this.fallback_icon_dir, 'folder.svg');
         }
+    }
+
+    load_windows_folder_icon() {
+        return new Promise(resolve => {
+            // Static code only: no filenames, device identifiers or settings enter PowerShell.
+            const script = fs.readFileSync(path.join(__dirname, 'windows_folder_icon.ps1'), 'utf8');
+            const executable = path.win32.join(process.env.SystemRoot || 'C:/Windows',
+                'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+            execFile(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand',
+                Buffer.from(script, 'utf16le').toString('base64')], { timeout: 10000, maxBuffer: 1024 * 1024, windowsHide: true },
+                (error, stdout) => {
+                    const encoded = (stdout || '').trim();
+                    const png = Buffer.from(encoded, 'base64');
+                    if (!error && png.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))) {
+                        resolve(`data:image/png;base64,${png.toString('base64')}`);
+                    } else {
+                        console.warn('Windows folder icon lookup failed:', error?.message || 'No PNG returned.');
+                        resolve(null);
+                    }
+                });
+        }).catch(error => {
+            console.warn('Windows folder icon lookup failed:', error.message);
+            return null;
+        });
     }
 
     // get folder icon

@@ -36,7 +36,7 @@ function mount_info(location) {
             if (uri) throw error;
         }
     }
-    return libfs.disk_stats(location);
+    return libfs.disk_stats(location, { strict: true });
 }
 
 module.exports = { mount_info };

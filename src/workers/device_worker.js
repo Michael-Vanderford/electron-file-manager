@@ -21,7 +21,7 @@ class DeviceManager {
         }
         this.pending.add(operation);
         try {
-            const devices = (await probe(operation)).filter(device => device.name !== 'mtp');
+            const devices = await probe(operation);
             const reachable = [];
             for (const device of devices) {
                 // Unmounted drives must remain available for the Mount action.

@@ -184,3 +184,26 @@ it('reports a boolean filesystem removal failure without deleting the UI item', 
         cmd: 'delete_done', deleted_items: [], failed_items: 1, deleted_files: 0
     }));
 });
+
+it('continues deleting other selections after a scan error', async () => {
+    const gio = buildMockGio({ '/mock/denied': new Error('EACCES') });
+    gio.get_file.mockImplementation(href => ({ href, name: href, is_dir: href.endsWith('denied') }));
+    const parentPort = { postMessage: jest.fn() };
+    await new DeleteWorker({ gio, parentPort }).run([{ href: '/mock/denied' }, { href: '/mock/ok' }]);
+    expect(gio.rm).toHaveBeenCalledTimes(1);
+    expect(gio.rm).toHaveBeenCalledWith('/mock/ok');
+    expect(parentPort.postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        cmd: 'delete_done', deleted_items: [{ href: '/mock/ok' }], failed_items: 1, deleted_files: 1
+    }));
+});
+
+it('reports thrown removal errors without counting a success', async () => {
+    const gio = buildMockGio({});
+    gio.get_file.mockReturnValue({ href: '/mock/denied', is_dir: false });
+    gio.rm.mockImplementation(() => { throw new Error('EACCES'); });
+    const parentPort = { postMessage: jest.fn() };
+    await new DeleteWorker({ gio, parentPort }).run([{ href: '/mock/denied' }]);
+    expect(parentPort.postMessage).toHaveBeenCalledWith(expect.objectContaining({
+        cmd: 'delete_done', deleted_items: [], failed_items: 1, deleted_files: 0
+    }));
+});

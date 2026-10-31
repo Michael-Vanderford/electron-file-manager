@@ -27,5 +27,5 @@ test('USB event bursts request both drive lists and retry after volume readiness
     expect(manager.device_worker.postMessage).toHaveBeenCalledTimes(4);
     monitor('mtp');
     jest.advanceTimersByTime(2000);
-    expect(manager.device_worker.postMessage).toHaveBeenCalledTimes(4);
+    expect(manager.device_worker.postMessage).toHaveBeenCalledTimes(8);
 });

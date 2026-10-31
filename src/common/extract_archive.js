@@ -16,7 +16,8 @@ function extraction_command(source, destination) {
     throw new Error('Unsupported archive format.');
 }
 
-async function extract_archive(source, location, progress = () => {}) {
+async function extract_archive(source, location, progress = () => {}, { signal, on_child = () => {} } = {}) {
+    signal?.throwIfAborted();
     const stem = path.basename(source).replace(/\.(tar\.gz|tar\.xz|tar\.bz2|zip|tar|tgz|7z|gz|xz|bz2)$/i, '');
     if (!stem) throw new Error('Archive has no output name.');
     let destination, output, command;
@@ -24,7 +25,7 @@ async function extract_archive(source, location, progress = () => {}) {
         destination = path.join(location, stem + (index ? ` (Copy ${index})` : ''));
         command = extraction_command(source, destination);
         try {
-            if (command.directory) await fsp.mkdir(destination);
+            if (command.directory) await fsp.mkdir(destination, { mode: 0o700 });
             else output = await fsp.open(destination, 'wx');
             break;
         } catch (error) { if (error.code !== 'EEXIST') throw error; }
@@ -36,10 +37,11 @@ async function extract_archive(source, location, progress = () => {}) {
     }, 1000);
     try {
         if (command.directory) {
-            await new Promise((resolve, reject) => execFile(command.executable, command.args,
-                { cwd: location, maxBuffer: 1024 * 1024 }, error => error ? reject(error) : resolve()));
+            await new Promise((resolve, reject) => { const child = execFile(process.platform === 'win32' ? 'python' : 'python3', ['-c', fs.readFileSync(path.join(__dirname, 'extract_entries.py'), 'utf8'), source, destination],
+                { cwd: location, signal, maxBuffer: 1024 * 1024 }, error => error ? reject(error) : resolve()); on_child(child.pid); });
         } else {
-            const child = spawn(command.executable, command.args, { cwd: location, stdio: ['ignore', 'pipe', 'ignore'] });
+            const child = spawn(command.executable, command.args, { cwd: location, signal, stdio: ['ignore', 'pipe', 'ignore'] });
+            on_child(child.pid);
             const exited = new Promise((resolve, reject) => {
                 child.once('error', reject);
                 child.once('exit', code => code === 0 ? resolve() : reject(new Error(`${command.executable} exited with code ${code}`)));
@@ -49,7 +51,8 @@ async function extract_archive(source, location, progress = () => {}) {
         }
         return destination;
     } catch (error) {
-        if (!command.directory) await fsp.unlink(destination).catch(() => {});
+        if (command.directory) await fsp.rm(destination, { recursive: true, force: true });
+        else await fsp.unlink(destination).catch(() => {});
         error.message += ` Output: ${destination}`;
         throw error;
     } finally { clearInterval(timer); await output?.close(); }

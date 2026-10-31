@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync, execFileSync, spawn } = require('child_process');
+const { execSync, execFileSync, execFile, spawn } = require('child_process');
 const iconManager = require('../lib/IconManager.js');
 
 jest.mock('fs');
 jest.mock('child_process', () => ({
     execSync: jest.fn(() => Buffer.from("'Fluent-dark'")),
     execFileSync: jest.fn(),
+    execFile: jest.fn(),
     spawn: jest.fn()
 }));
 jest.mock('os', () => ({
@@ -18,6 +19,8 @@ describe('IconManager', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         iconManager.platform = 'linux';
+        delete iconManager.windows_folder_icon;
+        execFile.mockReset();
     });
 
     describe('get_symlink_icon', () => {
@@ -103,19 +106,41 @@ describe('IconManager', () => {
 
             const result = await iconManager.get_folder_icon_for_platform('/Users/testuser/Documents', electronApp);
 
-            expect(electronApp.getFileIcon).toHaveBeenCalledWith('/Users/testuser/Documents', { size: 32 });
+            expect(electronApp.getFileIcon).toHaveBeenCalledWith('/Users/testuser/Documents', { size: 'normal' });
             expect(result).toBe('data:image/png;base64,native-folder-icon');
         });
 
-        it('falls back to the bundled folder icon when native lookup fails', async () => {
+        it('shares one native Windows stock icon request across different folders and concurrent callers', async () => {
             iconManager.platform = 'win32';
-            const electronApp = {
-                getFileIcon: jest.fn().mockRejectedValue(new Error('native icon unavailable'))
-            };
+            const script = '[StockFolderIcon]::Read()'; fs.readFileSync.mockReturnValue(script);
+            let reply; execFile.mockImplementation((_exe, _args, _options, callback) => { reply = callback; });
+            const app = { getFileIcon: jest.fn() };
+            const first = iconManager.get_folder_icon_for_platform('C:\\Users\\test\\Documents', app);
+            const second = iconManager.get_folder_icon_for_platform('\\\\server\\share\\folder', app);
+            const png = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf1kAAAAASUVORK5CYII=';
+            reply(null, png + '\r\n');
+            expect(await first).toBe(`data:image/png;base64,${png}`);
+            expect(await second).toBe(await first);
+            expect(execFile).toHaveBeenCalledTimes(1);
+            const [executable, args, options] = execFile.mock.calls[0];
+            expect(executable).toMatch(/WindowsPowerShell\\v1\.0\\powershell\.exe$/);
+            expect(args.slice(0, -1)).toEqual(['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand']);
+            expect(Buffer.from(args.at(-1), 'base64').toString('utf16le')).toBe(script);
+            expect(options).toEqual({ timeout: 10000, maxBuffer: 1024 * 1024, windowsHide: true });
+            expect(app.getFileIcon).not.toHaveBeenCalled();
+        });
 
-            const result = await iconManager.get_folder_icon_for_platform('C:\\Users\\testuser\\Documents', electronApp);
-
-            expect(result).toBe(path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg'));
+        it.each([new Error('PowerShell unavailable'), null])('falls back once when the Windows request fails or returns non-PNG output: %s', async error => {
+            iconManager.platform = 'win32'; fs.readFileSync.mockReturnValue('[StockFolderIcon]::Read()');
+            execFile.mockImplementation((_exe, _args, _options, callback) => callback(error, 'not an icon'));
+            const warning = jest.spyOn(console, 'warn').mockImplementation(() => {});
+            try {
+                const fallback = path.join(__dirname, '..', '..', 'assets', 'icons', 'folder.svg');
+                expect(await iconManager.get_folder_icon_for_platform('C:\\Documents', {})).toBe(fallback);
+                expect(await iconManager.get_folder_icon_for_platform('C:\\Other', {})).toBe(fallback);
+                expect(execFile).toHaveBeenCalledTimes(1);
+                expect(warning).toHaveBeenCalledTimes(1);
+            } finally { warning.mockRestore(); }
         });
 
         it('does not start a GNOME theme watcher', () => {
@@ -157,4 +182,10 @@ describe('IconManager', () => {
         });
     });
 
+});
+test('missing or unresponsive gsettings keeps startup icon fallback available', () => {
+    execFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
+    expect(iconManager.get_icon_theme()).toBe('');
+    expect(iconManager.get_folder_icon(null, '/tmp/folder')).toBeTruthy();
+    expect(execFileSync).toHaveBeenCalledWith('gsettings', expect.any(Array), expect.objectContaining({ timeout: 1500 }));
 });

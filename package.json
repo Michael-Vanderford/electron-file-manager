@@ -5,8 +5,8 @@
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",
     "scripts": {
-        "start": "electron . --ozone-platform=x11",
-        "start:clean": "TEST_PROFILE_DIR=\"$(mktemp -d)\" electron .",
+        "start": "electron . --ozone-platform=x11 --no-sandbox",
+        "start:clean": "TEST_PROFILE_DIR=\"$(mktemp -d)\" electron . --no-sandbox",
         "build": "npx electron-builder --linux",
         "build:win": "npx electron-builder --win",
         "test": "npm run test:unit && npm run test:e2e",
@@ -44,7 +44,10 @@
         },
         "win": {
             "target": "nsis",
-            "executableName": "efm"
+            "executableName": "efm",
+            "files": [
+                "!node_modules/libgio-node{,/**/*}"
+            ]
         },
         "snapcraft": {
             "base": "core22",
@@ -52,7 +55,15 @@
                 "summary": "A modern file manager built with Electron",
                 "confinement": "classic"
             }
-        }
+        },
+        "npmRebuild": false,
+        "beforePack": "scripts/before-pack.js",
+        "files": [
+            "src/**/*",
+            "package.json",
+            "!src/**/bak{,/**/*}",
+            "!src/**/tests{,/**/*}"
+        ]
     },
     "author": {
         "name": "Michael Vanderford",
@@ -64,14 +75,14 @@
         "@types/jest": "^30.0.0",
         "bootstrap-icons": "^1.11.3",
         "electron": "^44.4.5",
-        "electron-builder": "^26.5.0",
-        "jest": "^30.5.2",
+        "electron-builder": "^26.18.0",
+        "jest": "^25.1.0",
         "nan": "^2.29.0",
         "node-abi": "^4.35.0",
         "node-gyp": "^13.0.2"
     },
     "dependencies": {
-        "archiver": "^7.0.1",
+        "archiver": "^4.0.2",
         "chart.js": "^4.5.1",
         "fast-xml-parser": "^5.4.1",
         "material-design-icons": "^3.0.1"

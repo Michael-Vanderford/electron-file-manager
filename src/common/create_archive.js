@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const archiver = require('archiver');
+const { spawn } = require('child_process');
 const { pipeline } = require('stream/promises');
 const safe = require('./safe_replace');
 
@@ -20,20 +21,29 @@ async function create_archive(job, { journal_dir, signal, progress = () => {} })
     await safe.replace(destination, async staged => {
         const archive = type === 'zip'
             ? archiver('zip', { zlib: { level: 9 } })
-            : archiver('tar', { gzip: type === 'tar.gz', xz: type === 'tar.xz', zlib: { level: 9 } });
+            : archiver('tar', { gzip: type === 'tar.gz', zlib: { level: 9 } });
         // Warnings mean inputs were omitted: never publish a partial replacement as success.
         archive.on('warning', error => archive.destroy(error));
         archive.on('progress', data => progress(data.fs.processedBytes));
-        const writing = pipeline(archive, fs.createWriteStream(staged, { flags: 'wx' }), { signal });
+        const output = fs.createWriteStream(staged, { flags: 'wx' });
+        const codec = type === 'tar.xz' ? spawn('xz', ['-c'], { stdio: ['pipe', 'pipe', 'ignore'], signal }) : null;
+        const exited = codec ? new Promise((resolve, reject) => {
+            codec.once('error', reject);
+            codec.once('close', code => code === 0 ? resolve() : reject(new Error(`xz exited with code ${code}`)));
+        }) : Promise.resolve();
+        const writing = codec
+            ? Promise.all([pipeline(archive, codec.stdin, { signal }), pipeline(codec.stdout, output, { signal }), exited])
+            : pipeline(archive, output, { signal });
         try {
             for (const file of files_arr) {
                 safe.check_cancel(cancelled);
-                if (file.is_dir && !file.is_symlink) archive.directory(file.href, path.relative(location, file.href));
-                else archive.file(file.href, { name: path.relative(location, file.href) });
+                if (file.is_dir && !file.is_symlink) archive.directory(file.href, path.basename(file.href));
+                else archive.file(file.href, { name: path.basename(file.href) });
             }
             await Promise.all([writing, archive.finalize()]);
         } catch (error) {
             archive.destroy(error);
+            codec?.kill();
             await writing.catch(() => {});
             throw error;
         }

@@ -8,7 +8,7 @@ const btoa = value => Buffer.from(value).toString('base64');
 function insertion(virtual) {
     const tab = { querySelector: jest.fn(() => ({ classList: { add: jest.fn() } })) };
     const context = {
-        tabManager: { get_active_tab_content: () => tab, set_tab_data_arr: jest.fn() }, btoa
+        tabManager: { get_active_tab_content: () => tab, set_tab_data_arr: jest.fn() }, btoa, path_id: btoa, path_id: btoa
     };
     const start = preload.indexOf('    add_items(copy_arr) {');
     const end = preload.indexOf('    update_item(f) {', start);
@@ -24,26 +24,34 @@ function insertion(virtual) {
     expect(context.tabManager.set_tab_data_arr).toHaveBeenCalledWith([
         existing, { href: '/dest/new', id: btoa('/dest/new') }
     ]);
-    expect(manager.get_view).toHaveBeenCalledWith(manager.files_arr);
+    expect(manager.get_view).toHaveBeenCalledWith(manager.files_arr, true);
     if (virtual) expect(manager.virtual_view.selected_ids.has(btoa('/dest/new'))).toBe(true);
 }
 
 test('pasted cards persist in tab data for normal and grouped rendering', () => insertion(false));
 test('pasted cards rebuild and select items in virtual rendering', () => insertion(true));
 
-test('move completion removes source identity and inserts destination identity', () => {
-    const start = main.indexOf('                    const moved = data.files_arr || [];');
-    const end = main.indexOf('                    if (data.cancelled)', start);
+test('transfer completion routes source and destination identities to the initiating sender', () => {
+    const start = main.indexOf('    queue_transfer(sender,');
+    const end = main.indexOf('    normalize_folder_size_path', start);
+    const handlers = {};
+    const thread = { on: (event, callback) => { handlers[event] = callback; }, once: jest.fn(), postMessage: jest.fn(), terminate: jest.fn() };
     const sent = [];
-    vm.runInNewContext(main.slice(start, end), {
-        data: { files_arr: [{ source: '/source/file', destination: '/dest/file', href: '/dest/file' }] },
-        win: { send: (...args) => sent.push(args) },
-        libfs: { get_file: href => ({ href }) }, path, btoa
+    const sender = { isDestroyed: () => false, send: (...args) => sent.push(args), once: jest.fn() };
+    const manager = {
+        operation_queue: { enqueue: job => job.start({ finish: jest.fn() }) },
+        invalidate_folder_size_for_item_path: jest.fn(), invalidate_folder_size_hierarchy: jest.fn()
+    };
+    const queue = vm.runInNewContext(`({${main.slice(start, end)}}).queue_transfer`, {
+        structuredClone: value => value, worker: { Worker: function() { return thread; } },
+        path, __dirname, replacement_journals: '/journals', path_id: btoa,
+        fs: { existsSync: () => true }, libfs: { get_file: href => ({ href }) }
     });
-    expect(sent).toEqual([
-        ['remove_items', [{ id: btoa('/source/file'), href: '/source/file' }]],
-        ['add_items', [{ id: btoa('/dest/file'), href: '/dest/file' }], '/dest']
-    ]);
+    queue.call(manager, sender, 'move', [{ source: '/source/file', destination: '/dest/file' }], '/dest');
+    handlers.message({ cmd: 'mv_done', files_arr: [{ source: '/source/file', destination: '/dest/file' }] });
+    expect(sent).toContainEqual(['remove_items', [{ id: btoa('/source/file'), href: '/source/file' }]]);
+    expect(sent).toContainEqual(['add_items', [{ href: '/dest/file' }], '/dest']);
+    expect(thread.terminate).toHaveBeenCalledTimes(1);
 });
 
 test('Copy after Cut clears cut mode and the old selection', () => {
@@ -65,7 +73,7 @@ test('repeated insertion replaces the existing record without duplicate cards', 
     const start = preload.indexOf('    add_items(copy_arr) {');
     const end = preload.indexOf('    update_item(f) {', start);
     const add = vm.runInNewContext(`({${preload.slice(start, end)}}).add_items`, {
-        tabManager: { get_active_tab_content: () => tab, set_tab_data_arr: next => { files = next; } }, btoa
+        tabManager: { get_active_tab_content: () => tab, set_tab_data_arr: next => { files = next; } }, btoa, path_id: btoa
     });
     const manager = {
         get_active_files: () => files, is_recent_tab_content: () => false, get_view: jest.fn()
@@ -85,12 +93,12 @@ test.each([
     const start = preload.indexOf("        ipcRenderer.on('add_items',");
     const end = preload.indexOf('        // get item', start);
     const manager = {
-        add_items: jest.fn(), check_for_empty_folder: jest.fn()
+        add_items: jest.fn(), merge_inactive_items: jest.fn(), check_for_empty_folder: jest.fn()
     };
     const context = {
         ipcRenderer: { on: (channel, callback) => { handler = callback; } },
         dnd: require('../../common/dnd'),
-        utilities: { get_location: () => active },
+        utilities: { get_location: () => active }, document: { querySelector: () => ({ dataset: { href: active } }) },
         tabManager: { get_active_tab_content: () => null }, manager
     };
     vm.runInNewContext(`(function() {${preload.slice(start, end)}}).call(manager)`, context);
@@ -98,4 +106,34 @@ test.each([
     handler({}, [{ href: '/destination/file' }], destination);
 
     expect(manager.add_items).toHaveBeenCalledTimes(expected ? 1 : 0);
+});
+
+test('worker failure releases only its job and late exit cannot finish the next transfer', () => {
+    const { EventEmitter } = require('events');
+    const { OperationQueue } = require('../lib/OperationQueue');
+    const threads = [];
+    function Worker() {
+        const thread = new EventEmitter();
+        thread.postMessage = jest.fn(); thread.terminate = jest.fn();
+        threads.push(thread); return thread;
+    }
+    const sender = new EventEmitter(); sender.isDestroyed = () => false; sender.send = jest.fn();
+    const manager = { operation_queue: new OperationQueue(), invalidate_folder_size_for_item_path: jest.fn(), invalidate_folder_size_hierarchy: jest.fn() };
+    const start = main.indexOf('    queue_transfer(sender,');
+    const end = main.indexOf('    normalize_folder_size_path', start);
+    const queue = vm.runInNewContext(`({${main.slice(start, end)}}).queue_transfer`, {
+        structuredClone: value => value, worker: { Worker }, path, __dirname,
+        replacement_journals: '/journals', path_id: btoa, fs: { existsSync: () => true }, libfs: { get_file: href => ({ href }) }
+    });
+    queue.call(manager, sender, 'copy', [{ source: '/first', destination: '/dest/first' }], '/dest');
+    queue.call(manager, sender, 'copy', [{ source: '/second', destination: '/dest/second' }], '/dest');
+    expect(threads).toHaveLength(1);
+    threads[0].emit('error', new Error('worker crashed'));
+    expect(threads).toHaveLength(2);
+    const next = manager.operation_queue.active;
+    threads[0].emit('exit', 1);
+    expect(manager.operation_queue.active).toBe(next);
+    threads[1].emit('message', { cmd: 'cp_done', completed: [], failures: [] });
+    expect(manager.operation_queue.active).toBe(null);
+    expect(sender.send).toHaveBeenCalledWith('set_msg', 'copy incomplete: worker crashed');
 });

@@ -1,4 +1,7 @@
 // @ts-nocheck
+
+const { changes } = require('../common/settings_patch');
+const { path_id } = require('../common/path_id');
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
 const { group_files } = require('../common/file_groups');
 const dnd = require('../common/dnd');
@@ -327,7 +330,7 @@ contextBridge.exposeInMainWorld('titlebarAPI', {
     cut: () => utilities?.cut(),
     copy: () => utilities?.copy(),
     paste: () => utilities?.paste(),
-    newTab: () => ipcRenderer.send('ls', utilities.get_location(), true),
+    newTab: () => { tabManager.add_tab(utilities.get_location()); fileManager.get_files(utilities.get_location()); },
     newFolder: () => utilities?.mkdir(),
     rename: () => utilities?.edit(),
     delete: () => utilities?.delete(),
@@ -461,6 +464,7 @@ class SettingsManager {
         ipcRenderer.on('settings_updated', (e, updated_settings) => {
             // console.log('settings updated', updated_settings);
             this.settings = updated_settings;
+            this.persisted_settings = structuredClone(updated_settings);
             this.schema = this.get_schema();
             apply_theme(this.settings?.schema?.properties?.['Default View']?.properties?.Theme?.default);
             fileManager?.apply_tab_toolbar_visibility?.();
@@ -476,6 +480,7 @@ class SettingsManager {
 
     init_settings() {
         this.settings = ipcRenderer.sendSync('get_settings');
+        this.persisted_settings = structuredClone(this.settings);
         if (!this.settings) {
             this.settings = {};
         }
@@ -561,7 +566,7 @@ class SettingsManager {
         }
 
         if (updated) {
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         // Show columns
@@ -576,14 +581,14 @@ class SettingsManager {
                 type: false,
                 count: false
             }
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         // sort by
         if (this.settings.sort_by === '' || this.settings.sort_by === undefined) {
             this.settings.sort_by = 'mtime';
             this.settings.sort_direction = 'desc';
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         // list view settings
@@ -613,27 +618,27 @@ class SettingsManager {
 
         if (this.settings.icon_size === '' || this.settings.icon_size === undefined) {
             this.settings.icon_size = 32;
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         if (this.settings.list_icon_size === '' || this.settings.list_icon_size === undefined) {
             this.settings.list_icon_size = 32;
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         // Keep legacy flat keys in sync with schema defaults used by the settings UI.
         this.settings.icon_size = parseInt(this.get_schema_setting('Grid Icon Size')?.default, 10) || this.settings.icon_size;
         this.settings.list_icon_size = parseInt(this.get_schema_setting('List Icon Size')?.default, 10) || this.settings.list_icon_size;
-        ipcRenderer.send('update_settings', this.settings);
+        this.persist_settings();
 
         if (this.settings.show_hidden === undefined) {
             this.settings.show_hidden = true;
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
         if (this.settings.tabs == undefined) {
             this.settings.tabs = [];
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
 
     }
@@ -817,7 +822,7 @@ class SettingsManager {
         });
 
         if (updated) {
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
     }
 
@@ -838,7 +843,7 @@ class SettingsManager {
         });
 
         if (updated) {
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
         }
     }
 
@@ -851,7 +856,7 @@ class SettingsManager {
         const grid_columns = this.settings?.schema?.properties?.['Grid View Columns']?.properties;
         if (!grid_columns) {
             this.settings.migrations.grid_columns_v2_applied = true;
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
             return;
         }
 
@@ -874,7 +879,7 @@ class SettingsManager {
         if (!is_untouched) {
             // Mark migration complete so user choices are never reinterpreted on future startups.
             this.settings.migrations.grid_columns_v2_applied = true;
-            ipcRenderer.send('update_settings', this.settings);
+            this.persist_settings();
             return;
         }
 
@@ -889,7 +894,7 @@ class SettingsManager {
 
         this.settings.migrations.grid_columns_v2_applied = true;
 
-        ipcRenderer.send('update_settings', this.settings);
+        this.persist_settings();
     }
 
     get_schema_setting(search_key) {
@@ -949,11 +954,17 @@ class SettingsManager {
         return false;
     }
 
+    persist_settings() {
+        const patch = changes(this.persisted_settings || {}, this.settings);
+        this.persisted_settings = structuredClone(this.settings);
+        if (Object.keys(patch).length) ipcRenderer.send('update_settings', patch);
+    }
+
     // update settings
     update_settings(settings) {
         this.settings = settings;
         // console.log('update settings', this.settings);
-        ipcRenderer.send('update_settings', this.settings);
+        this.persist_settings();
     }
 
     get_window_settings() {
@@ -1065,14 +1076,17 @@ class Utilities {
 
             if (e.key === 'Enter') {
                 e.preventDefault();
-                e.stopPropagation();
+                e.stopImmediatePropagation();
 
                 if (this.location_input.value === 'settings:') {
                     fileManager.get_settings_view();
                     return;
                 }
 
-                this.location = this.location_input.value;
+                const value = this.location_input.value;
+                const selected = this.autocomplete_popup?.querySelector('.highlight_select')?.textContent;
+                this.location = selected?.startsWith(value) ? selected : value;
+                this.cancel_autocomplete?.();
                 this.hide_location_input();
                 fileManager.get_files(this.location);
             }
@@ -1093,7 +1107,8 @@ class Utilities {
         });
 
         // disk space
-        ipcRenderer.on('disk_space', (e, data) => {
+        ipcRenderer.on('disk_space', (e, data, location) => {
+            if (location && !dnd.is_active_destination(location, this.get_location())) return;
             this.set_disk_space(data);
         });
 
@@ -1407,6 +1422,12 @@ class Utilities {
         const popup = this.add_div();
         popup.classList.add('autocomplete-popup'); // Add a CSS class for styling
         let autocomplete_request = 0;
+        this.autocomplete_popup = popup;
+        this.cancel_autocomplete = () => {
+            autocomplete_request++;
+            popup.replaceChildren();
+            popup.remove();
+        };
         if (!this.location_input) {
             return;
         }
@@ -1527,8 +1548,8 @@ class Utilities {
                     break;
                 }
                 case 'Escape': {
-                    // this.location_input.value = this.val0;
-                    // popup.remove();
+                    e.preventDefault();
+                    this.cancel_autocomplete();
                     break;
                 }
                 case 'Tab': {
@@ -1793,6 +1814,7 @@ class Utilities {
 
     // hide location
     hide_location_input() {
+        this.location_input.blur();
         this.location_input.classList.add('hidden');
         this.breadcrumbs.classList.remove('hidden');
     }
@@ -2024,7 +2046,7 @@ class Utilities {
         this.is_cut_operation = false;
         this.copy_arr = [];
         this.cut_arr = [];
-        this.clear_highlight();
+        document.querySelectorAll('.cut').forEach(item => item.classList.remove('cut'));
         fileManager?.update_toolbar_state?.();
 
     }
@@ -2135,7 +2157,7 @@ class Utilities {
 
                     input.addEventListener('blur', (e) => {
                         e.preventDefault();
-                        input.focus();
+                        if (input.isConnected && !input.classList.contains('hidden')) input.focus();
                     });
 
                 } else {
@@ -2194,8 +2216,7 @@ class Utilities {
             return;
         }
 
-        // instead of just sending mkdir, we enter edit mode for the new folder name.
-        this.edit();
+        // The successful get_item reply starts editing the newly created folder.
         this.set_msg('Enter folder name...');
         ipcRenderer.send('mkdir', this.destination);
     }
@@ -2508,15 +2529,11 @@ class Utilities {
 
     // clear highlighted items
     clear_highlight() {
-
-        // console.log('clear highlight');
-
-        let main = document.querySelector('.main');
-        let items = main.querySelectorAll('.highlight_select, .highlight, .highlight_target');
-        items.forEach(item => {
+        fileManager?.clearHighlight?.();
+        const content = tabManager.get_active_tab_content();
+        content?.querySelectorAll('.highlight_select, .highlight, .highlight_target').forEach(item => {
             item.classList.remove('highlight_select', 'highlight', 'highlight_target');
         });
-
     }
 
     // // clear filter
@@ -3937,10 +3954,9 @@ class SideBarManager {
                                 tabManager.add_tab('Recent');
                             } else if (active_tab.dataset.href !== 'Recent') {
                                 tabManager.add_tab_history('Recent');
-                                tabManager.update_tab('Recent');
                             }
                         }
-                        ipcRenderer.send('get_recent_files', e.ctrlKey);
+                        fileManager.request_recent(e.ctrlKey);
                         break;
                     case 'File System':
                         if (e.ctrlKey) {
@@ -4058,7 +4074,10 @@ class SideBarManager {
 
         // Prevent clobbering settings during the initial bootstrap phase (refresh/start)
         if (!this.is_initializing) {
-            ipcRenderer.send('update_window_settings', window_settings);
+            ipcRenderer.send('update_window_settings', {
+                sidebar_collapsed: window_settings.sidebar_collapsed,
+                ...(this.sidebar_collapsed ? {} : { sidebar_width: window_settings.sidebar_width })
+            });
         }
     }
 
@@ -4108,7 +4127,7 @@ class SideBarManager {
         let window_settings = ipcRenderer.sendSync('get_window_settings');
         window_settings.sidebar_width = resolved_sidebar_width;
         window_settings.main_width = resolved_main_width;
-        ipcRenderer.send('update_window_settings', window_settings);
+        ipcRenderer.send('update_window_settings', { sidebar_width: resolved_sidebar_width, main_width: resolved_main_width });
 
         this.window_settings = window_settings;
 
@@ -4290,7 +4309,8 @@ class KeyBoardManager {
             else if (e.ctrlKey && e.key.toLocaleLowerCase() === 't') {
                 e.preventDefault();
                 e.stopPropagation();
-                ipcRenderer.send('ls', utilities.get_location(), true);
+                tabManager.add_tab(utilities.get_location());
+                fileManager.get_files(utilities.get_location());
             }
             // go back in history
             else if (e.key === 'Backspace' || e.altKey && e.key === 'ArrowLeft') {
@@ -4726,15 +4746,15 @@ class TabManager {
     }
 
     // set tab data array
-    set_tab_data_arr(files_arr) {
+    set_tab_data_arr(files_arr, tab_id = this.tab_id) {
 
         // check if tab data exists
-        let tab_data = this.tab_data_arr.find(tab_data => tab_data.tab_id === this.tab_id);
+        let tab_data = this.tab_data_arr.find(tab_data => tab_data.tab_id === Number(tab_id));
         if (tab_data) {
             tab_data.files_arr = files_arr;
         } else {
             this.tab_data = {
-                tab_id: this.tab_id,
+                tab_id: Number(tab_id),
                 files_arr: files_arr
             }
             this.tab_data_arr.push(this.tab_data);
@@ -4878,6 +4898,8 @@ class TabManager {
         btn_close.addEventListener('click', (e) => {
             e.stopPropagation();
             tab_content.cancel_find?.();
+            tab_content.virtual_view?.dispose?.();
+            fileManager.list_request_id++;
             let current_tabs = document.querySelectorAll('.tab');
             let current_tab_content = document.querySelectorAll('.tab-content');
             let active_tab = document.querySelector('.active-tab');
@@ -4944,6 +4966,7 @@ class TabManager {
 
             // console.log('removed item', latest_settings);
             settingsManager.update_settings(latest_settings);
+            document.querySelector('.active-tab')?.click();
 
 
 
@@ -4961,6 +4984,10 @@ class TabManager {
             tab_content.classList.add('active-tab-content');
             tab_content.classList.remove('hidden');
 
+            // Invalidate replies initiated by a different active tab.
+            fileManager.list_request_id++;
+            fileManager.latest_list_request_token = null;
+            fileManager.location = tab.dataset.href;
             // set active tab content
             this.active_tab_content = tab_content;
 
@@ -4977,7 +5004,7 @@ class TabManager {
             // set local destination
             this.destination = tab.dataset.href;
 
-            ipcRenderer.send('switch_tab', this.tab_id);
+            ipcRenderer.send('switch_tab', this.tab_id, tab.dataset.href);
 
             if (tab_content.dataset.groupingStale === 'true') {
                 delete tab_content.dataset.groupingStale;
@@ -4989,6 +5016,8 @@ class TabManager {
                 }
             }
 
+            fileManager.virtual_view = tab_content.virtual_view || null;
+            if (fileManager.virtual_view) fileManager.render_virtual_range(true);
             tab_content.render_search?.();
 
             // update disk space
@@ -5232,6 +5261,10 @@ class FileManager {
         this.location0 = '';
         this.location = '';
         this.startup = 1;
+        Object.defineProperty(this, 'recent_files_arr', {
+            get: () => tabManager.get_active_tab_content()?.recent_files_arr || [],
+            set: files => { const tab = tabManager.get_active_tab_content(); if (tab) tab.recent_files_arr = files; }
+        });
         this.virtual_view_threshold = 1000;
         this.virtual_view = null;
         this.latest_list_request_token = null;
@@ -5290,17 +5323,28 @@ class FileManager {
         const saved_location = this.location;
         const saved_tabs = tabManager.get_tabs() || [];
         const locations = saved_tabs.map(entry => entry?.tab?.location).filter(Boolean);
-        // The final listing request wins; restore the last active location last.
-        const restore = [...new Set(locations.filter(location => location !== saved_location)), saved_location];
-        queueMicrotask(() => {
-            restore.forEach(location => {
-                if (location === 'Recent') {
-                    ipcRenderer.send('get_recent_files', true);
-                } else {
-                    this.get_files(location, true);
-                }
-            });
-        });
+        this.restore_locations = locations.length ? [...locations] : [saved_location];
+        if (!this.restore_locations.includes(saved_location)) this.restore_locations.push(saved_location);
+        this.restoring_tabs = true;
+        this.restore_next = () => {
+            if (!this.restoring_tabs) return;
+            const location = this.restore_locations.shift();
+            if (!location) {
+                this.restoring_tabs = false;
+                const active = Array.from(document.querySelectorAll('.tab')).find(tab => tab.dataset.href === saved_location);
+                active?.click();
+                return;
+            }
+            if (location === 'Recent') this.request_recent(true);
+            else if (location === 'Dashboard') {
+                tabManager.add_tab('Dashboard');
+                this.get_dashboard_view().finally(() => this.restore_next());
+            } else if (location === 'Settings') {
+                this.get_settings_view();
+                this.restore_next();
+            } else this.get_files(location, true);
+        };
+        queueMicrotask(() => this.restore_next());
 
         this.filter = document.querySelector('.filter');
         this.find_view_button = document.querySelector('.find_menu .button.find');
@@ -5479,7 +5523,7 @@ class FileManager {
         });
 
         // get files
-        ipcRenderer.on('ls_done', (e, files_arr, new_tab, request_token) => {
+        ipcRenderer.on('ls_done', (e, files_arr, new_tab, request_token, result = {}) => {
 
             if (request_token !== this.latest_list_request_token) {
                 return;
@@ -5487,6 +5531,7 @@ class FileManager {
 
             // console.log('running ls done');
 
+            if (result.location) this.location = result.location;
             this.files_arr = files_arr;
             if (this.view === '' || this.view === undefined) {
                 utilities.set_msg('Error: View is undefined');
@@ -5515,14 +5560,30 @@ class FileManager {
 
             ipcRenderer.send('get_disk_space', this.location);
             this.check_for_empty_folder();
-            utilities.set_msg(`Loaded ${files_arr.length} items`);
+            utilities.set_msg(result.failures?.length ? `Loaded ${files_arr.length} items; ${result.failures.length} entries could not be read.` : `Loaded ${files_arr.length} items`);
+            this.restore_next();
 
+        });
+
+        ipcRenderer.on('ls_failed', (e, result) => {
+            if (result.request_token !== this.latest_list_request_token) return;
+            const tab = document.querySelector('.active-tab');
+            const previous = tab?.dataset.href || this.location0;
+            this.location = previous;
+            utilities.set_location(previous);
+            utilities.set_destination(previous);
+            settingsManager.set_location(previous);
+            this.get_breadcrumbs(previous);
+            utilities.set_msg(`Could not load ${result.location}: ${result.msg}`);
+            this.check_for_empty_folder();
+            this.restore_next();
         });
 
         // add items
         ipcRenderer.on('add_items', (e, copy_arr, location) => {
 
-            if (location && !dnd.is_active_destination(location, utilities.get_location())) return;
+            this.merge_inactive_items(copy_arr, location);
+            if (location && !dnd.is_active_destination(location, document.querySelector('.active-tab')?.dataset.href)) return;
             this.add_items(copy_arr);
             this.check_for_empty_folder();
             const active_tab_content = tabManager.get_active_tab_content();
@@ -5536,6 +5597,19 @@ class FileManager {
         ipcRenderer.on('get_item', (e, f, options = {}) => {
 
             const should_edit = options === true || options?.edit === true;
+            if (!dnd.is_active_destination(f.location || path.dirname(f.href), document.querySelector('.active-tab')?.dataset.href)) {
+                this.merge_inactive_items([f], f.location || path.dirname(f.href));
+                return;
+            }
+            this.merge_inactive_items([f], f.location || path.dirname(f.href));
+            const model = this.get_active_files().filter(file => file.id !== f.id).concat(f);
+            tabManager.set_tab_data_arr(model);
+            this.files_arr = model;
+            if (this.virtual_view?.active_tab_content === tabManager.get_active_tab_content()) {
+                this.get_view(model, true);
+                if (should_edit) this.start_edit_item(f);
+                return;
+            }
 
             // console.log('get_item', f);
 
@@ -5659,7 +5733,7 @@ class FileManager {
 
                 input.addEventListener('blur', (e) => {
                     e.preventDefault();
-                    input.focus();
+                    if (input.isConnected && !input.classList.contains('hidden')) input.focus();
                 });
 
             } else {
@@ -5675,7 +5749,8 @@ class FileManager {
         };
 
         // remove item
-        ipcRenderer.on('remove_item', (e, id) => {
+        ipcRenderer.on('remove_item', (e, id, location) => {
+            if (location && !dnd.is_active_destination(location, document.querySelector('.active-tab')?.dataset.href)) return;
             if (id === undefined || id === null) {
                 utilities.set_msg('Error: Getting file id');
                 return;
@@ -5698,7 +5773,11 @@ class FileManager {
             this.show_overwrite_view(overwrite_arr, 'move');
         });
 
-        ipcRenderer.on('recent_files', (e, files_arr, add_tab) => {
+        ipcRenderer.on('recent_files', (e, files_arr, add_tab, request_id, result = {}) => {
+            if (request_id !== undefined && request_id !== this.pending_recent?.generation) return;
+            if (this.pending_recent && (this.pending_recent.generation !== this.list_request_id || this.pending_recent.tab !== tabManager.get_active_tab_content())) return;
+            this.pending_recent = null;
+            if (result.error) { utilities.set_msg(`Could not read Recent: ${result.error}`); this.restore_next(); return; }
             if (add_tab) {
                 tabManager.add_tab('Recent');
             }
@@ -5708,6 +5787,7 @@ class FileManager {
             tabManager.update_tab('Recent');
             this.recent_files_arr = files_arr;
             this.get_view(files_arr);
+            this.restore_next();
             if (typeof this.refresh_recent_dashboard_views === 'function') {
                 this.refresh_recent_dashboard_views().catch((err) => {
                     console.log('error refreshing recent dashboard', err);
@@ -5715,6 +5795,11 @@ class FileManager {
             }
         });
 
+    }
+
+    request_recent(add_tab = false) {
+        this.pending_recent = { generation: ++this.list_request_id, tab: tabManager.get_active_tab_content() };
+        ipcRenderer.send('get_recent_files', add_tab, this.pending_recent.generation);
     }
 
     get_active_find_panel() {
@@ -5865,6 +5950,10 @@ class FileManager {
     check_for_empty_folder() {
         const content = tabManager.get_active_tab_content();
         if (!content) return;
+        // Retain hidden entries in the model, but never display their empty headings.
+        content.querySelectorAll('.recent_date_group').forEach(group => {
+            group.classList.toggle('hidden', !group.querySelector('.recent_date_items .card:not(.hidden)'));
+        });
         content.querySelectorAll(':scope > .empty_msg').forEach(message => message.remove());
         const view = content.querySelector(':scope > .view_container');
         if (!view || view.querySelector('.dashboard_view') || content.search_matches) return;
@@ -5940,7 +6029,9 @@ class FileManager {
 
         // update column size in settings
         this.list_view_settings.col_width[this.currentColumn.dataset.col_name] = this.currentColumn.offsetWidth;
-        ipcRenderer.send('update_list_view_settings', this.list_view_settings);
+        ipcRenderer.send('update_list_view_settings', {
+            col_width: { [this.currentColumn.dataset.col_name]: this.currentColumn.offsetWidth }
+        });
 
         const drag_handle = this.currentColumn.querySelector('.drag_handle');
         drag_handle.style.width = '10px';
@@ -6828,6 +6919,9 @@ class FileManager {
         const active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content || !Array.isArray(items)) return;
 
+        const scroller = (this.virtual_view?.active_tab_content === active_tab_content && this.virtual_view.scroll_container)
+            || active_tab_content.querySelector('.find_results_window') || active_tab_content;
+        const scroll_top = scroller.scrollTop;
         const ids = new Set();
         const hrefs = new Set();
         items.forEach((item) => {
@@ -6837,10 +6931,20 @@ class FileManager {
             if (href) {
                 hrefs.add(href);
                 try {
-                    ids.add(btoa(href));
+                    ids.add(path_id(href));
                 } catch (_) {
                 }
             }
+        });
+
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content === active_tab_content) return;
+            const current = content.recent_files_arr || tabManager.get_tab_data_arr(content.dataset.id);
+            const next = current.filter(file => !ids.has(file.id) && !hrefs.has(file.href));
+            if (next.length === current.length) return;
+            if (content.recent_files_arr) content.recent_files_arr = next;
+            else tabManager.set_tab_data_arr(next, content.dataset.id);
+            content.dataset.groupingStale = 'true';
         });
 
         const files = this.get_active_files();
@@ -6855,26 +6959,77 @@ class FileManager {
             this.files_arr = remaining;
         }
 
-        const is_virtual = this.virtual_view?.active_tab_content === active_tab_content;
-        if (is_recent_view || this.get_group_by_setting() !== 'None' || is_virtual) {
-            this.get_view(remaining);
-        } else {
-            ids.forEach((id) => active_tab_content.querySelector(`[data-id="${id}"]`)?.remove());
+        const matches = file => ids.has(file.id) || hrefs.has(file.href);
+        if (active_tab_content.search_matches) {
+            const directory_files = tabManager.get_tab_data_arr(active_tab_content.dataset.id).filter(file => !matches(file));
+            tabManager.set_tab_data_arr(directory_files);
+            this.files_arr = directory_files;
+        }
+        active_tab_content.querySelectorAll('.card').forEach(card => {
+            if (ids.has(card.dataset.id) || hrefs.has(card.dataset.href)) card.remove();
+        });
+        active_tab_content.querySelectorAll('.recent_date_group').forEach(group => {
+            if (!group.querySelector('.card')) group.remove();
+        });
+
+        const virtual = this.virtual_view?.active_tab_content === active_tab_content ? this.virtual_view : null;
+        if (virtual) {
+            virtual.files_arr = virtual.files_arr.filter(file => !matches(file));
+            virtual.filtered_files_arr = virtual.filtered_files_arr.filter(file => !matches(file));
+            virtual.selected_ids.forEach(id => { if (ids.has(id)) virtual.selected_ids.delete(id); });
+            if (virtual.file_groups) {
+                virtual.file_groups = virtual.file_groups.map(group => ({ ...group, files: group.files.filter(file => !matches(file)) }))
+                    .filter(group => group.files.length);
+                this.rebuild_virtual_group_rows(virtual);
+            }
+            this.render_virtual_range(true, true);
         }
 
+        if (active_tab_content.search_matches) {
+            const header = active_tab_content.querySelector('.find_results_header');
+            if (header) header.textContent = `${remaining.length} result${remaining.length === 1 ? '' : 's'} in search location.`;
+            if (!remaining.length && !active_tab_content.querySelector('.find_empty')) {
+                const empty = document.createElement('div');
+                empty.className = 'find_empty';
+                empty.textContent = 'No matches found.';
+                active_tab_content.querySelector('.find_results_list')?.append(empty);
+            }
+        }
         this.check_for_empty_folder();
+        // Suppress browser scroll anchoring for this removal; clamp naturally at the end.
+        scroller.scrollTop = scroll_top;
         utilities.get_disk_space(this.location);
     }
 
-    get_view(files_arr) {
+    get_view(files_arr, preserve_filter = false) {
         const search_tab = tabManager.get_active_tab_content();
         if (search_tab?.search_matches && search_tab.render_search) {
             search_tab.render_search();
             return;
         }
-        this.virtual_view?.dispose?.();
+        const replacing = tabManager.get_active_tab_content();
+        const saved = preserve_filter && replacing ? {
+            scroll: replacing.scrollTop,
+            selection: new Set(this.virtual_view?.selected_ids || Array.from(replacing.querySelectorAll('.card.highlight_select')).map(card => card.dataset.id)),
+            focused: replacing.contains(document.activeElement) ? document.activeElement.closest('.card')?.dataset.id : null
+        } : null;
+        const restore = () => {
+            if (!saved) return;
+            if (this.virtual_view) {
+                this.virtual_view.selected_ids = new Set(this.virtual_view.files_arr.filter(file => saved.selection.has(file.id)).map(file => file.id));
+                replacing.scrollTop = saved.scroll;
+                this.render_virtual_range(true);
+            } else {
+                replacing.querySelectorAll('.card').forEach(card => card.classList.toggle('highlight_select', saved.selection.has(card.dataset.id)));
+            }
+            replacing.scrollTop = saved.scroll;
+            if (saved.focused) replacing.querySelector(`[data-id="${saved.focused}"]`)?.focus({ preventScroll: true });
+        };
+        replacing?.virtual_view?.dispose?.();
+        if (replacing) replacing.virtual_view = null;
+        this.virtual_view = null;
 
-        this.clear_filter();
+        if (!preserve_filter) this.clear_filter();
 
         // active tab content
         let active_tab_content = tabManager.get_active_tab_content();
@@ -6927,11 +7082,6 @@ class FileManager {
         let file_groups = group_files(files_arr, recent_group_by);
         if (file_groups) {
             file_groups.forEach((group) => {
-                // account for hidden files
-                if (!this.show_hidden) {
-                    group.files = group.files.filter((file) => file.is_hidden === false);
-                }
-
                 group.files = utilities.sort(
                     group.files,
                     this.sort_by,
@@ -6944,10 +7094,6 @@ class FileManager {
 
             files_arr = file_groups.flatMap((group) => group.files);
         } else {
-            if (!this.show_hidden) {
-                files_arr = files_arr.filter((file) => file.is_hidden === false);
-            }
-
             files_arr = utilities.sort(files_arr, this.sort_by, this.sort_direction);
         }
         // if (file_groups) {
@@ -6967,7 +7113,8 @@ class FileManager {
         // }
 
         if (files_arr.length >= this.virtual_view_threshold) {
-            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups);
+            this.render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups, { quiet: preserve_filter });
+            restore();
             return;
         }
 
@@ -7036,6 +7183,7 @@ class FileManager {
         //     this.hide_hidden_files();
         // }
 
+        restore();
     }
 
     render_virtual_view(active_tab_content, view_container, files_arr, preserved_find_main_container, preserved_find_panel, file_groups = null, options = {}) {
@@ -7043,7 +7191,7 @@ class FileManager {
         const columns = this.get_virtual_column_count();
         const virtual_view = {
             files_arr,
-            filtered_files_arr: files_arr.filter((file) => this.show_hidden !== false || !file.is_hidden),
+            filtered_files_arr: files_arr.filter((file) => (this.show_hidden !== false || !file.is_hidden) && file.name.toLocaleLowerCase().includes((this.quick_search_sting || '').toLocaleLowerCase())),
             file_groups,
             selected_ids: new Set(),
             search_host: options.host,
@@ -7066,7 +7214,8 @@ class FileManager {
             this.rebuild_virtual_group_rows(virtual_view);
         }
         view_container.append(virtual_view.top_spacer, virtual_view.items_container, virtual_view.bottom_spacer);
-        this.virtual_view?.dispose?.();
+        active_tab_content.virtual_view?.dispose?.();
+        active_tab_content.virtual_view = virtual_view;
         this.virtual_view = virtual_view;
 
         if (options.host) {
@@ -7122,7 +7271,7 @@ class FileManager {
 
         this.render_virtual_range(true);
         this.update_toolbar_state();
-        utilities.set_msg(`Loaded ${files_arr.length} items`);
+        if (!options.quiet) utilities.set_msg(`Loaded ${files_arr.length} items`);
     }
 
     get_virtual_column_count() {
@@ -7168,7 +7317,7 @@ class FileManager {
         virtual_view.grouped_row_offsets = offsets;
     }
 
-    render_virtual_range(force = false) {
+    render_virtual_range(force = false, preserve_cards = false) {
         const virtual_view = this.virtual_view;
         if (!virtual_view || !virtual_view.active_tab_content.isConnected) {
             return;
@@ -7176,6 +7325,12 @@ class FileManager {
 
         const { filtered_files_arr, active_tab_content, columns, row_height } = virtual_view;
         const scroll_container = virtual_view.scroll_container || active_tab_content;
+        if (preserve_cards) {
+            const height = virtual_view.grouped_rows
+                ? virtual_view.grouped_row_offsets.at(-1)
+                : Math.ceil(filtered_files_arr.length / columns) * row_height;
+            scroll_container.scrollTop = Math.min(scroll_container.scrollTop, Math.max(0, height - scroll_container.clientHeight));
+        }
         let first_row;
         let last_row;
         let top_height;
@@ -7222,25 +7377,42 @@ class FileManager {
         virtual_view.top_spacer.style.height = `${top_height}px`;
         virtual_view.bottom_spacer.style.height = `${bottom_height}px`;
 
-        const fragment = document.createDocumentFragment();
+        const nodes = [];
+        const cards = preserve_cards ? new Map(Array.from(virtual_view.items_container.querySelectorAll('.card')).map(card => [card.dataset.id, card])) : new Map();
+        const headings = preserve_cards ? new Map(Array.from(virtual_view.items_container.querySelectorAll('.recent_date_group_heading')).map(heading => [heading.textContent, heading])) : new Map();
+        const get_card = file => {
+            const card = cards.get(file.id) || this.create_virtual_file_card(file, virtual_view);
+            card.classList.toggle('highlight_select', virtual_view.selected_ids.has(file.id));
+            return card;
+        };
         if (virtual_view.grouped_rows) {
             for (let index = start; index < end; index += 1) {
                 const row = virtual_view.grouped_rows[index];
                 if (row.type === 'heading') {
-                    const heading = document.createElement('h2');
+                    const heading = headings.get(row.label) || document.createElement('h2');
                     heading.classList.add('recent_date_group_heading', 'recent_date_group_heading_virtual');
                     heading.textContent = row.label;
-                    fragment.appendChild(heading);
+                    nodes.push(heading);
                 } else {
-                    row.files.forEach((file) => fragment.appendChild(this.create_virtual_file_card(file, virtual_view)));
+                    row.files.forEach((file) => nodes.push(get_card(file)));
                 }
             }
         } else {
             for (let index = start * columns; index < Math.min(filtered_files_arr.length, end * columns); index += 1) {
-                fragment.appendChild(this.create_virtual_file_card(filtered_files_arr[index], virtual_view));
+                nodes.push(get_card(filtered_files_arr[index]));
             }
         }
-        virtual_view.items_container.replaceChildren(fragment);
+        if (preserve_cards) {
+            const wanted = new Set(nodes);
+            Array.from(virtual_view.items_container.children).forEach(node => { if (!wanted.has(node)) node.remove(); });
+            let next = virtual_view.items_container.firstChild;
+            nodes.forEach(node => {
+                if (node === next) next = next.nextSibling;
+                else virtual_view.items_container.insertBefore(node, next);
+            });
+        } else {
+            virtual_view.items_container.replaceChildren(...nodes);
+        }
         utilities.lazy_load_icons(active_tab_content);
     }
 
@@ -7281,7 +7453,7 @@ class FileManager {
         return virtual_view.files_arr.filter((file) => virtual_view.selected_ids.has(file.id));
     }
 
-    update_virtual_filter(filter_text = '') {
+    update_virtual_filter(filter_text = '', preserve_scroll = false) {
         const virtual_view = this.virtual_view;
         if (!virtual_view) {
             return false;
@@ -7295,7 +7467,7 @@ class FileManager {
         if (virtual_view.file_groups) {
             this.rebuild_virtual_group_rows(virtual_view);
         }
-        virtual_view.active_tab_content.scrollTop = 0;
+        if (!preserve_scroll) virtual_view.active_tab_content.scrollTop = 0;
         this.render_virtual_range(true);
         this.check_for_empty_folder();
         return true;
@@ -7361,7 +7533,7 @@ class FileManager {
         let href = document.createElement('a');
         let input = document.createElement('input');
 
-        if (this.show_hidden === false && f.is_hidden === true) {
+        if ((this.show_hidden === false && f.is_hidden === true) || (this.quick_search_sting && !f.name.toLocaleLowerCase().includes(this.quick_search_sting.toLocaleLowerCase()))) {
             card.classList.add('hidden');
         }
 
@@ -7497,7 +7669,7 @@ class FileManager {
 
     async get_dashboard_view() {
 
-        console.log('getting dash view')
+        const generation = ++this.list_request_id;
 
         this.location = 'Dashboard';
         settingsManager.set_location(this.location);
@@ -7510,6 +7682,7 @@ class FileManager {
         }
 
         tabManager.update_tab('Dashboard');
+        const current = () => generation === this.list_request_id && active_tab_content.isConnected && tabManager.get_active_tab_content() === active_tab_content && utilities.get_location() === 'Dashboard';
 
         let res = '';
         try {
@@ -7517,22 +7690,26 @@ class FileManager {
         } catch (err) {
             console.log('error', err);
         } finally {
-
+            if (!current() || !res?.dashboard_view) return;
             active_tab_content.innerHTML = '';
             active_tab_content.innerHTML = res.dashboard_view;
             await this.refresh_recent_dashboard_views();
 
-            let overview = document.querySelector('.overview');
+            if (!current()) return;
+            let overview = active_tab_content.querySelector('.overview');
+            if (!overview) return;
             overview.innerHTML = '';
 
             // get local disk stats and render chart for each local disk (home and root at least)
 
             // get data for overview
             const stats = await ipcRenderer.invoke('get_dashboard_disk_stats', '/home');
+            if (!current()) return;
             const chart1 = this.renderChart(stats);
             if (chart1) overview.append(chart1);
 
             const stats2 = await ipcRenderer.invoke('get_dashboard_disk_stats', '/');
+            if (!current()) return;
             const chart2 = this.renderChart(stats2);
             if (chart2) overview.append(chart2);
 
@@ -7544,6 +7721,7 @@ class FileManager {
                     if (!device.path) return;
 
                     ipcRenderer.invoke('get_dashboard_disk_stats', device.path).then(stats => {
+                        if (!current() || !overview.isConnected) return;
                         const chart = this.renderChart(stats.error ? stats : {
                             ...stats, display_name: device.name || stats.display_name, href: device.path
                         });
@@ -7726,20 +7904,7 @@ class FileManager {
         if (stats?.href) {
             chartTitle.href = stats.href;
             chartTitle.title = stats.href;
-            chartTitle.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
 
-                if (e.ctrlKey) {
-                    tabManager.add_tab(stats.href);
-                    this.get_files(stats.href);
-                } else {
-                    this.get_files(stats.href);
-                    tabManager.add_tab_history(stats.href);
-                }
-
-                utilities.set_location(stats.href);
-            });
         }
         container.appendChild(chartTitle);
 
@@ -7938,7 +8103,7 @@ class FileManager {
 
             return {
                 ...f,
-                id: f?.id || (href ? btoa(href) : btoa(`${name}-${Date.now()}`)),
+                id: f?.id || (href ? path_id(href) : path_id(`${name}-${Date.now()}`)),
                 href,
                 location,
                 name,
@@ -8555,7 +8720,7 @@ class FileManager {
             }
 
             const files_arr = tab.dataset.href === 'Recent'
-                ? this.recent_files_arr
+                ? (tab_content.recent_files_arr || [])
                 : tabManager.get_tab_data_arr(tab.dataset.id);
             if (!Array.isArray(files_arr)) {
                 return;
@@ -8949,10 +9114,11 @@ class FileManager {
 
                     img.src = '../assets/icons/image-generic.svg';
                     img.classList.add('lazy');
-                    if (content_type.includes('svg')) {
-                        // Chromium renders vectors directly; nativeImage is a bitmap decoder.
+                    if (/svg|gif|webp/.test(content_type)) {
+                        // Chromium preserves animation and decodes GIF/WebP, which
+                        // nativeImage does not support consistently across platforms.
                         img.dataset.src = dnd.path_to_file_uri(f.href);
-                        img.classList.add('svg');
+                        if (content_type.includes('svg')) img.classList.add('svg');
                         img.onerror = () => {
                             img.onerror = null;
                             img.src = '../assets/icons/image-generic.svg';
@@ -9137,7 +9303,7 @@ class FileManager {
 
         const view_container = tabManager.get_active_tab_content()?.querySelector('.view_container');
         if (!view_container) return;
-        const cards = Array.from(view_container.querySelectorAll('.card'));
+        const cards = Array.from(view_container.querySelectorAll('.card')).filter(card => card.getClientRects().length && !card.classList.contains('hidden'));
         if (!cards.length) return;
         const active = document.activeElement;
         const isCardFocused = active && active.classList && active.classList.contains('card');
@@ -9145,6 +9311,7 @@ class FileManager {
             if (typeof this.clearHighlight === 'function') this.clearHighlight();
             cards[0].focus();
             cards[0].classList.add('highlight_select');
+            this.virtual_view?.selected_ids.add(cards[0].dataset.id);
         }
     }
 
@@ -9161,7 +9328,7 @@ class FileManager {
 
             const viewContainer = card.closest('.view_container');
             if (!viewContainer) return;
-            const cards = Array.from(viewContainer.querySelectorAll('.card'));
+            const cards = Array.from(viewContainer.querySelectorAll('.card')).filter(item => item.getClientRects().length && !item.classList.contains('hidden'));
             const currentIndex = cards.indexOf(card);
             if (currentIndex === -1) return;
 
@@ -9231,6 +9398,12 @@ class FileManager {
                     this.clearHighlight();
                     cards[nextIndex].classList.add('highlight_select');
                 }
+                if (this.virtual_view) {
+                    cards.forEach(item => {
+                        if (item.classList.contains('highlight_select')) this.virtual_view.selected_ids.add(item.dataset.id);
+                        else this.virtual_view.selected_ids.delete(item.dataset.id);
+                    });
+                }
             }
         });
     }
@@ -9255,6 +9428,8 @@ class FileManager {
                 e.preventDefault();
                 e.stopPropagation();
 
+                item.focus({ preventScroll: true });
+                if (this.virtual_view?.active_tab_content?.contains(item)) return;
                 if (e.ctrlKey) {
                     item.classList.toggle('highlight_select');
                 } else {
@@ -9265,7 +9440,7 @@ class FileManager {
             })
 
             item.addEventListener('dblclick', (e) => {
-                if (e.target.closest('a, img')) return;
+                if (e.target.closest('a') || (this.view !== 'list_view' && e.target.closest('img'))) return;
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -9293,6 +9468,9 @@ class FileManager {
 
         }
 
+        // In list view the icon is part of the selectable row. Let its click
+        // bubble to the card; double-click opens through the row handler.
+        if (item.tagName === 'IMG' && this.view === 'list_view') return;
         item.addEventListener('click', (e) => {
 
             e.preventDefault();
@@ -9347,7 +9525,9 @@ class FileManager {
     // }
 
     clearHighlight() {
-        let active_tab_content = document.querySelector('.main');
+        this.virtual_view?.selected_ids.clear();
+        let active_tab_content = tabManager.get_active_tab_content();
+        if (!active_tab_content) return;
         let items = active_tab_content.querySelectorAll('.highlight, .highlight_select');
         items.forEach((item) => {
             item.classList.remove('highlight', 'highlight_select');
@@ -9592,30 +9772,6 @@ class FileManager {
         navigating_tab?.querySelectorAll(':scope > .empty_msg').forEach(message => message.remove());
         const request_id = ++this.list_request_id;
 
-        // check if location is valid on the file system
-        ipcRenderer.invoke('validate_location', location).then((is_valid) => {
-            if (request_id !== this.list_request_id) {
-                return;
-            }
-            if (is_valid < 0) {
-                if (this.startup == 1) {
-                    location = this.home_dir;
-                } else {
-
-                    // alert(`Error: The location "${location}" is not valid on the file system. Setting location to previous valid location. ${this.location0}`);
-
-                    // set location to previous valid location
-                    settingsManager.set_location(this.location0);
-                    utilities.set_location(this.location0);
-                    utilities.set_destination(this.location0);
-                    this.get_breadcrumbs(this.location0);
-
-                    return;
-
-                }
-            }
-        });
-
         utilities.set_msg({ text: 'Loading...', loading: true }, true);
 
         this.location0 = this.location;
@@ -9674,9 +9830,9 @@ class FileManager {
             ? this.virtual_view
             : null;
         if (virtual_view) {
-            virtual_view.files_arr = groups.flatMap((group) => group.files);
-            virtual_view.filtered_files_arr = virtual_view.files_arr.filter((file) => file.name.toLocaleLowerCase().includes((this.quick_search_sting || '').toLocaleLowerCase()));
-            virtual_view.file_groups = groups;
+            virtual_view.files_arr = utilities.sort([...merged], this.sort_by, this.sort_direction);
+            virtual_view.filtered_files_arr = virtual_view.files_arr.filter((file) => (this.show_hidden !== false || !file.is_hidden) && file.name.toLocaleLowerCase().includes((this.quick_search_sting || '').toLocaleLowerCase()));
+            virtual_view.file_groups = group_files(virtual_view.files_arr, group_by);
             if (select) {
                 added.forEach((file, id) => virtual_view.selected_ids.add(id));
             }
@@ -9738,12 +9894,24 @@ class FileManager {
         return true;
     }
 
+    merge_inactive_items(files, location) {
+        if (!location) return;
+        document.querySelectorAll('.tab').forEach(tab => {
+            if (!dnd.is_active_destination(tab.dataset.href, location) || tab.classList.contains('active-tab')) return;
+            const items = new Map(tabManager.get_tab_data_arr(tab.dataset.id).map(file => [file.id, file]));
+            files.forEach(file => items.set(file.id, file));
+            tabManager.set_tab_data_arr([...items.values()], tab.dataset.id);
+            const content = document.querySelector(`.tab-content[data-id="${tab.dataset.id}"]`);
+            if (content) content.dataset.groupingStale = 'true';
+        });
+    }
+
     // add copy_array items to the view
     add_items(copy_arr) {
         const active_tab_content = tabManager.get_active_tab_content();
         if (!active_tab_content || !copy_arr.length) return;
         const added = new Map(copy_arr.map(file => {
-            const item = { ...file, id: btoa(file.href) };
+            const item = { ...file, id: path_id(file.href) };
             return [item.id, item];
         }));
         const files = this.get_active_files().filter(file => !added.has(file.id))
@@ -9754,10 +9922,10 @@ class FileManager {
             tabManager.set_tab_data_arr(files);
             this.files_arr = files;
         }
-        this.get_view(files);
+        this.get_view(files, true);
         if (this.virtual_view?.active_tab_content === active_tab_content) {
             added.forEach((file, id) => this.virtual_view.selected_ids.add(id));
-            this.render_virtual_range(true);
+            this.render_virtual_range(true, true);
         } else {
             added.forEach((file, id) => {
                 active_tab_content.querySelector(`[data-id="${id}"]`)?.classList.add('highlight_select');
@@ -9780,8 +9948,20 @@ class FileManager {
 
         let active_tab_content = tabManager.get_active_tab_content(); //document.querySelector('.active-tab-content');
         const current = this.get_active_files();
-        const has_file = current.some((file) => file.id === f.id);
-        const files = has_file ? current.map((file) => file.id === f.id ? f : file) : current;
+        const previous_id = f.previous_id || f.id;
+        const previous_card = active_tab_content.querySelector(`[data-id="${previous_id}"]`);
+        const restore_focus = previous_card?.contains(document.activeElement);
+        const old_scroll = active_tab_content.scrollTop;
+        const restore_state = () => {
+            active_tab_content.scrollTop = old_scroll;
+            if (restore_focus) {
+                const card = active_tab_content.querySelector(`[data-id="${f.id}"]`);
+                const target = card?.getClientRects().length ? card : active_tab_content.querySelector('.view_container');
+                target?.focus({ preventScroll: true });
+            }
+        };
+        const has_file = current.some((file) => file.id === previous_id);
+        const files = has_file ? current.map((file) => file.id === previous_id ? f : file) : current;
         if (has_file) {
             if (active_tab_content.search_matches) {
                 active_tab_content.search_matches = files;
@@ -9796,23 +9976,25 @@ class FileManager {
             const group_by = this.get_group_by_setting();
             const virtual_view = this.virtual_view?.active_tab_content === active_tab_content ? this.virtual_view : null;
             if (virtual_view) {
+                if (virtual_view.selected_ids.delete(previous_id)) virtual_view.selected_ids.add(f.id);
                 if (is_recent || group_by !== 'None') {
                     this.add_to_grouped_view([f]);
                 } else {
                     virtual_view.files_arr = utilities.sort(
-                        files.filter((file) => this.show_hidden !== false || !file.is_hidden),
+                        [...files],
                         this.sort_by,
                         this.sort_direction
                     );
-                    this.update_virtual_filter(this.quick_search_sting || '');
+                    this.update_virtual_filter(this.quick_search_sting || '', true);
                 }
                 utilities.lazy_load_icons(active_tab_content);
                 this.handleFolderSize(f);
+                restore_state();
                 return;
             }
 
             if (is_recent || group_by !== 'None') {
-                const item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
+                const item = active_tab_content.querySelector(`[data-id="${previous_id}"]`);
                 const selected = item?.classList.contains('highlight_select') || false;
                 const old_group = item?.closest('.recent_date_group');
                 item?.remove();
@@ -9828,12 +10010,16 @@ class FileManager {
                     utilities.lazy_load_icons(active_tab_content);
                     this.handleFolderSize(f);
                 }
+                restore_state();
                 return;
             }
         }
 
-        let item = active_tab_content.querySelector(`[data-id="${f.id}"]`);
+        let item = active_tab_content.querySelector(`[data-id="${previous_id}"]`);
         if (item) {
+            const focused = item.contains(document.activeElement);
+            const selected = item.classList.contains('highlight_select');
+            const scroll = active_tab_content.scrollTop;
 
             // Get card
             let card = this.get_view_item(f);
@@ -9845,6 +10031,9 @@ class FileManager {
 
             // replace card with updated card
             item.replaceWith(card);
+            card.classList.toggle('highlight_select', selected);
+            if (focused) card.focus({ preventScroll: true });
+            active_tab_content.scrollTop = scroll;
             utilities.lazy_load_icons(active_tab_content);
             this.handleFolderSize(f);
 

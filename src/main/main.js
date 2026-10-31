@@ -1,5 +1,10 @@
 // @ts-nocheck
 
+const { JsonStore } = require('./lib/JsonStore');
+const { merge, object } = require('../common/settings_patch');
+const { OperationQueue } = require('./lib/OperationQueue');
+const { path_id } = require('../common/path_id');
+
 // Provide app and Electron version to renderer
 const { app, Tray, BrowserWindow, ipcMain: nativeIpcMain, shell, screen, dialog, Menu, MenuItem, nativeImage, nativeTheme, webContents, safeStorage } = require('electron');
 const packageJson = require('../../package.json');
@@ -349,22 +354,11 @@ class Watcher {
     }
 
     send_to_watchers_of(dir, channel, payload) {
-        let delivered = false;
-
         this.window_dirs.forEach((watched_dir, window_id) => {
-            if (watched_dir !== dir) {
-                return;
-            }
-            const target_window = BrowserWindow.fromId(window_id);
-            if (target_window && !target_window.isDestroyed()) {
-                target_window.webContents.send(channel, payload);
-                delivered = true;
-            }
+            if (watched_dir !== dir) return;
+            const target = BrowserWindow.fromId(window_id);
+            if (target && !target.isDestroyed()) target.webContents.send(channel, payload, dir);
         });
-
-        if (!delivered && win && !win.isDestroyed()) {
-            win.webContents.send(channel, payload);
-        }
     }
 
     /**
@@ -387,58 +381,35 @@ class Watcher {
 
         try {
 
-            libfs.watch(dir, window_id, (event) => {
-
-                if (!utilities.run_watcher) {
+            const subscription = {};
+            this.subscriptions ||= new Map();
+            this.subscriptions.set(window_id, subscription);
+            const revisions = new Map();
+            let next_revision = 0;
+            libfs.watch(dir, window_id, async event => {
+                const current = () => this.window_dirs.get(window_id) === dir && this.subscriptions.get(window_id) === subscription;
+                if (!current() || !utilities.run_watcher) return;
+                if (event.event === 'error') {
+                    this.send_to_watchers_of(dir, 'set_msg', `Automatic updates unavailable: ${event.error?.message || 'watch failed'}`);
                     return;
                 }
-
-                // Example: emit events to renderer or handle internally
-                switch (event.event) {
-
-                    case 'created':
-
-                        if (event && event.filename && utilities && typeof utilities.invalidate_folder_size_for_item_path === 'function') {
-                            utilities.invalidate_folder_size_for_item_path(event.filename);
-                        }
-
-                        if (dir !== path.dirname(event.filename)) {
-                            return;
-                        }
-
-                        let file = libfs.get_file(event.filename);
-                        if (file.href === undefined || file.href === null) {
-                            this.send_to_watchers_of(dir, 'set_msg', 'Error: File not found.');
-                            return;
-                        }
-
-                        file.id = btoa(file.href);
-                        this.send_to_watchers_of(dir, 'get_item', file);
-                        break;
-
-                    case 'deleted':
-
-                        if (event && event.filename && utilities && typeof utilities.invalidate_folder_size_for_item_path === 'function') {
-                            utilities.invalidate_folder_size_for_item_path(event.filename);
-                        }
-
-                        if (dir !== path.dirname(event.filename)) {
-                            return;
-                        }
-
-                        this.send_to_watchers_of(dir, 'remove_item', btoa(event.filename));
-                        break;
-
-                    //             case 'modified':
-
-                    //                 console.log('modified', event);
-                    //                 file = gio.get_file(event.filename);
-                    //                 file.id = btoa(file.href);
-                    //                 win && win.send && win.send('update_item', file);
-                    //                 break;
-
-                    //             default:
-                    //                 break;
+                if (path.dirname(event.filename) !== dir) return;
+                const revision = ++next_revision;
+                revisions.set(event.filename, revision);
+                utilities.invalidate_folder_size_for_item_path?.(event.filename);
+                if (event.event === 'deleted') {
+                    this.send_to_watchers_of(dir, 'remove_item', path_id(event.filename));
+                    revisions.delete(event.filename);
+                    return;
+                }
+                try {
+                    const file = await device_probe('file', event.filename);
+                    if (!current() || revisions.get(event.filename) !== revision) return;
+                    this.send_to_watchers_of(dir, 'get_item', file);
+                } catch (error) {
+                    if (current()) this.send_to_watchers_of(dir, 'set_msg', `Automatic updates delayed: ${error.message}`);
+                } finally {
+                    if (revisions.get(event.filename) === revision) revisions.delete(event.filename);
                 }
             });
 
@@ -451,7 +422,7 @@ class Watcher {
                 return;
             }
 
-            console.error(`Watcher error for path ${dir}:`, err);
+            this.send_to_watchers_of(dir, 'set_msg', `Automatic updates unavailable: ${err.message}`);
         }
     }
 
@@ -462,7 +433,10 @@ class Watcher {
      * @param {number|string} window_id - Identifies the unsubscribing window.
      */
     unwatch(dir, window_id) {
-
+        if (this.window_dirs.get(window_id) === dir) {
+            this.window_dirs.delete(window_id);
+            this.subscriptions?.delete(window_id);
+        }
         try {
             libfs.stop_watch(dir, window_id);
         } catch (err) {
@@ -478,6 +452,7 @@ class Watcher {
     release_window(window_id) {
         const dir = this.window_dirs.get(window_id);
         this.window_dirs.delete(window_id);
+        this.subscriptions?.delete(window_id);
         if (dir) {
             this.unwatch(dir, window_id);
         }
@@ -488,6 +463,7 @@ class Watcher {
      */
     unwatchAll() {
         this.window_dirs.clear();
+        this.subscriptions?.clear();
         libfs.stop_all_watches();
     }
 }
@@ -634,20 +610,22 @@ class SettingsManager {
             }
         };
 
-        // Write settings.json and list_view.json if missing
-        if (!fs.existsSync(this.settings_file)) {
-            fs.writeFileSync(this.settings_file, JSON.stringify(defaults, null, 4));
-        }
-        if (!fs.existsSync(this.list_view_file)) {
-            fs.writeFileSync(this.list_view_file, JSON.stringify(list_view_settings, null, 4));
-        }
+        this.settings_store = new JsonStore(this.settings_file, defaults, value => object(value) &&
+            (!value.view || ['grid_view', 'list_view'].includes(value.view)) &&
+            (!value.location || typeof value.location === 'string') &&
+            (!value.schema || (object(value.schema) && object(value.schema.properties))) &&
+            (!value.columns || object(value.columns)) && (!value.tabs || Array.isArray(value.tabs)));
+        this.list_store = new JsonStore(this.list_view_file, list_view_settings, value => object(value) &&
+            (!value.col_width || (object(value.col_width) && Object.values(value.col_width).every(width => Number.isFinite(Number(width)) && Number(width) > 0))));
+        this.settings = this.settings_store.update(value => merge(defaults, value));
+        this.list_view_settings = this.list_store.update(value => merge(list_view_settings, value));
     }
 
     // Get Settings
     get_settings() {
 
         if (!this.settings) {
-            this.settings = JSON.parse(fs.readFileSync(this.settings_file, 'utf-8'));
+            this.settings = this.settings_store.read();
         }
 
         return this.settings;
@@ -658,8 +636,7 @@ class SettingsManager {
 
         // console.log('update settings', settings);
 
-        this.settings = settings;
-        fs.writeFileSync(this.settings_file, JSON.stringify(this.settings, null, 4));
+        this.settings = this.settings_store.update(current => merge(current, settings));
 
         BrowserWindow.getAllWindows().forEach((wnd) => {
             if (!wnd.isDestroyed()) {
@@ -693,19 +670,11 @@ class SettingsManager {
 
     // list view settings
     getListViewSetting() {
-        try {
-            this.list_view_settings = JSON.parse(fs.readFileSync(this.list_view_file, 'utf-8'));
-        } catch (err) {
-            let list_view_settings = {};
-            fs.writeFileSync(this.list_view_file, JSON.stringify(list_view_settings, null, 4));
-        }
-        // console.log('getListViewSetting', this.list_view_settings);
-        return this.list_view_settings;
+        return this.list_store.read();
     }
 
-    updateListViewSettingSettings(list_view_settings) {
-        this.list_view_settings = list_view_settings;
-        fs.writeFileSync(this.list_view_file, JSON.stringify(this.list_view_settings, null, 4));
+    updateListViewSettingSettings(settings) {
+        this.list_view_settings = this.list_store.update(current => merge(current, settings));
     }
 
 }
@@ -727,6 +696,11 @@ class tabManager {
 
         this.tab_history_idx = 0;
         this.tabs = [];
+        try {
+            this.tabs_store = new JsonStore(path.join(app.getPath('userData'), 'tabs.json'), [], Array.isArray);
+            const stored = this.tabs_store.read();
+            this.saved_tabs = Array.isArray(stored) ? stored.filter(tab => Array.isArray(tab.history?.location) && Number.isInteger(tab.history.idx) && tab.history.idx >= 0 && tab.history.idx < tab.history.location.length && tab.history.location.every(item => typeof item === 'string')) : [];
+        } catch (_) { this.saved_tabs = []; }
 
     }
 
@@ -747,7 +721,9 @@ class tabManager {
             history: history
         }
 
-        tab.history.location.push(location);
+        const saved_index = this.saved_tabs.findIndex(saved => saved.history.location[saved.history.idx] === location);
+        if (saved_index >= 0) tab.history = this.saved_tabs.splice(saved_index, 1)[0].history;
+        else tab.history.location.push(location);
         this.tabs.push(tab);
 
         const target = sender && !sender.isDestroyed() ? sender : win;
@@ -756,20 +732,21 @@ class tabManager {
             target.send('disable_forward_button');
         }
 
+        this.switchTab(tab_id, sender);
         this.saveTabs();
     }
 
     // Save tabs to file
     saveTabs() {
         const tabsFile = path.join(app.getPath('userData'), 'tabs.json');
-        fs.writeFileSync(tabsFile, JSON.stringify(this.tabs, null, 4));
+        this.tabs_store.update(() => this.tabs);
     }
 
     // Load tabs from file
     loadTabs() {
         const tabsFile = path.join(app.getPath('userData'), 'tabs.json');
         if (fs.existsSync(tabsFile)) {
-            this.tabs = JSON.parse(fs.readFileSync(tabsFile, 'utf-8'));
+            this.tabs = this.tabs_store.read();
             // console.log('loadTabs', this.tabs);
         }
     }
@@ -913,8 +890,13 @@ ipcMain.on('go_forward', (e, tab_id) => {
     tab_manager.goForward(tab_id, e.sender);
 });
 
-ipcMain.on('switch_tab', (e, tab_id) => {
+ipcMain.on('switch_tab', (e, tab_id, location) => {
     tab_manager.switchTab(tab_id, e.sender);
+    const owner = BrowserWindow.fromWebContents(e.sender);
+    if (owner && location) {
+        fileManager.next_list_request(owner.id);
+        fileManager.watch_location(location, owner.id);
+    }
 });
 
 ipcMain.handle('get_dashboard_view', async (e) => {
@@ -1112,15 +1094,8 @@ function overwrite(e, files, operation) {
         return;
     }
     const entries = files.map(file => ({ ...file, overwrite: true }));
-    utilities.run_watcher = false;
-    e.sender.send('set_progress', { operation: operation === 'move' ? 'move' : 'copy', max: 1, value: 0, can_cancel: true, status: 'Preparing replacement' });
-    if (operation === 'move') {
-        utilities.move_worker.postMessage({ cmd: 'move', move_arr: entries });
-        utilities.move_in_progress = true;
-    } else {
-        utilities.paste_worker.postMessage({ cmd: 'paste', copy_arr: entries });
-        utilities.copy_in_progress = true;
-    }
+    utilities.queue_transfer(e.sender, operation === 'move' ? 'move' : 'copy', entries,
+        path.dirname(entries[0].destination));
 }
 
 ipcMain.on('overwrite_one', (e, file, operation) => overwrite(e, [file], operation));
@@ -1163,7 +1138,11 @@ class Utilities {
     constructor() {
 
         this.is_main = true;
-        this.run_watcher = true;
+        this.operation_queue = new OperationQueue();
+        this.active_archives = new Set();
+        Object.defineProperty(this, 'run_watcher', {
+            get: () => !this.operation_queue.active && !this.active_archives.size
+        });
         this.root_destination = '';
         this.delete_sender = null;
         this.delete_in_progress = false;
@@ -1171,6 +1150,7 @@ class Utilities {
         this.move_in_progress = false;
 
         this.byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+        this.disk_generations = new Map();
         this.folder_size_requesters = new Map();
         this.folder_size_in_flight = new Set();
         this.directory_size_cache = new DirectorySizeCache();
@@ -1327,19 +1307,9 @@ class Utilities {
         })
 
         ipcMain.on('cancel_operation', (e, operation) => {
-            if (operation === 'compress') this.compression_worker?.postMessage({ cmd: 'cancel' });
-            if (operation === 'delete' && this.delete_in_progress) {
-                this.delete_worker.postMessage({ cmd: 'cancel' });
-                const sender = this.delete_sender || e.sender || win;
-                sender.send('set_msg', 'Cancelling delete...');
-            } else if (operation === 'copy' && this.copy_in_progress) {
-                this.paste_worker.postMessage({ cmd: 'cancel' });
-                win.send('set_msg', 'Cancelling copy...');
-            } else if (operation === 'move' && this.move_in_progress) {
-                this.move_worker.postMessage({ cmd: 'cancel' });
-                win.send('set_msg', 'Cancelling move...');
-            }
-        })
+            this.operation_queue.cancel(e.sender, operation);
+            if (operation === 'compress' && this.compression_sender === e.sender) this.compression_worker?.postMessage({ cmd: 'cancel' });
+        });
 
         // listen for get_disk_space event
         ipcMain.on('get_disk_space', (e, href) => {
@@ -1363,17 +1333,146 @@ class Utilities {
             this.get_disk_space(href, sender);
         })
 
-        // listen for message from worker
-        this.init_paste_worker();
+        // init home directory
+        this.home_dir = os.homedir();
 
-        // init move worker
-        this.init_move_worker();
+        // listen for get_home_dir event
+        ipcMain.on('get_home_dir', (e) => {
+            e.returnValue = os.homedir();
+        });
 
-        // init delete worker
-        this.delete_worker = new worker.Worker(path.join(__dirname, '../workers/delete_worker.js'));
-        this.delete_worker.on('message', (data) => {
+        ipcMain.on('get_user', (e) => {
+            e.returnValue = os.userInfo().username;
+        })
+
+        // listen for is_main event
+        ipcMain.on('is_main', (e, is_main) => {
+            // console.log('is_main', is_main); // commented out for non-error logging
+            this.is_main = is_main;
+        });
+
+        ipcMain.on('extract', (e, files, location) => {
+            for (const file of files.filter(file => !file.is_dir)) {
+                const sender = e.sender;
+                this.operation_queue.enqueue({ sender, operation: 'extract', start: job => {
+                    const thread = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'));
+                    const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
+                    let finished = false;
+                    let child_pid;
+                    const finish = (error, destination) => {
+                        if (finished) return;
+                        finished = true;
+                        if (child_pid) { try { process.kill(child_pid); } catch (_) {} }
+                        send('set_progress', { operation: 'extract', max: 0, value: 0, can_cancel: false });
+                        if (error) send('set_msg', `Error extracting archive: ${error.message}`);
+                        else {
+                            this.invalidate_folder_size_for_item_path(destination);
+                            send('add_items', [libfs.get_file(destination)], location);
+                            send('set_msg', 'Done extracting files.');
+                        }
+
+                        thread.terminate();
+                        job.finish();
+                    };
+                    job.cancel = () => thread.postMessage({ cmd: 'cancel' });
+                    sender.once('destroyed', job.cancel);
+                    thread.on('message', data => {
+                        if (data.cmd === 'extract_child') child_pid = data.pid;
+                        if (data.cmd === 'set_progress') send('set_progress', data);
+                        if (data.cmd === 'extract_error') { child_pid = null; finish(new Error(data.msg)); }
+                        if (data.cmd === 'extract_done') { child_pid = null; finish(null, data.destination); }
+                    });
+                    thread.on('error', finish);
+                    thread.on('exit', () => {
+                        sender.removeListener('destroyed', job.cancel);
+                        if (!finished) finish(new Error('Extractor worker exited before completion.'));
+                    });
+                    thread.postMessage({ cmd: 'extract', source: file.href, location });
+                }});
+            }
+        });
+
+        // Compress: conflicts are resolved before starting a worker or opening output.
+        ipcMain.on('compress', (e, files_arr, location, type, size) => {
+            this.start_compression(e, { files_arr, location, type, size });
+        });
+
+        // On Get Folder Size
+        ipcMain.on('get_folder_size', (e, href) => {
+            this.get_folder_size(e, href);
+        })
+
+        ipcMain.handle('is_writable_directory', (e, location) => {
+            return this.is_writable_directory(location);
+        });
+
+    }
+
+    async start_compression(e, request) {
+        const sender = e.sender;
+        if (this.compression_worker) {
+            sender.send('set_msg', 'An archive is already being created.');
+            return;
+        }
+        let job;
+        try {
+            const destination = request.destination || archive_destination(request.files_arr, request.location, request.type);
+            for (const file of request.files_arr) await safe_replace.assert_destination(file.href, destination);
+            job = { ...request, destination, name: path.basename(destination), source: request.files_arr[0].href };
+            if (!request.overwrite && await safe_replace.lstat(destination)) {
+                sender.send('archive_conflict', job);
+                return;
+            }
+        } catch (error) { sender.send('set_msg', `Cannot create archive: ${error.message}`); return; }
+        // Recheck after async validation so two requests cannot start together.
+        if (this.compression_worker) { sender.send('set_msg', 'An archive is already being created.'); return; }
+
+        const archive_worker = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'), {
+            workerData: { journal_dir: replacement_journals }
+        });
+        this.compression_worker = archive_worker;
+        this.compression_sender = sender;
+        this.active_archives.add(archive_worker);
+        let finished = false;
+        const cancel_on_close = () => archive_worker.postMessage({ cmd: 'cancel' });
+        sender.once('destroyed', cancel_on_close);
+        const finish = (error, file_path) => {
+            if (finished) return;
+            finished = true;
+            sender.removeListener('destroyed', cancel_on_close);
+            this.compression_worker = null;
+            this.compression_sender = null;
+            this.active_archives.delete(archive_worker);
+
+            if (!sender.isDestroyed()) {
+                sender.send('set_progress', { operation: 'compress', max: 0, value: 0, can_cancel: false });
+                if (error?.code === 'EEXIST' && !job.overwrite) sender.send('archive_conflict', job);
+                else if (error) sender.send('set_msg', `Archive not completed: ${error.message}`);
+                else {
+                    this.invalidate_folder_size_hierarchy(job.location);
+                    sender.send('add_items', [libfs.get_file(file_path)], job.location);
+                    sender.send('set_msg', 'Done compressing files.');
+                }
+            }
+            archive_worker.terminate();
+        };
+        archive_worker.on('message', data => {
+            if (data.cmd === 'set_progress' && !sender.isDestroyed()) sender.send('set_progress', data);
+            if (data.cmd === 'compress_done') finish(null, data.file_path);
+            if (data.cmd === 'compress_error') finish(Object.assign(new Error(data.msg), { code: data.code }));
+        });
+        archive_worker.on('error', finish);
+        archive_worker.on('exit', () => { if (!finished) finish(new Error('Archive worker exited before completion.')); });
+        sender.send('set_progress', { operation: 'compress', max: Math.max(1, job.size || 0), value: 0, can_cancel: true, status: 'Compressing files' });
+        archive_worker.postMessage({ ...job, cmd: 'compress' });
+    }
+
+    init_delete_worker(sender, job) {
+        const thread = this.delete_worker = new worker.Worker(path.join(__dirname, '../workers/delete_worker.js'));
+        thread.on('message', (data) => {
             const cmd = data.cmd;
-            const sender = this.delete_sender || win;
+            const target = this.delete_sender;
+            const sender = { send: (...args) => { if (target && !target.isDestroyed()) target.send(...args); } };
 
             switch (cmd) {
                 case 'set_progress':
@@ -1419,7 +1518,9 @@ class Utilities {
 
                     this.delete_in_progress = false;
                     this.delete_sender = null;
-                    this.run_watcher = true;
+
+                    thread.terminate();
+                    job.finish();
                     break;
                 }
                 default:
@@ -1427,8 +1528,9 @@ class Utilities {
             }
         });
 
-        this.delete_worker.on('error', (err) => {
-            const sender = this.delete_sender || win;
+        thread.on('error', (err) => {
+            const target = this.delete_sender;
+            const sender = { send: (...args) => { if (target && !target.isDestroyed()) target.send(...args); } };
             sender.send('set_progress', {
                 cmd: 'set_progress',
                 status: '',
@@ -1438,279 +1540,79 @@ class Utilities {
             sender.send('set_msg', `Error deleting files: ${err.message}`);
             this.delete_in_progress = false;
             this.delete_sender = null;
-            this.run_watcher = true;
+
+            job.finish();
         });
 
-        // init home directory
-        this.home_dir = os.homedir();
-
-        // listen for get_home_dir event
-        ipcMain.on('get_home_dir', (e) => {
-            e.returnValue = os.homedir();
-        });
-
-        ipcMain.on('get_user', (e) => {
-            e.returnValue = os.userInfo().username;
-        })
-
-        // listen for is_main event
-        ipcMain.on('is_main', (e, is_main) => {
-            // console.log('is_main', is_main); // commented out for non-error logging
-            this.is_main = is_main;
-        });
-
-        ipcMain.on('extract', (e, files_arr, location) => {
-
-            let progress_id = 0;
-            this.run_watcher = false;
-
-            for (let i = 0; i < files_arr.length; i++) {
-
-                if (files_arr[i].is_dir) {
-                    continue;
+        thread.on('exit', () => {
+            if (this.operation_queue.active === job && this.delete_sender === sender) {
+                if (!sender.isDestroyed()) {
+                    sender.send('set_msg', 'Delete worker exited before completion.');
+                    sender.send('set_progress', { operation: 'delete', max: 0, value: 0 });
                 }
+                this.delete_sender = null;
+                this.delete_in_progress = false;
 
-                let compression_worker = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'));
-                compression_worker.on('message', (data) => {
-
-                    if (data.cmd === 'set_msg') {
-                        win.send('set_msg', data.msg, data.has_timeout);
-                    }
-
-                    if (data.cmd === 'set_progress') {
-                        win.send('set_progress', data)
-                    }
-
-                    if (data.cmd === 'extract_error') {
-                        this.run_watcher = true;
-                        if (!e.sender.isDestroyed()) {
-                            e.sender.send('set_progress', { operation: 'extract', max: 0, value: 0 });
-                            e.sender.send('set_msg', `Error extracting archive: ${data.msg}`);
-                        }
-                        compression_worker.terminate();
-                    }
-
-                    if (data.cmd === 'extract_done') {
-                        if (data.destination) {
-                            this.invalidate_folder_size_for_item_path(data.destination);
-                        }
-
-                        let close_progress = {
-                            id: data.id,
-                            value: 0,
-                            max: 0,
-                            msg: ''
-                        }
-                        win.send('set_progress', close_progress);
-
-                        win.send('remove_item', data.destination);
-                        win.send('get_item', libfs.get_file(data.destination));
-                        e.sender.send('set_msg', 'Done extracting files.', 1);
-
-                        this.run_watcher = true;
-                        compression_worker.terminate();
-
-                    }
-                })
-                compression_worker.on('error', error => {
-                    this.run_watcher = true;
-                    if (!e.sender.isDestroyed()) {
-                        e.sender.send('set_progress', { operation: 'extract', max: 0, value: 0 });
-                        e.sender.send('set_msg', `Error extracting archive: ${error.message}`);
-                    }
-                });
-
-                let data = {
-                    id: progress_id += 1,
-                    cmd: 'extract',
-                    location: location,
-                    source: files_arr[i].href,
-                }
-                compression_worker.postMessage(data);
-
+                job.finish();
             }
-            files_arr = [];
-        })
-
-        // Compress: conflicts are resolved before starting a worker or opening output.
-        ipcMain.on('compress', (e, files_arr, location, type, size) => {
-            this.start_compression(e, { files_arr, location, type, size });
+            sender.removeListener('destroyed', job.cancel);
         });
-
-        // On Get Folder Size
-        ipcMain.on('get_folder_size', (e, href) => {
-            this.get_folder_size(e, href);
-        })
-
-        ipcMain.handle('is_writable_directory', (e, location) => {
-            return this.is_writable_directory(location);
-        });
-
+        job.cancel = () => thread.postMessage({ cmd: 'cancel' });
+        sender.once('destroyed', job.cancel);
     }
 
-    async start_compression(e, request) {
-        const sender = e.sender;
-        if (this.compression_worker) {
-            sender.send('set_msg', 'An archive is already being created.');
-            return;
-        }
-        let job;
-        try {
-            const destination = request.destination || archive_destination(request.files_arr, request.location, request.type);
-            for (const file of request.files_arr) await safe_replace.assert_destination(file.href, destination);
-            job = { ...request, destination, name: path.basename(destination), source: request.files_arr[0].href };
-            if (!request.overwrite && await safe_replace.lstat(destination)) {
-                sender.send('archive_conflict', job);
-                return;
-            }
-        } catch (error) { sender.send('set_msg', `Cannot create archive: ${error.message}`); return; }
-        // Recheck after async validation so two requests cannot start together.
-        if (this.compression_worker) { sender.send('set_msg', 'An archive is already being created.'); return; }
-        const previous_watcher_state = this.run_watcher;
-        this.run_watcher = false;
-        const archive_worker = new worker.Worker(path.join(__dirname, '../workers/compression_worker.js'), {
-            workerData: { journal_dir: replacement_journals }
-        });
-        this.compression_worker = archive_worker;
-        let finished = false;
-        const finish = (error, file_path) => {
-            if (finished) return;
-            finished = true;
-            this.compression_worker = null;
-            this.run_watcher = previous_watcher_state;
-            if (!sender.isDestroyed()) {
-                sender.send('set_progress', { operation: 'compress', max: 0, value: 0, can_cancel: false });
-                if (error?.code === 'EEXIST' && !job.overwrite) sender.send('archive_conflict', job);
-                else if (error) sender.send('set_msg', `Archive not completed: ${error.message}`);
-                else {
-                    this.invalidate_folder_size_hierarchy(job.location);
-                    sender.send('add_items', [libfs.get_file(file_path)], job.location);
-                    sender.send('set_msg', 'Done compressing files.');
-                }
-            }
-            archive_worker.terminate();
-        };
-        archive_worker.on('message', data => {
-            if (data.cmd === 'set_progress' && !sender.isDestroyed()) sender.send('set_progress', data);
-            if (data.cmd === 'compress_done') finish(null, data.file_path);
-            if (data.cmd === 'compress_error') finish(Object.assign(new Error(data.msg), { code: data.code }));
-        });
-        archive_worker.on('error', finish);
-        archive_worker.on('exit', () => { if (!finished) finish(new Error('Archive worker exited before completion.')); });
-        sender.send('set_progress', { operation: 'compress', max: Math.max(1, job.size || 0), value: 0, can_cancel: true, status: 'Compressing files' });
-        archive_worker.postMessage({ ...job, cmd: 'compress' });
-    }
+    queue_transfer(sender, operation, entries, location) {
+        const input = structuredClone(entries);
+        this.operation_queue.enqueue({ sender, operation, start: job => {
+            const thread = new worker.Worker(path.join(__dirname, operation === 'copy'
+                ? '../workers/paste_worker.js' : '../workers/move_worker.js'),
+                { workerData: { journal_dir: replacement_journals } });
+            const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
+            let finished = false;
+            const finish = error => {
+                if (finished) return;
+                finished = true;
+                if (error) send('set_msg', `${operation} incomplete: ${error.message}`);
+                send('set_progress', { operation, max: 0, value: 0, can_cancel: false });
 
-    init_paste_worker() {
-        this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'), { workerData: { journal_dir: replacement_journals } });
-        this.paste_worker.on('message', (data) => {
-            const cmd = data.cmd;
-            switch (cmd) {
-                case 'set_progress':
-                    win.send('set_progress', data);
-                    break;
-                case 'remove_item': {
-                    // win.send('remove_item', data.id);
-                    break;
-                }
-                case 'set_msg': {
-                    win.send('set_msg', data.msg);
-                    break;
-                }
-                case 'cp_done': {
-                    this.copy_in_progress = false;
-                    try {
-                        for (const entry of data.completed || []) {
-                            const file = libfs.get_file(entry.destination);
-                            win.send('update_item', file);
-                        }
-                        for (const entry of data.failures || []) {
-                            if (!entry.overwrite && !fs.existsSync(entry.destination)) {
-                                win.send('remove_item', Buffer.from(entry.destination).toString('base64'));
-                            }
-                        }
-                        if (this.root_destination) {
-                            if (!this.is_main) win.send('update_item', libfs.get_file(this.root_destination));
-                            this.invalidate_folder_size_hierarchy(this.root_destination);
-                            this.get_disk_space(this.root_destination);
-                        }
-                    } finally { this.run_watcher = true; }
-                    break;
-                }
-                default:
-                    break;
-            }
-
-        });
-    }
-
-    init_move_worker() {
-        this.move_worker = new worker.Worker(path.join(__dirname, '../workers/move_worker.js'), { workerData: { journal_dir: replacement_journals } });
-        this.move_worker.on('message', (data) => {
-            const cmd = data.cmd;
-            switch (cmd) {
-                case 'set_progress':
-                    win.send('set_progress', data);
-                    break;
-                case 'set_msg': {
-                    win.send('set_msg', data.msg);
-                    break;
-                }
-                case 'mv_done': {
-
-                    this.move_in_progress = false;
-                    const invalidated_paths = new Set();
-
-                    if (Array.isArray(data.files_arr) && data.files_arr.length > 0) {
-                        data.files_arr.forEach((file_item) => {
-                            if (file_item && file_item.source) {
-                                this.invalidate_folder_size_for_item_path(file_item.source, false).forEach((p) => invalidated_paths.add(p));
-                            }
-                            if (file_item && file_item.destination) {
-                                this.invalidate_folder_size_for_item_path(file_item.destination, false).forEach((p) => invalidated_paths.add(p));
-                            }
-                        });
-                    }
-
-                    if (this.root_destination) {
-                        this.invalidate_folder_size_hierarchy(this.root_destination, false).forEach((p) => invalidated_paths.add(p));
-                    }
-
-                    if (invalidated_paths.size > 0) {
-                        this.emit_folder_size_cache_invalidated(Array.from(invalidated_paths));
-                    }
-
-                    const moved = data.files_arr || [];
-                    // Source identity must never use the destination href.
-                    win.send('remove_items', moved.map(file => ({
-                        id: btoa(file.source), href: file.source
-                    })));
+                thread.terminate();
+                job.finish();
+            };
+            job.cancel = () => thread.postMessage({ cmd: 'cancel' });
+            sender.once('destroyed', job.cancel);
+            thread.on('message', data => {
+                if (finished) return;
+                if (data.cmd === 'set_msg') send('set_msg', data.msg);
+                if (data.cmd === 'set_progress') send('set_progress', data);
+                if (data.cmd !== 'cp_done' && data.cmd !== 'mv_done') return;
+                try {
+                    const completed = data.completed || data.files_arr || [];
+                    if (operation === 'move') send('remove_items', completed.map(file => ({ id: path_id(file.source), href: file.source })));
                     const by_location = new Map();
-                    moved.forEach(file => {
-                        const destination = libfs.get_file(file.destination);
-                        if (!destination?.href) return;
-                        destination.id = btoa(destination.href);
-                        const location = path.dirname(destination.href);
-                        if (!by_location.has(location)) by_location.set(location, []);
-                        by_location.get(location).push(destination);
-                    });
-                    by_location.forEach((files, location) => win.send('add_items', files, location));
-
-                    if (data.cancelled) {
-                        win.send('set_msg', 'Move cancelled.');
+                    for (const entry of completed) {
+                        if (!fs.existsSync(entry.destination) && !libfs.get_file(entry.destination)?.is_symlink) continue;
+                        const file = libfs.get_file(entry.destination);
+                        const parent = path.dirname(entry.destination);
+                        if (!by_location.has(parent)) by_location.set(parent, []);
+                        by_location.get(parent).push(file);
+                        this.invalidate_folder_size_for_item_path(entry.destination);
+                        if (operation === 'move') this.invalidate_folder_size_for_item_path(entry.source);
                     }
-
-                    setTimeout(() => {
-                        this.run_watcher = true;
-                    }, 100);
-
-                    break;
-                }
-                default:
-                    break;
-            }
-
-        });
+                    for (const [parent, files] of by_location) send('add_items', files, parent);
+                    if (data.cmd === 'cp_done') send('set_msg', data.cancelled ? 'Copy cancelled.'
+                        : data.failures?.length ? `Copy incomplete: ${data.failures.length} items failed.`
+                        : `Done copying (${completed.length}) files`);
+                    this.invalidate_folder_size_hierarchy(location);
+                } catch (error) { finish(error); return; }
+                finish();
+            });
+            thread.on('error', finish);
+            thread.on('exit', () => { if (!finished) finish(new Error('Worker exited before completion.')); });
+            thread.once('exit', () => sender.removeListener('destroyed', job.cancel));
+            send('set_progress', { operation, max: 1, value: 0, can_cancel: true, status: 'Preparing files' });
+            thread.postMessage({ cmd: operation === 'copy' ? 'paste' : 'move',
+                [operation === 'copy' ? 'copy_arr' : 'move_arr']: input });
+        }});
     }
 
     normalize_folder_size_path(raw_path) {
@@ -1828,24 +1730,16 @@ class Utilities {
         return href.replace(/\n/g, ' ');
     }
 
-    is_writable_directory(location) {
-        if (typeof location !== 'string' || !path.isAbsolute(location)) {
-            return false;
-        }
-
-        try {
-            if (!fs.statSync(location).isDirectory()) {
-                return false;
-            }
-            fs.accessSync(location, fs.constants.W_OK | fs.constants.X_OK);
-            return true;
-        } catch (err) {
-            return false;
-        }
+    async is_writable_directory(location) {
+        if (typeof location !== 'string' || !path.isAbsolute(location)) return false;
+        try { return await device_probe('writable', location); }
+        catch (error) { return false; }
     }
 
-    can_write_to_directory(e, location) {
-        if (this.is_writable_directory(location)) {
+    async can_write_to_directory(e, location) {
+        const writable = await this.is_writable_directory(location);
+        if (e?.sender?.isDestroyed()) return false;
+        if (writable) {
             return true;
         }
 
@@ -1874,60 +1768,60 @@ class Utilities {
     }
 
     // poste
-    paste(e, copy_arr, location) {
+    async paste(e, copy_arr, location) {
 
         // check if copy_arr is empty
         if (copy_arr.length === 0) {
-            win.send('set_msg', 'Error: Copy array is empty.');
+            e.sender.send('set_msg', 'Error: Copy array is empty.');
             return;
         }
 
         // check if location is empty
         if (location == '' || location == undefined) {
-            win.send('set_msg', 'No location to paste files.');
+            e.sender.send('set_msg', 'No location to paste files.');
             return;
         }
 
-        if (!this.can_write_to_directory(e, location)) {
+        if (!await this.can_write_to_directory(e, location)) {
             return;
         }
 
-        this.run_watcher = false;
+
 
         let paste_arr = [];
         let overwrite_arr = [];
 
-        win.send('set_msg', { text: 'Gathering files...', loading: true }, true);
+        e.sender.send('set_msg', { text: 'Gathering files...', loading: true }, true);
 
         copy_arr.forEach(f => {
 
             if (f.location === '' || f.location === undefined) {
-                win.send('set_msg', 'Error: No location to paste files.');
+                e.sender.send('set_msg', 'Error: No location to paste files.');
                 return;
             }
 
             if (f.is_dir === null || f.is_dir === undefined) {
-                win.send('set_msg', 'Error: No file type to paste files.');
+                e.sender.send('set_msg', 'Error: No file type to paste files.');
                 return;
             }
 
             if (f.name === '' || f.name === undefined) {
-                win.send('set_msg', 'Error: No file name to paste files.');
+                e.sender.send('set_msg', 'Error: No file name to paste files.');
                 return;
             }
 
             if (f.href === '' || f.href === undefined) {
-                win.send('set_msg', 'Error: No file href to paste files.');
+                e.sender.send('set_msg', 'Error: No file href to paste files.');
                 return;
             }
 
             if (f.display_name === '' || f.display_name === undefined) {
-                win.send('set_msg', 'Error: No file display name to paste files.');
+                e.sender.send('set_msg', 'Error: No file display name to paste files.');
                 return;
             }
 
             if (f.is_hidden === null || f.is_hidden === undefined) {
-                win.send('set_msg', 'Error: No file hidden status to paste files.');
+                e.sender.send('set_msg', 'Error: No file hidden status to paste files.');
                 return;
             }
 
@@ -1970,24 +1864,16 @@ class Utilities {
         // send copy_arr to renderer
         if (paste_arr.length > 0) {
 
-            if (this.is_main) {
-                e.sender.send('add_items', paste_arr, location);
-            } else {
-                // handle updated to location
-                // refresh directory stats
-            }
-
             // send copy_arr to worker
             let paste_cmd = {
                 cmd: 'paste',
                 copy_arr: paste_arr,
                 location: location
             }
-            this.paste_worker.postMessage(paste_cmd);
+            this.queue_transfer(e.sender, 'copy', paste_arr, location);
             this.copy_in_progress = true;
         }
 
-        if (!paste_arr.length) this.run_watcher = true;
         if (overwrite_arr.length > 0) {
             // send overwrite_arr to renderer
             e.sender.send('overwrite_copy', overwrite_arr);
@@ -2002,25 +1888,25 @@ class Utilities {
     }
 
     // move
-    move(e, files_arr, location) {
+    async move(e, files_arr, location) {
 
         if (files_arr.length === 0) {
-            win.send('set_msg', 'Error: moving files_arr is empty');
+            e.sender.send('set_msg', 'Error: moving files_arr is empty');
             return;
         }
 
         if (location === '' || location === undefined) {
-            win.send('set_msg', `Error: Move location is not valid: ${location}`);
+            e.sender.send('set_msg', `Error: Move location is not valid: ${location}`);
             return;
         }
 
-        if (!this.can_write_to_directory(e, location)) {
+        if (!await this.can_write_to_directory(e, location)) {
             return;
         }
 
         let move_arr = [];
         let overwrite_arr = [];
-        this.run_watcher = false;
+
 
         files_arr.forEach(f => {
 
@@ -2072,17 +1958,13 @@ class Utilities {
                 location: location
             }
 
-            this.move_worker.postMessage(move_cmd);
+            this.queue_transfer(e.sender, 'move', move_arr, location);
             this.move_in_progress = true;
 
         }
 
         if (overwrite_arr.length > 0) {
-            win.send('overwrite_move', overwrite_arr);
-        }
-
-        if (move_arr.length === 0 && overwrite_arr.length === 0) {
-            this.run_watcher = true;
+            e.sender.send('overwrite_move', overwrite_arr);
         }
 
         move_arr = [];
@@ -2099,105 +1981,49 @@ class Utilities {
             return;
         }
 
-        this.run_watcher = false;
 
-        let dir = path.join(location, 'New Folder');
-        let idx = 1;
-        while (fs.existsSync(dir)) {
-            dir = path.join(location, `New Folder (${idx})`);
-            idx++;
+        try {
+            let dir = path.join(location, 'New Folder');
+            let idx = 1;
+            while (fs.existsSync(dir)) {
+                dir = path.join(location, `New Folder (${idx})`);
+                idx++;
+            }
+            fs.mkdirSync(dir);
+            let f = libfs.get_file(dir);
+            f.id = path_id(dir);
+            e.sender.send('get_item', f, { edit: true });
+            this.invalidate_folder_size_hierarchy(location);
+        } catch (err) {
+            e.sender.send('set_msg', `Error creating folder in ${location}: ${err.message}`);
         }
-        fs.mkdirSync(dir);
-        let f = libfs.get_file(dir);
-        f.id = btoa(dir);
-        e.sender.send('get_item', f, { edit: true });
-        this.invalidate_folder_size_hierarchy(location);
-
-        setTimeout(() => {
-            this.run_watcher = true;
-        }, 100);
 
     }
 
-    // rename
-    async rename(e, source, destination, id) {
-
-        if (source === '' || source === undefined) {
-            win.send('set_msg', `Error: getting source for rename: ${source}`);
-            return;
-        }
-
-        if (destination === '' || destination === undefined) {
-            win.send('set_msg', `Error: getting destination for rename: ${destination}`);
-            return;
-        }
-
-        if (id === '' || id === undefined) {
-            win.send('set_msg', `Error: getting id for rename: ${id}`);
-            return;
-        }
-
-        this.run_watcher = false;
-
-        // console.log('rename', source, destination); // commented out for non-error logging
-
-        if (fs.existsSync(destination)) {
-
-            if (!destination.includes('New Folder')) {
-                win.send('set_msg', `Error: File name '${destination}' already exists.`);
-                return;
-            }
-            win.send('cancel_edit');
-            return;
-        }
-
-        const res = await new Promise((resolve, reject) => {
-            libfs.mv(source, destination, (err, result) => {
-                if (err) {
-                    reject(err);
+    // Rename is a scoped filesystem job; replies retain the initiating renderer.
+    rename(e, source, destination, id) {
+        if (!source || !destination || !id) { e.sender.send('set_msg', 'Invalid rename request.'); return; }
+        const sender = e.sender;
+        this.operation_queue.enqueue({ sender, operation: 'rename', start: async job => {
+            const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
+            try {
+                if (fs.existsSync(destination)) {
+                    if (destination.includes('New Folder')) send('cancel_edit');
+                    else send('set_msg', `Error: File name '${destination}' already exists.`);
                     return;
                 }
-
-                let f = libfs.get_file(destination);
-                if (!f) {
-                    win.send('set_msg', `Error: getting file object for rename: ${f}`);
-                }
-                f.id = id;
-                e.sender.send('update_item', f);
-
-                resolve(result || {});
-            });
-        }).catch((err) => {
-            win.send('set_msg', `Error: rename: ${err}`);
-            return null;
-        });
-
-        if (res) {
-            this.invalidate_folder_size_hierarchy(path.dirname(source), false);
-            this.invalidate_folder_size_hierarchy(path.dirname(destination), false);
-            this.emit_folder_size_cache_invalidated([path.dirname(source), path.dirname(destination)]);
-        }
-
-        // fs.rename(source, destination, (err) => {
-
-        //     if (err) {
-        //         win.send('set_msg', `Error: rename: ${err}`);
-        //         return;
-        //     }
-
-        //     let f = gio.get_file(destination);
-        //     if (!f) {
-        //         win.send('set_msg', `Error: getting file object for rename: ${f}`);
-        //     }
-        //     f.id = id;
-        //     e.sender.send('update_item', f);
-
-        // });
-
-        setTimeout(() => {
-            this.run_watcher = true;
-        }, 100);
-
+                await new Promise((resolve, reject) => libfs.mv(source, destination,
+                    error => error ? reject(error) : resolve(), { journal_dir: replacement_journals }));
+                const file = libfs.get_file(destination);
+                file.previous_id = id;
+                file.id = path_id(destination);
+                send('update_item', file);
+                this.invalidate_folder_size_hierarchy(path.dirname(source), false);
+                this.invalidate_folder_size_hierarchy(path.dirname(destination), false);
+                this.emit_folder_size_cache_invalidated([path.dirname(source), path.dirname(destination)]);
+            } catch (error) { send('set_msg', `Error: rename: ${error.message}`); }
+            finally { job.finish(); }
+        }});
     }
 
     // delete
@@ -2210,7 +2036,7 @@ class Utilities {
                 return;
             }
 
-            this.run_watcher = false;
+
 
             // Create alert dialog
             const options = {
@@ -2225,16 +2051,16 @@ class Utilities {
             // Show alert dialog
             dialog.showMessageBox(null, options).then((response) => {
                 if (response.response === 1) {
-                    this.delete_sender = e.sender;
-                    this.delete_in_progress = true;
-                    this.delete_worker.postMessage({
-                        cmd: 'delete',
-                        delete_arr
-                    });
+                    this.operation_queue.enqueue({ sender: e.sender, operation: 'delete', start: job => {
+                        this.init_delete_worker(e.sender, job);
+                        this.delete_sender = e.sender;
+                        this.delete_in_progress = true;
+                        this.delete_worker.postMessage({ cmd: 'delete', delete_arr });
+                    }});
 
                 } else {
-                    win.send('set_msg', 'Operation cancelled.');
-                    this.run_watcher = true;
+                    if (!e.sender.isDestroyed()) e.sender.send('set_msg', 'Operation cancelled.');
+
                 }
 
             });
@@ -2267,8 +2093,12 @@ class Utilities {
             return;
         }
 
+        const generation = (this.disk_generations.get(target?.id) || 0) + 1;
+        this.disk_generations.set(target?.id, generation);
+        const current = () => this.disk_generations.get(target?.id) === generation;
         try {
             const stats = await device_probe('stats', href);
+            if (!current()) return;
             let options = {
                 disksize: this.get_file_size(parseInt(stats.total)),
                 usedspace: this.get_file_size(parseInt(stats.used)),
@@ -2277,12 +2107,13 @@ class Utilities {
             let df = [];
             df.push(options);
             if (target && !target.isDestroyed()) {
-                target.send('disk_space', df);
+                target.send('disk_space', df, href);
             }
 
         } catch (err) {
+            if (!current()) return;
             if (target && !target.isDestroyed()) {
-                target.send('disk_space', [{ disksize: 'Unknown', usedspace: 'Unknown', availablespace: 'Unknown' }]);
+                target.send('disk_space', [{ disksize: 'Unknown', usedspace: 'Unknown', availablespace: 'Unknown' }], href);
             }
         }
 
@@ -2294,46 +2125,42 @@ class Utilities {
 class WorkspaceManager {
 
     constructor() {
+        this.store = new JsonStore(path.join(app.getPath('userData'), 'workspace.json'), [],
+            value => Array.isArray(value) && value.every(item => object(item) && typeof item.href === 'string' && typeof item.name === 'string'));
+
 
         // Add Workspace
         ipcMain.on('add_workspace', (e, selected_files_arr) => {
 
-            let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-            let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'))
+            let workspace_data = this.store.read()
 
             selected_files_arr.forEach(f => {
                 let file = libfs.get_file(f.href);
                 // add to top of array
                 workspace_data.unshift(file);
             })
-            fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
-            win.send('get_workspace');
+            this.store.update(() => workspace_data);
+            BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
             selected_files_arr = [];
         })
 
         // Remove Workspace
         ipcMain.on('remove_workspace', (e, href) => {
 
-            let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-            let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
+            let workspace_data = this.store.read();
 
             let workspace = workspace_data.filter(data => data.href !== href);
-            fs.writeFileSync(workspace_file, JSON.stringify(workspace, null, 4));
+            this.store.update(() => workspace);
 
-            win.send('get_workspace');
+            BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
             // selected_files_arr = [];
         })
 
         // Get Workspace
         ipcMain.handle('get_workspace', async (e) => {
 
-            let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-            if (!libfs.exists(workspace_file)) {
-                let workspace_data = [];
-                fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
-            }
             return this.get_workspace_arr();
-            // let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
+            // let workspace_items = this.store.read();
             // return workspace_items;
 
         })
@@ -2341,14 +2168,13 @@ class WorkspaceManager {
         // Update workspace
         ipcMain.on('rename_workspace', (e, href, workspace_name) => {
 
-            let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-            let workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
+            let workspace_data = this.store.read();
 
             let index = workspace_data.findIndex(data => data.href === href);
             if (index !== -1) {
                 workspace_data[index].name = workspace_name;
-                fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
-                win.send('get_workspace');
+                this.store.update(() => workspace_data);
+                BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
             } else {
                 console.error("Workspace entry not found with href:", href);
             }
@@ -2357,11 +2183,10 @@ class WorkspaceManager {
 
         ipcMain.on('reorder_workspace', (e, files_arr) => {
 
-            let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
 
             try {
                 // Read and parse the current workspace file
-                const workspace_data = JSON.parse(fs.readFileSync(workspace_file, 'utf8'));
+                const workspace_data = this.store.read();
 
                 // Create a new array based on the order in files_arr
                 const reordered_data = files_arr.map((f, i) => {
@@ -2377,11 +2202,11 @@ class WorkspaceManager {
                 }).filter(entry => entry !== null); // Remove null entries (if any)
 
                 // Write the reordered array back to the file
-                fs.writeFileSync(workspace_file, JSON.stringify(reordered_data, null, 4));
+                this.store.update(() => [...reordered_data, ...workspace_data.filter(item => !files_arr.includes(item.href))]);
                 // console.log('Workspace reordered successfully.'); // commented out for non-error logging
 
                 // Notify the renderer to refresh the workspace
-                win.send('get_workspace');
+                BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
             } catch (error) {
                 console.error("Failed to reorder workspace:", error.message);
             }
@@ -2397,12 +2222,7 @@ class WorkspaceManager {
 
     get_workspace_arr() {
 
-        let workspace_file = path.join(app.getPath('userData'), 'workspace.json');
-        if (!libfs.exists(workspace_file)) {
-            let workspace_data = [];
-            fs.writeFileSync(workspace_file, JSON.stringify(workspace_data, null, 4));
-        }
-        let workspace_items = JSON.parse(fs.readFileSync(workspace_file, 'utf-8'));
+        let workspace_items = this.store.read();
         return workspace_items;
 
     }
@@ -2458,7 +2278,7 @@ ipcMain.handle('get_icon', async (e, href) => {
         }
     }
 
-    return await app.getFileIcon(href, { size: 32 }).then(icon => {
+    return await app.getFileIcon(href, { size: 'normal' }).then(icon => {
         const icon_data_url = icon.toDataURL();
         set_cached_file_icon(href, icon_data_url);
         return icon_data_url;
@@ -2550,7 +2370,7 @@ class DeviceManager {
 
         // Debounce event bursts and retry after the OS finishes exposing the volume.
         libfs.monitor(data => {
-            if (!data || data === 'mtp') return;
+            if (!data) return;
             clearTimeout(this.device_refresh_timer);
             clearTimeout(this.device_retry_timer);
             const refresh = () => {
@@ -2638,7 +2458,8 @@ class NetworkManager {
 
     encryption_available() {
         try {
-            return !!safeStorage && safeStorage.isEncryptionAvailable();
+            return !!safeStorage && safeStorage.isEncryptionAvailable() &&
+                !(process.platform === 'linux' && safeStorage.getSelectedStorageBackend?.() === 'basic_text');
         } catch (err) {
             return false;
         }
@@ -2705,13 +2526,12 @@ class NetworkManager {
                         return;
                     }
 
-                    if (network_settings.save_connection) {
-                        this.setNetworkSettings({ ...network_settings, server, type });
-                    }
+                    const save_error = network_settings.save_connection
+                        ? this.setNetworkSettings({ ...network_settings, server, type }) : null;
                     if (deviceManager && deviceManager.device_worker) {
                         deviceManager.device_worker.postMessage({ cmd: 'get_mounts' });
                     }
-                    finish({ error: false, msg: `Connected to ${server}.` });
+                    finish({ error: false, msg: `Connected to ${server}.${save_error ? ` Connection was not saved: ${save_error}` : ''}` });
                 });
             } catch (err) {
                 clearTimeout(timeout);
@@ -2741,6 +2561,7 @@ class NetworkManager {
         };
 
         if (network_settings.encrypted_password) {
+            entry.encrypted_password = network_settings.encrypted_password;
             if (!this.encryption_available()) {
                 entry.auto_reconnect = false;
             } else {
@@ -2751,8 +2572,10 @@ class NetworkManager {
                 }
             }
         } else if (network_settings.password && this.encryption_available()) {
-            entry.password = network_settings.password;
-            entry.encrypted_password = safeStorage.encryptString(network_settings.password).toString('base64');
+            try {
+                entry.encrypted_password = safeStorage.encryptString(network_settings.password).toString('base64');
+                entry.password = network_settings.password;
+            } catch (error) { entry.auto_reconnect = false; }
         } else if (network_settings.password) {
             entry.auto_reconnect = false;
         }
@@ -2761,6 +2584,9 @@ class NetworkManager {
     }
 
     serializeNetworkSettings(network_settings = {}) {
+        if (network_settings.password && !this.encryption_available()) {
+            throw new Error('Secure password storage is unavailable; connection was not saved.');
+        }
         const entry = this.deserializeNetworkSettings(network_settings);
         delete entry.password;
         if (network_settings.password && this.encryption_available()) {
@@ -2771,14 +2597,16 @@ class NetworkManager {
 
     writeNetworkSettings() {
         const network_file = path.join(app.getPath('userData'), 'network.json');
-        const temporary_file = `${network_file}.tmp`;
-        const persisted = this.network_settings_arr.map((entry) => {
+        const persisted = this.network_settings_arr.map(entry => {
             const copy = { ...entry };
             delete copy.password;
             return copy;
         });
-        fs.writeFileSync(temporary_file, JSON.stringify(persisted, null, 4));
-        fs.renameSync(temporary_file, network_file);
+        const store = new JsonStore(network_file, [], Array.isArray);
+        store.update(() => persisted);
+        // Rotate legacy plaintext out of the last-good backup after migration.
+        store.update(value => value);
+
     }
 
     setNetworkSettings(network_settings) {
@@ -2787,6 +2615,11 @@ class NetworkManager {
         }
 
         try {
+            this.getNetworkSettings();
+            const stored = new JsonStore(path.join(app.getPath('userData'), 'network.json'), [], Array.isArray).read();
+            if (stored.some(entry => entry.password) && !this.network_settings_arr.every(entry => entry.encrypted_password || entry.use_ssh_key)) {
+                throw new Error('Unlock secure storage before changing legacy saved connections.');
+            }
             const entry = this.serializeNetworkSettings(network_settings);
             const identity = this.networkIdentity(entry);
             this.network_settings_arr = this.network_settings_arr.filter((saved) => {
@@ -2794,8 +2627,10 @@ class NetworkManager {
             });
             this.network_settings_arr.push(entry);
             this.writeNetworkSettings();
+            return null;
         } catch (err) {
             console.error('Unable to save network settings:', err.message);
+            return err.message;
         }
     }
 
@@ -2803,8 +2638,10 @@ class NetworkManager {
         const network_file = path.join(app.getPath('userData'), 'network.json');
         let parsed = [];
         try {
-            const contents = JSON.parse(fs.readFileSync(network_file, 'utf-8'));
-            parsed = Array.isArray(contents) ? contents : [];
+            for (const file of [network_file, `${network_file}.bak`]) {
+                if (fs.existsSync(file)) fs.chmodSync(file, 0o600);
+            }
+            parsed = new JsonStore(network_file, [], Array.isArray).read();
         } catch (err) {
             parsed = [];
         }
@@ -2823,7 +2660,8 @@ class NetworkManager {
             });
 
         try {
-            this.writeNetworkSettings();
+            if (!parsed.some(entry => entry.password) ||
+                this.network_settings_arr.every(entry => entry.use_ssh_key || entry.encrypted_password)) this.writeNetworkSettings();
         } catch (err) {
             console.error('Unable to initialize network settings:', err.message);
         }
@@ -2836,10 +2674,9 @@ class NetworkManager {
             const identity = typeof network_settings === 'string'
                 ? network_settings
                 : this.networkIdentity(network_settings);
-            this.network_settings_arr = this.network_settings_arr.filter((entry) => {
-                return this.networkIdentity(entry) !== identity;
-            });
-            this.writeNetworkSettings();
+            const store = new JsonStore(path.join(app.getPath('userData'), 'network.json'), [], Array.isArray);
+            store.update(entries => entries.filter(entry => this.networkIdentity(entry) !== identity));
+            this.getNetworkSettings();
         } catch (err) {
             console.error('Unable to remove network settings:', err.message);
         }
@@ -2912,8 +2749,8 @@ ipcMain.on('ls', (e, location, add_tab = false) => {
 })
 
 // listen for get_recent_files event
-ipcMain.on('get_recent_files', (e, add_tab = false) => {
-    fileManager.get_recent_files(e, add_tab === true);
+ipcMain.on('get_recent_files', (e, add_tab = false, request_id) => {
+    fileManager.get_recent_files(e, add_tab === true, request_id);
 });
 
 ipcMain.handle('autocomplete', async (e, directory) => {
@@ -2952,7 +2789,6 @@ class FileManager {
         this.location = '';
         this.location0 = '';
         this.watcher_failed = 0;
-        this.watcher_enabled = true;
         this.startup = true;
         this.list_request_generations = new Map();
         // per-window current watched directory (window_id/'default' -> dir)
@@ -2986,10 +2822,13 @@ class FileManager {
                         break;
                     }
                     if (target_sender) {
-                        target_sender.send('ls_done', data.files_arr, data.add_tab, data.request_token);
+                        target_sender.send('ls_done', data.files_arr, data.add_tab, data.request_token, { location: data.location, failures: data.failures || [] });
                     }
 
                     // watcherManager.watch(this.location);
+                    break;
+                case 'ls_failed':
+                    if (data.request_token === this.list_request_generations.get(Number.isInteger(data.window_id) ? data.window_id : 'default') && target_sender) target_sender.send('ls_failed', data);
                     break;
                 case 'set_msg':
                     const message_key = Number.isInteger(data.window_id) ? data.window_id : 'default';
@@ -3008,22 +2847,16 @@ class FileManager {
 
     }
 
-    validate_location(location) {
-
-        if (location === '' || location === undefined) {
-            return -1;
-        }
-
-        // check if location is valid
-        if (fs.existsSync(location) === false && !location.startsWith('mtp://')) {
-            return -2;
-        }
-
-        return 0;
+    async validate_location(location) {
+        if (!location) return -1;
+        try { await device_probe('validate', location); return 0; }
+        catch (error) { return -2; }
     }
 
     // return file from get_files
-    get_ls(location, add_tab, window_id = null, sender = null) {
+    async get_ls(location, add_tab, window_id = null, sender = null) {
+        if (window_id === null && !sender) window_id = win?.id ?? null;
+        if (path.isAbsolute(location)) location = path.resolve(location);
 
         const target = sender && !sender.isDestroyed() ? sender : win;
 
@@ -3051,25 +2884,21 @@ class FileManager {
             return;
         }
 
-        // check if location is valid
-        if (fs.existsSync(location) === false && !location.startsWith('mtp://')) {
-
-            // if the program is starting up, set a valid location (home directory)
-            if (this.startup) {
-                this.location = utilities.home_dir;
-                location = this.location;
-            } else {
-                this.location = this.location0;
-                if (target && !target.isDestroyed()) {
-                    target.send('set_msg', `Error: Could not find ${location}`);
-                }
+        const request_token = this.next_list_request(window_id);
+        const message_key = Number.isInteger(window_id) ? window_id : 'default';
+        if (target && !target.isDestroyed()) target.send('ls_started', request_token);
+        let validation_error;
+        try { await device_probe('validate', location); } catch (error) { validation_error = error; }
+        if (this.list_request_generations.get(message_key) !== request_token || target?.isDestroyed()) return;
+        if (validation_error) {
+            if (this.startup) location = utilities.home_dir;
+            else {
+                target?.send('ls_failed', { request_token, location, msg: validation_error.message });
                 return;
             }
         }
-
         this.location0 = this.location;
         this.location = location;
-        const request_token = this.next_list_request(window_id);
         let ls_data = {
             cmd: 'ls',
             location: this.location,
@@ -3078,28 +2907,23 @@ class FileManager {
             request_token: request_token
         }
 
-        if (target && !target.isDestroyed()) {
-            target.send('ls_started', request_token);
-        }
-
         this.ls_worker.postMessage(ls_data);
         this.startup = false;
 
-        // watch on behalf of this specific window so navigating in one window
-        // doesn't tear down another window's watcher for a different directory
-        const watch_key = Number.isInteger(window_id) ? window_id : 'default';
-        const prev_watched_dir = this.window_watch_dirs.get(watch_key) || '';
-        this.window_watch_dirs.set(watch_key, this.location);
+        this.watch_location(location, window_id);
+    }
 
-        try {
-            watcher.watch(this.location, watch_key);
-            if (prev_watched_dir && prev_watched_dir !== this.location) {
-                watcher.unwatch(prev_watched_dir, watch_key);
-            }
-        } catch (err) {
-
+    watch_location(location, window_id) {
+        const previous = this.window_watch_dirs.get(window_id);
+        if (!path.isAbsolute(location)) {
+            watcher.release_window(window_id);
+            this.window_watch_dirs.delete(window_id);
+            return;
         }
-
+        const directory = path.resolve(location);
+        this.window_watch_dirs.set(window_id, directory);
+        watcher.watch(directory, window_id);
+        if (previous && previous !== directory) watcher.unwatch(previous, window_id);
     }
 
     next_list_request(window_id) {
@@ -3120,11 +2944,9 @@ class FileManager {
     }
 
     // get recent files by reading xbel file
-    get_recent_files(e, add_tab = false) {
-
-        let files_arr = get_recent_files_arr();
-        e.sender.send('recent_files', files_arr, add_tab);
-        files_arr = [];
+    get_recent_files(e, add_tab = false, request_id) {
+        try { e.sender.send('recent_files', get_recent_files_arr(), add_tab, request_id); }
+        catch (error) { e.sender.send('recent_files', [], add_tab, request_id, { error: error.message }); }
 
         // let files_arr = [];
         // // get config data directory
@@ -3142,7 +2964,7 @@ class FileManager {
         //             let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
         //             href = decodeURIComponent(href);
         //             let f = gio.get_file(href);
-        //             f.id = btoa(href);
+        //             f.id = path_id(href);
         //             files_arr.push(f);
         //         } catch (err) {
         //             // console.error(err);
@@ -3164,55 +2986,9 @@ class FileManager {
 
 // get recent files by reading xbel file
 function get_recent_files_arr() {
-
-    let files_arr = [];
-    // get config data directory
-    let xbel_file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
-    if (fs.existsSync(xbel_file)) {
-        let data = fs.readFileSync(xbel_file, 'utf-8');
-        const parser = new XMLParser({
-            ignoreAttributes: false,
-            attributeNamePrefix: "@_"
-        });
-        let res = parser.parse(data);
-
-        // sort by recency
-        if (res.xbel && res.xbel.bookmark) {
-
-            try {
-                res.xbel.bookmark.sort((a, b) => {
-                    let a_time = new Date(a['@_modified'] || a['@_added'] || 0).getTime();
-                    let b_time = new Date(b['@_modified'] || b['@_added'] || 0).getTime();
-                    return b_time - a_time;
-                });
-            } catch (err) {
-                console.log('Error sorting recent files:', err);
-            }
-
-        }
-
-
-        // console.log('res', res);
-        if (res.xbel && res.xbel.bookmark && res.xbel.bookmark.length > 0) {
-            res.xbel.bookmark.forEach(b => {
-                try {
-                    let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
-                    href = decodeURIComponent(href);
-                    let f = libfs.get_file(href);
-                    f.id = btoa(href);
-                    files_arr.push(f);
-                } catch (err) {
-                    // console.error(err);
-                }
-            })
-        }
-        // // sort files by mtime
-        // files_arr.sort((a, b) => {
-        //     return b.mtime - a.mtime;
-        // });
-    }
-
-    return files_arr;
+    const file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
+    try { return require('../common/recent_files').recent_files(fs.readFileSync(file, 'utf8'), href => libfs.get_file(href)); }
+    catch (error) { if (error.code === 'ENOENT') return []; throw error; }
 }
 
 ipcMain.handle('get_recent_files_arr', async (e) => {
@@ -3300,25 +3076,15 @@ class WindowManager {
 
     // window settings
     get_window_setting() {
-        if (fs.existsSync(this.window_file)) {
-            this.window_settings = JSON.parse(fs.readFileSync(this.window_file, 'utf-8'));
-        } else {
-            this.window_settings = {
-                window: {
-                    width: 1124,
-                    height: 600,
-                    x: 0,
-                    y: 0
-                }
-            };
-            fs.writeFileSync(this.window_file, JSON.stringify(this.window_settings, null, 4));
-        }
+        this.store = new JsonStore(this.window_file, { window: { width: 1124, height: 600, x: 0, y: 0 } },
+            value => object(value) && object(value.window) &&
+                ['width', 'height', 'x', 'y'].every(key => Number.isFinite(value.window[key])) &&
+                value.window.width >= 400 && value.window.height >= 400);
+        this.window_settings = this.store.read();
     }
 
-    // update window settings
-    update_window_settings(window_settings) {
-        this.window_settings = window_settings;
-        fs.writeFileSync(this.window_file, JSON.stringify(this.window_settings, null, 4));
+    update_window_settings(settings) {
+        this.window_settings = this.store.update(current => merge(current, settings));
     }
 
     // Debounce utility
@@ -3562,7 +3328,7 @@ class MenuManager {
             switch (data.cmd) {
                 case 'cp_template_done':
                     let f = libfs.get_file(data.destination);
-                    f.id = btoa(data.destination);
+                    f.id = path_id(data.destination);
                     win.send('get_item', f, { edit: true });
                     break;
             }
@@ -4650,13 +4416,9 @@ class MenuManager {
 }
 
 const settingsManager = new SettingsManager();
-// Only initialize settings if settings.json does not exist
-if (!fs.existsSync(settingsManager.settings_file)) {
-    settingsManager.initialize_settings();
-    is_first_run = 1;
-}
+if (!fs.existsSync(settingsManager.settings_file)) is_first_run = 1;
+settingsManager.initialize_settings();
 
-const watcherManager = new Watcher();
 const windowManager = new WindowManager();
 const utilities = new Utilities();
 const fileManager = new FileManager();

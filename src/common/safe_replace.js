@@ -210,6 +210,7 @@ async function transfer(source, destination, options) {
             JSON.stringify(await snapshot(source, options.cancelled)) !== before) throw new Error('Source changed or replacement verification failed.');
     }, options);
     if (options.move) {
+        check_cancel(options.cancelled);
         // A crash or cancellation before this point always leaves the source intact.
         await remove_verified(source, JSON.parse(before));
     }

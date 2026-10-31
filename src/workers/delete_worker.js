@@ -193,7 +193,14 @@ class DeleteWorker {
             });
 
             const item_scan_start = Date.now();
-            const delete_plan = await this.get_delete_plan(item);
+            let delete_plan;
+            try {
+                delete_plan = await this.get_delete_plan(item);
+            } catch (err) {
+                failed_items += 1;
+                this.post_message({ cmd: 'set_msg', msg: `Error scanning ${item.href}: ${err.message}` });
+                continue;
+            }
             const counted_files = delete_plan.reduce((total, entry) => {
                 const is_dir_entry = !!entry.is_dir;
                 const is_symlink_entry = !!entry.is_symlink;

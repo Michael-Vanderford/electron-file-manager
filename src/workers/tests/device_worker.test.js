@@ -50,3 +50,18 @@ test('hot-plug during discovery queues a follow-up scan', async () => {
     await request;
     expect(probe).toHaveBeenCalledTimes(2);
 });
+
+test('retains reachable Android MTP mounts and drives', async () => {
+    const phone = { name: 'mtp', path: 'mtp://[usb:001,009]/', type: 'phone' };
+    probe.mockImplementation(operation => Promise.resolve(
+        operation === 'mount_info' ? { total: 100, free: 60, used: 40 } : [phone]
+    ));
+    const manager = new DeviceManager();
+    await manager.get_mounts();
+    await manager.get_devices();
+    for (const operation of ['mounts', 'devices']) {
+        expect(parentPort.postMessage).toHaveBeenCalledWith({
+            cmd: operation, [operation]: [expect.objectContaining(phone)]
+        });
+    }
+});
