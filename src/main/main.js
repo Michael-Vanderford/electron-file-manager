@@ -2355,14 +2355,14 @@ class NetworkManager {
 
     normalize_server(server) {
         if (typeof server !== 'string') return '';
-        const address = server.trim().replace(/^(smb|ssh|sftp|sshfs|nfs|dav|davs|ftp):\/\//i, '');
+        const address = server.trim().replace(/^(smb|ssh|sftp|sshfs|nfs|dav|davs|ftp|afp):\/\//i, '');
         // Keep explicit root exports distinct from a missing remote path.
         return address.replace(/\/+$/, '') + (/^[^/]+\/+$/.test(address) ? '/' : '');
     }
 
     connectionTarget(settings) {
         const type = String(settings.type || '').toLowerCase();
-        if (!['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(type)) throw new Error('Unsupported connection type.');
+        if (!['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp', 'afp'].includes(type)) throw new Error('Unsupported connection type.');
         const raw = String(settings.server || '').trim();
         if (!raw) throw new Error('Server is required.');
         const scheme = ['ssh', 'sshfs'].includes(type) ? 'sftp' : type;
@@ -2574,7 +2574,7 @@ class NetworkManager {
         const seen = new Set();
         this.network_settings_arr = parsed
             .map((entry) => this.deserializeNetworkSettings(entry))
-            .filter((entry) => ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(entry.type) && entry.server)
+            .filter((entry) => ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp', 'afp'].includes(entry.type) && entry.server)
             .filter((entry) => {
                 const identity = this.networkIdentity(entry);
                 if (seen.has(identity)) {

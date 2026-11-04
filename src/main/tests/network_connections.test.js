@@ -26,6 +26,7 @@ test.each([
     ['nfs', 'nfs://server/export/path', 2049, 'server:2049/export/path'],
     ['nfs', 'nfs://server/', 2049, 'server:2049/'],
     ['davs', 'davs://cloud:8443/path', 8443, 'cloud:8443/path'],
+    ['afp', 'afp://mac:548/Shared%20Files', 548, 'mac:548/Shared%20Files'],
     ['ftp', 'ftp://server:2121/files', 2121, 'server:2121/files'],
     ['dav', 'server/public', 8080, 'server:8080/public'],
     ['ssh', 'sftp://server/home/user', 2222, 'server:2222/home/user'],
@@ -119,14 +120,14 @@ test('an NFS root export survives save and reconnect', () => {
     expect(manager.connectionTarget(entry).server).toBe('server/');
 });
 
-test('FTP credentials, custom port and remote path survive save and reconnect', async () => {
-    expect(manager.setNetworkSettings({ type: 'ftp', server: 'ftp://server:2121/files',
+test.each(['ftp', 'afp'])('%s credentials, custom port and remote path survive save and reconnect', async type => {
+    expect(manager.setNetworkSettings({ type, server: `${type}://server:2121/files`,
         username: 'ftp-user', password: 'fixture-secret', save_connection: true, auto_reconnect: true })).toBeNull();
     expect(fs.readFileSync(path.join(directory, 'network.json'), 'utf8')).not.toContain('fixture-secret');
     libfs.connect_network_drive.mockImplementation((...args) => args.at(-1)(null));
     expect(await manager.reconnectSavedConnections()).toHaveLength(1);
     expect(libfs.connect_network_drive.mock.calls[0].slice(0, 6))
-        .toEqual(['server:2121/files', 2121, 'ftp-user', 'fixture-secret', 0, 'ftp']);
+        .toEqual(['server:2121/files', 2121, 'ftp-user', 'fixture-secret', 0, type]);
 });
 
 test('startup reconnect bounds concurrency and keeps failure results with their identities', async () => {

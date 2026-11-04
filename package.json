@@ -1,6 +1,6 @@
 {
     "name": "electron-file-manager",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "Electron File Manager",
     "homepage": "https://github.com/michael-vanderford/sfm",
     "main": "src/main/main.js",
@@ -93,6 +93,6 @@
         }
     },
     "optionalDependencies": {
-        "libgio-node": "file:../libgio-node"
+        "libgio-node": "^1.0.12"
     }
 }

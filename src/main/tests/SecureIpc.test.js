@@ -79,7 +79,7 @@ test.each(['overwrite_one', 'overwrite_all'])('accepts %s archive jobs without r
 });
 
 
-test.each(['nfs', 'dav', 'davs', 'sftp', 'ftp'])('accepts %s connections and resources while checking port types', type => {
+test.each(['nfs', 'dav', 'davs', 'sftp', 'ftp', 'afp'])('accepts %s connections and resources while checking port types', type => {
     const { ipc, calls, event } = setup(); const handler = jest.fn();
     ipc.handle('connect', handler);
     const settings = { type, server: 'fixture/path', port: 8443, remote_path: '', username: '', password: '' };

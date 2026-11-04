@@ -1462,7 +1462,7 @@ test('Network real temporary NFS export connects and exposes its marker', async 
     expect(contents).toBe('electron-file-manager temporary NFS fixture\n');
 });
 
-for (const protocol of ['nfs', 'davs', 'dav', 'ssh', 'ftp']) {
+for (const protocol of ['nfs', 'davs', 'dav', 'ssh', 'ftp', 'afp']) {
     test(`Network ${protocol} fields submit the remote path and port through the real handler`, async () => {
         await app.evaluate(({ app }) => {
             const path = process.mainModule.require('path');
@@ -1586,7 +1586,7 @@ test('Network dialog omits SSHFS and pins actions to the lower left', async () =
     await page.evaluate(() => window.titlebarAPI.command('connect'));
     const dialog = await opening;
     await expect(dialog.locator('#connection_type option[value="sshfs"]')).toHaveCount(0);
-    for (const protocol of ['ssh', 'smb', 'nfs', 'davs', 'dav', 'ftp']) {
+    for (const protocol of ['ssh', 'smb', 'nfs', 'davs', 'dav', 'ftp', 'afp']) {
         await dialog.locator('#connection_type').selectOption(protocol);
         const checkPosition = async () => {
             const position = await dialog.evaluate(() => {

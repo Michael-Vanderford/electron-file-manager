@@ -18,6 +18,16 @@
 
 ---
 
+### Version 2.2.0 — 2026-11-04
+
+- Expanded network connections to SFTP over SSH, SMB, NFS, WebDAV (HTTP/HTTPS), FTP, and AppleTalk (AFP over TCP).
+- Added a combined server/port/share address, protocol help, connection cancellation, saved connections, opt-in startup reconnect, and green/red connection status messages.
+- Removed SSHFS from the connection selector and pinned dialog actions to the lower left.
+- Improved Android/MTP discovery before mounting and refresh handling for volume plug/unplug events.
+- Moved remote-sensitive transfer planning, workspace metadata, and menu checks into bounded background probes to keep the main process responsive.
+- Switched to the published `libgio-node@^1.0.12` package; the sibling repository is no longer required.
+- Expanded regression coverage and isolated Linux Electron test launches with Xvfb. Tests remain a manual release step; see [feature verification](docs/features.md) for coverage and outstanding checks.
+
 ### Change log for 2026-10-29
 - Improved search handling for large results
 - Added custom themes and updated the app to version 2.1.0.
@@ -69,8 +79,10 @@
 - Progress indicator with cancel support
 
 ### Network & Devices
-- **SSHFS** and **SSH** connections (public key authentication)
-- **SMB / Windows Share** connections
+- **SFTP over SSH** connections with SSH key authentication
+- **SMB / Windows Share**, **NFS**, **WebDAV (HTTP/HTTPS)**, **FTP**, and **AppleTalk (AFP over TCP)** connections
+- **Saved connections** with encrypted passwords where secure OS storage is available, plus opt-in startup reconnect
+- **Server / Share** accepts `server[:port][/remote/path]` or a matching protocol URI
 - **Mount and unmount** drives and removable media
 - **MTP** mobile device support (phones, tablets)
 - **Disk usage indicator** per device in the sidebar
@@ -120,7 +132,8 @@
 
 - Linux (x86-64)
 - Node.js ≥ 18
-- `sshfs` (optional, for SSHFS network mounts)
+- Python 3, make, a C++ compiler, pkg-config, and GLib/GIO ≥ 2.66 development headers to build the native `libgio-node` dependency from npm
+- GVFS protocol backends and a working desktop D-Bus session for network and MTP connections; an SSHFS executable is not required
 - `xz` for creating TAR.XZ archives; `gzip`, `xz`, and `bzip2` for standalone compressed streams
 - Python ≥ 3.9 and the libarchive runtime library for ZIP, TAR, TAR.GZ, TAR.XZ, TAR.BZ2, and 7z extraction (`python3` on Linux; `python` on Windows)
 
@@ -147,11 +160,11 @@ Produces a `.deb` package for Debian / Ubuntu:
 npm run build
 ```
 
-Output is written to the `dist/` directory.
+Output is written to the `dist/` directory. The Linux build rebuilds native dependencies for Electron; a successful development install alone does not verify the packaged application.
 
 ## Deb Install
 
-sudo dpkg -i dist/electron-file-manager_2.1.0_amd64.deb
+sudo dpkg -i dist/electron-file-manager_2.2.0_amd64.deb
 ---
 
 ## Tech Stack
@@ -190,4 +203,4 @@ Preferences use atomic private-file replacement and last-good backups. Keep the 
 
 JPEG/PNG previews use a small-image disk cache. GIF/WebP render directly through Chromium to preserve decoding and animation. The cache budget is soft for files served during the current app session; valid XCF and broader target-platform codec checks remain pending.
 
-Run `npm run test:regression` for development checks. The opt-in packaged smoke gate is `EFM_PACKAGED_EXECUTABLE=/absolute/path/to/executable npx playwright test e2e/packaged.spec.js` (under Xvfb on headless Linux). See [release checks](docs/release-checks.md) and [feature verification](docs/features.md) for exact scope and remaining platform/service gaps.
+Run `npm run test:regression` manually for development checks. On Linux this command starts Electron under an isolated Xvfb display and requires `xvfb-run`. Automated agents do not run tests unless explicitly requested. The opt-in packaged smoke gate is `EFM_PACKAGED_EXECUTABLE=/absolute/path/to/executable npx playwright test e2e/packaged.spec.js` (under Xvfb on headless Linux). See [release checks](docs/release-checks.md) and [feature verification](docs/features.md) for exact scope and remaining platform/service gaps.

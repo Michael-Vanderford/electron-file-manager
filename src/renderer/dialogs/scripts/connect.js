@@ -53,6 +53,7 @@ ipcRenderer.once('connect', () => {
         submit.value = pending ? 'Connecting…' : 'Connect';
         const help = {
             ssh: 'Example: server.local:2222/home/user. Port and remote path are optional. Use an SSH key installed on the server; username is optional.',
+            afp: 'Example: mac.local:548/Shared. Port and volume path are optional. Connects using AFP over TCP through GVFS.',
             ftp: 'Example: server.local:21/files. Port and remote path are optional. FTP sends credentials and files without transport encryption.',
             smb: 'Example: server.local:445/share. Port is optional. GVFS manages the local mount location.',
             nfs: 'Example: server.local:2049/export/path. Port is optional. Access uses your system identity; no username or password is sent.',
@@ -61,7 +62,7 @@ ipcRenderer.once('connect', () => {
         };
         field('protocol_help').textContent = help[type.value];
         server.placeholder = { ssh: 'server.local:2222/home/user', smb: 'server.local/share',
-            ftp: 'server.local:21/files', nfs: 'server.local/export/path', davs: 'cloud.example.com:8443/files', dav: 'server.local:8080/files' }[type.value];
+            afp: 'mac.local:548/Shared', ftp: 'server.local:21/files', nfs: 'server.local/export/path', davs: 'cloud.example.com:8443/files', dav: 'server.local:8080/files' }[type.value];
     }
     type.addEventListener('change', () => { message(''); update(); });
     save.addEventListener('change', update);

@@ -8,7 +8,7 @@ const oneOf = values => value => values.includes(value);
 const bool = value => typeof value === 'boolean';
 const id = value => (Number.isSafeInteger(value) && value >= 0) || (text(value) && /^\d+$/.test(value));
 const localPath = value => text(value) && path.isAbsolute(value);
-const resource = value => localPath(value) || (text(value) && /^(smb|sftp|ssh|sshfs|nfs|dav|davs|ftp|mtp|file):\/\//i.test(value));
+const resource = value => localPath(value) || (text(value) && /^(smb|sftp|ssh|sshfs|nfs|dav|davs|ftp|afp|mtp|file):\/\//i.test(value));
 const location = value => resource(value) || ['Dashboard', 'Recent', 'File Conflicts'].includes(value);
 const list = validate => value => Array.isArray(value) && value.length <= 100000 && value.every(validate);
 const tuple = (...validators) => args => args.length <= validators.length && validators.every((validate, index) => validate(args[index]));
@@ -26,7 +26,7 @@ const plainData = value => {
         return object(value) && json.length <= 1024 * 1024;
     } catch (_) { return false; }
 };
-const network = value => object(value) && ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(value.type) &&
+const network = value => object(value) && ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp', 'afp'].includes(value.type) &&
     text(value.server) && optional(port => Number.isInteger(port) && port >= 0 && port <= 65535)(value.port) && text(value.remote_path || '') && text(value.mount_point || '') && text(value.username || '') && text(value.password || '') &&
     ['use_ssh_key', 'save_connection', 'auto_reconnect'].every(key => optional(bool)(value[key]));
 
