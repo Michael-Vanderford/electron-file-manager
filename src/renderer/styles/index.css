@@ -2154,10 +2154,26 @@ td .div_name a {
 
 .card .icon .readonly-emblem {
     right: -2px;
+    width: 26px !important;
+    height: 26px !important;
 }
 
 .card .icon .symlink-emblem {
     right: 12px;
+    width: 26px !important;
+    height: 26px !important;
+}
+
+:root[data-theme="dark"] .card .icon :is(.symlink-emblem, .readonly-emblem),
+:root[data-theme="modern-dark"] .card .icon :is(.symlink-emblem, .readonly-emblem),
+:root.theme-dark:not([data-theme]) .card .icon :is(.symlink-emblem, .readonly-emblem) {
+    filter: brightness(0) invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]):not(.theme-light) .card .icon :is(.symlink-emblem, .readonly-emblem) {
+        filter: brightness(0) invert(1);
+    }
 }
 
 .readonly {
@@ -2181,12 +2197,6 @@ td .div_name a {
 }
 
 /* Dialogs */
-.connect {
-    background: var(--main);
-    color: var(--text);
-    padding: 25px;
-}
-
 .chk_div {
     display: flex;
     width: 250px;
@@ -2201,16 +2211,6 @@ td .div_name a {
     width: 16px !important;
     height: 16px !important;
     border-radius: 5px !important;
-}
-
-.connect .input {
-    border: 1px solid var(--border);
-    height: 23px;
-    background: var(--input);
-    color: var(--text);
-    display: block;
-    margin-bottom: 15px;
-    width: 350px;
 }
 
 /* .input:focus {

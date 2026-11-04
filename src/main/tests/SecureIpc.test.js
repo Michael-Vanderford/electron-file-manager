@@ -77,3 +77,15 @@ test.each(['overwrite_one', 'overwrite_all'])('accepts %s archive jobs without r
     handler.mockClear(); job.files_arr = null;
     calls[channel](event, data, 'compress'); expect(handler).not.toHaveBeenCalled();
 });
+
+
+test.each(['nfs', 'dav', 'davs', 'sftp', 'ftp'])('accepts %s connections and resources while checking port types', type => {
+    const { ipc, calls, event } = setup(); const handler = jest.fn();
+    ipc.handle('connect', handler);
+    const settings = { type, server: 'fixture/path', port: 8443, remote_path: '', username: '', password: '' };
+    calls.connect(event, settings); expect(handler).toHaveBeenCalledWith(event, settings);
+    expect(() => calls.connect(event, { ...settings, port: '8443' })).toThrow('denied');
+    expect(() => calls.connect(event, { ...settings, type: 'unsupported' })).toThrow('denied');
+    ipc.on('get_disk_space', handler); calls.get_disk_space(event, `${type}://fixture/path`);
+    expect(handler).toHaveBeenCalledWith(event, `${type}://fixture/path`);
+});

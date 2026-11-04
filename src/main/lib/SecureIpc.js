@@ -8,7 +8,7 @@ const oneOf = values => value => values.includes(value);
 const bool = value => typeof value === 'boolean';
 const id = value => (Number.isSafeInteger(value) && value >= 0) || (text(value) && /^\d+$/.test(value));
 const localPath = value => text(value) && path.isAbsolute(value);
-const resource = value => localPath(value) || (text(value) && /^(smb|sftp|ssh|sshfs|mtp|file):\/\//i.test(value));
+const resource = value => localPath(value) || (text(value) && /^(smb|sftp|ssh|sshfs|nfs|dav|davs|ftp|mtp|file):\/\//i.test(value));
 const location = value => resource(value) || ['Dashboard', 'Recent', 'File Conflicts'].includes(value);
 const list = validate => value => Array.isArray(value) && value.length <= 100000 && value.every(validate);
 const tuple = (...validators) => args => args.length <= validators.length && validators.every((validate, index) => validate(args[index]));
@@ -26,14 +26,14 @@ const plainData = value => {
         return object(value) && json.length <= 1024 * 1024;
     } catch (_) { return false; }
 };
-const network = value => object(value) && ['ssh', 'sshfs', 'smb'].includes(value.type) &&
-    text(value.server) && text(value.mount_point || '') && text(value.username || '') && text(value.password || '') &&
+const network = value => object(value) && ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(value.type) &&
+    text(value.server) && optional(port => Number.isInteger(port) && port >= 0 && port <= 65535)(value.port) && text(value.remote_path || '') && text(value.mount_point || '') && text(value.username || '') && text(value.password || '') &&
     ['use_ssh_key', 'save_connection', 'auto_reconnect'].every(key => optional(bool)(value[key]));
 
 const schemas = {};
 for (const channel of ['get_settings','get_list_view_settings','get_home_dir','get_user','get_window_settings','get_app_versions',
     'get_dashboard_view','get_workspace','get_recent_files_arr','get_templates_folder','get_mounts','get_devices',
-    'open_connect_dialog','clear_history','load_history','columns_menu','group_by_menu','sort_menu',
+    'open_connect_dialog','cancel_connect','clear_history','load_history','columns_menu','group_by_menu','sort_menu',
     'window-minimize','window-maximize','window-close','toggle-devtools','toggle-fullscreen','reload']) schemas[channel] = tuple();
 for (const channel of ['update_settings','update_list_view_settings','update_window_settings']) schemas[channel] = tuple(plainData);
 for (const channel of ['set_execute','clear_execute','get_thumbnail','mkdir','remove_workspace','start_drag_external']) schemas[channel] = tuple(localPath);
@@ -82,7 +82,7 @@ schemas.open_external = tuple(value => {
 schemas['close-window'] = tuple(optional(plainData));
 
 const dialogChannels = {
-    'connect.html': new Set(['connect','autocomplete','get_settings','get_home_dir','window-close','close-window']),
+    'connect.html': new Set(['connect','cancel_connect','autocomplete','get_settings','get_home_dir','window-close','close-window']),
     'columns.html': new Set(['get_settings','get_home_dir','update_settings','ls','window-close','close-window'])
 };
 

@@ -11,7 +11,7 @@ beforeEach(() => {
     };
     const start = source.indexOf('    normalize_server(');
     const end = source.indexOf('    writeNetworkSettings()', start);
-    manager = vm.runInNewContext(`new (class { ${source.slice(start, end)} })()`, { safeStorage, Buffer, process });
+    manager = vm.runInNewContext(`new (class { ${source.slice(start, end)} })()`, { safeStorage, Buffer, process, URL });
 });
 test('encrypted round-trip and plaintext migration never serialize plaintext', () => {
     const input = { type: 'smb', server: 'host', username: 'test', password: 'fixture-secret', save_connection: true, auto_reconnect: true };
@@ -45,7 +45,7 @@ test('legacy migration uses private files and retains source data when encryptio
     const start = source.indexOf('    normalize_server(');
     const end = source.indexOf('    removeNetworkSettings(', start);
     const storage = vm.runInNewContext(`new (class { ${source.slice(start, end)} })()`, {
-        safeStorage, Buffer, process, fs, path, JsonStore, app: { getPath: () => directory }, console
+        safeStorage, Buffer, process, URL, fs, path, JsonStore, app: { getPath: () => directory }, console
     });
     try {
         const legacy = [{ type: 'smb', server: 'fixture', username: 'user', password: 'fixture-secret', auto_reconnect: true, save_connection: true }];
@@ -72,13 +72,13 @@ test('a successful connection reports a failed credential save without logging p
     const start = source.indexOf('    normalize_server(');
     const end = source.indexOf('    writeNetworkSettings()', start);
     const connected = vm.runInNewContext(`new (class { ${source.slice(start, end)} })()`, {
-        safeStorage, Buffer, process, setTimeout, clearTimeout, deviceManager: null,
+        safeStorage, Buffer, process, URL, setTimeout, clearTimeout, deviceManager: null,
         libfs: { connect_network_drive: (...args) => args.at(-1)(null) }
     });
     connected.setNetworkSettings = () => 'Secure password storage is unavailable.';
     const send = jest.fn();
     const result = await connected.connect({ sender: { send } }, {
-        type: 'smb', server: 'fixture', username: 'user', password: 'fixture-secret', save_connection: true
+        type: 'smb', server: 'fixture/share', username: 'user', password: 'fixture-secret', save_connection: true
     });
     expect(result.error).toBe(false);
     expect(result.msg).toContain('Connection was not saved');

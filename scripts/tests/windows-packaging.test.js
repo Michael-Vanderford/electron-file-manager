@@ -38,7 +38,8 @@ test('builder collects Windows production dependencies and packaged archiver cre
                 const packagedRequire = createRequire(path.join(destination, 'main.js'));
                 const resolved = packagedRequire.resolve('archiver');
                 assert(resolved.startsWith(destination + path.sep), resolved);
-                const archive = packagedRequire('archiver')('zip');
+                const { ZipArchive } = await import(require('url').pathToFileURL(resolved).href);
+                const archive = new ZipArchive();
                 const output = require('fs').createWriteStream(path.join(fixture, 'test.zip'));
                 const finished = new Promise((resolve, reject) => { output.on('close', resolve); output.on('error', reject); archive.on('error', reject); });
                 archive.pipe(output); archive.append('packaged runtime', { name: 'test.txt' });

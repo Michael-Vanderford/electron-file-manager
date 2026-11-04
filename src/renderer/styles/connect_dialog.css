@@ -35,3 +35,28 @@
 .connect .button:hover {
     background: var(--button-connect-hover);
 }
+
+.connect { box-sizing: border-box; height: 100vh; overflow-y: auto; padding: 16px 16px 76px; }
+.connect h1 { font-size: 18px; margin: 0 0 12px; }
+.connect .input {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    height: 28px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--input);
+    color: var(--text);
+    box-shadow: none;
+}
+.connect .chk_div { width: auto; margin: 6px 0; }
+.connect [hidden] { display: none !important; }
+#protocol_help { min-height: 38px; font-size: 12px; line-height: 1.4; margin: 0 0 8px; }
+#connect_msg { min-height: 28px; overflow-wrap: anywhere; margin: 8px 0; }
+#connect_msg:empty { display: none; }
+#connect_msg.msg_connect_success { color: var(--success); }
+#connect_msg.msg_connect_error { color: var(--danger); }
+.connection_actions { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: flex-start; gap: 8px; padding: 16px; background: var(--main); }
+.connect .input:focus { outline: none; }
+.connect :focus-visible { outline: 2px solid var(--text); outline-offset: 0; }

@@ -60,3 +60,15 @@ Existing files using the old plaintext `password` field are migrated when secure
 - **SSH Password Authentication**: The current limitation enforces SSH key usage. Supporting password-based SSH could be beneficial if `libgio` allows for interactive prompts or standard password passing.
 - **Connection Error Specificity**: GVFS errors can sometimes be opaque. Better parsing of the `err` object returned by `gio.connect_network_drive` could provide more actionable UI feedback.
 - **Timeout Management**: The 20-second timeout is hardcoded. It might be worthwhile to allow this to be configurable depending on the user's network latency.
+
+
+## Local patched library (2026-11-01)
+
+Development currently uses `file:../libgio-node`, rather than the published 1.0.11 copy. Keep the sibling repository available and rebuild its addon after C++ changes; restart Electron to load the new binary. Publish and pin a patched package before standalone distribution. The local source supplies passwords through GMountOperation and preserves the remote SMB share path. `server-pi3/share1` and `smb://server-pi3/share1` are accepted Server / Share formats; the dialog's Mount Point field is still unused by the backend. Native helper tests and injected Electron tests do not certify real-server authentication.
+
+
+## Single address input (2026-11-02)
+
+Choose the connection type separately, and enter `server[:port][/remote/path]` in Server / Share. A matching URI prefix is also accepted. For example: select WebDAV (HTTPS) and enter `cloud.example.com:8443/files`, or select NFS and enter `server.local:2049/export/path`. IPv6 addresses use brackets, such as `[::1]:2222/home/user`. Passwords and usernames stay in their own fields.
+
+New saves include the port and remote path in `server`. Existing JSON fields are retained for now. Separate `port` and `remote_path` values from older entries are used when the corresponding inline component is absent; explicit inline components take precedence. Native code still receives its existing positional arguments. Updated regression sources are left for the user to run manually.

@@ -10,66 +10,48 @@
 </head>
 <body>
 
-    <form method="post">
-
+    <form id="connection_form">
         <div class="connect">
+            <h1>Connect to a server</h1>
+            <label class="label" for="connection_type">Connection type</label>
             <select id="connection_type" class="input select">
-                <option value="ssh">SSH</option>
-                <option value="sshfs">SSHFS</option>
+                <option value="ssh">SFTP (over SSH)</option>
                 <option value="smb">Windows Share (SMB)</option>
+                <option value="ftp">FTP</option>
+                <option value="nfs">NFS</option>
+                <option value="davs">WebDAV (HTTPS)</option>
+                <option value="dav">WebDAV (HTTP)</option>
             </select>
-
-
-            <label class="label" for="txt_server">Connect to Server / Share</label>
-            <input class="input" type="text" id="txt_server" autocomplete="on" placeholder="IP Address / Machine Name">
-
-            <div class="mount_point_div">
-                <label class="label" for="txt_mount_point">Mount Point</label>
-                <input class="input" type="text" id="txt_mount_point" placeholder="Mount Point">
+            <label class="label" for="txt_server">Server / Share</label>
+            <input class="input" type="text" id="txt_server" required autocomplete="off" aria-describedby="protocol_help">
+            <p id="protocol_help"></p>
+            <div id="username_fields">
+                <label class="label" for="txt_username">Username</label>
+                <input class="input" type="text" id="txt_username" autocomplete="username">
             </div>
-
-
-            <label class="label" for="txt_username">Username</label>
-            <input class="input" type="text" id="txt_username" placeholder="User Name">
-            <label class="label" for="txt_password">Password</label>
-            <input class="input hidden" type="password" id="txt_password" placeholder="Password">
-
-            <div class="chk_div">
-                <input id="chk_pk" class="checkbox" type="checkbox" disabled="disabled" checked>
-                <label for="chk_pk">Use Public Key Authentication</label>
+            <div id="password_fields">
+                <label class="label" for="txt_password">Password</label>
+                <input class="input" type="password" id="txt_password" autocomplete="current-password">
             </div>
-
-            <div class="chk_div">
-                <input type="checkbox" id="chk_save_connection" class="chk_save_connection" checked />
-                <label for="chk_save_connection">Save Connection</label>
+            <div class="chk_div" id="key_fields">
+                <input id="chk_pk" type="checkbox" checked disabled>
+                <label for="chk_pk">Use SSH key authentication</label>
             </div>
-
             <div class="chk_div">
-                <input type="checkbox" id="chk_auto_reconnect" class="chk_auto_reconnect" />
+                <input type="checkbox" id="chk_save_connection" checked>
+                <label for="chk_save_connection">Save connection</label>
+            </div>
+            <div class="chk_div">
+                <input type="checkbox" id="chk_auto_reconnect">
                 <label for="chk_auto_reconnect">Reconnect automatically after startup</label>
             </div>
-
-            <br>
-            <br>
-            <div class="msg_connect" id="connect_msg"></div>
-            <br>
-            <div class="absolute bottom">
-
-                <div>
-                    <!-- Message for creating ssh key -->
-                    <p>
-                        Public key authentication is required. <br />
-                        Create a public key and add it to the server your connecting to. <br />
-                    </p>
-                </div>
-
+            <div class="msg_connect" id="connect_msg" role="status" aria-live="polite" aria-atomic="true"></div>
+            <div class="connection_actions">
                 <input class="button button-dialog" id="button_close" type="button" value="Close">
+                <input class="button button-dialog" id="button_cancel" type="button" value="Cancel" hidden>
                 <input class="button button-dialog" id="button_connect" type="submit" value="Connect">
             </div>
         </div>
-
     </form>
-
-
 </body>
 </html>

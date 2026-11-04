@@ -13,7 +13,7 @@ test.beforeEach(async () => {
     profile = await fs.mkdtemp(path.join(os.tmpdir(), 'efm-profile-'));
     const env = { ...process.env };
     delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
     await app.evaluate(({ dialog }) => {
         dialog.showMessageBox = async () => ({ response: 1 });
     });
@@ -38,6 +38,22 @@ test.afterEach(async () => {
     app = null;
     if (profile) await fs.rm(profile, { recursive: true, force: true });
     if (fixture) await fs.rm(fixture, { recursive: true, force: true });
+});
+
+test('Linux UI tests keep Electron on the isolated X11 display', async () => {
+    test.skip(process.platform !== 'linux' || !process.env.EFM_TEST_VIRTUAL_DISPLAY, 'Run through npm run test:e2e on Linux.');
+    const runtime = await app.evaluate(({ app }) => ({
+        display: process.env.DISPLAY,
+        wayland: process.env.WAYLAND_DISPLAY,
+        waylandSocket: process.env.WAYLAND_SOCKET,
+        activation: process.env.XDG_ACTIVATION_TOKEN,
+        startup: process.env.DESKTOP_STARTUP_ID,
+        ozone: app.commandLine.getSwitchValue('ozone-platform')
+    }));
+    expect(runtime.display).toBe(process.env.DISPLAY);
+    expect(runtime.display).not.toBe(process.env.EFM_TEST_DESKTOP_DISPLAY);
+    expect(runtime.ozone).toBe('x11');
+    for (const key of ['wayland', 'waylandSocket', 'activation', 'startup']) expect(runtime[key]).toBeUndefined();
 });
 
 test('navigates into a folder and back and forward', async () => {
@@ -85,6 +101,8 @@ test('keeps each tab at its own current folder when switching', async () => {
     const secondTab = page.locator('.tab').nth(1);
     await page.locator(`.active-tab-content .card[data-href="${path.join(fixture, 'child')}"] .href`).click();
     await expect.poll(() => currentLocation()).toBe(path.join(fixture, 'child'));
+    // The address changes before ls_done commits the tab's current folder.
+    await expect(secondTab).toHaveAttribute('data-href', path.join(fixture, 'child'));
 
     await page.locator('.tab').first().click();
     await expect.poll(() => currentLocation()).toBe(fixture);
@@ -138,6 +156,48 @@ test('copies and moves files between folders', async () => {
     await expect.poll(() => fs.stat(path.join(fixture, 'move.txt')).then(() => true, () => false)).toBe(false);
 });
 
+for (const view of ['grid_view', 'list_view']) {
+    test(`remote-sensitive copy and workspace metadata stay off the main thread in ${view}`, async () => {
+        const source = path.join(fixture, 'probe-source.txt');
+        await fs.writeFile(source, 'probe contents');
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        await expect(card(source)).toBeVisible();
+        await app.evaluate(({ app }, root) => {
+            const fs = process.mainModule.require('fs');
+            const path = process.mainModule.require('path');
+            const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+            globalThis.mainThreadRemoteReads = [];
+            for (const [owner, method] of [[fs, 'existsSync'], [fs, 'lstatSync'], [fs, 'statSync'], [fs, 'accessSync'], [libfs, 'get_file']]) {
+                const original = owner[method];
+                owner[method] = function(href, ...args) {
+                    if (typeof href === 'string' && (href === root || href.startsWith(root + path.sep))) {
+                        globalThis.mainThreadRemoteReads.push(method);
+                        throw new Error('fixture: synchronous remote read on main thread');
+                    }
+                    return original.call(this, href, ...args);
+                };
+            }
+        }, fixture);
+        await page.locator('.active-tab-content').click({ position: { x: 5, y: 5 } });
+        await page.keyboard.press('Control+A');
+        await expect(card(source)).toHaveClass(/highlight_select/);
+        await page.evaluate(() => window.titlebarAPI.command('add_workspace'));
+        await expect(page.locator('.workspace_item').filter({ hasText: 'probe-source.txt' })).toBeVisible();
+        // Add to Workspace clears selection; reselect explicitly before copying.
+        await page.locator('.active-tab-content').click({ position: { x: 5, y: 5 } });
+        await page.keyboard.press('Control+A');
+        await expect(card(source)).toHaveClass(/highlight_select/);
+        await page.keyboard.press('Control+C');
+        await expect(page.locator('.footer .msg')).toContainText('Copied 1 items');
+        await page.keyboard.press('Control+V');
+        const duplicate = path.join(fixture, 'probe-source (Copy 1).txt');
+        await expect(card(duplicate)).toBeVisible({ timeout: 15000 });
+        expect(await fs.readFile(duplicate, 'utf8')).toBe('probe contents');
+        expect(await app.evaluate(() => globalThis.mainThreadRemoteReads)).toEqual([]);
+    });
+}
+
 async function currentLocation() {
     return path.resolve(await page.evaluate(() => window.titlebarAPI.getLocation()));
 }
@@ -171,6 +231,50 @@ async function buildOutsideView() {
 async function exists(href) {
     return fs.stat(href).then(() => true, () => false);
 }
+
+test('directory links have a slightly larger emblem in grid and list views', async () => {
+    test.skip(process.platform === 'win32', 'Creating symlinks requires Windows developer mode or privileges.');
+    const target = path.join(fixture, 'target');
+    const link = path.join(fixture, 'shortcut');
+    await fs.mkdir(target);
+    await fs.symlink(target, link);
+    for (const view of ['grid_view', 'list_view']) {
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        await page.evaluate(() => window.titlebarAPI.refresh());
+        const badge = card(link).locator('.symlink-emblem');
+        await expect(badge).toBeVisible();
+        await expect(badge).toHaveCSS('width', '26px');
+        await expect(badge).toHaveCSS('height', '26px');
+        for (const theme of ['dark', 'modern-dark', 'light', 'modern-light']) {
+            await app.evaluate(({ BrowserWindow }, theme) => {
+                BrowserWindow.getAllWindows()[0].webContents.send('theme-preference-changed', theme, 'light');
+            }, theme);
+            await expect(badge).toHaveCSS('filter', theme.endsWith('dark') ? 'brightness(0) invert(1)' : 'none');
+        }
+
+        await expect(card(target).locator('.symlink-emblem')).toHaveCount(0);
+    }
+});
+
+test('lock emblem styling is larger and white in dark themes', async () => {
+    // Styling fixture only; this does not certify filesystem permission detection.
+    await page.evaluate(() => {
+        const card = document.createElement('div');
+        card.className = 'card'; card.id = 'lock-style-fixture';
+        const icon = document.createElement('div'); icon.className = 'icon';
+        const lock = document.createElement('img'); lock.className = 'symlink readonly-emblem';
+        icon.append(lock); card.append(icon); document.body.append(card);
+    });
+    const lock = page.locator('#lock-style-fixture .readonly-emblem');
+    await expect(lock).toHaveCSS('width', '26px');
+    await expect(lock).toHaveCSS('height', '26px');
+    for (const theme of ['dark', 'modern-dark', 'light', 'modern-light']) {
+        await app.evaluate(({ BrowserWindow }, theme) => {
+                BrowserWindow.getAllWindows()[0].webContents.send('theme-preference-changed', theme, 'light');
+            }, theme);
+        await expect(lock).toHaveCSS('filter', theme.endsWith('dark') ? 'brightness(0) invert(1)' : 'none');
+    }
+});
 
 for (const operation of ['copy', 'cut']) {
     for (const kind of ['file', 'folder']) {
@@ -364,7 +468,7 @@ test('restores the last opened directory after restarting with the same profile'
     app = null;
     const env = { ...process.env };
     delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
     page = await app.firstWindow();
     await page.waitForFunction(() => window.titlebarAPI?.getLocation());
     await expect.poll(() => currentLocation()).toBe(directory);
@@ -410,7 +514,15 @@ test('dashboard shows GVFS names and capacity and omits failed queries', async (
 test('renders verified GVFS capacity in the device sidebar', async () => {
     // Simulate the verified worker response; no real network mounts are contacted.
     await app.evaluate(({ BrowserWindow }, devices) => {
-        BrowserWindow.getAllWindows()[0].webContents.send('mounts', devices);
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        const send = contents.send.bind(contents);
+        // Pending startup/hot-plug replies must not replace this rendering fixture.
+        contents.send = (channel, ...args) => {
+            if (['mounts', 'devices'].includes(channel)) return;
+            return send(channel, ...args);
+        };
+        send('devices', []);
+        send('mounts', devices);
     }, [{ name: 'Test GVFS', path: '/run/user/1000/gvfs/smb-share:server=test,share=files',
         type: 'network', total: 1000, used: 400, free: 600 }]);
     const device = page.locator('.device_item').filter({ hasText: 'Test GVFS' });
@@ -523,6 +635,43 @@ test('hot-plug updates device entries without rebuilding unchanged sidebar contr
     await sendDevices([existing], []);
     await expect(newDevice).toHaveCount(0);
     expect(await oldNode.evaluate(node => node.isConnected)).toBe(true);
+});
+
+test('Unmounted Android phone remains visible and clicking requests a mount', async () => {
+    await app.evaluate(({ BrowserWindow, app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        globalThis.phoneMountRequests = [];
+        libfs.mount = (name, callback) => { globalThis.phoneMountRequests.push(name); callback(new Error('fixture: no real mount')); };
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        const original = contents.send.bind(contents);
+        contents.send = (channel, ...args) => {
+            if (['mounts', 'devices'].includes(channel) && !globalThis.publishingPhoneFixture) return;
+            return original(channel, ...args);
+        };
+        globalThis.publishingPhoneFixture = true;
+        contents.send('mounts', []);
+        contents.send('devices', [{ name: 'SAMSUNG Android', path: '', type: 'phone' }]);
+        globalThis.publishingPhoneFixture = false;
+    });
+    const entry = page.locator('.device_item').filter({ hasText: 'SAMSUNG Android' });
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toBeVisible();
+    await expect(entry.locator('.bi-phone')).toBeVisible();
+    await expect(entry.locator('.device_eject')).toBeHidden();
+    await entry.click();
+    await expect.poll(() => app.evaluate(() => globalThis.phoneMountRequests)).toEqual(['SAMSUNG Android']);
+    await expect(page.locator('.footer .msg')).toContainText('fixture: no real mount');
+    // A failed mount must leave the device available for another attempt.
+    await expect(entry).toBeVisible();
+    await entry.click();
+    await expect.poll(() => app.evaluate(() => globalThis.phoneMountRequests)).toEqual(['SAMSUNG Android', 'SAMSUNG Android']);
+    await app.evaluate(({ BrowserWindow }) => {
+        globalThis.publishingPhoneFixture = true;
+        BrowserWindow.getAllWindows()[0].webContents.send('devices', []);
+        globalThis.publishingPhoneFixture = false;
+    });
+    await expect(entry).toHaveCount(0);
 });
 
 test('Android MTP entries use the friendly volume label and disappear on disconnect', async () => {
@@ -855,6 +1004,51 @@ for (const count of [3, 1001]) {
     });
 }
 
+test('Windows Recent child returns empty history without blocking the application', async () => {
+    const history = path.join(profile, 'empty-recent'); await fs.mkdir(history);
+    const result = await app.evaluate(async ({ app }, { history, modulePath }) => {
+        const { WindowsRecent } = process.mainModule.require(modulePath);
+        const reader = new WindowsRecent({ on: () => {}, getPath: () => history });
+        return reader.get();
+    }, { history, modulePath: path.resolve('src/main/lib/WindowsRecent.js') });
+    expect(result).toEqual([]);
+    await expect(page.locator('.active-tab')).toBeVisible();
+});
+
+test('Windows Recent targets render in grid and list and navigate to folders', async () => {
+    const folder = path.join(fixture, 'Recent 日本語'); await fs.mkdir(folder);
+    const source = path.join(fixture, 'recent-target.txt'); await fs.writeFile(source, 'recent');
+    const history = path.join(profile, 'recent-fixture'); await fs.mkdir(history);
+    await app.evaluate(({ app, shell, ipcMain }, { folder, source, history, modulePath }) => {
+        if (process.platform === 'win32') {
+            shell.writeShortcutLink(process.mainModule.require('path').join(history, 'folder.lnk'), { target: folder });
+            shell.writeShortcutLink(process.mainModule.require('path').join(history, 'file.lnk'), { target: source });
+            const getPath = app.getPath.bind(app);
+            app.getPath = name => name === 'recent' ? history : getPath(name);
+        } else {
+            // Exercise Windows normalization + real renderer IPC; native Shell resolution is simulated on Linux.
+            const fs = process.mainModule.require('fs'); const path = process.mainModule.require('path');
+            fs.writeFileSync(path.join(history, 'folder.lnk'), 'fixture');
+            fs.writeFileSync(path.join(history, 'file.lnk'), 'fixture');
+            const { windows_recent } = process.mainModule.require(modulePath);
+            ipcMain.removeAllListeners('get_recent_files');
+            ipcMain.on('get_recent_files', (event, addTab, requestId) => {
+                const files = windows_recent(history, shortcut => ({ target: path.basename(shortcut) === 'folder.lnk' ? folder : source }));
+                event.sender.send('recent_files', files, addTab, requestId);
+            });
+        }
+    }, { folder, source, history, modulePath: path.resolve('src/common/windows_recent.js') });
+    await page.locator('.sidebar').getByText('Recent', { exact: true }).click();
+    for (const view of ['grid_view', 'list_view']) {
+        await page.evaluate(view => window.titlebarAPI.setView(view), view);
+        await expect(card(folder)).toBeVisible();
+        await expect(card(source)).toBeVisible();
+    }
+    await card(folder).locator('.href').dblclick();
+    await expect.poll(() => currentLocation()).toBe(folder);
+    expect(await fs.readFile(source, 'utf8')).toBe('recent');
+});
+
 test('Recent empty messaging follows population removal view changes and navigation', async () => {
     const openFixture = await buildOutsideView();
     const source = path.join(fixture, 'recent.txt');
@@ -1045,6 +1239,28 @@ test('P0 archive creation offers conflicts and never truncates a selected archiv
     expect(await fs.readFile(archive)).toEqual(before);
 });
 
+test('archive dependency upgrade preserves nested hidden and Unicode files through ZIP creation', async () => {
+    const source = path.join(fixture, 'folder');
+    await fs.mkdir(path.join(source, 'nested'), { recursive: true });
+    const names = ['nested/😀-café.txt', '.hidden'];
+    for (const name of names) await fs.writeFile(path.join(source, name), `bytes for ${name}`);
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await expect(card(source)).toBeVisible();
+    await card(source).click();
+    await page.locator('button[title="Compress to zip"]').click();
+    await expect(page.locator('.footer .msg')).toHaveText('Done compressing files.');
+    const archive = path.join(fixture, 'folder.zip');
+    await expect(card(archive)).toBeVisible();
+    const output = path.join(fixture, 'extracted');
+    await fs.mkdir(output);
+    const { extract_archive } = require('../src/common/extract_archive');
+    const extracted = await extract_archive(archive, output);
+    for (const name of names) {
+        expect(await fs.readFile(path.join(extracted, 'folder', name), 'utf8')).toBe(`bytes for ${name}`);
+        expect(await fs.readFile(path.join(source, name), 'utf8')).toBe(`bytes for ${name}`);
+    }
+});
+
 test('P0 startup restores a destination interrupted after its backup rename', async () => {
     const source = path.join(fixture, 'source.txt'); const destination = path.join(fixture, 'destination.txt');
     await fs.writeFile(source, 'new contents'); await fs.writeFile(destination, 'original');
@@ -1060,7 +1276,7 @@ test('P0 startup restores a destination interrupted after its backup rename', as
     const child = require('node:child_process').spawnSync(process.execPath, ['-e', script]);
     expect(child.status).toBe(23); expect(await exists(destination)).toBe(false);
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
     page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
     expect(await fs.readFile(destination, 'utf8')).toBe('original');
     expect(await fs.readFile(source, 'utf8')).toBe('new contents');
@@ -1218,6 +1434,252 @@ test('Security external and email links use the system opener without creating r
     expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
 });
 
+test('Network real temporary NFS export connects and exposes its marker', async () => {
+    test.skip(!process.env.EFM_TEST_NFS_URI, 'Opt in with bash scripts/manual-nfs-test.sh.');
+    const uri = process.env.EFM_TEST_NFS_URI;
+    // Accept only the isolated, local fixture created by the manual runner.
+    expect(uri).toMatch(/^nfs:\/\/127\.0\.0\.1\/tmp\/efm-nfs-test-[A-Za-z0-9]+$/);
+    const opening = app.waitForEvent('window');
+    await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await dialog.locator('#connection_type').selectOption('nfs');
+    await dialog.locator('#txt_server').fill(uri);
+    await dialog.locator('#chk_save_connection').uncheck();
+    await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText(`Connected to ${uri.slice('nfs://'.length)}.`, { timeout: 25000 });
+    await dialog.locator('#button_close').click();
+    await page.keyboard.press('Control+L');
+    const location = page.locator('input.location');
+    await location.fill(uri);
+    await location.press('Enter');
+    await expect(page.locator('.active-tab-content .card').filter({ hasText: 'efm-nfs-marker.txt' })).toBeVisible({ timeout: 15000 });
+    const contents = await app.evaluate(async (_electron, uri) => {
+        const { execFile } = process.mainModule.require('node:child_process');
+        return await new Promise((resolve, reject) => {
+            execFile('gio', ['cat', `${uri}/efm-nfs-marker.txt`], { timeout: 10000 }, (error, stdout) => error ? reject(error) : resolve(stdout));
+        });
+    }, uri);
+    expect(contents).toBe('electron-file-manager temporary NFS fixture\n');
+});
+
+for (const protocol of ['nfs', 'davs', 'dav', 'ssh', 'ftp']) {
+    test(`Network ${protocol} fields submit the remote path and port through the real handler`, async () => {
+        await app.evaluate(({ app }) => {
+            const path = process.mainModule.require('path');
+            const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+            globalThis.networkTestCalls = [];
+            libfs.connect_network_drive = (...args) => {
+                globalThis.networkTestCalls.push(args.slice(0, 6)); args[6](null); return { cancel() {} };
+            };
+        });
+        const opening = app.waitForEvent('window');
+        await page.evaluate(() => window.titlebarAPI.command('connect'));
+        const dialog = await opening;
+        await expect(dialog.locator('#connection_type option[value="unsupported"]')).toHaveCount(0);
+        await dialog.locator('#connection_type').selectOption(protocol);
+        await dialog.locator('#txt_server').fill('fixture.example:8443/export/report%20%231');
+        const ssh = protocol === 'ssh';
+        if (protocol === 'nfs') {
+            await expect(dialog.locator('#txt_username')).toBeHidden();
+            await expect(dialog.locator('#txt_password')).toBeHidden();
+        } else {
+            await dialog.locator('#txt_username').fill('remote-user');
+            if (ssh) await expect(dialog.locator('#txt_password')).toBeHidden();
+            else await dialog.locator('#txt_password').fill('fixture:@/#% password');
+        }
+        await dialog.locator('#chk_save_connection').uncheck();
+        await expect(dialog.locator('#chk_auto_reconnect')).toBeDisabled();
+        await dialog.locator('#txt_server').press('Enter');
+        await expect(dialog.locator('#connect_msg')).toHaveText('Connected to fixture.example:8443/export/report%20%231.');
+        const calls = await app.evaluate(() => globalThis.networkTestCalls);
+        expect(calls).toEqual([['fixture.example:8443/export/report%20%231', 8443,
+            protocol === 'nfs' ? '' : 'remote-user', protocol === 'nfs' || ssh ? '' : 'fixture:@/#% password', ssh ? 1 : 0, protocol]]);
+        await expect(dialog.locator('#button_connect')).toBeEnabled();
+        await expect(dialog.locator('#button_connect')).toBeFocused();
+        await dialog.keyboard.press('Escape');
+        await expect.poll(() => app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length)).toBe(1);
+    });
+}
+
+test('Network connect form fields fit their available width', async () => {
+    const opening = app.waitForEvent('window');
+    await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await dialog.locator('#connection_type').selectOption('smb');
+    await dialog.locator('#txt_server').focus();
+    expect(await dialog.locator('#txt_server').evaluate(control => getComputedStyle(control).outlineStyle)).toBe('none');
+    await expect(dialog.locator('#connect_msg')).toBeHidden();
+    const layout = await dialog.locator('.connect').evaluate(container => {
+        const style = getComputedStyle(container);
+        const contentWidth = container.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        return {
+            contentWidth,
+            viewportHeight: innerHeight,
+            actionsBottom: container.querySelector('.connection_actions').getBoundingClientRect().bottom,
+            controlBorders: [...container.querySelectorAll('input.input, select.input')]
+                .map(control => ({ width: getComputedStyle(control).borderWidth,
+                    style: getComputedStyle(control).borderStyle,
+                    radius: getComputedStyle(control).borderRadius })),
+            topLevelWidths: [...container.querySelectorAll(':scope > .input')]
+                .map(control => control.getBoundingClientRect().width)
+        };
+    });
+    expect(layout.topLevelWidths.length).toBe(2);
+    expect(layout.topLevelWidths.every(width => width >= layout.contentWidth - 1)).toBe(true);
+    await expect(dialog.locator('#txt_port, #txt_remote_path')).toHaveCount(0);
+    expect(layout.actionsBottom).toBeLessThanOrEqual(layout.viewportHeight);
+    expect(layout.viewportHeight - layout.actionsBottom).toBeLessThanOrEqual(100);
+    expect(layout.controlBorders.every(({ width, style, radius }) => width === '1px' && style === 'solid' && radius === '4px')).toBe(true);
+    await dialog.locator('#button_close').click();
+});
+
+test('Network cancel, close and late completion preserve the current request and saved profile', async () => {
+    await app.evaluate(({ app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        globalThis.pendingNetwork = []; globalThis.cancelledNetwork = 0;
+        libfs.connect_network_drive = (...args) => {
+            globalThis.pendingNetwork.push(args[6]); return { cancel() { globalThis.cancelledNetwork++; } };
+        };
+    });
+    async function open() {
+        const opening = app.waitForEvent('window'); await page.evaluate(() => window.titlebarAPI.command('connect'));
+        const dialog = await opening; await dialog.locator('#connection_type').selectOption('nfs');
+        await dialog.locator('#txt_server').fill('fixture.example/export'); return dialog;
+    }
+    const dialog = await open();
+    await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#button_connect')).toBeDisabled();
+    await dialog.locator('form').dispatchEvent('submit');
+    expect(await app.evaluate(() => globalThis.pendingNetwork.length)).toBe(1);
+    await dialog.locator('#button_cancel').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('Connection cancelled.');
+    await dialog.locator('#button_connect').click();
+    await app.evaluate(() => globalThis.pendingNetwork[0](null));
+    await expect(dialog.locator('#button_connect')).toBeDisabled();
+    await dialog.locator('#button_close').click();
+    await expect.poll(() => app.evaluate(() => globalThis.cancelledNetwork)).toBe(2);
+    await app.evaluate(() => globalThis.pendingNetwork[1](null));
+    expect(await fs.readFile(path.join(profile, 'network.json'), 'utf8').catch(() => '[]')).toBe('[]');
+    const reopened = await open(); await reopened.locator('#button_close').click();
+});
+
+test('Network validation rejects missing exports, conflicting protocols and invalid inline ports', async () => {
+    await app.evaluate(({ app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        globalThis.networkTestCalls = 0; libfs.connect_network_drive = () => { globalThis.networkTestCalls++; };
+    });
+    const opening = app.waitForEvent('window'); await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening; await dialog.locator('#connection_type').selectOption('nfs');
+    await dialog.locator('#txt_server').fill('fixture.example'); await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('An NFS export path is required.');
+    await dialog.locator('#txt_server').fill('davs://fixture.example/path'); await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('The server address does not match the selected protocol.');
+    await dialog.locator('#txt_server').fill('fixture.example:1.5/export');
+    await dialog.locator('#button_connect').click(); expect(await app.evaluate(() => globalThis.networkTestCalls)).toBe(0);
+    await dialog.locator('#button_close').click();
+});
+
+test('Network dialog omits SSHFS and pins actions to the lower left', async () => {
+    const opening = app.waitForEvent('window');
+    await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await expect(dialog.locator('#connection_type option[value="sshfs"]')).toHaveCount(0);
+    for (const protocol of ['ssh', 'smb', 'nfs', 'davs', 'dav', 'ftp']) {
+        await dialog.locator('#connection_type').selectOption(protocol);
+        const checkPosition = async () => {
+            const position = await dialog.evaluate(() => {
+                const close = document.querySelector('#button_close').getBoundingClientRect();
+                const connect = document.querySelector('#button_connect').getBoundingClientRect();
+                return { left: close.left, bottom: innerHeight - close.bottom,
+                    gap: connect.left - close.right, aligned: close.bottom === connect.bottom };
+            });
+            expect(position.left).toBe(16);
+            expect(position.bottom).toBe(16);
+            expect(position.gap).toBe(8);
+            expect(position.aligned).toBe(true);
+        };
+        await checkPosition();
+        await dialog.locator('.connect').evaluate(element => { element.scrollTop = element.scrollHeight; });
+        await checkPosition();
+    }
+    await dialog.locator('#button_close').click();
+});
+
+test('Network protocol switching and IPC rejection keep the dialog usable', async () => {
+    await app.evaluate(({ ipcMain }) => { ipcMain.removeHandler('connect'); ipcMain.handle('connect', () => { throw new Error('fixture failure'); }); });
+    const opening = app.waitForEvent('window'); await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await dialog.locator('#connection_type').selectOption('smb'); await expect(dialog.locator('#txt_password')).toBeVisible();
+    await dialog.locator('#connection_type').selectOption('nfs'); await expect(dialog.locator('#txt_username')).toBeHidden();
+    await dialog.locator('#connection_type').selectOption('ssh'); await expect(dialog.locator('#txt_username')).toBeEnabled();
+    await expect(dialog.locator('#txt_password')).toBeHidden();
+    await dialog.locator('#connection_type').selectOption('dav'); await expect(dialog.locator('#protocol_help')).toContainText('without transport encryption');
+    await dialog.locator('#connection_type').selectOption('davs'); await expect(dialog.locator('#txt_password')).toBeVisible();
+    await dialog.locator('#txt_server').fill('fixture.invalid/public'); await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('Unable to request a connection. Please try again.');
+    await expect(dialog.locator('#button_connect')).toBeEnabled(); await dialog.locator('#button_close').click();
+});
+
+test('Network saved NFS root and port survive restart without a connection dialog', async () => {
+    await app.evaluate(({ app }) => {
+        const path = process.mainModule.require('path');
+        process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js')).connect_network_drive = (...args) => { args[6](null); return { cancel() {} }; };
+    });
+    const opening = app.waitForEvent('window'); await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening; await dialog.locator('#connection_type').selectOption('nfs');
+    await dialog.locator('#txt_server').fill('fixture.invalid:2049/'); await dialog.locator('#chk_auto_reconnect').check();
+    await dialog.locator('#button_connect').click(); await expect(dialog.locator('#connect_msg')).toHaveText('Connected to fixture.invalid:2049/.');
+    const saved = JSON.parse(await fs.readFile(path.join(profile, 'network.json'), 'utf8'));
+    expect(saved).toHaveLength(1); expect(saved[0]).toMatchObject({ type: 'nfs', server: 'fixture.invalid:2049/', port: 2049, auto_reconnect: true });
+    expect(saved[0].password).toBeUndefined();
+    await app.close(); app = null;
+    const env = { ...process.env, GIO_USE_VFS: 'local' }; delete env.ELECTRON_RUN_AS_NODE;
+    // Local-only VFS prevents the startup reconnect from contacting any real server.
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
+    page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
+    expect(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().filter(window => window.webContents.getURL().endsWith('connect.html')).length)).toBe(0);
+    expect(JSON.parse(await fs.readFile(path.join(profile, 'network.json'), 'utf8'))).toEqual(saved);
+});
+
+test('SMB share paths and special-character passwords reach the patched native connection boundary', async () => {
+    const fixturePassword = 'fixture:@/#% password';
+    const native = await app.evaluate(({ app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        // This synchronous validation proves Electron loaded the patched addon; no mount is started.
+        let patched = false;
+        try { libfs.gioNative.connect_network_drive('fixture', 65536, 'user', '', 0, 'smb', () => {}); }
+        catch (error) { patched = /Port must be an integer/.test(error.message); }
+        globalThis.smbConnectionCalls = [];
+        libfs.connect_network_drive = (...args) => {
+            globalThis.smbConnectionCalls.push(args.slice(0, 6));
+            args[6](globalThis.smbConnectionCalls.length === 1
+                ? new Error('Failed to mount Windows share: Invalid argument') : null);
+        };
+        return { patched, modulePath: process.mainModule.require('node:module').createRequire(path.join(app.getAppPath(), 'package.json')).resolve('libgio-node') };
+    });
+    expect(native.patched, `Expected the rebuilt local libgio-node addon; loaded ${native.modulePath}`).toBe(true);
+    const opening = app.waitForEvent('window');
+    await page.evaluate(() => window.titlebarAPI.command('connect'));
+    const dialog = await opening;
+    await dialog.locator('#connection_type').selectOption('smb');
+    await dialog.locator('#txt_server').fill('smb://server-pi3/share1/');
+    await dialog.locator('#txt_username').fill('test-user');
+    await dialog.locator('#txt_password').fill(fixturePassword);
+    await dialog.locator('#chk_save_connection').uncheck();
+    await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('Error: Failed to mount Windows share: Invalid argument');
+    await expect(dialog.locator('#connect_msg')).toHaveCSS('color', 'rgb(255, 43, 43)');
+    await dialog.locator('#button_connect').click();
+    await expect(dialog.locator('#connect_msg')).toHaveText('Connected to server-pi3/share1.');
+    await expect(dialog.locator('#connect_msg')).toHaveCSS('color', 'rgb(0, 128, 0)');
+    const calls = await app.evaluate(() => globalThis.smbConnectionCalls);
+    expect(calls).toEqual(Array(2).fill(['server-pi3/share1', 0, 'test-user', fixturePassword, 0, 'smb']));
+    await dialog.locator('#button_close').click();
+});
+
 test('Security connect dialog stays sandboxed and renders server errors as literal text', async () => {
     const payload = '<img src=x onerror="document.body.dataset.injected=1">';
     await app.evaluate(({ ipcMain }, payload) => {
@@ -1229,8 +1691,7 @@ test('Security connect dialog stays sandboxed and renders server errors as liter
     await page.evaluate(() => window.titlebarAPI.command('connect'));
     const dialog = await opening;
     await dialog.locator('#connection_type').selectOption('smb');
-    await dialog.locator('#txt_server').fill('test-server');
-    await dialog.locator('#txt_mount_point').fill(path.join(fixture, 'mount'));
+    await dialog.locator('#txt_server').fill('test-server/share');
     await dialog.locator('#txt_username').fill('test-user'); await dialog.locator('#txt_password').fill('not-a-real-secret');
     await dialog.locator('#button_connect').click();
     await expect(dialog.locator('.msg_connect')).toHaveText(payload);
@@ -1348,6 +1809,33 @@ for (const count of [2, 1001]) {
         await expect(file).not.toHaveAttribute('src', expectedIcon);
     });
 }
+
+test('Workspace folder icons support directory metadata and literal paths', async () => {
+    const folder = path.join(fixture, process.platform === 'win32' ? 'workspace-folder' : 'workspace-"folder');
+    await fs.mkdir(folder);
+    const expectedIcon = await app.evaluate(({ nativeImage, ipcMain, BrowserWindow }, { folder, modulePath }) => {
+        const manager = process.mainModule.require(modulePath);
+        manager.platform = 'win32'; delete manager.windows_folder_icon;
+        const icon = nativeImage.createFromBitmap(Buffer.alloc(32 * 32 * 4, 180), { width: 32, height: 32 }).toDataURL();
+        manager.load_windows_folder_icon = async () => icon;
+        ipcMain.removeHandler('get_workspace');
+        // Saved directory records can identify folders without a MIME field.
+        ipcMain.handle('get_workspace', () => [{ href: folder, name: 'Workspace folder', is_dir: true }]);
+        BrowserWindow.getAllWindows()[0].webContents.send('get_workspace');
+        return icon;
+    }, { folder, modulePath: path.resolve('src/main/lib/IconManager.js') });
+    const row = page.locator('.workspace_item');
+    await expect(row.locator('img')).toHaveAttribute('src', expectedIcon);
+    await expect.poll(() => row.locator('img').evaluate(img => img.complete && img.naturalWidth === 32)).toBe(true);
+    await row.click();
+    await expect.poll(() => currentLocation()).toBe(folder);
+    await app.evaluate(({ BrowserWindow }, folder) => {
+        const sender = BrowserWindow.getAllWindows()[0].webContents;
+        sender.send('set_workspace_folder_icon', folder + '-removed', 'unused');
+        sender.send('set_workspace_folder_icon', folder, null);
+    }, folder);
+    await expect(row.locator('img')).toHaveAttribute('src', expectedIcon);
+});
 
 test.describe('Windows Shell integration', () => {
     test.skip(process.platform !== 'win32', 'Requires the real Windows Shell and Windows PowerShell.');
@@ -1491,7 +1979,7 @@ test('P1 restores three directories with a middle active tab', async () => {
     await expect.poll(() => currentLocation()).toBe(directories[1]);
     await app.close(); app = null;
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
     page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
     await expect(page.locator('.tab')).toHaveCount(3);
     await expect.poll(() => currentLocation()).toBe(directories[1]);
@@ -1797,7 +2285,7 @@ test('P2 preferences recover from truncated settings workspace and window files 
         await fs.writeFile(target, '{');
     }
     const env = { ...process.env }; delete env.ELECTRON_RUN_AS_NODE;
-    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', `--user-data-dir=${profile}`] });
+    app = await electron.launch({ env, args: ['.', '--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${profile}`] });
     page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
     await expect(page.locator('.active-tab-content .view_container.list_view')).toBeVisible();
     await expect(page.locator('.workspace_view')).toContainText('workspace.txt');

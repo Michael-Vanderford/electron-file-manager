@@ -29,6 +29,14 @@ test('keeps unmounted drives available without probing an empty path', async () 
     expect(parentPort.postMessage).toHaveBeenLastCalledWith({ cmd: 'devices', devices: [{ name: 'USB', path: '' }] });
 });
 
+test('keeps an unmounted phone available for the Mount action', async () => {
+    const phone = { name: 'SAMSUNG Android', path: '', type: 'phone' };
+    probe.mockResolvedValue([phone]);
+    await new DeviceManager().get_devices();
+    expect(probe).toHaveBeenCalledTimes(1);
+    expect(parentPort.postMessage).toHaveBeenLastCalledWith({ cmd: 'devices', devices: [phone] });
+});
+
 test('does not redisplay cached mounts when discovery fails', async () => {
     const manager = new DeviceManager();
     probe.mockResolvedValueOnce([{ name: 'disk', path: '/' }]).mockResolvedValueOnce({ total: 100 });

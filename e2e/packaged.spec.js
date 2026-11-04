@@ -15,7 +15,7 @@ test('packaged launch core files decoder icons dialogs and shutdown', async () =
         // Prove optional desktop tools are not prerequisites for Linux startup.
         if (process.platform === 'linux') { env.PATH = path.join(root, 'empty-bin'); await fs.mkdir(env.PATH); }
         app = await electron.launch({ executablePath: process.env.EFM_PACKAGED_EXECUTABLE, env,
-            args: ['--no-sandbox', '--disable-gpu', `--user-data-dir=${path.join(root, 'profile')}`] });
+            args: ['--no-sandbox', '--disable-gpu', ...(process.platform === 'linux' ? ['--ozone-platform=x11'] : []), `--user-data-dir=${path.join(root, 'profile')}`] });
         await app.evaluate(({ dialog }) => { dialog.showMessageBox = async () => ({ response: 1 }); });
         const page = await app.firstWindow(); await page.waitForFunction(() => window.titlebarAPI?.getLocation());
         const card = href => page.locator('.active-tab-content .card').filter({ has: page.locator(`a[href="${href.replace(/\\/g, '\\\\')}"]`) });

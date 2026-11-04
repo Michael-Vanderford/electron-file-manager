@@ -31,7 +31,7 @@ function insertion(virtual) {
 test('pasted cards persist in tab data for normal and grouped rendering', () => insertion(false));
 test('pasted cards rebuild and select items in virtual rendering', () => insertion(true));
 
-test('transfer completion routes source and destination identities to the initiating sender', () => {
+test('transfer completion routes source and destination identities to the initiating sender', async () => {
     const start = main.indexOf('    queue_transfer(sender,');
     const end = main.indexOf('    normalize_folder_size_path', start);
     const handlers = {};
@@ -45,10 +45,10 @@ test('transfer completion routes source and destination identities to the initia
     const queue = vm.runInNewContext(`({${main.slice(start, end)}}).queue_transfer`, {
         structuredClone: value => value, worker: { Worker: function() { return thread; } },
         path, __dirname, replacement_journals: '/journals', path_id: btoa,
-        fs: { existsSync: () => true }, libfs: { get_file: href => ({ href }) }
+        device_probe: async (_operation, hrefs) => hrefs.map(href => ({ href }))
     });
     queue.call(manager, sender, 'move', [{ source: '/source/file', destination: '/dest/file' }], '/dest');
-    handlers.message({ cmd: 'mv_done', files_arr: [{ source: '/source/file', destination: '/dest/file' }] });
+    await handlers.message({ cmd: 'mv_done', files_arr: [{ source: '/source/file', destination: '/dest/file' }] });
     expect(sent).toContainEqual(['remove_items', [{ id: btoa('/source/file'), href: '/source/file' }]]);
     expect(sent).toContainEqual(['add_items', [{ href: '/dest/file' }], '/dest']);
     expect(thread.terminate).toHaveBeenCalledTimes(1);
@@ -123,7 +123,7 @@ test('worker failure releases only its job and late exit cannot finish the next 
     const end = main.indexOf('    normalize_folder_size_path', start);
     const queue = vm.runInNewContext(`({${main.slice(start, end)}}).queue_transfer`, {
         structuredClone: value => value, worker: { Worker }, path, __dirname,
-        replacement_journals: '/journals', path_id: btoa, fs: { existsSync: () => true }, libfs: { get_file: href => ({ href }) }
+        replacement_journals: '/journals', path_id: btoa, device_probe: async (_operation, hrefs) => hrefs.map(href => ({ href }))
     });
     queue.call(manager, sender, 'copy', [{ source: '/first', destination: '/dest/first' }], '/dest');
     queue.call(manager, sender, 'copy', [{ source: '/second', destination: '/dest/second' }], '/dest');

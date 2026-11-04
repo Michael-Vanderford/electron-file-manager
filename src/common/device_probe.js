@@ -12,7 +12,7 @@ function probe(operation, location, timeout = 3000) {
     }
     const key = JSON.stringify([operation, location]);
     if (pending.has(key)) return pending.get(key);
-    const limit = ['validate', 'writable', 'file'].includes(operation) ? 8 : 4;
+    const limit = ['validate', 'writable', 'file', 'files', 'prepare_transfer', 'external_drop', 'menu_writable', 'exists', 'directory_names'].includes(operation) ? 8 : 4;
     if (active >= limit || (retry_after.get(key) || 0) > Date.now()) {
         return Promise.reject(new Error('Device unavailable; retry shortly.'));
     }

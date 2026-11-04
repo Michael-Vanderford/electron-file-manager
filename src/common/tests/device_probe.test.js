@@ -48,6 +48,21 @@ test('times out without waiting for exit, ignores late replies, and retries afte
     children[1].emit('exit', 0);
 });
 
+test.each(['prepare_transfer', 'files', 'external_drop', 'menu_writable', 'exists', 'directory_names'])('%s stays bounded when remote metadata never replies', async operation => {
+    const request = probe(operation, '/offline');
+    const rejection = expect(request).rejects.toThrow('timed out');
+    // A separate query can finish while the remote query remains pending.
+    const healthy = probe('file', '/healthy');
+    children[1].emit('message', { result: { href: '/healthy' } });
+    await expect(healthy).resolves.toEqual({ href: '/healthy' });
+    children[1].emit('exit', 0);
+    jest.advanceTimersByTime(3000);
+    await rejection;
+    expect(children[0].kill).toHaveBeenCalledWith('SIGKILL');
+    children[0].emit('message', { result: true });
+    children[0].emit('exit', null);
+});
+
 test('stuck children remain counted against the concurrency limit until exit', async () => {
     const requests = Array.from({ length: 4 }, (_, i) => probe('stats', `/offline-${i}`).catch(error => error));
     jest.advanceTimersByTime(3000);

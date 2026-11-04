@@ -7,7 +7,7 @@
 - Review every caller of a shared function before changing it. Check normal, grouped, and virtual views where applicable, plus startup, empty results, errors, and navigation away during pending work.
 - For bug fixes or behavior changes, add a regression check that exercises the reported behavior. Prefer an Electron Playwright test for visible user flows; unit tests alone do not establish UI compatibility.
 - Update the feature inventory when behavior or coverage changes. Distinguish implementation evidence, automated verification, manual verification, and untested expectations.
-- Run affected checks during development and `npm run test:regression` before reporting a change complete. On Linux without a usable display, use `xvfb-run -a npm run test:regression`.
+- Do not run tests unless the user explicitly asks. The user will run tests manually until they change this instruction. This includes unit tests, Electron/Playwright tests, regression suites, and test commands suggested by skills or other workflows. Adding or updating test coverage does not authorize executing it.
 - Report the checks run, failures or skipped checks, and remaining limitations. Never describe a partial or mocked check as proof of the entire feature.
 - Keep test fixtures and profiles isolated. Never run destructive file-operation tests against the user's files, normal app profile, or real network mounts.
 - Existing audit findings are not authorization to change unrelated application behavior. Document discoveries and keep fixes within the user's scope.

@@ -29,3 +29,19 @@ test('USB event bursts request both drive lists and retry after volume readiness
     jest.advanceTimersByTime(2000);
     expect(manager.device_worker.postMessage).toHaveBeenCalledTimes(8);
 });
+
+test('an unmounted Android volume callback refreshes discovery and schedules a retry', () => {
+    let monitor;
+    const manager = { device_worker: { postMessage: jest.fn() } };
+    vm.runInNewContext(`(function() {${source.slice(start, end)}}).call(manager)`, {
+        manager, libfs: { monitor: callback => { monitor = callback; } }, setTimeout, clearTimeout
+    });
+    // The native callback forwards the volume name, including before mounting.
+    monitor('SAMSUNG Android');
+    jest.advanceTimersByTime(150);
+    expect(manager.device_worker.postMessage.mock.calls).toEqual([
+        [{ cmd: 'get_mounts' }], [{ cmd: 'get_devices' }]
+    ]);
+    jest.advanceTimersByTime(850);
+    expect(manager.device_worker.postMessage).toHaveBeenCalledTimes(4);
+});

@@ -11,8 +11,8 @@
         "build:win": "npx electron-builder --win",
         "test": "npm run test:unit && npm run test:e2e",
         "test:regression": "npm test",
-        "test:unit": "jest --runInBand",
-        "test:e2e": "npx playwright test",
+        "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
+        "test:e2e": "node scripts/run-e2e.js",
         "prebuild": "node scripts/build-preloads.js",
         "prebuild:win": "node scripts/build-preloads.js"
     },
@@ -76,18 +76,23 @@
         "bootstrap-icons": "^1.11.3",
         "electron": "^44.4.5",
         "electron-builder": "^26.18.0",
-        "jest": "^25.1.0",
+        "jest": "^30.5.2",
         "nan": "^2.29.0",
         "node-abi": "^4.35.0",
         "node-gyp": "^13.0.2"
     },
     "dependencies": {
-        "archiver": "^4.0.2",
+        "archiver": "^8.0.0",
         "chart.js": "^4.5.1",
         "fast-xml-parser": "^5.4.1",
         "material-design-icons": "^3.0.1"
     },
+    "overrides": {
+        "readdir-glob": {
+            "minimatch": "^11.0.3"
+        }
+    },
     "optionalDependencies": {
-        "libgio-node": "^1.0.11"
+        "libgio-node": "file:../libgio-node"
     }
 }

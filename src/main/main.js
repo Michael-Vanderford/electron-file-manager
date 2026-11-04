@@ -40,6 +40,11 @@ if (process.argv.includes('--thumbnail-worker')) {
     return;
 }
 
+if (process.argv.includes('--recent-worker')) {
+    require('../workers/recent_worker');
+    return;
+}
+
 if (process.env.TEST_PROFILE_DIR) {
   const profile = path.resolve(process.env.TEST_PROFILE_DIR);
 
@@ -1249,36 +1254,16 @@ class Utilities {
         })
 
         // listen for files dropped in from outside the app
-        ipcMain.on('drop_external', (e, paths, location) => {
+        ipcMain.on('drop_external', async (e, paths, location) => {
             if (!Array.isArray(paths) || typeof location !== 'string' || !path.isAbsolute(location)) return;
 
-            const copy_arr = [];
-            for (const p of paths) {
-                if (typeof p !== 'string' || !path.isAbsolute(p)) continue;
-                let stat;
-                try {
-                    stat = fs.lstatSync(p);
-                } catch (err) {
-                    continue;
-                }
-                const rel = path.relative(p, location);
-                if (stat.isDirectory() && (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel)))) continue;
-                const name = path.basename(p);
-                copy_arr.push({
-                    id: p,
-                    name,
-                    display_name: name,
-                    href: p,
-                    size: stat.size,
-                    mtime: stat.mtimeMs,
-                    ctime: stat.ctimeMs,
-                    atime: stat.atimeMs,
-                    is_dir: stat.isDirectory(),
-                    is_symlink: stat.isSymbolicLink(),
-                    location: path.dirname(p),
-                    is_hidden: name.startsWith('.')
-                });
+            let copy_arr;
+            try { copy_arr = await device_probe('external_drop', { paths, location }); }
+            catch (error) {
+                if (!e.sender.isDestroyed()) e.sender.send('set_msg', `Cannot import files: ${error.message}`);
+                return;
             }
+            if (e.sender.isDestroyed()) return;
 
             if (copy_arr.length === 0) return;
             this.root_destination = location;
@@ -1325,11 +1310,6 @@ class Utilities {
                 return;
             }
 
-            if (!fs.existsSync(href)) {
-                // Error getting disk space
-                return;
-            }
-
             this.get_disk_space(href, sender);
         })
 
@@ -1359,7 +1339,7 @@ class Utilities {
                     const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
                     let finished = false;
                     let child_pid;
-                    const finish = (error, destination) => {
+                    const finish = async (error, destination) => {
                         if (finished) return;
                         finished = true;
                         if (child_pid) { try { process.kill(child_pid); } catch (_) {} }
@@ -1367,8 +1347,11 @@ class Utilities {
                         if (error) send('set_msg', `Error extracting archive: ${error.message}`);
                         else {
                             this.invalidate_folder_size_for_item_path(destination);
-                            send('add_items', [libfs.get_file(destination)], location);
-                            send('set_msg', 'Done extracting files.');
+                            try {
+                                send('add_items', [await device_probe('file', destination)], location);
+                                send('set_msg', 'Done extracting files.');
+                            }
+                            catch (error) { send('set_msg', `Archive extracted, but metadata is unavailable: ${error.message}`); }
                         }
 
                         thread.terminate();
@@ -1436,7 +1419,7 @@ class Utilities {
         let finished = false;
         const cancel_on_close = () => archive_worker.postMessage({ cmd: 'cancel' });
         sender.once('destroyed', cancel_on_close);
-        const finish = (error, file_path) => {
+        const finish = async (error, file_path) => {
             if (finished) return;
             finished = true;
             sender.removeListener('destroyed', cancel_on_close);
@@ -1450,8 +1433,15 @@ class Utilities {
                 else if (error) sender.send('set_msg', `Archive not completed: ${error.message}`);
                 else {
                     this.invalidate_folder_size_hierarchy(job.location);
-                    sender.send('add_items', [libfs.get_file(file_path)], job.location);
-                    sender.send('set_msg', 'Done compressing files.');
+                    try {
+                        const file = await device_probe('file', file_path);
+                        if (!sender.isDestroyed()) {
+                            sender.send('add_items', [file], job.location);
+                            sender.send('set_msg', 'Done compressing files.');
+                        }
+                    } catch (error) {
+                        if (!sender.isDestroyed()) sender.send('set_msg', `Archive created, but metadata is unavailable: ${error.message}`);
+                    }
                 }
             }
             archive_worker.terminate();
@@ -1580,7 +1570,7 @@ class Utilities {
             };
             job.cancel = () => thread.postMessage({ cmd: 'cancel' });
             sender.once('destroyed', job.cancel);
-            thread.on('message', data => {
+            thread.on('message', async data => {
                 if (finished) return;
                 if (data.cmd === 'set_msg') send('set_msg', data.msg);
                 if (data.cmd === 'set_progress') send('set_progress', data);
@@ -1589,9 +1579,9 @@ class Utilities {
                     const completed = data.completed || data.files_arr || [];
                     if (operation === 'move') send('remove_items', completed.map(file => ({ id: path_id(file.source), href: file.source })));
                     const by_location = new Map();
-                    for (const entry of completed) {
-                        if (!fs.existsSync(entry.destination) && !libfs.get_file(entry.destination)?.is_symlink) continue;
-                        const file = libfs.get_file(entry.destination);
+                    const metadata = completed.length ? await device_probe('files', completed.map(entry => entry.destination)) : [];
+                    for (const [index, entry] of completed.entries()) {
+                        const file = metadata[index];
                         const parent = path.dirname(entry.destination);
                         if (!by_location.has(parent)) by_location.set(parent, []);
                         by_location.get(parent).push(file);
@@ -1793,73 +1783,16 @@ class Utilities {
 
         e.sender.send('set_msg', { text: 'Gathering files...', loading: true }, true);
 
-        copy_arr.forEach(f => {
-
-            if (f.location === '' || f.location === undefined) {
-                e.sender.send('set_msg', 'Error: No location to paste files.');
-                return;
-            }
-
-            if (f.is_dir === null || f.is_dir === undefined) {
-                e.sender.send('set_msg', 'Error: No file type to paste files.');
-                return;
-            }
-
-            if (f.name === '' || f.name === undefined) {
-                e.sender.send('set_msg', 'Error: No file name to paste files.');
-                return;
-            }
-
-            if (f.href === '' || f.href === undefined) {
-                e.sender.send('set_msg', 'Error: No file href to paste files.');
-                return;
-            }
-
-            if (f.display_name === '' || f.display_name === undefined) {
-                e.sender.send('set_msg', 'Error: No file display name to paste files.');
-                return;
-            }
-
-            if (f.is_hidden === null || f.is_hidden === undefined) {
-                e.sender.send('set_msg', 'Error: No file hidden status to paste files.');
-                return;
-            }
-
-            f.destination = path.join(location, this.sanitize_file_name(f.name));
-            f.source = f.href;
-            f.name = path.basename(f.destination);
-            f.display_name = f.name;
-            f.is_hidden = f.is_hidden;
-            f.href = f.destination;
-
-            // console.log('paste', f.location, f.destination);
-
-            // handle duplicate file names
-            if (f.location == location && fs.existsSync(f.destination)) {
-
-                let dup_idx = 1;
-                while (fs.existsSync(f.destination)) {
-                    let ext = path.extname(f.destination);
-                    let base = path.basename(f.destination, ext);
-                    let dir = path.dirname(f.destination);
-                    let new_base = `${base} (Copy ${dup_idx})`;
-                    f.destination = path.join(dir, new_base + ext);
-                    dup_idx++;
-                }
-                // update additional attributes so the new files have the correct data
-                f.name = path.basename(f.destination);
-                f.display_name = f.name;
-                f.href = f.destination;
-
-                paste_arr.push(f);
-
-            } else if (fs.existsSync(f.destination)) {
-                overwrite_arr.push(f);
-            } else {
-                paste_arr.push(f);
-            }
-
-        });
+        try {
+            const prepared = await device_probe('prepare_transfer', { files: copy_arr, location, operation: 'copy' });
+            if (e.sender.isDestroyed()) return;
+            for (const message of prepared.messages) e.sender.send('set_msg', message);
+            paste_arr = prepared.ready;
+            overwrite_arr = prepared.overwrite;
+        } catch (error) {
+            if (!e.sender.isDestroyed()) e.sender.send('set_msg', `Cannot prepare copy: ${error.message}`);
+            return;
+        }
 
         // send copy_arr to renderer
         if (paste_arr.length > 0) {
@@ -1908,45 +1841,16 @@ class Utilities {
         let overwrite_arr = [];
 
 
-        files_arr.forEach(f => {
-
-            const source = f.href;
-            const source_location = f.location || path.dirname(source);
-            if (f.is_dir && dnd.is_self_or_descendant(location, source)) {
-                e.sender.send('set_msg', `Cannot move ${f.name} into itself.`);
-                return;
-            }
-
-            f.destination = path.join(location, f.name); // set destination
-            f.source = source; // set source to current href
-            f.href = f.destination; // set href to destination
-            f.location = location;
-
-            // handle duplicate file names
-            if (source_location === location && fs.existsSync(f.destination)) {
-
-                let dup_idx = 1;
-                while (fs.existsSync(f.destination)) {
-                    let ext = path.extname(f.destination);
-                    let base = path.basename(f.destination, ext);
-                    let dir = path.dirname(f.destination);
-                    let new_base = `${base} (Copy ${dup_idx})`;
-                    f.destination = path.join(dir, new_base + ext);
-                    dup_idx++;
-                }
-                // update additional attributes so the new files have the correct data
-                f.name = path.basename(f.destination);
-                f.href = f.destination;
-
-                move_arr.push(f);
-
-            } else if (fs.existsSync(f.destination)) {
-                overwrite_arr.push(f);
-            } else {
-                move_arr.push(f);
-            }
-
-        });
+        try {
+            const prepared = await device_probe('prepare_transfer', { files: files_arr, location, operation: 'move' });
+            if (e.sender.isDestroyed()) return;
+            for (const message of prepared.messages) e.sender.send('set_msg', message);
+            move_arr = prepared.ready;
+            overwrite_arr = prepared.overwrite;
+        } catch (error) {
+            if (!e.sender.isDestroyed()) e.sender.send('set_msg', `Cannot prepare move: ${error.message}`);
+            return;
+        }
 
         // send copy_arr to renderer
         if (move_arr.length > 0) {
@@ -1974,30 +1878,30 @@ class Utilities {
     }
 
     // make directory
-    mkdir(e, location) {
-
-        if (location === '' || location === undefined) {
-            win.send('set_msg', `Error: getting mkdir location ${location}`);
+    async mkdir(e, location) {
+        const sender = e.sender;
+        if (!location) {
+            if (!sender.isDestroyed()) sender.send('set_msg', `Error: getting mkdir location ${location}`);
             return;
         }
-
-
         try {
             let dir = path.join(location, 'New Folder');
-            let idx = 1;
-            while (fs.existsSync(dir)) {
-                dir = path.join(location, `New Folder (${idx})`);
-                idx++;
+            let index = 1;
+            while (!sender.isDestroyed()) {
+                try { await fs.promises.mkdir(dir); break; }
+                catch (error) {
+                    if (error.code !== 'EEXIST') throw error;
+                    dir = path.join(location, `New Folder (${index++})`);
+                }
             }
-            fs.mkdirSync(dir);
-            let f = libfs.get_file(dir);
-            f.id = path_id(dir);
-            e.sender.send('get_item', f, { edit: true });
+            if (sender.isDestroyed()) return;
+            const file = await device_probe('file', dir);
+            file.id = path_id(dir);
+            if (!sender.isDestroyed()) sender.send('get_item', file, { edit: true });
             this.invalidate_folder_size_hierarchy(location);
-        } catch (err) {
-            e.sender.send('set_msg', `Error creating folder in ${location}: ${err.message}`);
+        } catch (error) {
+            if (!sender.isDestroyed()) sender.send('set_msg', `Error creating folder in ${location}: ${error.message}`);
         }
-
     }
 
     // Rename is a scoped filesystem job; replies retain the initiating renderer.
@@ -2007,14 +1911,14 @@ class Utilities {
         this.operation_queue.enqueue({ sender, operation: 'rename', start: async job => {
             const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
             try {
-                if (fs.existsSync(destination)) {
+                if (await device_probe('exists', destination)) {
                     if (destination.includes('New Folder')) send('cancel_edit');
                     else send('set_msg', `Error: File name '${destination}' already exists.`);
                     return;
                 }
                 await new Promise((resolve, reject) => libfs.mv(source, destination,
                     error => error ? reject(error) : resolve(), { journal_dir: replacement_journals }));
-                const file = libfs.get_file(destination);
+                const file = await device_probe('file', destination);
                 file.previous_id = id;
                 file.id = path_id(destination);
                 send('update_item', file);
@@ -2130,19 +2034,16 @@ class WorkspaceManager {
 
 
         // Add Workspace
-        ipcMain.on('add_workspace', (e, selected_files_arr) => {
-
-            let workspace_data = this.store.read()
-
-            selected_files_arr.forEach(f => {
-                let file = libfs.get_file(f.href);
-                // add to top of array
-                workspace_data.unshift(file);
-            })
-            this.store.update(() => workspace_data);
-            BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
-            selected_files_arr = [];
-        })
+        ipcMain.on('add_workspace', async (e, selected_files_arr) => {
+            try {
+                const files = await device_probe('files', selected_files_arr.map(file => file.href));
+                if (e.sender.isDestroyed()) return;
+                this.store.update(current => [...files.reverse(), ...current]);
+                BrowserWindow.getAllWindows().forEach(window => { if (!window.isDestroyed()) window.webContents.send('get_workspace'); });
+            } catch (error) {
+                if (!e.sender.isDestroyed()) e.sender.send('set_msg', `Cannot add workspace items: ${error.message}`);
+            }
+        });
 
         // Remove Workspace
         ipcMain.on('remove_workspace', (e, href) => {
@@ -2439,21 +2340,51 @@ class NetworkManager {
         this.network_settings_arr = [];
         this.reconnect_in_progress = false;
 
-        ipcMain.handle('connect', async (e, network_settings) => {
-            return await this.connect(e, network_settings);
+        ipcMain.handle('connect', (e, settings) => this.connect(e, settings));
+        ipcMain.handle('cancel_connect', e => {
+            this.pending_connections?.get(e.sender)?.cancel();
+            return true;
         });
+        app.on('before-quit', () => this.cancelAllConnections());
+    }
+
+    cancelAllConnections() {
+        this.closing = true;
+        for (const request of this.pending_connections?.values() || []) request.cancel();
     }
 
     normalize_server(server) {
-        if (!server || typeof server !== 'string') {
-            return '';
-        }
+        if (typeof server !== 'string') return '';
+        const address = server.trim().replace(/^(smb|ssh|sftp|sshfs|nfs|dav|davs|ftp):\/\//i, '');
+        // Keep explicit root exports distinct from a missing remote path.
+        return address.replace(/\/+$/, '') + (/^[^/]+\/+$/.test(address) ? '/' : '');
+    }
 
-        return server.trim()
-            .replace(/^smb:\/\//i, '')
-            .replace(/^ssh:\/\//i, '')
-            .replace(/^sftp:\/\//i, '')
-            .replace(/\/+$/, '');
+    connectionTarget(settings) {
+        const type = String(settings.type || '').toLowerCase();
+        if (!['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(type)) throw new Error('Unsupported connection type.');
+        const raw = String(settings.server || '').trim();
+        if (!raw) throw new Error('Server is required.');
+        const scheme = ['ssh', 'sshfs'].includes(type) ? 'sftp' : type;
+        const address = new URL(/^[a-z]+:\/\//i.test(raw) ? raw : `${scheme}://${raw}`);
+        const actual = ['ssh:', 'sshfs:'].includes(address.protocol) ? 'sftp:' : address.protocol;
+        if (actual !== `${scheme}:`) throw new Error('The server address does not match the selected protocol.');
+        if (!address.hostname || address.username || address.password || address.search || address.hash || /[\s\\]/.test(address.hostname))
+            throw new Error('Enter a server and remote path; supply credentials in their separate fields.');
+        // The combined address is authoritative; separate fields support older saved entries.
+        const port = Number(address.port || settings.port || 0);
+        if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Port must be an integer between 0 and 65535.');
+        let remote = address.pathname || '/';
+        if (!address.pathname && settings.remote_path) {
+            const supplied = '/' + String(settings.remote_path).replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+            remote = supplied;
+        }
+        const explicitPath = Boolean(address.pathname) || Boolean(settings.remote_path);
+        remote = remote.replace(/\/+$/, '');
+        if (type === 'nfs' && !explicitPath) throw new Error('An NFS export path is required.');
+        if (type === 'nfs' && !remote) remote = '/';
+        if (type === 'smb' && !remote) throw new Error('An SMB share is required.');
+        return { type, server: address.hostname + (port ? `:${port}` : '') + remote, port };
     }
 
     encryption_available() {
@@ -2466,84 +2397,75 @@ class NetworkManager {
     }
 
     connect(e, network_settings = {}) {
-        return new Promise((resolve) => {
-            const sender = e && e.sender ? e.sender : null;
-            const type = (network_settings.type || '').toLowerCase();
-            const server = this.normalize_server(network_settings.server);
-            const username = (network_settings.username || '').trim();
-            const password = network_settings.password || '';
-            const use_ssh_key = !!network_settings.use_ssh_key;
-            let settled = false;
-
-            const finish = (result) => {
-                if (settled) {
-                    return;
-                }
+        const sender = e?.sender;
+        this.pending_connections ||= new Map();
+        const owner = sender || Symbol('reconnect');
+        if (this.closing) return Promise.resolve({ error: true, msg: 'Connection cancelled.' });
+        if (this.pending_connections.has(owner)) return Promise.resolve({ error: true, msg: 'A connection is already in progress.' });
+        return new Promise(resolve => {
+            let target;
+            try { target = this.connectionTarget(network_settings); }
+            catch (error) { resolve({ error: true, msg: error.message }); return; }
+            const { type, server, port } = target;
+            const ssh = ['ssh', 'sshfs', 'sftp'].includes(type);
+            const username = type === 'nfs' ? '' : (network_settings.username || '').trim();
+            const password = type === 'nfs' || ssh ? '' : (network_settings.password || '');
+            if (type === 'smb' && (!username || !password)) {
+                resolve({ error: true, msg: 'Username and password are required for SMB.' }); return;
+            }
+            if (ssh && !network_settings.use_ssh_key) {
+                resolve({ error: true, msg: 'SFTP currently requires SSH key authentication.' }); return;
+            }
+            if (typeof libfs?.connect_network_drive !== 'function') {
+                resolve({ error: true, msg: 'Network drive support is not available in this build.' }); return;
+            }
+            let settled = false, handle, timeout;
+            const finish = result => {
+                if (settled) return;
                 settled = true;
-                if (sender && sender.send) {
-                    sender.send('msg_connect', result);
-                }
+                clearTimeout(timeout);
+                sender?.removeListener?.('destroyed', cancel);
+                sender?.removeListener?.('did-start-navigation', cancel);
+                sender?.removeListener?.('render-process-gone', cancel);
+                this.pending_connections.delete(owner);
                 resolve(result);
             };
-
-            if (!['ssh', 'sshfs', 'smb'].includes(type)) {
-                finish({ error: true, msg: 'Unsupported connection type.' });
-                return;
-            }
-            if (!server) {
-                finish({ error: true, msg: 'Server is required.' });
-                return;
-            }
-            if (!use_ssh_key && !username) {
-                finish({ error: true, msg: 'Username is required.' });
-                return;
-            }
-            if (type === 'smb' && !password) {
-                finish({ error: true, msg: 'Password is required for SMB.' });
-                return;
-            }
-            if ((type === 'ssh' || type === 'sshfs') && !use_ssh_key) {
-                finish({ error: true, msg: 'This build currently supports SSH/SSHFS with public key authentication.' });
-                return;
-            }
-            if (!libfs || typeof libfs.connect_network_drive !== 'function') {
-                finish({ error: true, msg: 'Network drive support is not available in this build.' });
-                return;
-            }
-
-            const timeout = setTimeout(() => {
+            const cancel = () => {
+                if (settled) return;
+                finish({ error: true, msg: 'Connection cancelled.' });
+                handle?.cancel?.();
+            };
+            this.pending_connections.set(owner, { cancel });
+            sender?.once?.('destroyed', cancel);
+            sender?.once?.('did-start-navigation', cancel);
+            sender?.once?.('render-process-gone', cancel);
+            timeout = setTimeout(() => {
+                if (settled) return;
                 finish({ error: true, msg: `Connection timed out for ${server}.` });
+                handle?.cancel?.();
             }, 20000);
-
             try {
-                libfs.connect_network_drive(server, 0, username, password, use_ssh_key ? 1 : 0, type, (err) => {
-                    clearTimeout(timeout);
-                    if (settled) {
-                        return;
-                    }
-                    if (err) {
-                        finish({ error: true, msg: String(err) });
-                        return;
-                    }
-
+                handle = libfs.connect_network_drive(server, port, username, password, ssh ? 1 : 0, type, err => {
+                    if (settled) return;
+                    if (err) { finish({ error: true, msg: String(err) }); return; }
                     const save_error = network_settings.save_connection
-                        ? this.setNetworkSettings({ ...network_settings, server, type }) : null;
-                    if (deviceManager && deviceManager.device_worker) {
-                        deviceManager.device_worker.postMessage({ cmd: 'get_mounts' });
-                    }
+                        ? this.setNetworkSettings({ ...network_settings, ...target, remote_path: '', username, password, use_ssh_key: ssh }) : null;
+                    deviceManager?.device_worker?.postMessage({ cmd: 'get_mounts' });
                     finish({ error: false, msg: `Connected to ${server}.${save_error ? ` Connection was not saved: ${save_error}` : ''}` });
                 });
-            } catch (err) {
-                clearTimeout(timeout);
-                finish({ error: true, msg: `Error connecting to ${server}: ${err.message}` });
-            }
+                // A synchronous callback can settle before the handle is returned.
+                if (settled && this.closing) handle?.cancel?.();
+            } catch (err) { finish({ error: true, msg: `Error connecting to ${server}: ${err.message}` }); }
         });
     }
 
     networkIdentity(network_settings = {}) {
+        let target;
+        try { target = this.connectionTarget(network_settings); } catch (_) {}
         return [
-            (network_settings.type || '').toLowerCase(),
-            this.normalize_server(network_settings.server),
+            target?.type || (network_settings.type || '').toLowerCase(),
+            target?.server || this.normalize_server(network_settings.server),
+            target?.port || network_settings.port || 0,
             (network_settings.mount_point || '').trim(),
             (network_settings.username || '').trim()
         ].join('|');
@@ -2553,6 +2475,8 @@ class NetworkManager {
         const entry = {
             type: (network_settings.type || '').toLowerCase(),
             server: this.normalize_server(network_settings.server),
+            port: Number(network_settings.port || 0),
+            remote_path: network_settings.remote_path || '',
             mount_point: (network_settings.mount_point || '').trim(),
             username: (network_settings.username || '').trim(),
             use_ssh_key: !!network_settings.use_ssh_key,
@@ -2617,10 +2541,11 @@ class NetworkManager {
         try {
             this.getNetworkSettings();
             const stored = new JsonStore(path.join(app.getPath('userData'), 'network.json'), [], Array.isArray).read();
-            if (stored.some(entry => entry.password) && !this.network_settings_arr.every(entry => entry.encrypted_password || entry.use_ssh_key)) {
+            if (stored.some(entry => entry.password) && stored.some(entry => entry.password && !this.encryption_available())) {
                 throw new Error('Unlock secure storage before changing legacy saved connections.');
             }
-            const entry = this.serializeNetworkSettings(network_settings);
+            const target = this.connectionTarget(network_settings);
+            const entry = this.serializeNetworkSettings({ ...network_settings, server: target.server });
             const identity = this.networkIdentity(entry);
             this.network_settings_arr = this.network_settings_arr.filter((saved) => {
                 return this.networkIdentity(saved) !== identity;
@@ -2649,7 +2574,7 @@ class NetworkManager {
         const seen = new Set();
         this.network_settings_arr = parsed
             .map((entry) => this.deserializeNetworkSettings(entry))
-            .filter((entry) => ['ssh', 'sshfs', 'smb'].includes(entry.type) && entry.server)
+            .filter((entry) => ['ssh', 'sshfs', 'sftp', 'smb', 'nfs', 'dav', 'davs', 'ftp'].includes(entry.type) && entry.server)
             .filter((entry) => {
                 const identity = this.networkIdentity(entry);
                 if (seen.has(identity)) {
@@ -2661,7 +2586,7 @@ class NetworkManager {
 
         try {
             if (!parsed.some(entry => entry.password) ||
-                this.network_settings_arr.every(entry => entry.use_ssh_key || entry.encrypted_password)) this.writeNetworkSettings();
+                parsed.filter(entry => entry.password).every(entry => this.deserializeNetworkSettings(entry).encrypted_password)) this.writeNetworkSettings();
         } catch (err) {
             console.error('Unable to initialize network settings:', err.message);
         }
@@ -2943,49 +2868,21 @@ class FileManager {
         });
     }
 
-    // get recent files by reading xbel file
-    get_recent_files(e, add_tab = false, request_id) {
-        try { e.sender.send('recent_files', get_recent_files_arr(), add_tab, request_id); }
-        catch (error) { e.sender.send('recent_files', [], add_tab, request_id, { error: error.message }); }
-
-        // let files_arr = [];
-        // // get config data directory
-        // let xbel_file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
-        // if (fs.existsSync(xbel_file)) {
-        //     let data = fs.readFileSync(xbel_file, 'utf-8');
-        //     const parser = new XMLParser({
-        //         ignoreAttributes: false,
-        //         attributeNamePrefix: "@_"
-        //     });
-        //     let res = parser.parse(data);
-        //     // console.log('res', res);
-        //     res.xbel.bookmark.forEach(b => {
-        //         try {
-        //             let href = path.normalize(b['@_href'] = b['@_href'].replace('file://', ''));
-        //             href = decodeURIComponent(href);
-        //             let f = gio.get_file(href);
-        //             f.id = path_id(href);
-        //             files_arr.push(f);
-        //         } catch (err) {
-        //             // console.error(err);
-        //         }
-        //     })
-        //     // sort files by mtime
-        //     files_arr.sort((a, b) => {
-        //         return b.mtime - a.mtime;
-        //     });
-        //     // send files_arr to renderer
-        //     if (files_arr.length > 0) {
-        //         e.sender.send('recent_files', files_arr);
-        //     }
-        //     files_arr = [];
-        // }
+    async get_recent_files(e, add_tab = false, request_id) {
+        try {
+            const files = await get_recent_files_arr();
+            if (!e.sender.isDestroyed()) e.sender.send('recent_files', files, add_tab, request_id);
+        } catch (error) {
+            if (!e.sender.isDestroyed()) e.sender.send('recent_files', [], add_tab, request_id, { error: error.message });
+        }
     }
 
 }
 
-// get recent files by reading xbel file
+const windowsRecent = new (require('./lib/WindowsRecent').WindowsRecent)(app);
+
 function get_recent_files_arr() {
+    if (process.platform === 'win32') return windowsRecent.get();
     const file = path.join(utilities.home_dir, '.local/share/', 'recently-used.xbel');
     try { return require('../common/recent_files').recent_files(fs.readFileSync(file, 'utf8'), href => libfs.get_file(href)); }
     catch (error) { if (error.code === 'ENOENT') return []; throw error; }
@@ -3324,12 +3221,14 @@ class MenuManager {
 
         // for template creation
         this.paste_worker = new worker.Worker(path.join(__dirname, '../workers/paste_worker.js'), { workerData: { journal_dir: replacement_journals } });
-        this.paste_worker.on('message', (data) => {
+        this.paste_worker.on('message', async (data) => {
             switch (data.cmd) {
                 case 'cp_template_done':
-                    let f = libfs.get_file(data.destination);
-                    f.id = path_id(data.destination);
-                    win.send('get_item', f, { edit: true });
+                    try {
+                        const f = await device_probe('file', data.destination);
+                        f.id = path_id(data.destination);
+                        if (win && !win.isDestroyed()) win.send('get_item', f, { edit: true });
+                    } catch (error) { if (win && !win.isDestroyed()) win.send('set_msg', `Template created, but metadata is unavailable: ${error.message}`); }
                     break;
             }
         });
@@ -3352,7 +3251,9 @@ class MenuManager {
 
         // Main Menu
         this.main_menu = null;
-        ipcMain.on('main_menu', (e, destination) => {
+        ipcMain.on('main_menu', async (e, destination) => {
+            const writable = await this.can_write_to_location(destination);
+            if (e.sender.isDestroyed()) return;
 
             // Always refresh settings snapshot before building menu state.
             this.settings = settingsManager.get_settings() || {};
@@ -3527,17 +3428,19 @@ class MenuManager {
                 }
             }
 
-            if (!this.can_write_to_location(destination)) {
+            if (!writable) {
                 // disable new folder
                 this.main_menu.getMenuItemById('new_folder').enabled = false;
                 this.main_menu.getMenuItemById('templates').enabled = false;
             }
 
             // Add templates
-            this.add_templates_menu(this.main_menu, destination)
+            const menu = this.main_menu;
+            await this.add_templates_menu(menu, destination);
+            if (e.sender.isDestroyed()) return;
 
             // Show menu
-            this.main_menu.popup(BrowserWindow.fromWebContents(e.sender))
+            menu.popup(BrowserWindow.fromWebContents(e.sender))
 
         })
 
@@ -4031,23 +3934,10 @@ class MenuManager {
         settingsManager.updateSettings(this.settings);
     }
 
-    can_write_to_location(location) {
-        if (!location) {
-            return false;
-        }
-
-        try {
-            fs.accessSync(location, fs.constants.W_OK);
-            return true;
-        } catch (err) {
-        }
-
-        try {
-            const f = libfs.get_file(location);
-            return !!(f && f.is_writable);
-        } catch (err) {
-            return false;
-        }
+    async can_write_to_location(location) {
+        if (!location) return false;
+        try { return await device_probe('menu_writable', location); }
+        catch (_) { return false; }
     }
 
     // Sidebar Menu
@@ -4091,8 +3981,8 @@ class MenuManager {
         let y = bounds.y + parseInt((bounds.height - 350) / 2);
 
         let dialog_properties = {
-            width: 400,
-            height: 475,
+            width: 470,
+            height: 450,
             backgroundColor: '#2e2c29',
             preload: 'connect.js',
             load_file: 'connect.html'
@@ -4282,11 +4172,11 @@ class MenuManager {
     }
 
     // Templated Menu
-    add_templates_menu(menu, location) {
+    async add_templates_menu(menu, location) {
 
         try {
             let template_menu = menu.getMenuItemById('templates');
-            let templates = fs.readdirSync(path.join(utilities.home_dir, 'Templates'));
+            let templates = await device_probe('directory_names', path.join(utilities.home_dir, 'Templates'));
             templates.forEach((file, idx) => {
                 let source = path.join(utilities.home_dir, 'Templates', file);
                 let destination = path.format({ dir: location, base: file });

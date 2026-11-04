@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const archiver = require('archiver');
 const { spawn } = require('child_process');
 const { pipeline } = require('stream/promises');
 const safe = require('./safe_replace');
@@ -18,10 +17,11 @@ async function create_archive(job, { journal_dir, signal, progress = () => {} })
     const destination = job.destination || suggested;
     for (const file of files_arr) await safe.assert_destination(file.href, destination);
     const cancelled = () => signal?.aborted;
+    const { ZipArchive, TarArchive } = await import('archiver');
     await safe.replace(destination, async staged => {
         const archive = type === 'zip'
-            ? archiver('zip', { zlib: { level: 9 } })
-            : archiver('tar', { gzip: type === 'tar.gz', zlib: { level: 9 } });
+            ? new ZipArchive({ zlib: { level: 9 } })
+            : new TarArchive({ gzip: type === 'tar.gz', zlib: { level: 9 } });
         // Warnings mean inputs were omitted: never publish a partial replacement as success.
         archive.on('warning', error => archive.destroy(error));
         archive.on('progress', data => progress(data.fs.processedBytes));

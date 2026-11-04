@@ -3432,9 +3432,12 @@ class WorkspaceManager {
 
         // get workspace folder icon
         ipcRenderer.on('set_workspace_folder_icon', (e, href, icon) => {
-            let tr = document.querySelector(`.workspace_item[data-href="${href}"]`);
-            let img = tr.querySelector('img');
-            img.src = icon;
+            this.workspace_view.querySelectorAll('.workspace_item').forEach(row => {
+                if (row.dataset.href === href) {
+                    const img = row.querySelector('img');
+                    if (img && icon) img.src = icon;
+                }
+            });
         })
 
         this.get_workspace(() => { });
@@ -3545,10 +3548,10 @@ class WorkspaceManager {
                 tr.append(td1, td2);
                 tbody.append(tr);
 
-                if (file.content_type === 'inode/directory') {
+                if (file.is_dir || file.type === 'inode/directory' || file.content_type === 'inode/directory') {
 
                     tr.dataset.is_dir = true;
-                    // img.src = 'icons/folder.svg';
+                    img.src = '../assets/icons/folder.svg';
                     tr.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
