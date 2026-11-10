@@ -31,3 +31,12 @@ test('a stale mount that opens but cannot read is omitted and its handle closes'
     expect(directory.closeSync).toHaveBeenCalled();
     expect(libfs.disk_stats).not.toHaveBeenCalled();
 });
+
+
+test('URI probes retain the GIO local path for matching the mounts list', () => {
+    execFileSync.mockReturnValueOnce('local path: /run/user/1000/gvfs/mtp:host=phone\n')
+        .mockReturnValueOnce('filesystem::size: 1000\nfilesystem::free: 600\n');
+    expect(mount_info('mtp://phone/')).toEqual({
+        canonical_path: '/run/user/1000/gvfs/mtp:host=phone', total: 1000, free: 600, used: 400
+    });
+});

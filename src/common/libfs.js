@@ -1,10 +1,12 @@
 // @ts-nocheck
 
+const { parse_volumes, location_key } = require('./device_identity');
 const { path_id } = require('./path_id');
 const fs = require('fs');
 const fsPromises = fs.promises;
 const path = require('path');
 const os = require('os');
+const { pipeline } = require('stream/promises');
 const { execFileSync, execFile } = require('child_process');
 
 let gioNative = null;
@@ -363,6 +365,25 @@ class LibFS {
     }
 
     mount(device, callback) {
+        if (process.platform === 'linux') {
+            execFile('gio', ['mount', '-li'], { encoding: 'utf8', timeout: 2500, env: { ...process.env, LC_ALL: 'C' } }, (error, output) => {
+                if (error) return callback(error);
+                const volumes = parse_volumes(output);
+                const matches = volumes.filter(volume => typeof device === 'string'
+                    ? volume.name === device
+                    : device.device ? volume.device === device.device
+                    : device.activation_root && volume.activation_root === device.activation_root);
+                if (matches.length !== 1) return callback(new Error('Volume identity is missing or ambiguous. Refresh the device list.'));
+                const volume = matches[0];
+                if (volume.path) return callback(null, volume);
+                const args = volume.device && !volume.activation_root
+                    ? ['mount', '--device=' + volume.device]
+                    : volume.activation_root ? ['mount', volume.activation_root] : null;
+                if (!args) return callback(new Error('Volume has no mountable identity.'));
+                execFile('gio', args, error => callback(error, volume));
+            });
+            return;
+        }
         if (this.gioNative && typeof this.gioNative.mount === 'function') {
             return this.gioNative.mount(device, callback);
         }
@@ -513,6 +534,17 @@ class LibFS {
     }
 
     cp_async(source, destination, callback) {
+        // GVFS MTP/SMB backends may reject the chmod performed by fs.cp.
+        // Stream regular files exclusively; never truncate an existing destination.
+        if (/\/gvfs\/(?:mtp:host=|smb-share:)[^/]+\//.test(destination)) {
+            fsPromises.lstat(source).then(async stat => {
+                if (!stat.isFile()) {
+                    return fsPromises.cp(source, destination, { recursive: true, force: false, errorOnExist: true, dereference: false, verbatimSymlinks: true });
+                }
+                await pipeline(fs.createReadStream(source), fs.createWriteStream(destination, { flags: 'wx' }));
+            }).then(() => callback?.(null, { completed: true }), error => callback?.(error, null));
+            return;
+        }
         fs.cp(source, destination, { recursive: true, force: false, errorOnExist: true, dereference: false, verbatimSymlinks: true }, (err) => {
             if (typeof callback === 'function') {
                 callback(err, err ? null : { completed: true });
@@ -521,6 +553,23 @@ class LibFS {
     }
 
     get_drives(callback) {
+        if (process.platform === 'linux') {
+            execFile('gio', ['mount', '-li'], { encoding: 'utf8', timeout: 2500, env: { ...process.env, LC_ALL: 'C' } }, (error, output) => {
+                if (error) return callback(error);
+                const volumes = parse_volumes(output);
+                const unmounted = volumes.filter(volume => !volume.path && volume.can_mount);
+                if (!this.gioNative?.get_drives) return callback(null, volumes.filter(volume => volume.path || volume.can_mount));
+                this.gioNative.get_drives((error, devices) => {
+                    if (error) return callback(error);
+                    const mounted = devices.filter(device => device.path).map(device => {
+                        const volume = volumes.find(volume => volume.path && location_key(volume.path) === location_key(device.path));
+                        return { ...volume, ...device };
+                    });
+                    callback(null, [...mounted, ...unmounted]);
+                });
+            });
+            return;
+        }
         if (this.gioNative && typeof this.gioNative.get_drives === 'function') {
             return this.gioNative.get_drives(callback);
         }

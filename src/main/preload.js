@@ -1,5 +1,7 @@
+const { is_remote_folder, show_folder_size } = require('../common/remote_folder_size');
 // @ts-nocheck
 
+const { device_key, merge_devices } = require('../common/device_identity');
 const { changes } = require('../common/settings_patch');
 const { path_id } = require('../common/path_id');
 const { contextBridge, ipcRenderer, webUtils } = require('electron');
@@ -456,6 +458,7 @@ class SettingsManager {
 
         this.settings = {};
         this.init_settings();
+        this.remote_folder_sizes_enabled = this.settings?.schema?.properties?.['Default View']?.properties?.['Show Remote Folder Sizes']?.default === true;
 
         this.schema = this.get_schema();
         // console.log('settings schema', this.schema);
@@ -463,11 +466,17 @@ class SettingsManager {
 
         ipcRenderer.on('settings_updated', (e, updated_settings) => {
             // console.log('settings updated', updated_settings);
+            const previous_remote_sizes = this.remote_folder_sizes_enabled;
             this.settings = updated_settings;
             this.persisted_settings = structuredClone(updated_settings);
             this.schema = this.get_schema();
             apply_theme(this.settings?.schema?.properties?.['Default View']?.properties?.Theme?.default);
             fileManager?.apply_tab_toolbar_visibility?.();
+            fileManager?.filter_settings_columns?.();
+            this.remote_folder_sizes_enabled = this.settings?.schema?.properties?.['Default View']?.properties?.['Show Remote Folder Sizes']?.default === true;
+            if (previous_remote_sizes !== this.remote_folder_sizes_enabled) {
+                fileManager.refresh_remote_folder_sizes();
+            }
         })
 
         // settings menu
@@ -695,7 +704,8 @@ class SettingsManager {
                         'Show Tab Toolbar': {
                             type: 'boolean',
                             default: true
-                        }
+                        },
+                        'Show Remote Folder Sizes': { type: 'boolean', default: false }
                     }
                 },
                 'General': {
@@ -1155,7 +1165,7 @@ class Utilities {
             ? folder_data.source
             : '';
         const raw_size = Number(folder_data && folder_data.size);
-        if (!source || !Number.isFinite(raw_size) || raw_size < 0) {
+        if (!source || !show_folder_size(source, settingsManager.get_settings()) || !Number.isFinite(raw_size) || raw_size < 0) {
             return;
         }
 
@@ -3207,10 +3217,7 @@ class DeviceManager {
     }
 
     update_device_arr() {
-        const mounted = this.local_devices || [];
-        const mounted_names = new Set(mounted.map(device => device.name));
-        const devices = [...mounted, ...(this.drives || []).filter(device => !mounted_names.has(device.name))];
-        this.device_arr = [...new Map(devices.map(device => [device.path || device.device || device.name, device])).values()];
+        this.device_arr = merge_devices(this.local_devices || [], this.drives || []);
         this.get_devices();
     }
 
@@ -3233,7 +3240,7 @@ class DeviceManager {
         this.device_arr.sort((a, b) => (a.type || '').localeCompare(b.type || '') || a.name.localeCompare(b.name));
         const retained = new Set();
         this.device_arr.forEach((device, index) => {
-            const key = device.path || device.device || device.name;
+            const key = device_key(device);
             const signature = JSON.stringify(device);
             retained.add(key);
             let record = this.device_nodes.get(key);
@@ -3305,12 +3312,12 @@ class DeviceManager {
                 e.preventDefault();
                 e.stopPropagation();
                 // console.log('mounting', device.name);
-                ipcRenderer.send('mount', device.name);
+                ipcRenderer.send('mount', device.device || device.activation_root ? device : device.name);
             })
 
             // Hover title
             item.addEventListener('mouseover', (e) => {
-                item.title = `Mount "${device.name}"`;
+                item.title = `Mount "${device.name}"${device.device || device.activation_root ? ` (${device.device || device.activation_root})` : ''}`;
             });
 
         } else {
@@ -5513,6 +5520,7 @@ class FileManager {
 
             settingsManager.update_settings(latest_settings);
             this.settings = latest_settings;
+            this.filter_settings_columns();
 
         });
 
@@ -7778,7 +7786,7 @@ class FileManager {
                 for (let i = 0; i < recent_folders.length; ++i) {
                     let card = this.get_view_item(recent_folders[i]);
                     recent_folders_div.appendChild(card);
-                    ipcRenderer.send('get_folder_size', recent_folders[i].href);
+                    this.handleFolderSize(recent_folders[i]);
                 }
                 recent_folders_view.append(recent_folders_div);
                 utilities.lazy_load_icons(recent_folders_view);
@@ -7842,7 +7850,7 @@ class FileManager {
                 for (let i = 0; i < workspace_arr.length; ++i) {
                     let card = this.get_view_item(workspace_arr[i]);
                     workspace_view_div.appendChild(card);
-                    ipcRenderer.send('get_folder_size', workspace_arr[i].href);
+                    this.handleFolderSize(workspace_arr[i]);
                 }
 
                 utilities.lazy_load_icons(workspace_view_div);
@@ -8532,6 +8540,7 @@ class FileManager {
             if (settings.schema.properties[key].type === 'object') {
                 header = document.createElement('h4');
                 header.classList.add('header');
+                header.dataset.settingsSection = key;
                 header.textContent = `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
                 view_container.append(header);
 
@@ -8545,6 +8554,7 @@ class FileManager {
                             // console.log('boolean property', propKey);
 
                             let settings_item = utilities.add_div(['settings_item']);
+                            settings_item.dataset.settingsSection = key;
 
                             const label = document.createElement('label');
                             label.innerText = `${propKey.charAt(0).toUpperCase()}${propKey.slice(1)}`;
@@ -8688,7 +8698,20 @@ class FileManager {
         })
 
         active_tab_content.appendChild(view_container);
+        this.filter_settings_columns();
 
+    }
+
+    filter_settings_columns() {
+        const view = settingsManager.get_settings()?.schema?.properties?.['Default View']?.properties?.View?.default || this.view;
+        const selected = view === 'grid_view' ? 'Grid View Columns' : 'List View Columns';
+        document.querySelectorAll('[data-settings-section]').forEach(element => {
+            const section = element.dataset.settingsSection;
+            if (section === 'Grid View Columns' || section === 'List View Columns') {
+                element.hidden = section !== selected;
+                element.style.display = element.hidden ? 'none' : '';
+            }
+        });
     }
 
     refresh_file_tabs_for_column_settings(section_name) {
@@ -9198,8 +9221,21 @@ class FileManager {
 
     }
 
+    refresh_remote_folder_sizes() {
+        document.querySelectorAll('[data-href][data-is_dir="true"]').forEach(item => {
+            if (!is_remote_folder(item.dataset.href)) return;
+            if (show_folder_size(item.dataset.href, settingsManager.get_settings())) {
+                this.handleFolderSize({ href: item.dataset.href, is_dir: true });
+            } else {
+                delete item.dataset.size;
+                const size = item.querySelector('.size');
+                if (size) size.textContent = '';
+            }
+        });
+    }
+
     handleFolderSize(f) {
-        if (!f || !f.href) {
+        if (!f || !f.href || !show_folder_size(f.href, settingsManager.get_settings())) {
             return;
         }
 
@@ -10164,7 +10200,10 @@ class PropertiesManager {
 
                     content.append(utilities.add_item('Size:'), utilities.add_item(size));
 
-                    if (file.is_readable) {
+                    if (!show_folder_size(file.href, settingsManager.get_settings())) {
+                        size.append('Disabled in Settings');
+                        contents_item.textContent = this.get_contents_text(file);
+                    } else if (file.is_readable) {
                         size.append('Calculating...');
 
                         contents_item.textContent = this.get_contents_text(file);

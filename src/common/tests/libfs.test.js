@@ -151,3 +151,31 @@ it('reports synchronous and callback filesystem failures consistently', async ()
         fs.rmSync(root, { recursive: true, force: true });
     }
 });
+
+
+describe.each(['mtp:host=fixture', 'smb-share:server=fixture,share=files'])('%s regular file copies', backend => {
+    let root, source, destination;
+    beforeEach(() => {
+        root = fs.mkdtempSync(path.join(os.tmpdir(), 'efm-mtp-'));
+        source = path.join(root, 'source.txt');
+        destination = path.join(root, 'gvfs', backend, 'Internal storage', 'Download', 'copied.txt');
+        fs.mkdirSync(path.dirname(destination), { recursive: true });
+        fs.writeFileSync(source, 'phone copy contents');
+    });
+    afterEach(() => { jest.restoreAllMocks(); fs.rmSync(root, { recursive: true, force: true }); });
+    const copy = (source, destination) => new Promise((resolve, reject) => {
+        libfs.cp_async(source, destination, (error, result) => error ? reject(error) : resolve(result));
+    });
+    test('copies bytes without the metadata-setting fs.cp path', async () => {
+        const cp = jest.spyOn(fs, 'cp').mockImplementation(() => { throw new Error('GVFS chmod unsupported'); });
+        expect(await copy(source, destination)).toEqual({ completed: true });
+        expect(cp).not.toHaveBeenCalled();
+        expect(fs.readFileSync(destination, 'utf8')).toBe('phone copy contents');
+        expect(fs.readFileSync(source, 'utf8')).toBe('phone copy contents');
+    });
+    test('existing destination files are preserved and reported as conflicts', async () => {
+        fs.writeFileSync(destination, 'original phone contents');
+        await expect(copy(source, destination)).rejects.toMatchObject({ code: 'EEXIST' });
+        expect(fs.readFileSync(destination, 'utf8')).toBe('original phone contents');
+    });
+});

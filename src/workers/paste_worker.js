@@ -295,7 +295,7 @@ class Utilities {
 
         let msg = {
             cmd: 'set_msg',
-            msg: (cancelled || this.cancel_requested) ? 'Copy cancelled.' : failures.length ? `Copy incomplete: ${failures.length} items failed.` : `Done copying (${completed.length}) files`
+            msg: (cancelled || this.cancel_requested) ? 'Copy cancelled.' : failures.length ? `Copy incomplete: ${failures.length} items failed. ${failures[0].error}` : `Done copying (${completed.length}) files`
         }
         parentPort.postMessage(msg);
         parentPort.postMessage(cp_done);

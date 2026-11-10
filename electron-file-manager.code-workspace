@@ -1,0 +1,12 @@
+{
+  "folders": [
+    {
+      "name": "electron-file-manager",
+      "path": "."
+    },
+    {
+      "name": "libgio-node",
+      "path": "../libgio-node"
+    }
+  ]
+}

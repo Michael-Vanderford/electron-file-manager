@@ -11,9 +11,12 @@ function gio_info(location, filesystem) {
 function mount_info(location) {
     if (!location) throw new Error('Mount has no location');
     const uri = /^[a-z][a-z0-9+.-]*:\/\//i.test(location);
+    let identity = {};
     // Check accessibility separately: disk_stats deliberately falls back to zeros on errors.
     if (uri) {
-        gio_info(location, false);
+        const info = gio_info(location, false);
+        const local = info.match(/^local path: (.+)$/m);
+        if (local) identity = { canonical_path: local[1] };
     } else {
         const directory = fs.opendirSync(location);
         try {
@@ -31,12 +34,12 @@ function mount_info(location) {
             };
             const total = read('size');
             const free = read('free');
-            if (total !== null && free !== null) return { total, free, used: read('used') ?? Math.max(0, total - free) };
+            if (total !== null && free !== null) return { ...identity, total, free, used: read('used') ?? Math.max(0, total - free) };
         } catch (error) {
             if (uri) throw error;
         }
     }
-    return libfs.disk_stats(location, { strict: true });
+    return { ...identity, ...libfs.disk_stats(location, { strict: true }) };
 }
 
 module.exports = { mount_info };

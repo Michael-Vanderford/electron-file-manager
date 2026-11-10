@@ -6,7 +6,7 @@ class OperationQueue {
         this.next();
     }
     next() {
-        if (this.active) return;
+        if (this.active || this.parallel) return;
         const job = this.pending.shift();
         if (!job) return;
         if (job.sender.isDestroyed()) { this.next(); return; }
@@ -27,6 +27,19 @@ class OperationQueue {
         };
         try { Promise.resolve(job.start(job)).catch(failed); }
         catch (error) { failed(error); }
+    }
+    // One unrelated rename may run beside the active copy. Hold the next job
+    // until both finish so newly queued work cannot race the rename.
+    run_parallel(job) {
+        this.parallel = job;
+        job.finish = () => {
+            if (this.parallel !== job) return;
+            this.parallel = null;
+            this.next();
+        };
+        if (job.sender.isDestroyed()) { job.finish(); return; }
+        try { Promise.resolve(job.start(job)).catch(() => job.finish()); }
+        catch (_) { job.finish(); }
     }
     cancel(sender, operation) {
         this.pending = this.pending.filter(job => job.sender !== sender || job.operation !== operation);

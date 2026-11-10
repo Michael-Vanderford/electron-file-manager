@@ -528,7 +528,8 @@ class SettingsManager {
                         'Group By': { type: 'string', enum: ['None', 'Type', 'Date Modified', 'Size'], default: 'None' },
                         'Theme': { type: 'string', enum: ['dark', 'light', 'system', 'modern-dark', 'modern-light'], default: 'system' },
                         'Show Hidden': { type: 'boolean', default: true },
-                        'Show Tab Toolbar': { type: 'boolean', default: true }
+                        'Show Tab Toolbar': { type: 'boolean', default: true },
+                        'Show Remote Folder Sizes': { type: 'boolean', default: false }
                     }
                 },
                 'Icons': {
@@ -622,7 +623,11 @@ class SettingsManager {
             (!value.columns || object(value.columns)) && (!value.tabs || Array.isArray(value.tabs)));
         this.list_store = new JsonStore(this.list_view_file, list_view_settings, value => object(value) &&
             (!value.col_width || (object(value.col_width) && Object.values(value.col_width).every(width => Number.isFinite(Number(width)) && Number(width) > 0))));
-        this.settings = this.settings_store.update(value => merge(defaults, value));
+        this.settings = this.settings_store.update(value => {
+            const settings = merge(defaults, value);
+            delete settings.schema.properties['Default View'].properties['Show Remote Disk Sizes'];
+            return settings;
+        });
         this.list_view_settings = this.list_store.update(value => merge(list_view_settings, value));
     }
 
@@ -1553,7 +1558,7 @@ class Utilities {
 
     queue_transfer(sender, operation, entries, location) {
         const input = structuredClone(entries);
-        this.operation_queue.enqueue({ sender, operation, start: job => {
+        this.operation_queue.enqueue({ sender, operation, paths: input.flatMap(entry => [entry.source, entry.destination]), start: job => {
             const thread = new worker.Worker(path.join(__dirname, operation === 'copy'
                 ? '../workers/paste_worker.js' : '../workers/move_worker.js'),
                 { workerData: { journal_dir: replacement_journals } });
@@ -1671,7 +1676,7 @@ class Utilities {
             return;
         }
 
-        if (!normalized_href || this.is_gvfs_path(normalized_href) || this.is_sftp_path(normalized_href)) {
+        if (!require('../common/remote_folder_size').show_folder_size(normalized_href, settingsManager.get_settings())) {
             return;
         }
 
@@ -1905,10 +1910,10 @@ class Utilities {
     }
 
     // Rename is a scoped filesystem job; replies retain the initiating renderer.
-    rename(e, source, destination, id) {
+    async rename(e, source, destination, id) {
         if (!source || !destination || !id) { e.sender.send('set_msg', 'Invalid rename request.'); return; }
         const sender = e.sender;
-        this.operation_queue.enqueue({ sender, operation: 'rename', start: async job => {
+        const rename_job = { sender, operation: 'rename', start: async job => {
             const send = (channel, ...args) => { if (!sender.isDestroyed()) sender.send(channel, ...args); };
             try {
                 if (await device_probe('exists', destination)) {
@@ -1927,7 +1932,17 @@ class Utilities {
                 this.emit_folder_size_cache_invalidated([path.dirname(source), path.dirname(destination)]);
             } catch (error) { send('set_msg', `Error: rename: ${error.message}`); }
             finally { job.finish(); }
-        }});
+        }};
+        const copy_job = this.operation_queue.active;
+        const pending_jobs = [...this.operation_queue.pending];
+        const independent = await require('../common/rename_during_copy').can_rename(this.operation_queue, source, destination);
+        if (independent && this.operation_queue.active === copy_job && !this.operation_queue.parallel &&
+            this.operation_queue.pending.length === pending_jobs.length &&
+            this.operation_queue.pending.every((job, index) => job === pending_jobs[index])) {
+            this.operation_queue.run_parallel(rename_job);
+        } else {
+            this.operation_queue.enqueue(rename_job);
+        }
     }
 
     // delete
@@ -2295,14 +2310,22 @@ class DeviceManager {
         libfs.mount(device_name, (err, res) => {
 
             if (err) {
-                win.send('set_msg', `Error: mounting ${device_name}: ${err}`);
+                win.send('set_msg', `Error: mounting ${device_name.name || device_name}: ${err}`);
                 return;
             }
 
             // Get mounts after mounting
-            device_probe('mounts').then(mounts => {
-                const device_path = mounts.find(mount => mount.name === device_name)?.path;
-                if (device_path) win.send('mount_done', device_path);
+            device_probe('devices').then(mounts => {
+                const target = res || device_name;
+                const matches = mounts.filter(mount => target.device ? mount.device === target.device
+                    : target.activation_root ? mount.activation_root === target.activation_root
+                    : mount.name === device_name);
+                const device_path = matches.length === 1 ? matches[0].path : null;
+                if (device_path) win.send('mount_done', device_path.startsWith('file://')
+                    ? require('../common/device_identity').location_key(device_path) : device_path);
+                else win.send('set_msg', 'Mounted volume could not be uniquely located. Refresh the device list.');
+                this.device_worker.postMessage({ cmd: 'get_mounts' });
+                this.device_worker.postMessage({ cmd: 'get_devices' });
             }).catch(error => win.send('set_msg', `Error: getting mounts: ${error.message}`));
 
 

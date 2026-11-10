@@ -2468,3 +2468,233 @@ test('P2 Escape clears grouped virtual command selection', async () => {
     await page.evaluate(() => window.titlebarAPI.copy());
     await expect(page.locator('.footer .msg')).toContainText('Copied 0 items');
 });
+
+
+test('local file paste into simulated Android Download storage preserves contents and card', async () => {
+    // Local fixture exercises MTP path routing, not real USB/GVFS capabilities.
+    const source = path.join(fixture, 'phone-copy.txt');
+    const destination = path.join(fixture, 'gvfs', 'mtp:host=fixture', 'Internal storage', 'Download');
+    await fs.writeFile(source, 'Android copy contents');
+    await fs.mkdir(destination, { recursive: true });
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await card(source).click();
+    await page.keyboard.press('Control+C');
+    await navigate(destination);
+    await page.keyboard.press('Control+V');
+    const pasted = path.join(destination, 'phone-copy.txt');
+    await expect.poll(() => fs.readFile(pasted, 'utf8').catch(() => '')).toBe('Android copy contents');
+    await expect(card(pasted)).toBeVisible();
+    expect(await fs.readFile(source, 'utf8')).toBe('Android copy contents');
+    await navigate(fixture);
+    await navigate(destination);
+    await expect(card(pasted)).toHaveCount(1);
+});
+
+
+test('unmounted USB is visible and offers mounting before an external mount', async () => {
+    await app.evaluate(({ BrowserWindow, app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        globalThis.usbMountRequests = [];
+        libfs.mount = (name, callback) => { globalThis.usbMountRequests.push(name); callback(new Error('fixture USB mount failure')); };
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        const send = contents.send.bind(contents);
+        contents.send = (channel, ...args) => {
+            if (['mounts', 'devices'].includes(channel)) return;
+            return send(channel, ...args);
+        };
+        send('mounts', []);
+        send('devices', [{ name: 'Unmounted USB fixture', path: '', type: 'device' }]);
+    });
+    const entry = page.locator('.device_item').filter({ hasText: 'Unmounted USB fixture' });
+    await expect(entry).toHaveCount(1);
+    await expect(entry).toBeVisible();
+    await expect(entry.locator('.device_eject')).toBeHidden();
+    await entry.click();
+    await expect.poll(() => app.evaluate(() => globalThis.usbMountRequests)).toEqual(['Unmounted USB fixture']);
+    await expect(page.locator('.footer .msg')).toContainText('fixture USB mount failure');
+    await expect(entry).toBeVisible();
+});
+
+test('same-label USB remains separate and mounts by device identity', async () => {
+    await app.evaluate(({ BrowserWindow, app }) => {
+        const path = process.mainModule.require('path');
+        const libfs = process.mainModule.require(path.join(app.getAppPath(), 'src/common/libfs.js'));
+        globalThis.sameLabelMountRequests = [];
+        libfs.mount = (device, callback) => {
+            globalThis.sameLabelMountRequests.push(device);
+            callback(new Error('fixture identity mount failure'));
+        };
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        const send = contents.send.bind(contents);
+        contents.send = (channel, ...args) => {
+            if (['mounts', 'devices'].includes(channel)) return;
+            return send(channel, ...args);
+        };
+        send('mounts', [
+            { name: 'SAME fixture', path: '/media/fixture-a' },
+            { name: 'SAME fixture', path: '/media/fixture-a' }
+        ]);
+        send('devices', [
+            { name: 'SAME fixture', path: 'file:///media/fixture-a', device: '/dev/fixture-a' },
+            { name: 'SAME fixture', path: '', device: '/dev/fixture-b' },
+            { name: 'SAME fixture', path: '', device: '/dev/fixture-c' }
+        ]);
+    });
+    const entries = page.locator('.device_item').filter({ hasText: 'SAME fixture' });
+    await expect(entries).toHaveCount(3);
+    await entries.nth(1).click();
+    await expect.poll(() => app.evaluate(() => globalThis.sameLabelMountRequests)).toEqual([
+        { name: 'SAME fixture', path: '', device: '/dev/fixture-b' }
+    ]);
+    await expect(page.locator('.footer .msg')).toContainText('fixture identity mount failure');
+    await expect(entries).toHaveCount(3);
+});
+
+
+test('URI and GVFS representations render one device entry', async () => {
+    await app.evaluate(({ BrowserWindow }) => {
+        const contents = BrowserWindow.getAllWindows()[0].webContents;
+        const send = contents.send.bind(contents);
+        contents.send = (channel, ...args) => {
+            if (['mounts', 'devices'].includes(channel)) return;
+            return send(channel, ...args);
+        };
+        const local = '/run/user/1000/gvfs/mtp:host=fixture-phone';
+        send('mounts', [{ name: 'Alias fixture phone', path: local }]);
+        send('devices', [{ name: 'Alias fixture phone', path: 'mtp://fixture-phone/', canonical_path: local }]);
+    });
+    await expect(page.locator('.device_item').filter({ hasText: 'Alias fixture phone' })).toHaveCount(1);
+});
+
+
+for (const arrival of ['mounts-first', 'devices-first']) {
+    test(`SFTP root and default-home entries render once after repeated discovery (${arrival})`, async () => {
+        await app.evaluate(({ BrowserWindow }, arrival) => {
+            const contents = BrowserWindow.getAllWindows()[0].webContents;
+            const send = contents.send.bind(contents);
+            contents.send = (channel, ...args) => {
+                if (['mounts', 'devices'].includes(channel)) return;
+                return send(channel, ...args);
+            };
+            const root = '/run/user/1000/gvfs/sftp:host=fixture-one';
+            const mounts = [{ name: 'Same SFTP fixture', path: root, type: 'network' }];
+            const devices = [
+                { name: 'Same SFTP fixture', path: 'sftp://fixture-one/home/user', canonical_path: root + '/home/user', type: 'network' },
+                { name: 'Same SFTP fixture', path: 'sftp://fixture-two/home/user', canonical_path: '/run/user/1000/gvfs/sftp:host=fixture-two/home/user', type: 'network' }
+            ];
+            for (let i = 0; i < 2; i++) {
+                if (arrival === 'mounts-first') { send('mounts', mounts); send('devices', devices); }
+                else { send('devices', devices); send('mounts', mounts); }
+            }
+        }, arrival);
+        const entries = page.locator('.device_item').filter({ hasText: 'Same SFTP fixture' });
+        await expect(entries).toHaveCount(2);
+        await expect(entries.locator('a[href="/run/user/1000/gvfs/sftp:host=fixture-one"]')).toHaveCount(1);
+        await expect(entries.locator('a[href="sftp://fixture-two/home/user"]')).toHaveCount(1);
+    });
+}
+
+
+test('new files copied to simulated GVFS SMB storage preserve bytes and destination cards', async () => {
+    // Isolated local fixture checks SMB routing and UI, not a real SMB server.
+    const source = path.join(fixture, 'smb-source');
+    const destination = path.join(fixture, 'gvfs', 'smb-share:server=fixture,share=files');
+    await fs.mkdir(source);
+    await fs.mkdir(destination, { recursive: true });
+    await fs.writeFile(path.join(source, 'new.txt'), 'SMB copy contents');
+    await fs.mkdir(path.join(source, 'nested'));
+    await fs.writeFile(path.join(source, 'nested', 'child.txt'), 'nested SMB contents');
+    await navigate(source);
+    await page.keyboard.press('Control+A');
+    await page.keyboard.press('Control+C');
+    await navigate(destination);
+    await page.keyboard.press('Control+V');
+    await expect.poll(() => fs.readFile(path.join(destination, 'new.txt'), 'utf8').catch(() => '')).toBe('SMB copy contents');
+    await expect.poll(() => fs.readFile(path.join(destination, 'nested', 'child.txt'), 'utf8').catch(() => '')).toBe('nested SMB contents');
+    await expect(card(path.join(destination, 'new.txt'))).toBeVisible();
+    await navigate(source);
+    expect(await fs.readFile(path.join(source, 'new.txt'), 'utf8')).toBe('SMB copy contents');
+    await navigate(destination);
+    await expect(card(path.join(destination, 'new.txt'))).toHaveCount(1);
+});
+
+test('an unrelated directory can be renamed while a copy job is held active', async () => {
+    const source = path.join(fixture, 'copy.txt');
+    const destination = path.join(fixture, 'destination');
+    const folder = path.join(fixture, 'rename-me');
+    await fs.writeFile(source, 'copy contents');
+    await fs.mkdir(destination); await fs.mkdir(folder);
+    await app.evaluate(() => {
+        const { Worker } = process.mainModule.require('worker_threads');
+        const original = Worker.prototype.postMessage;
+        Worker.prototype.postMessage = function(message, ...args) {
+            if (message.cmd === 'paste') {
+                globalThis.releaseHeldCopy = () => original.call(this, message, ...args);
+                Worker.prototype.postMessage = original;
+                return;
+            }
+            return original.call(this, message, ...args);
+        };
+    });
+    await page.evaluate(() => window.titlebarAPI.refresh());
+    await card(source).click(); await page.keyboard.press('Control+C');
+    await navigate(destination); await page.keyboard.press('Control+V');
+    await expect.poll(() => app.evaluate(() => typeof globalThis.releaseHeldCopy)).toBe('function');
+    await navigate(fixture);
+    await card(folder).click(); await page.keyboard.press('F2');
+    const input = card(folder).locator('.edit_name');
+    await input.fill('renamed'); await input.press('Enter');
+    await expect.poll(() => exists(path.join(fixture, 'renamed'))).toBe(true);
+    expect(await exists(path.join(destination, 'copy.txt'))).toBe(false);
+    await app.evaluate(() => globalThis.releaseHeldCopy());
+    await expect.poll(() => fs.readFile(path.join(destination, 'copy.txt'), 'utf8').catch(() => '')).toBe('copy contents');
+});
+
+test('Settings filters columns by selected view and persists remote folder size preference', async () => {
+    await page.evaluate(() => window.titlebarAPI.command('settings'));
+    const settings = page.locator('.settings_view');
+    await expect(settings.locator('.settings_item').filter({ hasText: 'Show Remote Disk Sizes' })).toHaveCount(0);
+    const view = settings.locator('.settings_item').filter({ has: page.locator('label', { hasText: /^View$/ }) }).locator('select');
+    const listSize = settings.locator('[data-settings-section="List View Columns"]').filter({ has: page.locator('label', { hasText: /^Size$/ }) }).locator('input');
+    const gridSize = settings.locator('[data-settings-section="Grid View Columns"]').filter({ has: page.locator('label', { hasText: /^Size$/ }) }).locator('input');
+    await view.selectOption('list_view');
+    await expect(listSize).toBeVisible();
+    await expect(gridSize).toBeHidden();
+    await listSize.uncheck();
+    await view.selectOption('grid_view');
+    await expect(listSize).toBeHidden();
+    await expect(gridSize).toBeVisible();
+    await view.selectOption('list_view');
+    await expect(listSize).not.toBeChecked();
+    const remote = settings.locator('.settings_item').filter({ hasText: 'Show Remote Folder Sizes' }).locator('input');
+    await expect(remote).not.toBeChecked();
+    await remote.check();
+    await expect.poll(async () => {
+        const saved = JSON.parse(await fs.readFile(path.join(profile, 'settings.json'), 'utf8'));
+        return saved.schema.properties['Default View'].properties['Show Remote Folder Sizes'].default;
+    }).toBe(true);
+});
+
+
+test('remote folder size opt-in calculates GVFS-shaped folder contents and hides late replies after opt-out', async () => {
+    // A local temporary GVFS-shaped path exercises policy and UI, not a real server.
+    const remoteRoot = path.join(fixture, 'gvfs', 'smb-share:server=fixture,share=files');
+    const folder = path.join(remoteRoot, 'folder');
+    await fs.mkdir(folder, { recursive: true });
+    await fs.writeFile(path.join(folder, 'data.txt'), '1234567');
+    await page.keyboard.press('Control+L');
+    await page.locator('input.location').fill(remoteRoot);
+    await page.locator('input.location').press('Enter');
+    const card = page.locator(`.card[data-href="${folder}"]`).first();
+    await expect(card).toBeVisible();
+    await page.evaluate(() => window.titlebarAPI.command('settings'));
+    const remote = page.locator('.settings_view .settings_item').filter({ hasText: 'Show Remote Folder Sizes' }).locator('input');
+    await remote.check();
+    await expect(card).toHaveAttribute('data-size', '7');
+    await remote.uncheck();
+    await app.evaluate(({ BrowserWindow }, source) => {
+        BrowserWindow.getAllWindows()[0].webContents.send('folder_size', { source, size: 7 });
+    }, folder);
+    await expect(card).not.toHaveAttribute('data-size', '7');
+});
